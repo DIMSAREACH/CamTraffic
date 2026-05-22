@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+frontend-admin/node_modules/
+frontend-user/node_modules/
+frontend/node_modules/
+
+# Build / env (never commit secrets)
+frontend/dist/
+frontend-admin/dist/
+frontend-user/dist/
+frontend/.env
+frontend-admin/.env
+frontend-user/.env
+backend/.env
+
+# Django
+backend/db.sqlite3
+backend/media/
+backend/staticfiles/
+backend/logs/
+backend/venv/
+__pycache__/
+*.pyc
+.Python
+
+# AI (large files — train locally or use releases)
+ai/weights/
+ai/dataset/
+*.pt
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
+.cursor/
+
+# Optional large reference data (uncomment if you keep PDFs/images outside repo)
+# Reference(PDF Download)/

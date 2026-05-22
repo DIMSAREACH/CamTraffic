@@ -1,0 +1,10 @@
+@import './fonts.css';
+@import './tailwind.css';
+@import './theme.css';
+@import './globals.css';
+@import './sidebar.css';
+@import './dashboard.css';
+@import './navbar.css';
+@import './profile-avatar.css';
+@import './portal-theme.css';
+@import './appearance-settings.css';

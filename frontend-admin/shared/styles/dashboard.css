@@ -1,0 +1,241 @@
+/* Dashboard typography — shared admin + user portals */
+:root {
+  --dashboard-font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --dashboard-font-display: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+
+  --db-font-xs: 0.6875rem;      /* 11px — KPI labels, badges */
+  --db-font-sm: 0.75rem;        /* 12px — subtitles, notes */
+  --db-font-base: 0.9375rem;    /* 15px — body, card titles */
+  --db-font-md: 1rem;           /* 16px — portal main area */
+  --db-font-lg: 1.375rem;       /* 22px — welcome title (user) */
+  --db-font-xl: 1.5rem;         /* 24px — welcome title (admin), secondary KPI */
+  --db-font-kpi: 2rem;          /* 32px — primary KPI values */
+}
+
+.app-dashboard {
+  font-family: var(--dashboard-font-body);
+  font-size: var(--db-font-md);
+  line-height: 1.5;
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Welcome banners */
+.app-dashboard .dashboard-welcome__eyebrow {
+  font-family: var(--dashboard-font-body);
+  font-size: var(--db-font-sm);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.app-dashboard .dashboard-welcome__title {
+  font-family: var(--dashboard-font-display);
+  font-size: var(--db-font-lg);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.app-dashboard--admin .dashboard-welcome__title {
+  font-size: var(--db-font-xl);
+}
+
+.app-dashboard .dashboard-welcome__meta {
+  font-family: var(--dashboard-font-body);
+  font-size: var(--db-font-sm);
+  line-height: 1.45;
+}
+
+/* KPI stat cards (gradient) */
+.app-dashboard .dashboard-kpi__label {
+  font-family: var(--dashboard-font-body);
+  font-size: var(--db-font-xs);
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.app-dashboard .dashboard-kpi__value {
+  font-family: var(--dashboard-font-display);
+  font-size: var(--db-font-kpi);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.app-dashboard .dashboard-kpi__sub {
+  font-family: var(--dashboard-font-body);
+  font-size: var(--db-font-sm);
+  font-weight: 500;
+}
+
+.app-dashboard .dashboard-kpi__trend {
+  font-family: var(--dashboard-font-body);
+  font-size: var(--db-font-sm);
+  font-weight: 700;
+}
+
+/* White secondary stat cards */
+.app-dashboard .dashboard-stat__value {
+  font-family: var(--dashboard-font-display);
+  font-size: var(--db-font-xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+}
+
+.app-dashboard .dashboard-stat__label {
+  font-family: var(--dashboard-font-body);
+  font-size: var(--db-font-sm);
+  font-weight: 500;
+  color: var(--muted-foreground);
+}
+
+/* Chart / section cards */
+.app-dashboard .dashboard-card__title {
+  font-family: var(--dashboard-font-display);
+  font-size: var(--db-font-base);
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.app-dashboard .dashboard-card__subtitle {
+  font-family: var(--dashboard-font-body);
+  font-size: var(--db-font-sm);
+  color: var(--muted-foreground);
+}
+
+.app-dashboard .dashboard-section__title {
+  font-family: var(--dashboard-font-display);
+  font-size: var(--db-font-base);
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.app-dashboard .dashboard-section__subtitle {
+  font-family: var(--dashboard-font-body);
+  font-size: var(--db-font-sm);
+  color: var(--muted-foreground);
+}
+
+/* Recharts axis labels inherit Inter */
+.app-dashboard .recharts-cartesian-axis-tick-value {
+  font-family: var(--dashboard-font-body) !important;
+  font-size: var(--db-font-sm) !important;
+}
+
+.app-dashboard .recharts-legend-item-text {
+  font-family: var(--dashboard-font-body) !important;
+  font-size: var(--db-font-sm) !important;
+}
+
+/* Recharts: remove grey hover background on bars / areas */
+.app-dashboard .recharts-tooltip-cursor,
+.app-dashboard .recharts-rectangle.recharts-tooltip-cursor,
+.app-dashboard .recharts-curve.recharts-tooltip-cursor {
+  fill: transparent !important;
+  stroke: transparent !important;
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+/* Dark mode — section titles & welcome meta */
+html.dark .app-dashboard .dashboard-welcome__title {
+  color: #ffffff;
+}
+
+html.dark .app-dashboard .dashboard-welcome__eyebrow {
+  color: #34d399;
+}
+
+html.dark .app-dashboard .dashboard-welcome__meta {
+  color: #94a3b8 !important;
+}
+
+html.dark .app-dashboard .dashboard-section__title {
+  color: #f8fafc;
+  font-weight: 700;
+}
+
+html.dark .app-dashboard .dashboard-section__subtitle {
+  color: #94a3b8;
+}
+
+html.dark .app-dashboard .dashboard-card__title {
+  color: #f8fafc;
+}
+
+html.dark .app-dashboard .dashboard-card__subtitle {
+  color: #94a3b8;
+}
+
+html.dark .app-dashboard .dashboard-kpi__label {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+html.dark .app-dashboard .dashboard-kpi__value {
+  color: #ffffff;
+}
+
+html.dark .app-dashboard .dashboard-kpi__sub {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* Dashboard home page — slightly larger type than other portal pages */
+.app-dashboard .dashboard-home {
+  --db-font-xs: 0.75rem;
+  --db-font-sm: 0.8125rem;
+  --db-font-base: 1rem;
+  --db-font-md: 1.0625rem;
+  --db-font-lg: 1.5rem;
+  --db-font-xl: 1.625rem;
+  --db-font-kpi: 2.25rem;
+  font-size: var(--db-font-md);
+}
+
+.app-dashboard--admin .dashboard-home .dashboard-welcome__title {
+  font-size: var(--db-font-xl);
+}
+
+/* Inline Tailwind arbitrary sizes on dashboard home (~+1px each step) */
+.app-dashboard .dashboard-home [class*='text-[9px]'] {
+  font-size: 0.625rem !important;
+}
+
+.app-dashboard .dashboard-home [class*='text-[10px]'] {
+  font-size: 0.6875rem !important;
+}
+
+.app-dashboard .dashboard-home [class*='text-[11px]'] {
+  font-size: 0.75rem !important;
+}
+
+.app-dashboard .dashboard-home [class*='text-[12px]'] {
+  font-size: 0.8125rem !important;
+}
+
+.app-dashboard .dashboard-home [class*='text-[13px]'] {
+  font-size: 0.875rem !important;
+}
+
+.app-dashboard .dashboard-home [class*='text-[14px]'] {
+  font-size: 0.9375rem !important;
+}
+
+.app-dashboard .dashboard-home [class*='text-[15px]'] {
+  font-size: 1rem !important;
+}
+
+.app-dashboard .dashboard-home .text-xs {
+  font-size: var(--db-font-xs) !important;
+}
+
+.app-dashboard .dashboard-home .text-sm {
+  font-size: var(--db-font-sm) !important;
+}
+
+.app-dashboard .dashboard-home .text-base {
+  font-size: var(--db-font-base) !important;
+}

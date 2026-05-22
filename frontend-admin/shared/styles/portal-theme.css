@@ -1,0 +1,335 @@
+/* ═══════════════════════════════════════════════════════════════
+   Premium dark portal — Dasher-style slate surfaces + vivid accents
+═══════════════════════════════════════════════════════════════ */
+
+:root {
+  --app-shell-bg: linear-gradient(160deg, #eef2f9 0%, #f0f4fa 40%, #ebf0f7 100%);
+  --portal-surface: #ffffff;
+  --portal-surface-elevated: #ffffff;
+  --portal-surface-border: rgba(37, 99, 235, 0.1);
+  --portal-muted-surface: #f8fafc;
+  --portal-heading: #0f172a;
+  --portal-body: #334155;
+  --portal-subtle: #64748b;
+  --portal-link: #2563eb;
+  --portal-card-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 4px 16px rgba(15, 23, 42, 0.04);
+  --accent-emerald: #10b981;
+  --accent-sky: #38bdf8;
+  --accent-amber: #f59e0b;
+  --accent-rose: #f43f5e;
+  --accent-violet: #8b5cf6;
+}
+
+html.dark {
+  color-scheme: dark;
+  --app-shell-bg: #0f172a;
+  --portal-surface: #1e293b;
+  --portal-surface-elevated: #243044;
+  --portal-surface-border: rgba(255, 255, 255, 0.08);
+  --portal-muted-surface: #172033;
+  --portal-heading: #f8fafc;
+  --portal-body: #e2e8f0;
+  --portal-subtle: #94a3b8;
+  --portal-link: #38bdf8;
+  --portal-card-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.app-shell {
+  background: var(--app-shell-bg);
+  color: var(--foreground);
+}
+
+html[data-ct-page-shell='custom'] .app-shell {
+  background: var(--ct-page-shell-bg) !important;
+}
+
+.app-layout-main,
+.app-layout-main > main {
+  background: transparent;
+}
+
+/* ── Premium elevated cards (all white panels → slate cards) ─── */
+html.dark .app-dashboard .bg-white,
+html.dark .app-dashboard [data-slot='card'] {
+  background: linear-gradient(180deg, var(--portal-surface) 0%, #1a2332 100%) !important;
+  border: 1px solid var(--portal-surface-border) !important;
+  box-shadow: var(--portal-card-shadow) !important;
+  color: var(--portal-heading);
+}
+
+html.dark .app-dashboard .bg-slate-50 {
+  background-color: var(--portal-muted-surface) !important;
+  border: 1px solid var(--portal-surface-border);
+}
+
+html.dark .app-dashboard .rounded-xl.bg-white.shadow-sm,
+html.dark .app-dashboard .flex.gap-1.p-1.rounded-xl.bg-white {
+  background: #172033 !important;
+  border: 1px solid var(--portal-surface-border) !important;
+}
+
+/* Typography — crisp hierarchy */
+html.dark .app-dashboard {
+  color: var(--portal-body);
+}
+
+html.dark .app-dashboard .text-slate-900,
+html.dark .app-dashboard .text-gray-900,
+html.dark .app-dashboard .text-slate-800 {
+  color: var(--portal-heading) !important;
+}
+
+html.dark .app-dashboard .text-slate-700,
+html.dark .app-dashboard .text-slate-600 {
+  color: var(--portal-body) !important;
+}
+
+html.dark .app-dashboard .text-slate-500,
+html.dark .app-dashboard .text-slate-400,
+html.dark .app-dashboard .text-gray-500,
+html.dark .app-dashboard .text-gray-600 {
+  color: var(--portal-subtle) !important;
+}
+
+html.dark .app-dashboard .text-slate-300 {
+  color: #64748b !important;
+}
+
+html.dark .app-dashboard .border-gray-100,
+html.dark .app-dashboard .border-slate-100,
+html.dark .app-dashboard .border-slate-200 {
+  border-color: var(--portal-surface-border) !important;
+}
+
+html.dark .app-dashboard .shadow-sm,
+html.dark .app-dashboard .shadow-lg {
+  box-shadow: var(--portal-card-shadow) !important;
+}
+
+/* Inline light-theme borders → subtle glass edge */
+html.dark .app-dashboard [style*='rgba(37,99,235,0.07)'],
+html.dark .app-dashboard [style*='rgba(37,99,235,0.08)'],
+html.dark .app-dashboard [style*='rgba(37,99,235,0.04)'],
+html.dark .app-dashboard [style*='rgba(37,99,235,0.1)'],
+html.dark .app-dashboard [style*='rgba(255,255,255,0.06)'] {
+  border-color: var(--portal-surface-border) !important;
+}
+
+html.dark .app-dashboard [style*='color: #0F172A'],
+html.dark .app-dashboard [style*='color:#0F172A'] {
+  color: var(--portal-heading) !important;
+}
+
+html.dark .app-dashboard [style*='color: #64748B'],
+html.dark .app-dashboard [style*='color:#64748B'] {
+  color: var(--portal-subtle) !important;
+}
+
+html.dark .app-dashboard [style*='background: #F8FAFC'],
+html.dark .app-dashboard [style*='background:#F8FAFC'] {
+  background: var(--portal-muted-surface) !important;
+}
+
+/* Tables */
+html.dark .app-dashboard tbody tr:hover,
+html.dark .app-dashboard [data-slot='table-row']:hover {
+  background: rgba(56, 189, 248, 0.08) !important;
+}
+
+html.dark .app-dashboard [data-slot='table-head'] {
+  color: var(--portal-subtle) !important;
+}
+
+/* Forms */
+html.dark .app-dashboard input:not([type='checkbox']):not([type='radio']):not([type='range']),
+html.dark .app-dashboard textarea,
+html.dark .app-dashboard select {
+  background-color: #172033 !important;
+  color: var(--portal-heading) !important;
+  border: 1px solid var(--portal-surface-border) !important;
+}
+
+html.dark .app-dashboard input::placeholder,
+html.dark .app-dashboard textarea::placeholder {
+  color: #64748b !important;
+}
+
+html.dark .app-dashboard input:focus,
+html.dark .app-dashboard textarea:focus,
+html.dark .app-dashboard select:focus {
+  border-color: rgba(56, 189, 248, 0.45) !important;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.12) !important;
+}
+
+/* Hero banners — keep rich gradients, glow accents */
+html.dark .app-dashboard .text-white {
+  color: #ffffff !important;
+}
+
+html.dark .app-dashboard .text-white\/65 {
+  color: rgba(255, 255, 255, 0.72) !important;
+}
+
+html.dark .app-dashboard .text-white\/60 {
+  color: rgba(255, 255, 255, 0.62) !important;
+}
+
+html.dark .app-dashboard .text-white\/50 {
+  color: rgba(255, 255, 255, 0.52) !important;
+}
+
+html.dark .app-dashboard .text-white\/75 {
+  color: rgba(255, 255, 255, 0.82) !important;
+}
+
+/* KPI gradient cards — keep vibrant (already colored) */
+html.dark .app-dashboard [style*='linear-gradient(135deg, #2563EB'],
+html.dark .app-dashboard [style*='linear-gradient(135deg, #8B5CF6'],
+html.dark .app-dashboard [style*='linear-gradient(135deg, #EF4444'],
+html.dark .app-dashboard [style*='linear-gradient(135deg, #06B6D4'],
+html.dark .app-dashboard [style*='linear-gradient(135deg, #F59E0B'],
+html.dark .app-dashboard [style*='linear-gradient(135deg, #475569'] {
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35) !important;
+}
+
+/* Status badges — punchy on dark */
+html.dark .app-dashboard [style*='rgba(16,185,129,0.12)'] {
+  background: rgba(16, 185, 129, 0.18) !important;
+  color: #34d399 !important;
+}
+
+html.dark .app-dashboard [style*='rgba(245,158,11,0.12)'] {
+  background: rgba(245, 158, 11, 0.18) !important;
+  color: #fbbf24 !important;
+}
+
+html.dark .app-dashboard [style*='rgba(239,68,68,0.12)'] {
+  background: rgba(239, 68, 68, 0.18) !important;
+}
+
+html.dark .app-dashboard [style*='rgba(239,68,68,0.2)'] {
+  border-color: rgba(248, 113, 113, 0.35) !important;
+}
+
+/* Links & actions */
+html.dark .app-dashboard a[style*='#2563EB'],
+html.dark .app-dashboard button[style*='#2563EB'] {
+  color: var(--accent-sky) !important;
+}
+
+html.dark .app-dashboard [style*='color: #DC2626'] {
+  color: #f87171 !important;
+}
+
+html.dark .app-dashboard [style*='color: #059669'],
+html.dark .app-dashboard [style*='color: #D97706'] {
+  filter: brightness(1.15);
+}
+
+/* Empty states */
+html.dark .app-dashboard [style*='dashed'] {
+  border-color: rgba(148, 163, 184, 0.2) !important;
+  background-color: var(--portal-muted-surface) !important;
+}
+
+/* Profile toggles */
+html.dark .app-dashboard .bg-white.rounded-full.shadow {
+  background-color: #e2e8f0 !important;
+}
+
+/* Charts — grid, axes, tooltips */
+html.dark .app-dashboard .recharts-cartesian-grid line {
+  stroke: rgba(148, 163, 184, 0.12) !important;
+}
+
+html.dark .app-dashboard .recharts-cartesian-axis-line {
+  stroke: rgba(148, 163, 184, 0.2) !important;
+}
+
+html.dark .app-dashboard .recharts-cartesian-axis-tick-value {
+  fill: #94a3b8 !important;
+}
+
+html.dark .app-dashboard .recharts-legend-item-text {
+  color: #cbd5e1 !important;
+}
+
+html.dark .recharts-default-tooltip {
+  background: #1e293b !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45) !important;
+}
+
+html.dark .recharts-tooltip-label {
+  color: #f8fafc !important;
+}
+
+html.dark .recharts-tooltip-item {
+  color: #e2e8f0 !important;
+}
+
+/* Portaled UI */
+html.dark [data-slot='dialog-content'] {
+  background: var(--portal-surface) !important;
+  color: var(--portal-heading) !important;
+  border: 1px solid var(--portal-surface-border) !important;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.55) !important;
+}
+
+html.dark [data-slot='dialog-content'] .text-slate-800,
+html.dark [data-slot='dialog-content'] .text-slate-900 {
+  color: var(--portal-heading) !important;
+}
+
+html.dark [data-slot='dropdown-menu-content']:not(.app-navbar__menu),
+html.dark [data-slot='select-content'] {
+  background: var(--portal-surface) !important;
+  color: var(--portal-heading) !important;
+  border: 1px solid var(--portal-surface-border) !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45) !important;
+}
+
+html.dark [data-slot='dropdown-menu-item']:focus,
+html.dark [data-slot='dropdown-menu-item'][data-highlighted] {
+  background: rgba(56, 189, 248, 0.12) !important;
+  color: var(--portal-heading) !important;
+}
+
+/* Profile fields */
+html.dark .app-dashboard .field-label {
+  color: var(--portal-heading) !important;
+}
+
+html.dark .app-dashboard .lf-field {
+  background: #172033 !important;
+  border-color: var(--portal-surface-border) !important;
+}
+
+html.dark .app-dashboard .lf-input {
+  color: var(--portal-heading) !important;
+}
+
+html.dark .app-dashboard .lf-icon {
+  color: var(--portal-subtle) !important;
+}
+
+html.dark .app-dashboard .lf-field:focus-within {
+  border-color: rgba(56, 189, 248, 0.5) !important;
+  background: #1e293b !important;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.12);
+}
+
+html.dark .app-dashboard .lf-field:focus-within .lf-icon {
+  color: var(--accent-sky) !important;
+}
+
+/* Sonner toasts */
+html.dark [data-sonner-toast] {
+  background: var(--portal-surface) !important;
+  border: 1px solid var(--portal-surface-border) !important;
+  color: var(--portal-heading) !important;
+}

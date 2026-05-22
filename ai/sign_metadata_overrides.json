@@ -1,0 +1,22 @@
+{
+  "R1-01": {
+    "sign_name": "ហាមបត់ឆ្វេង",
+    "sign_name_en": "No Left Turn",
+    "sign_code": "R1-01",
+    "description": "ស្លាកហាមបត់ឆ្វេង។ រូបសញ្ញាជាក្រួចទៅឆ្វេងមានរន្ធកាត់ពណ៌ក្រហម។ រថយន្តគ្រប់ប្រភេទមិនត្រូវបត់ឆ្វេងនៅកន្លែងនេះ ត្រូវធ្វើដំណើរផ្ទាល់ ឬបត់ស្តាំបើអនុញ្ញាត។",
+    "description_en": "No left turn. Left-turn arrow with red prohibitory slash. All vehicles must not turn left here.",
+    "guidance": "សូមកុំបត់ឆ្វេង។ បន្តផ្ទាល់ ឬបត់ស្តាំតាមដែលអនុញ្ញាត។ រក្សាសុវត្ថិភាពចរាចរនៅរង្វង់ផ្ទុះ។",
+    "guidance_en": "Do not turn left. Go straight or turn right where permitted."
+  },
+  "R1-02": {
+    "sign_name": "No Right Turn (R1-02)",
+    "sign_name_km": "ហាមបត់ស្តាំ",
+    "description": "Prohibitory sign: no right turn allowed at this location.",
+    "guidance": "Do not turn right. Continue straight or turn left where permitted."
+  },
+  "KH-STOP": {
+    "sign_name": "Stop Sign",
+    "description": "Drivers must come to a complete stop before the stop line or intersection.",
+    "guidance": "Reduce speed, stop completely, check all directions, then proceed when safe."
+  }
+}

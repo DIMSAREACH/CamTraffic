@@ -1,0 +1,169 @@
+/* Appearance settings — always light panel, visible swatches */
+
+[data-slot='sheet-content'].appearance-sheet {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+  padding: 0 !important;
+  width: 280px !important;
+  max-width: min(100vw, 280px) !important;
+  min-width: 280px !important;
+  height: 100% !important;
+  background-color: #ffffff !important;
+  color: #374151 !important;
+  border-left: 1px solid #e5e7eb !important;
+  overflow: hidden !important;
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Override tailwind bg-background / text-foreground on sheet */
+html.dark [data-slot='sheet-content'].appearance-sheet,
+html.light [data-slot='sheet-content'].appearance-sheet,
+[data-slot='sheet-content'].appearance-sheet {
+  --background: #ffffff;
+  --foreground: #374151;
+  background-color: #ffffff !important;
+  color: #374151 !important;
+}
+
+[data-slot='sheet-content'].appearance-sheet > button.absolute {
+  top: 12px;
+  right: 12px;
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.25) !important;
+  border-radius: 4px;
+  z-index: 50;
+}
+
+.appearance-settings,
+.appearance-settings__scroll {
+  background-color: #ffffff !important;
+  color: #374151 !important;
+}
+
+.appearance-settings h2,
+.appearance-settings h3,
+.appearance-section-label {
+  color: #6b7280 !important;
+}
+
+/* Swatch buttons — beat tailwind button reset */
+.appearance-settings .appearance-swatch-btn,
+[data-slot='sheet-content'].appearance-sheet .appearance-swatch-btn {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.appearance-swatch-row {
+  min-height: 28px;
+}
+
+/* ── Applied custom colors on layout ───────────────────────── */
+
+.app-sidebar__header {
+  background: var(--ct-logo-header-bg, transparent);
+  transition: background 0.2s ease;
+}
+
+html.ct-logo-header-light .app-sidebar__header {
+  border-bottom-color: rgba(15, 23, 42, 0.08);
+}
+
+html.ct-logo-header-light .app-sidebar__header .sidebar-brand__title,
+html.ct-logo-header-light .app-sidebar__header .sidebar-brand__tagline,
+html.ct-logo-header-light .app-sidebar__header .camtraffic-brand {
+  color: #0f172a;
+}
+
+html.ct-logo-header-light .app-sidebar__header .sidebar-brand__tagline {
+  color: #475569;
+}
+
+html.ct-logo-header-light .app-sidebar__toggle {
+  color: #475569;
+}
+
+html.ct-logo-header-light .app-sidebar__toggle:hover {
+  color: #0f172a;
+  background: rgba(15, 23, 42, 0.06);
+}
+
+html[data-ct-navbar='custom'] .app-navbar {
+  background: var(--ct-navbar-bg) !important;
+}
+
+html[data-ct-navbar='custom'] .app-navbar::before {
+  opacity: 0;
+}
+
+html.ct-navbar-light[data-ct-navbar='custom'] .app-navbar {
+  --navbar-text: #0f172a;
+  --navbar-text-muted: #475569;
+  --navbar-text-subtle: #64748b;
+  --navbar-surface: rgba(15, 23, 42, 0.06);
+  --navbar-surface-border: rgba(15, 23, 42, 0.1);
+  --navbar-border: rgba(15, 23, 42, 0.08);
+}
+
+html.ct-navbar-light[data-ct-navbar='custom'] .app-navbar__icon-btn {
+  color: #475569;
+}
+
+html.ct-navbar-light[data-ct-navbar='custom'] .app-navbar__theme-icon,
+html.ct-navbar-light[data-ct-navbar='custom'] .app-navbar__lang-globe {
+  color: #475569;
+}
+
+html[data-ct-sidebar='custom'] .app-sidebar--user,
+html[data-ct-sidebar='custom'] .app-sidebar--admin {
+  background: var(--ct-sidebar-bg) !important;
+}
+
+html.ct-sidebar-light[data-ct-sidebar='custom'] .app-sidebar {
+  border-right-color: rgba(15, 23, 42, 0.08);
+}
+
+html.ct-sidebar-light[data-ct-sidebar='custom'] .app-sidebar__accent-bar {
+  opacity: 0.35;
+}
+
+html.ct-sidebar-light[data-ct-sidebar='custom'] .sidebar-nav__link {
+  color: #475569;
+}
+
+html.ct-sidebar-light[data-ct-sidebar='custom'] .sidebar-nav__link:hover {
+  color: #0f172a;
+  background: rgba(15, 23, 42, 0.06);
+}
+
+html.ct-sidebar-light[data-ct-sidebar='custom'] .sidebar-nav__link--active {
+  color: #0f172a;
+}
+
+html.ct-sidebar-light[data-ct-sidebar='custom'] .sidebar-nav__label {
+  color: #64748b;
+}
+
+html.ct-sidebar-light[data-ct-sidebar='custom'] .sidebar-user-card__name {
+  color: #0f172a;
+}
+
+html.ct-sidebar-light[data-ct-sidebar='custom'] .sidebar-footer__logout {
+  color: #64748b;
+}
+
+html.ct-sidebar-light[data-ct-sidebar='custom'] .sidebar-footer__logout:hover {
+  color: #dc2626;
+  background: rgba(239, 68, 68, 0.08);
+}
+
+html.ct-sidebar-light[data-ct-sidebar='custom'] .app-sidebar__toggle {
+  color: #64748b;
+}
+
+html.ct-sidebar-light[data-ct-sidebar='custom'] .app-sidebar__header {
+  border-bottom-color: rgba(15, 23, 42, 0.08);
+}
