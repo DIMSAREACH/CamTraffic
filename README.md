@@ -45,6 +45,14 @@ flowchart LR
 - YOLOv8 traffic sign detection (mock mode for demos without GPU)
 - PDF fine export, notifications, password reset
 
+## GitHub (manual push only)
+
+Code is stored with **Git** locally. Nothing uploads to GitHub automatically — push only when you ask.
+
+See **[docs/GITHUB.md](docs/GITHUB.md)** for linking a new GitHub repo and running `git push`.
+
+---
+
 ## Quick start
 
 ### 1. Backend
