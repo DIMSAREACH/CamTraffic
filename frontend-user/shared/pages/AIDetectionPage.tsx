@@ -6,7 +6,9 @@ import {
   Eye, Shield, TrendingUp, MapPin, Sparkles, Volume2, Square,
 } from 'lucide-react';
 import { SpeakButton } from '@shared/components/SpeakButton';
+import { useAIDetectionCopy } from '@shared/hooks/useAIDetectionCopy';
 import { buildTrafficSignSpeech, khmerSpeechText, useSpeech } from '@shared/hooks/useSpeech';
+import { useLanguage } from '@shared/context/LanguageContext';
 import { aiAPI } from '@shared/services/api';
 import { toast } from 'sonner';
 import type { AIDetectionLog, AIDetectionPageStats, AIDetectionSampleSign } from '@shared/types';
@@ -36,13 +38,6 @@ function getSignColor(name: string) {
   return SIGN_COLORS[name.toLowerCase().split(' ')[0]] ?? '#8B5CF6';
 }
 
-const STEPS = [
-  { n: '01', title: 'Upload',     desc: 'Photo of a traffic sign',  color: '#3B82F6' },
-  { n: '02', title: 'Preprocess', desc: 'Resize & normalise',       color: '#06B6D4' },
-  { n: '03', title: 'Inference',  desc: 'YOLOv8 classification',    color: '#8B5CF6' },
-  { n: '04', title: 'Results',    desc: 'Sign info & guidance',     color: '#10B981' },
-];
-
 const confColor = (c: number) => c >= 95 ? '#10B981' : c >= 80 ? '#F59E0B' : '#EF4444';
 const confGrad  = (c: number) =>
   c >= 95 ? 'linear-gradient(90deg,#10B981,#06B6D4)' :
@@ -59,28 +54,6 @@ function formatScans(n: number) {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
   return String(n);
 }
-function formatTraining(n: number) {
-  if (n <= 0) return null;
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}K+ training images`;
-  return `${n} training images in dataset`;
-}
-
-function buildSidebarStats(page: AIDetectionPageStats) {
-  const { stats, model } = page;
-  return [
-    { label: 'Accuracy', value: formatPct(stats.accuracy_avg), Icon: Target, accent: '#8B5CF6' },
-    { label: 'Categories', value: String(model.sign_classes), Icon: Layers, accent: '#06B6D4' },
-    { label: 'Avg Speed', value: formatSpeed(stats.avg_speed_sec), Icon: Cpu, accent: '#10B981' },
-    { label: 'Scans', value: formatScans(stats.total_scans), Icon: Activity, accent: '#F59E0B' },
-  ];
-}
-
-function modelStatusLabel(mode: AIDetectionPageStats['model']['mode']) {
-  if (mode === 'yolo') return { text: 'Live Model', color: '#34D399', bg: 'rgba(52,211,153,0.12)', border: 'rgba(52,211,153,0.25)' };
-  if (mode === 'mock_fallback') return { text: 'Weights Missing', color: '#F59E0B', bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.25)' };
-  return { text: 'Demo Mode', color: '#A78BFA', bg: 'rgba(139,92,246,0.12)', border: 'rgba(139,92,246,0.25)' };
-}
-
 /* ─────────────────────────────────────────────────────────
    Small reusable sub-components
 ───────────────────────────────────────────────────────── */
@@ -116,11 +89,6 @@ function SectionHeader({ icon, title, subtitle }: { icon: React.ReactNode; title
 /* ═══════════════════════════════════════════════════════
    Awaiting card — shown before any detection
 ═══════════════════════════════════════════════════════ */
-const AWAIT_STEPS = [
-  { icon: Upload,      label: 'Upload',   desc: 'Drop or click to choose a sign photo', color: '#8B5CF6' },
-  { icon: Zap,         label: 'Analyse',  desc: 'Click "Detect Sign" to run YOLOv8',   color: '#06B6D4' },
-  { icon: CheckCircle, label: 'Results',  desc: 'Confidence score, description & tips', color: '#10B981' },
-];
 function AwaitingCard({
   pageStats,
   onSampleClick,
@@ -128,13 +96,14 @@ function AwaitingCard({
   pageStats: AIDetectionPageStats;
   onSampleClick: (s: AIDetectionSampleSign) => void;
 }) {
+  const { t, AWAIT_STEPS } = useAIDetectionCopy();
   const awaitStats = [
-    { v: formatPct(pageStats.stats.accuracy_avg), l: 'Avg confidence', c: '#8B5CF6', bg: 'rgba(139,92,246,0.10)' },
-    { v: formatSpeed(pageStats.stats.avg_speed_sec), l: 'Avg speed', c: '#06B6D4', bg: 'rgba(6,182,212,0.10)' },
-    { v: String(pageStats.model.sign_classes), l: 'Sign catalog', c: '#10B981', bg: 'rgba(16,185,129,0.10)' },
+    { v: formatPct(pageStats.stats.accuracy_avg), l: t('aiDetection.avgConfidenceShort'), c: '#8B5CF6', bg: 'rgba(139,92,246,0.10)' },
+    { v: formatSpeed(pageStats.stats.avg_speed_sec), l: t('aiDetection.avgSpeedShort'), c: '#06B6D4', bg: 'rgba(6,182,212,0.10)' },
+    { v: String(pageStats.model.sign_classes), l: t('aiDetection.signCatalog'), c: '#10B981', bg: 'rgba(16,185,129,0.10)' },
     {
       v: pageStats.model.training_images > 0 ? formatScans(pageStats.model.training_images) : '—',
-      l: 'Dataset images',
+      l: t('aiDetection.datasetImages'),
       c: '#F59E0B',
       bg: 'rgba(245,158,11,0.10)',
     },
@@ -161,9 +130,9 @@ function AwaitingCard({
             </div>
           </div>
 
-          <p className="dashboard-section__title text-[16px] mb-1">Awaiting Detection</p>
+          <p className="dashboard-section__title text-[16px] mb-1">{t('aiDetection.awaitingTitle')}</p>
           <p className="text-[13px] text-muted-foreground leading-relaxed max-w-[260px]">
-            Upload a traffic sign photo, then click <span className="font-semibold text-foreground">"Detect Sign"</span> to see the AI analysis here.
+            {t('aiDetection.awaitingDesc')}
           </p>
         </div>
 
@@ -206,7 +175,7 @@ function AwaitingCard({
         {/* ── Sample sign chips ── */}
         <div>
           <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2.5">
-            Example Signs
+            {t('aiDetection.exampleSigns')}
           </p>
           <div className="flex gap-2 flex-wrap">
             {pageStats.sample_signs.map(s => (
@@ -248,6 +217,7 @@ function ResultCard({
   preview: string | null;
   onReset: () => void;
 }) {
+  const { t } = useLanguage();
   const { speak, speakingId } = useSpeech('km');
   const km = khmerSpeechText(result);
   const displayName = km.name;
@@ -279,7 +249,7 @@ function ResultCard({
               style={{ background: 'rgba(16,185,129,0.12)' }}>
               <CheckCircle size={14} color="#10B981" />
             </div>
-            <p className="dashboard-section__title text-[14px]">Detection Result</p>
+            <p className="dashboard-section__title text-[14px]">{t('aiDetection.resultTitle')}</p>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-[11px] text-muted-foreground flex items-center gap-1">
@@ -287,7 +257,7 @@ function ResultCard({
             </span>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
               style={{ background: 'rgba(16,185,129,0.12)', color: '#10B981' }}>
-              AI Verified
+              {t('aiDetection.aiVerified')}
             </span>
           </div>
         </div>
@@ -297,10 +267,10 @@ function ResultCard({
           <div className="rounded-2xl overflow-hidden border border-border bg-muted/40">
             <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-card/80">
               <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-                <Camera size={12} /> Analyzed Image
+                <Camera size={12} /> {t('aiDetection.analyzedImage')}
               </span>
               {result.log_id != null && (
-                <span className="text-[10px] text-muted-foreground">Log #{result.log_id}</span>
+                <span className="text-[10px] text-muted-foreground">{t('aiDetection.logNum').replace('{id}', String(result.log_id))}</span>
               )}
             </div>
             <div
@@ -357,7 +327,7 @@ function ResultCard({
                 <span className="text-[17px] font-black leading-none" style={{ color: cc, letterSpacing: '-0.04em' }}>
                   {result.confidence.toFixed(0)}%
                 </span>
-                <span className="text-[8.5px] font-semibold text-muted-foreground uppercase tracking-wide mt-0.5">conf.</span>
+                <span className="text-[8.5px] font-semibold text-muted-foreground uppercase tracking-wide mt-0.5">{t('aiDetection.confShort')}</span>
               </div>
             </div>
 
@@ -366,7 +336,7 @@ function ResultCard({
               <div className="flex items-center gap-2 mb-1">
                 <Sparkles size={12} style={{ color: sc }} />
                 <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                  Identified Sign
+                  {t('aiDetection.identifiedSign')}
                 </span>
               </div>
               <div className="flex items-start justify-between gap-2 mb-1">
@@ -376,7 +346,7 @@ function ResultCard({
                 </p>
                 <SpeakButton
                   size="md"
-                  label="ស្តាប់ឈ្មោះស្លាក"
+                  label={t('aiDetection.listenSign')}
                   isActive={speakingId === 'sign-name'}
                   onClick={() => speakKm(`ស្លាកចរាចរណ៍ ${displayName}`, 'sign-name')}
                 />
@@ -389,10 +359,10 @@ function ResultCard({
               <div className="flex flex-wrap gap-1.5">
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
                   style={{ background: `${sc}20`, color: sc, border: `1px solid ${sc}40` }}>
-                  ✓ Detected
+                  ✓ {t('aiDetection.detected')}
                 </span>
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                  Cambodia Sign
+                  {t('aiDetection.cambodiaSign')}
                 </span>
               </div>
             </div>
@@ -403,7 +373,7 @@ function ResultCard({
         <div>
           <div className="flex items-center justify-between mb-2">
             <span className="text-[12px] font-semibold text-muted-foreground flex items-center gap-1.5">
-              <TrendingUp size={12} /> Detection Confidence
+              <TrendingUp size={12} /> {t('aiDetection.confidenceLabel')}
             </span>
             <span className="text-[13px] font-bold" style={{ color: cc }}>{result.confidence.toFixed(1)}%</span>
           </div>
@@ -413,7 +383,7 @@ function ResultCard({
           </div>
           <div className="flex justify-between mt-1.5">
             <span className="text-[10px] text-muted-foreground">0%</span>
-            <span className="text-[10px] text-muted-foreground">▲ Threshold 80%</span>
+            <span className="text-[10px] text-muted-foreground">▲ {t('aiDetection.threshold')}</span>
             <span className="text-[10px] text-muted-foreground">100%</span>
           </div>
         </div>
@@ -421,9 +391,9 @@ function ResultCard({
         {/* ── 3-score breakdown ── */}
         <div className="grid grid-cols-3 gap-2">
           {[
-            { label: 'Primary',   val: result.confidence },
-            { label: 'Alternate', val: Math.max(2, result.confidence - 14 - Math.random() * 8) },
-            { label: 'Third',     val: Math.max(1, result.confidence - 30 - Math.random() * 12) },
+            { label: t('aiDetection.primary'),   val: result.confidence },
+            { label: t('aiDetection.alternate'), val: Math.max(2, result.confidence - 14 - Math.random() * 8) },
+            { label: t('aiDetection.third'),     val: Math.max(1, result.confidence - 30 - Math.random() * 12) },
           ].map(c => (
             <div key={c.label} className="rounded-xl p-3 text-center bg-muted">
               <p className="text-[16px] font-black leading-none" style={{ color: confColor(c.val), letterSpacing: '-0.03em' }}>
@@ -445,9 +415,9 @@ function ResultCard({
           }`}
         >
           {speakingId === 'full' ? (
-            <><Square size={15} fill="currentColor" /> Stop speaking</>
+            <><Square size={15} fill="currentColor" /> {t('aiDetection.stopSpeaking')}</>
           ) : (
-            <><Volume2 size={15} /> ស្តាប់ — បញ្ជរកចរាចរតាមស្លាកនេះ</>
+            <><Volume2 size={15} /> {t('aiDetection.listenFull')}</>
           )}
         </button>
 
@@ -457,10 +427,10 @@ function ResultCard({
             style={{ background: 'rgba(59,130,246,0.07)', border: '1px solid rgba(59,130,246,0.18)' }}>
             <div className="flex items-center justify-between gap-2 mb-2">
               <p className="text-[11px] font-bold flex items-center gap-1.5" style={{ color: '#60A5FA' }}>
-                <Info size={11} /> Description
+                <Info size={11} /> {t('aiDetection.description')}
               </p>
               <SpeakButton
-                label="Read description"
+                label={t('aiDetection.readDescription')}
                 isActive={speakingId === 'desc'}
                 onClick={() => speakKm(km.desc, 'desc')}
               />
@@ -472,10 +442,10 @@ function ResultCard({
             style={{ background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.2)' }}>
             <div className="flex items-center justify-between gap-2 mb-2">
               <p className="text-[11px] font-bold flex items-center gap-1.5" style={{ color: '#FCD34D' }}>
-                <AlertCircle size={11} /> Driving Guidance
+                <AlertCircle size={11} /> {t('aiDetection.guidance')}
               </p>
               <SpeakButton
-                label="Read guidance"
+                label={t('aiDetection.readGuidance')}
                 isActive={speakingId === 'guide'}
                 onClick={() => speakKm(guidanceSpeech, 'guide')}
               />
@@ -487,9 +457,9 @@ function ResultCard({
         {/* ── Processing stats row ── */}
         <div className="grid grid-cols-3 gap-2 border-t border-border pt-3">
           {[
-            { label: 'Process Time', value: `${result.processing_time}s`,   Icon: Clock },
-            { label: 'Model',        value: 'YOLOv8',                       Icon: Cpu },
-            { label: 'Region',       value: 'Cambodia',                     Icon: MapPin },
+            { label: t('aiDetection.processTime'), value: `${result.processing_time}s`,   Icon: Clock },
+            { label: t('aiDetection.model'),        value: 'YOLOv8',                       Icon: Cpu },
+            { label: t('aiDetection.region'),       value: t('aiDetection.cambodia'),      Icon: MapPin },
           ].map(s => (
             <div key={s.label} className="flex items-center gap-2">
               <s.Icon size={12} className="text-muted-foreground flex-shrink-0" />
@@ -504,7 +474,7 @@ function ResultCard({
         {/* ── Reset button ── */}
         <button onClick={onReset}
           className="w-full py-2.5 rounded-xl text-[13px] font-semibold border border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center gap-2 cursor-pointer">
-          <RefreshCw size={13} /> Detect Another Sign
+          <RefreshCw size={13} /> {t('aiDetection.detectAnother')}
         </button>
       </div>
     </CardWrap>
@@ -515,6 +485,7 @@ function ResultCard({
    Main page
 ═══════════════════════════════════════════════════════ */
 export function AIDetectionPage() {
+  const { t, STEPS, formatTraining, modelStatus } = useAIDetectionCopy();
   const navigate = useNavigate();
   const location = useLocation();
   const aiLogsPath = location.pathname.startsWith('/admin') ? '/admin/ai-logs' : '/dashboard/ai-logs';
@@ -550,8 +521,8 @@ export function AIDetectionPage() {
   }, [refreshPageData]);
 
   const handleFile = (f: File) => {
-    if (!f.type.startsWith('image/')) { toast.error('Please upload an image file.'); return; }
-    if (f.size > 10 * 1024 * 1024) { toast.error('Image must be under 10 MB.'); return; }
+    if (!f.type.startsWith('image/')) { toast.error(t('aiDetection.toast.imageOnly')); return; }
+    if (f.size > 10 * 1024 * 1024) { toast.error(t('aiDetection.toast.imageTooBig')); return; }
     setFile(f); setResult(null); setPreview(URL.createObjectURL(f));
   };
 
@@ -568,20 +539,20 @@ export function AIDetectionPage() {
         const blob = await res.blob();
         const ext = blob.type.includes('png') ? 'png' : 'jpg';
         handleFile(new File([blob], `${sample.sign_code || 'sign'}.${ext}`, { type: blob.type || 'image/jpeg' }));
-        toast.success(`Loaded: ${sample.sign_name}`);
+        toast.success(t('aiDetection.toast.sampleLoaded').replace('{name}', sample.sign_name));
       } catch {
-        toast.error('Could not load sign image. Upload your own photo.');
+        toast.error(t('aiDetection.toast.loadImageFail'));
         inputRef.current?.click();
       }
     } else {
-      toast.info(`Upload a real photo of: ${sample.sign_name}`);
+      toast.info(t('aiDetection.toast.uploadOwnPhoto').replace('{name}', sample.sign_name));
       inputRef.current?.click();
     }
   };
 
   const handleDetect = async () => {
     if (!file) {
-      toast.error('Please upload a sign image first');
+      toast.error(t('aiDetection.toast.uploadFirst'));
       inputRef.current?.click();
       return;
     }
@@ -591,11 +562,15 @@ export function AIDetectionPage() {
     try {
       const res = await aiAPI.detect(file);
       clearInterval(iv); setProgress(100); setResult(res);
-      toast.success(`Detected: ${res.sign_name} (${res.confidence.toFixed(1)}%)`);
+      toast.success(
+        t('aiDetection.toast.detected')
+          .replace('{name}', res.sign_name)
+          .replace('{confidence}', res.confidence.toFixed(1)),
+      );
       await refreshPageData();
     } catch {
       clearInterval(iv);
-      toast.error('Detection failed. Please try again.');
+      toast.error(t('aiDetection.toast.detectFailed'));
     } finally { setDetecting(false); }
   };
 
@@ -605,7 +580,17 @@ export function AIDetectionPage() {
     if (inputRef.current) inputRef.current.value = '';
   };
 
-  const status = pageStats ? modelStatusLabel(pageStats.model.mode) : null;
+  const status = pageStats ? modelStatus(pageStats.model.mode) : null;
+
+  const buildSidebarStats = (page: AIDetectionPageStats) => {
+    const { stats, model } = page;
+    return [
+      { label: t('aiDetection.accuracy'), value: formatPct(stats.accuracy_avg), Icon: Target, accent: '#8B5CF6' },
+      { label: t('aiDetection.categories'), value: String(model.sign_classes), Icon: Layers, accent: '#06B6D4' },
+      { label: t('aiDetection.avgSpeedShort'), value: formatSpeed(stats.avg_speed_sec), Icon: Cpu, accent: '#10B981' },
+      { label: t('aiDetection.scansLabel'), value: formatScans(stats.total_scans), Icon: Activity, accent: '#F59E0B' },
+    ];
+  };
   const maxCategoryCount = pageStats
     ? Math.max(...pageStats.categories.map(c => c.count), 1)
     : 1;
@@ -633,7 +618,7 @@ export function AIDetectionPage() {
                 <Camera size={13} color="#C4B5FD" />
               </div>
               <span className="text-[11px] font-bold uppercase tracking-widest" style={{ color: 'rgba(196,181,253,0.85)' }}>
-                YOLOv8 Powered
+                {t('aiDetection.heroEyebrow')}
               </span>
             </div>
             {status && (
@@ -647,10 +632,10 @@ export function AIDetectionPage() {
 
           {/* Title + subtitle */}
           <h1 className="dashboard-welcome__title text-white mb-1">
-            AI Traffic Sign Detection
+            {t('aiDetection.heroTitle')}
           </h1>
           <p className="text-[12.5px] mb-4" style={{ color: 'rgba(148,163,184,0.7)' }}>
-            Upload a real traffic sign photo — results and stats come from your system database
+            {t('aiDetection.heroSubtitle')}
           </p>
 
           {/* Feature stat chips (live from API) */}
@@ -662,25 +647,25 @@ export function AIDetectionPage() {
             ) : pageStats && (
               [
                 {
-                  label: 'Avg Confidence',
+                  label: t('aiDetection.avgConfidence'),
                   value: formatPct(pageStats.stats.accuracy_avg),
-                  sub: `${formatScans(pageStats.stats.total_scans)} scans`,
+                  sub: t('aiDetection.scans').replace('{count}', formatScans(pageStats.stats.total_scans)),
                   accent: '#A78BFA',
                   bg: 'rgba(139,92,246,0.1)',
                   border: 'rgba(139,92,246,0.2)',
                   icon: '🎯',
                 },
                 {
-                  label: 'Avg Speed',
+                  label: t('aiDetection.avgSpeed'),
                   value: formatSpeed(pageStats.stats.avg_speed_sec),
-                  sub: 'Per detection',
+                  sub: t('aiDetection.perDetection'),
                   accent: '#22D3EE',
                   bg: 'rgba(6,182,212,0.1)',
                   border: 'rgba(6,182,212,0.2)',
                   icon: '⚡',
                 },
                 {
-                  label: 'Sign Catalog',
+                  label: t('aiDetection.signCatalog'),
                   value: String(pageStats.stats.sign_count),
                   sub: `${pageStats.model.name} ${pageStats.model.version}`,
                   accent: '#34D399',
@@ -719,8 +704,8 @@ export function AIDetectionPage() {
               <div className="flex items-center justify-between">
                 <SectionHeader
                   icon={<SectionIcon accent="#8B5CF6"><Upload size={15} /></SectionIcon>}
-                  title="Upload Sign Image"
-                  subtitle="Drag & drop or click to select a file"
+                  title={t('aiDetection.uploadTitle')}
+                  subtitle={t('aiDetection.uploadSubtitle')}
                 />
                 <div className="flex items-center gap-1.5">
                   {['PNG','JPG','WEBP'].map(f => (
@@ -755,7 +740,7 @@ export function AIDetectionPage() {
                       style={{ background: 'rgba(0,0,0,0.45)' }}>
                       <div className="text-center text-white">
                         <Camera size={20} className="mx-auto mb-1" />
-                        <p className="text-[12px] font-semibold">Click to change</p>
+                        <p className="text-[12px] font-semibold">{t('aiDetection.clickToChange')}</p>
                       </div>
                     </div>
                   </div>
@@ -772,12 +757,12 @@ export function AIDetectionPage() {
                         <span className="text-white text-[10px] font-black">+</span>
                       </div>
                     </div>
-                    <p className="text-[15px] font-bold text-foreground">Drop your sign photo here</p>
-                    <p className="text-[12px] text-muted-foreground mt-1">or <span className="font-semibold" style={{ color: '#8B5CF6' }}>click to browse files</span></p>
+                    <p className="text-[15px] font-bold text-foreground">{t('aiDetection.dropTitle')}</p>
+                    <p className="text-[12px] text-muted-foreground mt-1">{t('aiDetection.dropHint')}</p>
                     <div className="flex items-center gap-3 mt-4">
                       {[
-                        { icon: '🖼️', text: 'PNG / JPG / WEBP' },
-                        { icon: '📦', text: 'Max 10 MB' },
+                        { icon: '🖼️', text: t('aiDetection.dropFormats') },
+                        { icon: '📦', text: t('aiDetection.dropMaxSize') },
                       ].map(b => (
                         <span key={b.text} className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground px-2.5 py-1 rounded-lg bg-muted">
                           {b.icon} {b.text}
@@ -801,7 +786,7 @@ export function AIDetectionPage() {
                     </div>
                     <div className="min-w-0">
                       <p className="text-[12.5px] font-semibold text-foreground truncate max-w-[180px]">{file.name}</p>
-                      <p className="text-[11px] text-muted-foreground">{(file.size / 1024).toFixed(1)} KB · Ready to detect</p>
+                      <p className="text-[11px] text-muted-foreground">{(file.size / 1024).toFixed(1)} KB · {t('aiDetection.readyToDetect')}</p>
                     </div>
                   </div>
                   <button onClick={e => { e.stopPropagation(); reset(); }}
@@ -815,7 +800,7 @@ export function AIDetectionPage() {
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[12px] font-semibold text-muted-foreground flex items-center gap-1.5">
                       <span className="w-3 h-3 rounded-full animate-ping inline-block" style={{ background: '#8B5CF6', opacity: 0.6 }} />
-                      Analysing with YOLOv8…
+                      {t('aiDetection.analysing')}
                     </span>
                     <span className="text-[12px] font-black" style={{ color: '#8B5CF6' }}>{Math.round(progress)}%</span>
                   </div>
@@ -835,8 +820,8 @@ export function AIDetectionPage() {
                     boxShadow: !detecting ? '0 4px 20px rgba(124,58,237,0.4)' : 'none',
                   }}>
                   {detecting
-                    ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Analysing…</>
-                    : <><Zap size={15} />Detect Sign</>}
+                    ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />{t('aiDetection.analysingShort')}</>
+                    : <><Zap size={15} />{t('aiDetection.detectSign')}</>}
                 </button>
                 {file && (
                   <button onClick={reset}
@@ -849,17 +834,17 @@ export function AIDetectionPage() {
               {/* Upload tips */}
               <div className="rounded-xl p-3.5" style={{ background: 'rgba(6,182,212,0.05)', border: '1px solid rgba(6,182,212,0.15)' }}>
                 <p className="text-[11px] font-bold uppercase tracking-widest mb-2.5" style={{ color: '#06B6D4' }}>
-                  Tips for Best Results
+                  {t('aiDetection.tipsTitle')}
                 </p>
                 <div className="space-y-2">
                   {[
-                    { icon: '☀️', tip: 'Good lighting — avoid dark or blurry images' },
-                    { icon: '🎯', tip: 'Center the sign clearly in the frame' },
-                    { icon: '📐', tip: 'Shoot at a straight angle, not extreme angles' },
-                  ].map(t => (
-                    <div key={t.tip} className="flex items-start gap-2">
-                      <span className="text-[12px] flex-shrink-0 mt-0.5">{t.icon}</span>
-                      <p className="text-[11.5px] text-muted-foreground leading-snug">{t.tip}</p>
+                    { icon: '☀️', tip: t('aiDetection.tipLight') },
+                    { icon: '🎯', tip: t('aiDetection.tipCenter') },
+                    { icon: '📐', tip: t('aiDetection.tipAngle') },
+                  ].map(tip => (
+                    <div key={tip.tip} className="flex items-start gap-2">
+                      <span className="text-[12px] flex-shrink-0 mt-0.5">{tip.icon}</span>
+                      <p className="text-[11.5px] text-muted-foreground leading-snug">{tip.tip}</p>
                     </div>
                   ))}
                 </div>
@@ -868,7 +853,7 @@ export function AIDetectionPage() {
               {/* Sample signs from traffic sign catalog */}
               <div className="border-t border-border pt-4">
                 <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-3">
-                  Catalog Signs (tap to load)
+                  {t('aiDetection.catalogTap')}
                 </p>
                 {loadingStats ? (
                   <div className="grid grid-cols-4 gap-2">
@@ -904,7 +889,7 @@ export function AIDetectionPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-[12px] text-muted-foreground">Run seed_data to load the sign catalog.</p>
+                  <p className="text-[12px] text-muted-foreground">{t('aiDetection.catalogEmpty')}</p>
                 )}
               </div>
             </CardWrap>
@@ -928,13 +913,13 @@ export function AIDetectionPage() {
             <div className="flex items-center justify-between mb-4">
               <SectionHeader
                 icon={<SectionIcon accent="#8B5CF6"><BarChart2 size={15} /></SectionIcon>}
-                title="Recent Detections"
-                subtitle="Latest AI analysis results across the system"
+                title={t('aiDetection.recentTitle')}
+                subtitle={t('aiDetection.recentSubtitle')}
               />
               <button
                 className="flex items-center gap-1 text-[12px] font-semibold px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
                 onClick={() => navigate(aiLogsPath)}>
-                View All <ChevronRight size={12} />
+                {t('aiDetection.viewAll')} <ChevronRight size={12} />
               </button>
             </div>
 
@@ -947,8 +932,8 @@ export function AIDetectionPage() {
             ) : recentLogs.length === 0 ? (
               <div className="text-center py-10">
                 <Activity size={28} className="mx-auto mb-3 text-muted-foreground opacity-30" />
-                <p className="text-[13px] font-semibold text-muted-foreground">No detections yet</p>
-                <p className="text-[12px] text-muted-foreground mt-1">Upload a sign image to get started</p>
+                <p className="text-[13px] font-semibold text-muted-foreground">{t('aiDetection.noDetections')}</p>
+                <p className="text-[12px] text-muted-foreground mt-1">{t('aiDetection.noDetectionsHint')}</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -1003,7 +988,7 @@ export function AIDetectionPage() {
           <CardWrap className="p-5">
             <div className="flex items-center gap-2.5 mb-4">
               <SectionIcon accent="#8B5CF6"><Cpu size={14} /></SectionIcon>
-              <p className="dashboard-section__title text-[13px]">AI Model</p>
+              <p className="dashboard-section__title text-[13px]">{t('aiDetection.aiModel')}</p>
             </div>
             {loadingStats || !pageStats ? (
               <div className="grid grid-cols-2 gap-2.5">
@@ -1033,12 +1018,12 @@ export function AIDetectionPage() {
                   </p>
                   <p className="text-[10.5px] text-muted-foreground mt-1">
                     {formatTraining(pageStats.model.training_images)
-                      ?? `${pageStats.model.sign_classes} signs in catalog`}
+                      ?? t('aiDetection.signsInCatalog').replace('{count}', String(pageStats.model.sign_classes))}
                     {pageStats.model.mode === 'yolo'
-                      ? ' · Live YOLOv8'
+                      ? ` · ${t('aiDetection.liveYolo')}`
                       : pageStats.model.mode === 'mock_fallback'
-                        ? ' · Train model (see ai/README.md)'
-                        : ' · Demo until weights trained'}
+                        ? ` · ${t('aiDetection.trainModel')}`
+                        : ` · ${t('aiDetection.demoUntilTrained')}`}
                   </p>
                 </div>
               </>
@@ -1049,7 +1034,7 @@ export function AIDetectionPage() {
           <CardWrap className="p-5">
             <div className="flex items-center gap-2.5 mb-4">
               <SectionIcon accent="#3B82F6"><Shield size={14} /></SectionIcon>
-              <p className="dashboard-section__title text-[13px]">Sign Types</p>
+              <p className="dashboard-section__title text-[13px]">{t('aiDetection.signTypes')}</p>
             </div>
             {loadingStats || !pageStats ? (
               <div className="space-y-3">
@@ -1058,7 +1043,7 @@ export function AIDetectionPage() {
                 ))}
               </div>
             ) : pageStats.categories.length === 0 ? (
-              <p className="text-[12px] text-muted-foreground">No signs in catalog. Run seed_data.</p>
+              <p className="text-[12px] text-muted-foreground">{t('aiDetection.noCatalog')}</p>
             ) : (
               <div className="space-y-4">
                 {pageStats.categories.map(c => (
@@ -1083,7 +1068,7 @@ export function AIDetectionPage() {
           <CardWrap className="p-5">
             <div className="flex items-center gap-2.5 mb-4">
               <SectionIcon accent="#06B6D4"><Zap size={14} /></SectionIcon>
-              <p className="dashboard-section__title text-[13px]">How It Works</p>
+              <p className="dashboard-section__title text-[13px]">{t('aiDetection.howItWorks')}</p>
             </div>
             <div className="space-y-3.5">
               {STEPS.map(s => (

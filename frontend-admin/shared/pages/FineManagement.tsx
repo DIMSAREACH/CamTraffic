@@ -12,12 +12,17 @@ import { finesAPI } from '@shared/services/api';
 import { toast } from 'sonner';
 import type { Fine } from '@shared/types';
 
-const STATUS_META: Record<string, { icon: React.ReactNode; bg: string; color: string; label: string; gradient: string }> = {
-  pending:   { icon: <Clock size={11} />,         bg: 'rgba(245,158,11,0.1)',    color: '#D97706',  label: 'Pending',   gradient: 'linear-gradient(135deg, #F59E0B, #D97706)' },
-  paid:      { icon: <CheckCircle size={11} />,    bg: 'rgba(16,185,129,0.1)',    color: '#059669',  label: 'Paid',      gradient: 'linear-gradient(135deg, #10B981, #059669)' },
-  overdue:   { icon: <AlertTriangle size={11} />,  bg: 'rgba(239,68,68,0.1)',     color: '#DC2626',  label: 'Overdue',   gradient: 'linear-gradient(135deg, #EF4444, #DC2626)' },
-  dismissed: { icon: <XCircle size={11} />,        bg: 'rgba(100,116,139,0.1)',   color: '#475569',  label: 'Dismissed', gradient: 'linear-gradient(135deg, #64748B, #475569)' },
+const STATUS_STYLE: Record<string, { icon: React.ReactNode; bg: string; color: string; gradient: string }> = {
+  pending:   { icon: <Clock size={11} />,         bg: 'rgba(245,158,11,0.1)',    color: '#D97706',  gradient: 'linear-gradient(135deg, #F59E0B, #D97706)' },
+  paid:      { icon: <CheckCircle size={11} />,    bg: 'rgba(16,185,129,0.1)',    color: '#059669',  gradient: 'linear-gradient(135deg, #10B981, #059669)' },
+  overdue:   { icon: <AlertTriangle size={11} />,  bg: 'rgba(239,68,68,0.1)',     color: '#DC2626',  gradient: 'linear-gradient(135deg, #EF4444, #DC2626)' },
+  dismissed: { icon: <XCircle size={11} />,        bg: 'rgba(100,116,139,0.1)',   color: '#475569',  gradient: 'linear-gradient(135deg, #64748B, #475569)' },
 };
+
+function statusMeta(status: string, label: string) {
+  const base = STATUS_STYLE[status] ?? STATUS_STYLE.dismissed;
+  return { ...base, label };
+}
 
 const VIOLATION_REASONS = [
   'Running Red Light', 'Speeding (above limit)', 'No Helmet (Motorcycle)', 'No Seatbelt',
@@ -31,6 +36,8 @@ type StatusTab = typeof STATUS_TABS[number];
 
 export function FineManagement() {
   const { t } = useLanguage();
+  const statusLabel = (s: string) => t(`fines.status.${s}`);
+  const getStatusMeta = (status: string) => statusMeta(status, statusLabel(status));
   const { user } = useAuth();
   const [fines, setFines] = useState<Fine[]>([]);
   const [filtered, setFiltered] = useState<Fine[]>([]);
@@ -80,7 +87,7 @@ export function FineManagement() {
       setFines(prev => prev.map(f => f.id === id ? updated : f));
       if (selected?.id === id) setSelected(updated);
       toast.success(`Status updated to ${status}`);
-    } catch { toast.error('Failed to update status'); }
+    } catch { toast.error(t('fines.toastStatusFail')); }
   };
 
   const handleLookup = async () => {
@@ -90,13 +97,13 @@ export function FineManagement() {
       toast.success(`Found: ${r.driver.full_name}`);
     } else {
       setSearchResult({ driver: null });
-      toast.error('Driver not found');
+      toast.error(t('fines.toastDriverNotFound'));
     }
   };
 
   const handleIssueFine = async () => {
     if (!user || !searchResult.driver || !fineForm.reason || !fineForm.amount || !fineForm.location) {
-      toast.error('Fill all required fields and lookup driver first'); return;
+      toast.error(t('fines.toastFillRequired')); return;
     }
     setIssuing(true);
     try {
@@ -105,12 +112,12 @@ export function FineManagement() {
         vehicle_plate: fineForm.vehicle_plate, reason: fineForm.reason,
         amount: parseFloat(fineForm.amount), location: fineForm.location,
       });
-      toast.success('Fine issued successfully');
+      toast.success(t('fines.toastIssued'));
       setIssueFineOpen(false);
       setFineForm({ driver_license: '', vehicle_plate: '', reason: '', amount: '', location: '' });
       setSearchResult({ driver: null });
       loadFines();
-    } catch { toast.error('Failed to issue fine'); }
+    } catch { toast.error(t('fines.toastIssueFail')); }
     finally { setIssuing(false); }
   };
 
@@ -153,7 +160,7 @@ export function FineManagement() {
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold transition-all active:scale-[0.98]"
               style={{ background: 'linear-gradient(135deg, #2563EB, #1D4ED8)', boxShadow: '0 4px 16px rgba(37,99,235,0.45)' }}
             >
-              <Plus size={16} /> Issue Fine
+              <Plus size={16} /> {t('fines.issueFine')}
             </button>
           )}
         </div>
@@ -162,10 +169,10 @@ export function FineManagement() {
       {/* Summary stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Total Fines', value: counts.all, icon: <FileText size={17} />, bg: 'rgba(37,99,235,0.08)', color: '#2563EB' },
-          { label: 'Pending Payment', value: counts.pending, icon: <Clock size={17} />, bg: 'rgba(245,158,11,0.1)', color: '#D97706' },
-          { label: 'Paid Fines', value: counts.paid, icon: <CheckCircle size={17} />, bg: 'rgba(16,185,129,0.1)', color: '#059669' },
-          { label: 'Revenue Collected', value: `$${totalRevenue}`, icon: <DollarSign size={17} />, bg: 'rgba(139,92,246,0.1)', color: '#7C3AED' },
+          { label: t('fines.statTotal'), value: counts.all, icon: <FileText size={17} />, bg: 'rgba(37,99,235,0.08)', color: '#2563EB' },
+          { label: t('fines.statPending'), value: counts.pending, icon: <Clock size={17} />, bg: 'rgba(245,158,11,0.1)', color: '#D97706' },
+          { label: t('fines.statPaid'), value: counts.paid, icon: <CheckCircle size={17} />, bg: 'rgba(16,185,129,0.1)', color: '#059669' },
+          { label: t('fines.statRevenue'), value: `$${totalRevenue}`, icon: <DollarSign size={17} />, bg: 'rgba(139,92,246,0.1)', color: '#7C3AED' },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-2xl p-4 shadow-sm flex items-center gap-3.5 transition-all"
             style={{ border: '1px solid rgba(37,99,235,0.07)' }}
@@ -190,7 +197,7 @@ export function FineManagement() {
           <div className="flex flex-wrap gap-2 flex-1">
             {STATUS_TABS.map(s => {
               const active = statusFilter === s;
-              const meta = s !== 'all' ? STATUS_META[s] : null;
+              const meta = s !== 'all' ? getStatusMeta(s) : null;
               return (
                 <button
                   key={s}
@@ -201,7 +208,7 @@ export function FineManagement() {
                     : { background: '#F8FAFC', color: '#64748B', border: '1px solid rgba(37,99,235,0.08)' }
                   }
                 >
-                  {s.charAt(0).toUpperCase() + s.slice(1)}
+                  {statusLabel(s)}
                   <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full"
                     style={active ? { background: 'rgba(255,255,255,0.25)' } : { background: '#EEF2FF', color: '#6366F1' }}>
                     {counts[s]}
@@ -217,7 +224,7 @@ export function FineManagement() {
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search by name, plate, location..."
+              placeholder={t('fines.searchPlaceholder')}
               className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-50 text-[13px] text-slate-700 outline-none transition-all"
               style={{ border: '1.5px solid rgba(37,99,235,0.08)' }}
               onFocus={e => { (e.currentTarget as HTMLElement).style.borderColor = '#2563EB'; (e.currentTarget as HTMLElement).style.boxShadow = '0 0 0 3px rgba(37,99,235,0.08)'; }}
@@ -233,7 +240,15 @@ export function FineManagement() {
           <Table>
             <TableHeader>
               <TableRow style={{ background: '#F8FAFC', borderBottom: '1px solid rgba(37,99,235,0.08)' }}>
-                {['Driver', 'Vehicle', 'Violation', 'Amount', 'Date', 'Status', 'Actions'].map(h => (
+                {[
+                  t('fines.colDriver'),
+                  t('fines.colVehicle'),
+                  t('fines.colViolation'),
+                  t('fines.colAmount'),
+                  t('fines.colDate'),
+                  t('fines.colStatus'),
+                  t('fines.colActions'),
+                ].map(h => (
                   <TableHead key={h} className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.1em] py-3.5">{h}</TableHead>
                 ))}
               </TableRow>
@@ -262,7 +277,7 @@ export function FineManagement() {
                   </TableCell>
                 </TableRow>
               ) : filtered.map(f => {
-                const st = STATUS_META[f.status] || STATUS_META.dismissed;
+                const st = getStatusMeta(f.status);
                 return (
                   <TableRow key={f.id} className="transition-all" style={{ borderBottom: '1px solid rgba(37,99,235,0.04)' }}
                     onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#FAFBFF'}
@@ -352,7 +367,7 @@ export function FineManagement() {
             </DialogTitle>
           </DialogHeader>
           {selected && (() => {
-            const st = STATUS_META[selected.status] || STATUS_META.dismissed;
+            const st = getStatusMeta(selected.status);
             return (
               <div className="space-y-2 py-2">
                 <div className="flex items-center justify-between p-3.5 rounded-xl" style={{ background: st.bg }}>
@@ -364,15 +379,15 @@ export function FineManagement() {
                 </div>
                 <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(37,99,235,0.07)' }}>
                   {[
-                    { label: 'Driver', value: selected.driver_name },
-                    { label: 'License No.', value: selected.driver_license },
-                    { label: 'Vehicle Plate', value: selected.vehicle_plate },
-                    { label: 'Issued By', value: selected.police_name },
-                    { label: 'Violation', value: selected.reason },
-                    { label: 'Amount', value: `$${selected.amount} USD` },
-                    { label: 'Location', value: selected.location },
-                    { label: 'Date Issued', value: new Date(selected.created_at).toLocaleString() },
-                    ...(selected.paid_at ? [{ label: 'Date Paid', value: new Date(selected.paid_at).toLocaleString() }] : []),
+                    { label: t('fines.colDriver'), value: selected.driver_name },
+                    { label: t('fines.licenseNo'), value: selected.driver_license },
+                    { label: t('fines.vehiclePlate'), value: selected.vehicle_plate },
+                    { label: t('fines.issuedBy'), value: selected.police_name },
+                    { label: t('fines.colViolation'), value: selected.reason },
+                    { label: t('fines.colAmount'), value: `$${selected.amount} USD` },
+                    { label: t('fines.location'), value: selected.location },
+                    { label: t('fines.dateIssued'), value: new Date(selected.created_at).toLocaleString() },
+                    ...(selected.paid_at ? [{ label: t('fines.datePaid'), value: new Date(selected.paid_at).toLocaleString() }] : []),
                   ].map((r, idx, arr) => (
                     <div key={r.label} className="flex justify-between items-center px-4 py-2.5 text-sm"
                       style={{ background: idx % 2 === 0 ? '#FAFBFF' : '#fff', borderBottom: idx < arr.length - 1 ? '1px solid rgba(37,99,235,0.05)' : 'none' }}>
@@ -455,7 +470,7 @@ export function FineManagement() {
               className="px-4 py-2 rounded-lg text-white text-sm font-semibold flex items-center gap-2 disabled:opacity-60 transition-all"
               style={{ background: 'linear-gradient(135deg, #2563EB, #1D4ED8)', boxShadow: '0 4px 12px rgba(37,99,235,0.3)' }}
             >
-              {issuing ? <><span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Issuing...</> : <><Plus size={14} />Issue Fine</>}
+              {issuing ? <><span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />{t('fines.issuing')}</> : <><Plus size={14} />{t('fines.issueFine')}</>}
             </button>
           </DialogFooter>
         </DialogContent>

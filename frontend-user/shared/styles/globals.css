@@ -9,24 +9,7 @@ body,
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
-html.locale-km,
-html.locale-km body,
-html.locale-km .app-sidebar,
-html.locale-km .app-navbar,
-html.locale-km main,
-html.locale-km button,
-html.locale-km input,
-html.locale-km select,
-html.locale-km textarea,
-html.locale-km label,
-html.locale-km p,
-html.locale-km span,
-html.locale-km h1,
-html.locale-km h2,
-html.locale-km h3,
-html.locale-km a {
-  font-family: 'Battambang', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-}
+/* Khmer fonts: see khmer-fonts.css (Kantumruy Pro, Noto Sans Khmer, Moul, Battambang) */
 
 * {
   -webkit-font-smoothing: antialiased;

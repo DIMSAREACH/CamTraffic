@@ -1,0 +1,138 @@
+/**
+ * Cambodia / Khmer typography (thesis recommendation)
+ * — Main UI / Dashboard: Kantumruy Pro
+ * — Tables / Data: Noto Sans Khmer
+ * — Headings: Moul (display) + Kantumruy Pro Bold (sections)
+ * — Mobile UI: Battambang
+ *
+ * Active when html has class .locale-km (LanguageContext).
+ */
+
+html.locale-km {
+  --font-khmer-ui: 'Kantumruy Pro', 'Noto Sans Khmer', system-ui, sans-serif;
+  --font-khmer-table: 'Noto Sans Khmer', 'Kantumruy Pro', system-ui, sans-serif;
+  --font-khmer-heading: 'Moul', 'Kantumruy Pro', serif;
+  --font-khmer-heading-bold: 'Kantumruy Pro', 'Noto Sans Khmer', system-ui, sans-serif;
+  --font-khmer-mobile: 'Battambang', 'Kantumruy Pro', system-ui, sans-serif;
+
+  --dashboard-font-body: var(--font-khmer-ui);
+  --dashboard-font-display: var(--font-khmer-heading-bold);
+  --font-sans: var(--font-khmer-ui);
+  --font-display: var(--font-khmer-heading-bold);
+  --font-display-sidebar: var(--font-khmer-heading-bold);
+}
+
+/* ── Main UI / dashboard / forms ── */
+html.locale-km,
+html.locale-km body,
+html.locale-km #root,
+html.locale-km .app-sidebar,
+html.locale-km .app-navbar,
+html.locale-km main,
+html.locale-km .portal-main,
+html.locale-km .dashboard-page,
+html.locale-km button,
+html.locale-km input,
+html.locale-km select,
+html.locale-km textarea,
+html.locale-km label,
+html.locale-km p,
+html.locale-km span,
+html.locale-km li,
+html.locale-km a,
+html.locale-km .auth-form-panel,
+html.locale-km .auth-left {
+  font-family: var(--font-khmer-ui);
+}
+
+/* ── Headings: Moul (large) + Kantumruy Pro Bold (sections) ── */
+html.locale-km h1,
+html.locale-km .dashboard-welcome__title,
+html.locale-km .auth-headline,
+html.locale-km .login-heading h2,
+html.locale-km .form-title,
+html.locale-km .auth-hero h2,
+html.locale-km .up-hero-title {
+  font-family: var(--font-khmer-heading);
+  font-weight: 400;
+  line-height: 1.35;
+}
+
+html.locale-km h2,
+html.locale-km h3,
+html.locale-km .dashboard-section__title,
+html.locale-km .dashboard-kpi-card__value,
+html.locale-km .sb-brand-title,
+html.locale-km .navbar-title {
+  font-family: var(--font-khmer-heading-bold);
+  font-weight: 700;
+}
+
+html.locale-km h4,
+html.locale-km h5,
+html.locale-km h6 {
+  font-family: var(--font-khmer-heading-bold);
+  font-weight: 600;
+}
+
+/* ── Tables / data grids ── */
+html.locale-km table,
+html.locale-km thead,
+html.locale-km tbody,
+html.locale-km tfoot,
+html.locale-km tr,
+html.locale-km th,
+html.locale-km td,
+html.locale-km [data-slot='table'],
+html.locale-km [data-slot='table-header'],
+html.locale-km [data-slot='table-body'],
+html.locale-km [data-slot='table-row'],
+html.locale-km [data-slot='table-cell'],
+html.locale-km [data-slot='table-head'],
+html.locale-km .dashboard-table,
+html.locale-km .ui-table {
+  font-family: var(--font-khmer-table);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Utility used in AI detection & Khmer content */
+html.locale-km .font-khmer,
+.font-khmer {
+  font-family: var(--font-khmer-ui, 'Kantumruy Pro', 'Noto Sans Khmer', sans-serif);
+}
+
+html.locale-km .font-khmer-table {
+  font-family: var(--font-khmer-table);
+}
+
+html.locale-km .font-khmer-heading {
+  font-family: var(--font-khmer-heading);
+  font-weight: 400;
+}
+
+/* ── Mobile: Battambang for touch-friendly UI ── */
+@media (max-width: 768px) {
+  html.locale-km,
+  html.locale-km body,
+  html.locale-km main,
+  html.locale-km .app-sidebar,
+  html.locale-km .app-navbar,
+  html.locale-km button,
+  html.locale-km input,
+  html.locale-km select,
+  html.locale-km textarea {
+    font-family: var(--font-khmer-mobile);
+  }
+
+  html.locale-km h1,
+  html.locale-km .dashboard-welcome__title,
+  html.locale-km .auth-headline {
+    font-family: var(--font-khmer-heading);
+  }
+
+  html.locale-km table,
+  html.locale-km th,
+  html.locale-km td {
+    font-family: var(--font-khmer-table);
+  }
+}

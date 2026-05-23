@@ -11,28 +11,20 @@ import { SocialLoginButtons } from '@shared/components/auth/SocialLoginButtons';
 import { AuthThemeToggle } from '@shared/components/AuthThemeToggle';
 import { getAdminDevUrl, getUserDevUrl } from '@shared/utils/portal';
 import { getSavedLoginEmail, isRememberMeEnabled } from '@shared/utils/authStorage';
+import { useLanguage } from '@shared/context/LanguageContext';
 
 type LoginLocationState = { email?: string; registered?: boolean };
 const IS_ADMIN_SURFACE = import.meta.env.VITE_PORTAL_SURFACE === 'admin';
 
-const USER_FEATURES = [
-  { Icon: Camera, text: 'Real-time camera surveillance' },
-  { Icon: Cpu, text: 'AI-driven violation detection' },
-  { Icon: CreditCard, text: 'Automated licence plate recognition' },
-  { Icon: BarChart3, text: 'Analytics & reporting dashboard' },
-  { Icon: Bell, text: 'Instant violation alerts & fines' },
-];
-
-const ADMIN_FEATURES = [
-  { Icon: Users, text: 'User, role & access management' },
-  { Icon: Camera, text: 'Camera fleet & enforcement policy' },
-  { Icon: Shield, text: 'Audit trails & compliance oversight' },
-  { Icon: BarChart3, text: 'City-wide analytics & reporting' },
-];
+const USER_FEATURE_KEYS = ['auth.featUser1', 'auth.featUser2', 'auth.featUser3', 'auth.featUser4', 'auth.featUser5'] as const;
+const USER_FEATURE_ICONS = [Camera, Cpu, CreditCard, BarChart3, Bell] as const;
+const ADMIN_FEATURE_KEYS = ['auth.featAdmin1', 'auth.featAdmin2', 'auth.featAdmin3', 'auth.featAdmin4'] as const;
+const ADMIN_FEATURE_ICONS = [Users, Camera, Shield, BarChart3] as const;
 
 type RoleTab = 'police' | 'driver';
 
 export function LoginPage() {
+  const { t } = useLanguage();
   const { login, logout, user, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -47,8 +39,8 @@ export function LoginPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    document.title = portalAdmin ? 'Admin sign-in · CamTraffic' : 'Sign in · CamTraffic';
-  }, [portalAdmin]);
+    document.title = portalAdmin ? t('auth.docTitleAdmin') : t('auth.docTitleUser');
+  }, [portalAdmin, t]);
 
   useEffect(() => {
     const state = location.state as LoginLocationState | null;
@@ -77,15 +69,15 @@ export function LoginPage() {
     e.preventDefault();
     setError('');
     if (!email.trim()) {
-      setError('Please enter your email address.');
+      setError(t('auth.enterEmail'));
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      setError('Please enter a valid email address.');
+      setError(t('auth.validEmail'));
       return;
     }
     if (!password) {
-      setError('Please enter your password.');
+      setError(t('auth.enterPassword'));
       return;
     }
     setLoading(true);
@@ -116,7 +108,7 @@ export function LoginPage() {
 
       window.setTimeout(go, 450);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Invalid email or password. Please try again.');
+      setError(err instanceof Error ? err.message : t('auth.invalidCredentials'));
       setLoading(false);
     }
   };
@@ -136,7 +128,7 @@ export function LoginPage() {
       )}
       <form onSubmit={handleSubmit} noValidate>
         <div className="mb-3">
-          <label htmlFor={`${idPrefix}-email`} className="field-label">Email address</label>
+          <label htmlFor={`${idPrefix}-email`} className="field-label">{t('auth.email')}</label>
           <div className={`lf-field ${error ? 'lf-err' : ''}`}>
             <Mail size={16} className="lf-icon" />
             <input
@@ -154,9 +146,9 @@ export function LoginPage() {
 
         <div className="mb-3">
           <div className="pw-label-row">
-            <label htmlFor={`${idPrefix}-password`} className="field-label mb-0">Password</label>
+            <label htmlFor={`${idPrefix}-password`} className="field-label mb-0">{t('auth.password')}</label>
             <Link to="/forgot-password" className="forgot-link" style={{ fontSize: '.85rem' }}>
-              Forgot password?
+              {t('auth.forgotPassword')}
             </Link>
           </div>
           <div className={`lf-field ${error ? 'lf-err' : ''}`}>
@@ -186,7 +178,7 @@ export function LoginPage() {
               onChange={(e) => setRemember(e.target.checked)}
             />
             <span className="remember-box">{remember ? '✓' : ''}</span>
-            Remember me
+            {t('auth.rememberMe')}
           </label>
         </div>
 
@@ -197,11 +189,11 @@ export function LoginPage() {
           style={{ marginTop: '.5rem' }}
         >
           {loading ? (
-            <span>Signing in…</span>
+            <span>{t('auth.signingIn')}</span>
           ) : loginSuccess ? (
             <>
               <CircleCheck size={18} />
-              <span>Welcome back!</span>
+              <span>{t('auth.welcomeBack')}</span>
             </>
           ) : (
             <>
@@ -227,23 +219,19 @@ export function LoginPage() {
           <div className="up-hero">
             <div className="up-badge ap-badge">
               <Shield size={14} />
-              <span>Administrator Portal</span>
+              <span>{t('auth.adminPortal')}</span>
             </div>
             <h1 className="up-headline ap-headline">
-              Traffic<br />
-              <em>Governance</em>
-              <br />
-              <em>Console</em>
+              {t('auth.adminHeadline')}
             </h1>
             <p className="up-tagline ap-tagline">
-              Restricted access for city administrators: manage the enforcement network,
-              review violations and fines, and keep the public portal separate from staff tools.
+              {t('auth.adminTagline')}
             </p>
             <div className="ap-stat-row">
               {[
-                { value: 'RBAC', label: 'Role-based access', Icon: KeyRound },
-                { value: 'Audit', label: 'Action logging', Icon: ClipboardList },
-                { value: 'Live', label: 'Operations desk', Icon: Activity },
+                { value: 'RBAC', label: t('auth.statRbac'), Icon: KeyRound },
+                { value: 'Audit', label: t('auth.statAudit'), Icon: ClipboardList },
+                { value: 'Live', label: t('auth.statLive'), Icon: Activity },
               ].map(({ value, label, Icon }) => (
                 <div className="ap-stat-chip" key={label}>
                   <Icon size={14} className="ap-stat-icon" />
@@ -253,16 +241,19 @@ export function LoginPage() {
               ))}
             </div>
             <ul className="up-features ap-features">
-              {ADMIN_FEATURES.map(({ Icon, text }) => (
-                <li key={text}>
-                  <Icon size={14} />
-                  {text}
-                </li>
-              ))}
+              {ADMIN_FEATURE_KEYS.map((key, i) => {
+                const Icon = ADMIN_FEATURE_ICONS[i];
+                return (
+                  <li key={key}>
+                    <Icon size={14} />
+                    {t(key)}
+                  </li>
+                );
+              })}
             </ul>
             <div className="up-footer ap-footer">
               <span className="ap-status-dot" />
-              All systems operational · © {new Date().getFullYear()} CamTraffic
+              {t('auth.systemsOperational')} · © {new Date().getFullYear()} CamTraffic
             </div>
           </div>
 
@@ -272,15 +263,13 @@ export function LoginPage() {
                 <div className="ap-card-icon">
                   <Shield size={24} />
                 </div>
-                <h2 className="ap-card-title">Administrator sign-in</h2>
+                <h2 className="ap-card-title">{t('auth.adminSignInTitle')}</h2>
                 <p className="ap-card-sub">
-                  Use credentials issued by your city IT team.
-                  <br />
-                  Public self-registration is not available here.
+                  {t('auth.adminSignInSub')}
                 </p>
               </div>
               <hr className="ap-divider" />
-              {formFields('admin', 'Sign In', true)}
+              {formFields('admin', t('auth.signIn'), true)}
               <p className="up-register-line mt-3">
                 <button
                   type="button"
@@ -294,7 +283,7 @@ export function LoginPage() {
                     }
                   }}
                 >
-                  {IS_ADMIN_SURFACE ? '← Open driver / officer portal' : '← Back to driver / officer sign-in'}
+                  {IS_ADMIN_SURFACE ? t('auth.openUserPortal') : t('auth.backToUserPortal')}
                 </button>
               </p>
             </div>
@@ -313,20 +302,18 @@ export function LoginPage() {
         <div className="up-hero">
           <div className="up-badge">
             <Camera size={14} className="up-badge-icon" aria-hidden />
-            <span>CamTraffic · Cambodia</span>
+            <span>{t('auth.userBadge')}</span>
           </div>
           <h1 className="up-headline">
-            Manage Your Traffic<br />
-            <em>Cases Seamlessly</em>
+            {t('auth.userHeadline')}
           </h1>
           <p className="up-tagline">
-            Access violations, pay fines, and track your cases in one unified platform.
-            Designed for both drivers and enforcement officers.
+            {t('auth.userTagline')}
           </p>
-          <AuthFeatureList items={USER_FEATURES} />
+          <AuthFeatureList items={USER_FEATURE_KEYS.map((key, i) => ({ Icon: USER_FEATURE_ICONS[i], text: t(key) }))} />
           <div className="up-footer">
             <span className="up-status-dot" />
-            All systems operational · © {new Date().getFullYear()} CamTraffic
+            {t('auth.systemsOperational')} · © {new Date().getFullYear()} CamTraffic
           </div>
         </div>
 
@@ -339,7 +326,7 @@ export function LoginPage() {
                 onClick={() => switchRole('police')}
               >
                 <BadgeCheck size={18} />
-                Officer
+                {t('auth.officer')}
               </button>
               <button
                 type="button"
@@ -347,28 +334,26 @@ export function LoginPage() {
                 onClick={() => switchRole('driver')}
               >
                 <Car size={18} />
-                Driver
+                {t('auth.driver')}
               </button>
             </div>
 
             <h2 className="up-card-title">
-              {activeRole === 'police' ? 'Officer Access' : 'Driver Access'}
+              {activeRole === 'police' ? t('auth.officerAccess') : t('auth.driverAccess')}
             </h2>
             <p className="up-card-sub">
-              {activeRole === 'police'
-                ? 'Enter your credentials to access the enforcement portal.'
-                : 'Enter your credentials to access the driver portal.'}
+              {activeRole === 'police' ? t('auth.officerAccessDesc') : t('auth.driverAccessDesc')}
             </p>
 
             {formFields(
               activeRole,
-              `Login as ${activeRole === 'police' ? 'Officer' : 'Driver'}`,
+              activeRole === 'police' ? t('auth.loginAsOfficer') : t('auth.loginAsDriver'),
               false,
               true,
             )}
 
             <p className="up-register-line">
-              First time here? <Link to="/register">Create an account</Link>
+              {t('auth.firstTimeHere')} <Link to="/register">{t('auth.register')}</Link>
             </p>
           </div>
         </div>

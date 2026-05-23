@@ -5,31 +5,35 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@shared/compon
 import { signsAPI } from '@shared/services/api';
 import type { TrafficSign, SignCategory } from '@shared/types';
 
-const CATEGORY_STYLE: Record<SignCategory, { label: string; gradient: string; glow: string; bg: string; color: string; border: string; shape: string; signBg: string; signBorder: string; signText: string }> = {
+const CATEGORY_GRADIENTS: Record<SignCategory, { gradient: string; glow: string; bg: string; color: string; border: string; shape: string; signBg: string; signBorder: string; signText: string }> = {
   prohibitory: {
-    label: 'Prohibitory', gradient: 'linear-gradient(135deg, #EF4444, #DC2626)', glow: 'rgba(239,68,68,0.35)',
+    gradient: 'linear-gradient(135deg, #EF4444, #DC2626)', glow: 'rgba(239,68,68,0.35)',
     bg: 'rgba(239,68,68,0.07)', color: '#DC2626', border: 'rgba(239,68,68,0.15)',
     shape: 'rounded-full', signBg: '#DC2626', signBorder: '#B91C1C', signText: '#FFFFFF',
   },
   warning: {
-    label: 'Warning', gradient: 'linear-gradient(135deg, #F59E0B, #D97706)', glow: 'rgba(245,158,11,0.35)',
+    gradient: 'linear-gradient(135deg, #F59E0B, #D97706)', glow: 'rgba(245,158,11,0.35)',
     bg: 'rgba(245,158,11,0.07)', color: '#D97706', border: 'rgba(245,158,11,0.15)',
     shape: 'rotate-45 rounded', signBg: '#F59E0B', signBorder: '#D97706', signText: '#1C1917',
   },
   mandatory: {
-    label: 'Mandatory', gradient: 'linear-gradient(135deg, #2563EB, #1D4ED8)', glow: 'rgba(37,99,235,0.35)',
+    gradient: 'linear-gradient(135deg, #2563EB, #1D4ED8)', glow: 'rgba(37,99,235,0.35)',
     bg: 'rgba(37,99,235,0.07)', color: '#2563EB', border: 'rgba(37,99,235,0.15)',
     shape: 'rounded-full', signBg: '#2563EB', signBorder: '#1D4ED8', signText: '#FFFFFF',
   },
   informative: {
-    label: 'Informative', gradient: 'linear-gradient(135deg, #10B981, #059669)', glow: 'rgba(16,185,129,0.35)',
+    gradient: 'linear-gradient(135deg, #10B981, #059669)', glow: 'rgba(16,185,129,0.35)',
     bg: 'rgba(16,185,129,0.07)', color: '#059669', border: 'rgba(16,185,129,0.15)',
     shape: 'rounded', signBg: '#059669', signBorder: '#047857', signText: '#FFFFFF',
   },
 };
 
-function SignIcon({ sign, size = 52 }: { sign: TrafficSign; size?: number }) {
-  const s = CATEGORY_STYLE[sign.category];
+function categoryStyle(cat: SignCategory, label: string) {
+  return { label, ...CATEGORY_GRADIENTS[cat] };
+}
+
+function SignIcon({ sign, size = 52, categoryLabel }: { sign: TrafficSign; size?: number; categoryLabel: string }) {
+  const s = categoryStyle(sign.category, categoryLabel);
   const short = sign.sign_name.split(' ').slice(0, 2).join('\n');
   return (
     <div className={`flex items-center justify-center ${s.shape} shadow-md flex-shrink-0`}
@@ -81,6 +85,8 @@ export function TrafficSignsPage() {
   };
 
   const categories: (SignCategory | 'all')[] = ['all', 'prohibitory', 'warning', 'mandatory', 'informative'];
+  const catLabel = (cat: SignCategory) => t(`signCategories.${cat}`);
+  const catStyle = (cat: SignCategory) => categoryStyle(cat, catLabel(cat));
 
   return (
     <div className="space-y-5">
@@ -105,7 +111,7 @@ export function TrafficSignsPage() {
           </div>
           <div className="flex gap-3 flex-wrap">
             {(['prohibitory', 'warning', 'mandatory', 'informative'] as SignCategory[]).map(cat => {
-              const s = CATEGORY_STYLE[cat];
+              const s = catStyle(cat);
               return (
                 <div key={cat} className="px-3 py-2 rounded-xl text-center cursor-pointer transition-all"
                   style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
@@ -122,7 +128,7 @@ export function TrafficSignsPage() {
       {/* Category filter cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {(['prohibitory', 'warning', 'mandatory', 'informative'] as SignCategory[]).map(cat => {
-          const s = CATEGORY_STYLE[cat];
+          const s = catStyle(cat);
           const active = cat === category;
           return (
             <button
@@ -162,7 +168,7 @@ export function TrafficSignsPage() {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search signs by name or code..."
+            placeholder={t('pages.signs.searchPlaceholder')}
             className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-50 text-[13px] text-slate-700 outline-none transition-all"
             style={{ border: '1.5px solid rgba(37,99,235,0.08)' }}
             onFocus={e => { (e.currentTarget as HTMLElement).style.borderColor = '#2563EB'; (e.currentTarget as HTMLElement).style.boxShadow = '0 0 0 3px rgba(37,99,235,0.08)'; }}
@@ -172,7 +178,7 @@ export function TrafficSignsPage() {
         <div className="flex gap-2">
           {categories.map(cat => {
             const active = category === cat;
-            const style = cat !== 'all' ? CATEGORY_STYLE[cat] : null;
+            const style = cat !== 'all' ? catStyle(cat) : null;
             return (
               <button key={cat} onClick={() => setCategory(cat)}
                 className="px-3 py-2 rounded-xl text-[11px] font-semibold transition-all"
@@ -180,7 +186,7 @@ export function TrafficSignsPage() {
                   ? { background: style?.gradient ?? 'linear-gradient(135deg, #0F172A, #1E293B)', color: '#fff', boxShadow: `0 4px 10px ${style?.glow ?? 'rgba(15,23,42,0.3)'}` }
                   : { background: '#F8FAFC', color: '#64748B', border: '1px solid rgba(37,99,235,0.08)' }
                 }>
-                {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                {cat === 'all' ? t('pages.signs.allCategory') : catLabel(cat)}
                 {cat === 'all' && <span className="ml-1 opacity-70">({counts.all})</span>}
               </button>
             );
@@ -198,15 +204,15 @@ export function TrafficSignsPage() {
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'rgba(37,99,235,0.06)' }}>
             <BookOpen size={28} style={{ color: 'rgba(37,99,235,0.25)' }} />
           </div>
-          <p className="text-slate-500 font-semibold">No signs found</p>
-          <p className="text-slate-300 text-sm mt-1">Try different search terms or clear the filter</p>
+          <p className="text-slate-500 font-semibold">{t('pages.signs.noResults')}</p>
+          <p className="text-slate-300 text-sm mt-1">{t('pages.signs.noResultsHint')}</p>
         </div>
       ) : (
         <>
-          <p className="text-[12px] text-slate-400 font-medium">{filtered.length} sign{filtered.length !== 1 ? 's' : ''} shown</p>
+          <p className="text-[12px] text-slate-400 font-medium">{t('pages.signs.shownCount', { count: filtered.length })}</p>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {filtered.map(sign => {
-              const s = CATEGORY_STYLE[sign.category];
+              const s = catStyle(sign.category);
               return (
                 <button
                   key={sign.id}
@@ -218,7 +224,7 @@ export function TrafficSignsPage() {
                 >
                   <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: s.gradient }} />
                   <div className="flex items-center justify-center h-16 mb-3">
-                    <SignIcon sign={sign} size={50} />
+                    <SignIcon sign={sign} size={50} categoryLabel={catLabel(sign.category)} />
                   </div>
                   <p className="text-[12px] font-bold text-slate-800 leading-tight">{sign.sign_name}</p>
                   <p className="text-[10px] text-slate-400 mt-0.5 font-mono">{sign.sign_code}</p>
@@ -237,13 +243,13 @@ export function TrafficSignsPage() {
       <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
         <DialogContent className="max-w-lg">
           {selected && (() => {
-            const s = CATEGORY_STYLE[selected.category];
+            const s = catStyle(selected.category);
             return (
               <>
                 <div className="h-1 -mx-6 -mt-6 mb-4 rounded-t-lg" style={{ background: s.gradient }} />
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-3">
-                    <SignIcon sign={selected} size={44} />
+                    <SignIcon sign={selected} size={44} categoryLabel={catLabel(selected.category)} />
                     <div>
                       <div className="text-[16px] font-bold text-slate-900">{selected.sign_name}</div>
                       <div className="text-[11px] text-slate-400 font-mono font-normal mt-0.5">{selected.sign_code}</div>

@@ -9,11 +9,11 @@ import { dashboardAPI } from '@shared/services/api';
 import { toast } from 'sonner';
 import type { Fine, AIDetectionLog } from '@shared/types';
 
-const STATUS_BADGE: Record<string, { bg: string; color: string; label: string }> = {
-  pending: { bg: 'rgba(245,158,11,0.12)', color: '#D97706', label: 'Pending' },
-  paid: { bg: 'rgba(16,185,129,0.12)', color: '#059669', label: 'Paid' },
-  overdue: { bg: 'rgba(239,68,68,0.12)', color: '#DC2626', label: 'Overdue' },
-  dismissed: { bg: 'rgba(100,116,139,0.12)', color: '#475569', label: 'Dismissed' },
+const STATUS_BADGE_STYLE: Record<string, { bg: string; color: string }> = {
+  pending: { bg: 'rgba(245,158,11,0.12)', color: '#D97706' },
+  paid: { bg: 'rgba(16,185,129,0.12)', color: '#059669' },
+  overdue: { bg: 'rgba(239,68,68,0.12)', color: '#DC2626' },
+  dismissed: { bg: 'rgba(100,116,139,0.12)', color: '#475569' },
 };
 
 export function DriverDashboard() {
@@ -48,17 +48,17 @@ export function DriverDashboard() {
 
   const quickActions = [
     {
-      label: 'AI Sign Detection',
-      desc: 'Upload a traffic sign photo for instant AI identification',
+      label: t('dashboard.qaAiDetection'),
+      desc: t('dashboard.qaAiDetectionDesc'),
       icon: <Camera size={22} />,
       path: '/dashboard/ai-detection',
       gradient: 'linear-gradient(135deg, #8B5CF6, #7C3AED)',
       glow: '0 8px 28px rgba(139,92,246,0.4)',
-      badge: 'AI Powered',
+      badge: t('dashboard.qaAiBadge'),
     },
     {
-      label: 'Traffic Signs Library',
-      desc: 'Learn Cambodia traffic rules and sign meanings',
+      label: t('dashboard.qaSignsLibrary'),
+      desc: t('dashboard.qaSignsLibraryDesc'),
       icon: <BookOpen size={22} />,
       path: '/dashboard/signs',
       gradient: 'linear-gradient(135deg, #2563EB, #1D4ED8)',
@@ -66,8 +66,8 @@ export function DriverDashboard() {
       badge: null,
     },
     {
-      label: 'My Vehicles',
-      desc: 'Manage your registered vehicles',
+      label: t('dashboard.qaMyVehicles'),
+      desc: t('dashboard.qaMyVehiclesDesc'),
       icon: <Car size={22} />,
       path: '/dashboard/vehicles',
       gradient: 'linear-gradient(135deg, #06B6D4, #0891B2)',
@@ -75,21 +75,21 @@ export function DriverDashboard() {
       badge: null,
     },
     {
-      label: 'My Fines',
-      desc: 'View and pay outstanding fines',
+      label: t('dashboard.qaMyFines'),
+      desc: t('dashboard.qaMyFinesDesc'),
       icon: <FileText size={22} />,
       path: '/dashboard/fines',
       gradient: 'linear-gradient(135deg, #EF4444, #DC2626)',
       glow: '0 8px 28px rgba(239,68,68,0.4)',
-      badge: stats?.pending ? `${stats.pending} pending` : null,
+      badge: stats?.pending ? t('dashboard.pendingBadge', { count: stats.pending }) : null,
     },
   ];
 
   const statCards = [
-    { title: 'My Vehicles', value: stats?.vehicles ?? 0, icon: <Car size={18} />, gradient: 'linear-gradient(135deg, #2563EB, #1D4ED8)', note: 'registered' },
-    { title: 'Total Fines', value: stats?.total_fines ?? 0, icon: <FileText size={18} />, gradient: 'linear-gradient(135deg, #475569, #334155)', note: 'all time' },
-    { title: 'Outstanding', value: stats?.pending ?? 0, icon: <Clock size={18} />, gradient: 'linear-gradient(135deg, #EF4444, #DC2626)', note: 'need payment' },
-    { title: 'Amount Owed', value: `$${Number(stats?.owed ?? 0).toLocaleString()}`, icon: <AlertTriangle size={18} />, gradient: 'linear-gradient(135deg, #F59E0B, #D97706)', note: 'USD total' },
+    { title: t('dashboard.statMyVehicles'), value: stats?.vehicles ?? 0, icon: <Car size={18} />, gradient: 'linear-gradient(135deg, #2563EB, #1D4ED8)', note: t('dashboard.noteRegistered') },
+    { title: t('dashboard.statTotalFines'), value: stats?.total_fines ?? 0, icon: <FileText size={18} />, gradient: 'linear-gradient(135deg, #475569, #334155)', note: t('dashboard.noteAllTime') },
+    { title: t('dashboard.statOutstanding'), value: stats?.pending ?? 0, icon: <Clock size={18} />, gradient: 'linear-gradient(135deg, #EF4444, #DC2626)', note: t('dashboard.noteNeedPayment') },
+    { title: t('dashboard.statAmountOwed'), value: `$${Number(stats?.owed ?? 0).toLocaleString()}`, icon: <AlertTriangle size={18} />, gradient: 'linear-gradient(135deg, #F59E0B, #D97706)', note: t('dashboard.noteUsdTotal') },
   ];
 
   if (loading) {
@@ -108,15 +108,15 @@ export function DriverDashboard() {
   if (loadError && !stats) {
     return (
       <div className="rounded-2xl bg-white p-8 text-center shadow-sm" style={{ border: '1px solid rgba(37,99,235,0.1)' }}>
-        <p className="text-slate-700 font-semibold mb-2">Dashboard could not load</p>
-        <p className="text-sm text-slate-500 mb-4">Check that the backend is running, then retry.</p>
+        <p className="text-slate-700 font-semibold mb-2">{t('dashboard.loadErrorTitle')}</p>
+        <p className="text-sm text-slate-500 mb-4">{t('dashboard.loadErrorHint')}</p>
         <button
           type="button"
           onClick={loadStats}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold"
           style={{ background: 'linear-gradient(135deg, #2563EB, #1D4ED8)' }}
         >
-          <RefreshCw size={16} /> Retry
+          <RefreshCw size={16} /> {t('dashboard.retry')}
         </button>
       </div>
     );
@@ -180,8 +180,8 @@ export function DriverDashboard() {
       {/* Quick Actions */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="dashboard-section__title">Quick Actions</h2>
-          <span className="dashboard-section__subtitle">What would you like to do?</span>
+          <h2 className="dashboard-section__title">{t('dashboard.quickActions')}</h2>
+          <span className="dashboard-section__subtitle">{t('dashboard.quickActionsHint')}</span>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {quickActions.map(a => (
@@ -204,7 +204,7 @@ export function DriverDashboard() {
               <p className="font-bold text-sm leading-tight relative z-10">{a.label}</p>
               <p className="text-white/60 text-[11px] mt-1 line-clamp-2 relative z-10">{a.desc}</p>
               <div className="flex items-center gap-1 mt-2.5 relative z-10">
-                <span className="text-[11px] font-semibold text-white/75">Open</span>
+                <span className="text-[11px] font-semibold text-white/75">{t('dashboard.open')}</span>
                 <ArrowRight size={11} style={{ color: 'rgba(255,255,255,0.75)' }} />
               </div>
             </button>
@@ -221,31 +221,32 @@ export function DriverDashboard() {
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.08)', color: '#DC2626' }}>
                 <FileText size={15} />
               </div>
-              <h3 className="text-slate-800 text-[14px] font-bold">Recent Fines</h3>
+              <h3 className="text-slate-800 text-[14px] font-bold">{t('dashboard.recentFines')}</h3>
             </div>
             <button onClick={() => navigate('/dashboard/fines')}
               className="text-[12px] font-semibold flex items-center gap-1 transition-colors" style={{ color: '#2563EB' }}>
-              View all <ArrowRight size={12} />
+              {t('dashboard.viewAll')} <ArrowRight size={12} />
             </button>
           </div>
 
           {!stats?.recent_fines?.length ? (
             <div className="text-center py-10 rounded-xl" style={{ background: '#FAFBFF', border: '1px dashed rgba(16,185,129,0.2)' }}>
               <CheckCircle size={30} className="mx-auto mb-2.5" style={{ color: 'rgba(16,185,129,0.4)' }} />
-              <p className="text-sm text-slate-400 font-medium">No recent fines</p>
-              <p className="text-xs text-slate-300 mt-1">Keep driving safely!</p>
+              <p className="text-sm text-slate-400 font-medium">{t('dashboard.noRecentFines')}</p>
+              <p className="text-xs text-slate-300 mt-1">{t('dashboard.driveSafe')}</p>
             </div>
           ) : (
             <div className="space-y-2.5">
               {stats.recent_fines.map(f => {
-                const badge = STATUS_BADGE[f.status] || STATUS_BADGE.dismissed;
+                const badgeStyle = STATUS_BADGE_STYLE[f.status] || STATUS_BADGE_STYLE.dismissed;
+                const badgeLabel = t(`fines.status.${f.status}`);
                 return (
                   <div key={f.id} className="flex items-center gap-3 p-3 rounded-xl transition-all"
                     style={{ background: '#F8FAFC', border: '1px solid rgba(37,99,235,0.05)' }}
                     onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(37,99,235,0.1)'; }}
                     onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(37,99,235,0.05)'; }}>
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                      style={{ background: badge.bg, color: badge.color }}>
+                      style={{ background: badgeStyle.bg, color: badgeStyle.color }}>
                       <FileText size={14} />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -255,8 +256,8 @@ export function DriverDashboard() {
                     <div className="flex items-center gap-2 ml-2 flex-shrink-0">
                       <span className="font-black text-slate-900 text-sm">${f.amount}</span>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide"
-                        style={{ background: badge.bg, color: badge.color }}>
-                        {badge.label}
+                        style={{ background: badgeStyle.bg, color: badgeStyle.color }}>
+                        {badgeLabel}
                       </span>
                     </div>
                   </div>
@@ -273,22 +274,22 @@ export function DriverDashboard() {
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.08)', color: '#7C3AED' }}>
                 <Camera size={15} />
               </div>
-              <h3 className="text-slate-800 text-[14px] font-bold">Recent AI Detections</h3>
+              <h3 className="text-slate-800 text-[14px] font-bold">{t('dashboard.recentDetections')}</h3>
             </div>
             <button onClick={() => navigate('/dashboard/ai-detection')}
               className="text-[12px] font-semibold flex items-center gap-1" style={{ color: '#8B5CF6' }}>
-              Detect <ArrowRight size={12} />
+              {t('dashboard.detect')} <ArrowRight size={12} />
             </button>
           </div>
 
           {!stats?.recent_detections?.length ? (
             <div className="text-center py-10 rounded-xl" style={{ background: '#FAFBFF', border: '1px dashed rgba(139,92,246,0.15)' }}>
               <Camera size={30} className="mx-auto mb-2.5" style={{ color: 'rgba(139,92,246,0.3)' }} />
-              <p className="text-sm text-slate-400 font-medium">No detections yet</p>
+              <p className="text-sm text-slate-400 font-medium">{t('dashboard.noDetectionsYet')}</p>
               <button onClick={() => navigate('/dashboard/ai-detection')}
                 className="mt-3 px-3.5 py-1.5 rounded-lg text-white text-xs font-semibold"
                 style={{ background: 'linear-gradient(135deg, #8B5CF6, #7C3AED)' }}>
-                Try AI Detection
+                {t('dashboard.tryAiDetection')}
               </button>
             </div>
           ) : (
