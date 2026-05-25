@@ -135,11 +135,15 @@ export function NotificationsPage() {
                   <Bell size={14} style={{ color: '#60A5FA' }} />
                   {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full border border-[#0F172A] animate-pulse" style={{ background: '#EF4444' }} />}
                 </div>
-                <span className="text-[11px] font-bold uppercase tracking-widest" style={{ color: 'rgba(96,165,250,0.9)' }}>Notification Center</span>
+                <span className="dashboard-welcome__eyebrow" style={{ color: 'rgba(96,165,250,0.9)' }}>{t('pages.notifications.eyebrow')}</span>
               </div>
-              <h1 className="text-white text-[20px] font-black leading-tight" style={{ letterSpacing: '-0.02em' }}>{t('pages.notifications.title')}</h1>
-              <p className="mt-1 text-[12px]" style={{ color: unreadCount > 0 ? 'rgba(252,165,165,0.9)' : 'rgba(134,239,172,0.9)' }}>
-                {unreadCount > 0 ? `${unreadCount} unread notification${unreadCount > 1 ? 's' : ''}` : '✓ All caught up!'}
+              <h1 className="dashboard-welcome__title text-white">{t('pages.notifications.title')}</h1>
+              <p className="dashboard-welcome__meta mt-1" style={{ color: unreadCount > 0 ? 'rgba(252,165,165,0.9)' : 'rgba(134,239,172,0.9)' }}>
+                {unreadCount > 1
+                  ? t('pages.notifications.unreadMany', { count: unreadCount })
+                  : unreadCount === 1
+                    ? t('pages.notifications.unreadOne')
+                    : t('pages.notifications.allCaughtUp')}
               </p>
             </div>
             {unreadCount > 0 && (

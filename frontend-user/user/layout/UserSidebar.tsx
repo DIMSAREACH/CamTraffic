@@ -7,6 +7,7 @@ import {
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { SidebarBrandToggle } from '@shared/components/layout/SidebarBrandToggle';
+import { NavbarProfileAvatar } from '@shared/components/NavbarProfileAvatar';
 import { cn } from '@shared/components/ui/utils';
 
 interface NavItem {
@@ -145,18 +146,15 @@ export function UserSidebar({ collapsed, onToggle, unreadCount = 0, isMobile = f
         {user && (
           <div className="sidebar-user-card sidebar-fade-when-collapsed">
             <div className="flex items-center gap-3">
-              <div className="relative flex-shrink-0">
-                <div
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white"
-                  style={{ background: gradient, boxShadow: '0 4px 14px rgba(124,58,237,0.35)' }}
-                >
-                  {initials}
-                </div>
-                <span
-                  className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2"
-                  style={{ background: '#22c55e', borderColor: '#0f172a' }}
-                />
-              </div>
+              <NavbarProfileAvatar
+                initials={initials}
+                alt={user.full_name}
+                profileImage={user.profile_image}
+                gradient={gradient}
+                size="xs"
+                showStatus
+                className="[&_.app-navbar__avatar-status]:border-[#0f172a]"
+              />
               <div className="min-w-0 flex-1">
                 <p className="sidebar-user-card__name truncate">{user.full_name}</p>
                 <p className="sidebar-user-card__role" style={{ color: roleColor }}>{roleLabel}</p>
@@ -168,18 +166,15 @@ export function UserSidebar({ collapsed, onToggle, unreadCount = 0, isMobile = f
 
         {user && (
           <div className="sidebar-user-avatar--collapsed sidebar-show-when-collapsed">
-            <div className="relative">
-              <div
-                className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white"
-                style={{ background: gradient }}
-              >
-                {initials}
-              </div>
-              <span
-                className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-[1.5px]"
-                style={{ background: '#22c55e', borderColor: '#0f172a' }}
-              />
-            </div>
+            <NavbarProfileAvatar
+              initials={initials}
+              alt={user.full_name}
+              profileImage={user.profile_image}
+              gradient={gradient}
+              size="xs"
+              showStatus
+              className="[&_.app-navbar__avatar-status]:border-[#0f172a] [&_.app-navbar__avatar-status--sm]:w-2.5 [&_.app-navbar__avatar-status--sm]:h-2.5"
+            />
           </div>
         )}
 

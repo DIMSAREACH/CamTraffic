@@ -10,8 +10,13 @@ import { useLanguage } from '@shared/context/LanguageContext';
 import { dashboardAPI } from '@shared/services/api';
 import { toast } from 'sonner';
 import type { DashboardStats } from '@shared/types';
-
-const COLORS = ['#2563EB', '#06B6D4', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444'];
+import {
+  CHART,
+  CHART_SERIES,
+  CHART_ROLE_COLORS,
+  chartTooltipStyle,
+  chartAxisTick,
+} from '@shared/constants/chartPalette';
 
 export function ReportsPage() {
   const { t } = useLanguage();
@@ -83,10 +88,12 @@ export function ReportsPage() {
               <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.2)' }}>
                 <BarChart3 size={14} style={{ color: '#FCD34D' }} />
               </div>
-              <span className="text-[11px] font-bold uppercase tracking-widest" style={{ color: 'rgba(252,211,77,0.9)' }}>Analytics Center</span>
+              <span className="dashboard-welcome__eyebrow" style={{ color: 'rgba(252,211,77,0.9)' }}>{t('pages.reports.eyebrow')}</span>
             </div>
-            <h1 className="text-white text-[20px] font-black leading-tight" style={{ letterSpacing: '-0.02em' }}>{t('pages.reports.title')}</h1>
-            <p className="mt-1 text-[12px]" style={{ color: 'rgba(148,163,184,0.7)' }}>System-wide performance statistics for {reportYear}</p>
+            <h1 className="dashboard-welcome__title text-white">{t('pages.reports.title')}</h1>
+            <p className="dashboard-welcome__meta mt-1" style={{ color: 'rgba(148,163,184,0.7)' }}>
+              {t('pages.reports.heroSubtitle', { year: reportYear })}
+            </p>
           </div>
           <button onClick={handleExport}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold transition-all"
@@ -134,36 +141,36 @@ export function ReportsPage() {
       {tab === 'overview' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="bg-white rounded-2xl shadow-sm"  style={{ border: '1px solid rgba(37,99,235,0.07)' }}>
+            <Card className="bg-white rounded-2xl shadow-sm" style={{ border: '1px solid #E2E8F0' }}>
               <CardHeader className="pb-2"><CardTitle className="text-slate-800">Monthly Revenue {reportYear}</CardTitle></CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={240}>
                   <AreaChart data={stats.monthly_fines}>
                     <defs>
                       <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                        <stop offset="5%" stopColor={CHART.secondary} stopOpacity={0.22} />
+                        <stop offset="95%" stopColor={CHART.secondary} stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} />
-                    <Tooltip cursor={false} formatter={(v) => [`$${v}`, 'Revenue']} contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }} />
-                    <Area type="monotone" dataKey="revenue" stroke="#10b981" fill="url(#revGrad)" strokeWidth={2} dot={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
+                    <XAxis dataKey="month" tick={chartAxisTick} axisLine={false} tickLine={false} />
+                    <YAxis tick={chartAxisTick} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} />
+                    <Tooltip cursor={false} formatter={(v) => [`$${v}`, 'Revenue']} contentStyle={chartTooltipStyle} />
+                    <Area type="monotone" dataKey="revenue" stroke={CHART.secondary} fill="url(#revGrad)" strokeWidth={2} dot={false} />
                   </AreaChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
 
-            <Card className="bg-white rounded-2xl shadow-sm"  style={{ border: '1px solid rgba(37,99,235,0.07)' }}>
+            <Card className="bg-white rounded-2xl shadow-sm" style={{ border: '1px solid #E2E8F0' }}>
               <CardHeader className="pb-2"><CardTitle className="text-slate-800">Violations Breakdown</CardTitle></CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={240}>
                   <PieChart>
-                    <Pie data={stats.fine_by_reason} dataKey="count" nameKey="reason" cx="50%" cy="50%" outerRadius={90} innerRadius={50} paddingAngle={2}>
-                      {stats.fine_by_reason.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                    <Pie data={stats.fine_by_reason} dataKey="count" nameKey="reason" cx="50%" cy="50%" outerRadius={90} innerRadius={50} paddingAngle={3}>
+                      {stats.fine_by_reason.map((_, i) => <Cell key={i} fill={CHART_SERIES[i % CHART_SERIES.length]} />)}
                     </Pie>
-                    <Tooltip cursor={false} contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }} />
+                    <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
                   </PieChart>
                 </ResponsiveContainer>
@@ -175,19 +182,19 @@ export function ReportsPage() {
 
       {tab === 'fines' && (
         <div className="space-y-6">
-          <Card className="bg-white rounded-2xl shadow-sm"  style={{ border: '1px solid rgba(37,99,235,0.07)' }}>
+          <Card className="bg-white rounded-2xl shadow-sm" style={{ border: '1px solid #E2E8F0' }}>
             <CardHeader className="pb-2"><CardTitle className="text-slate-800">Monthly Fine Volume vs Revenue</CardTitle></CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={stats.monthly_fines}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                  <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                  <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} />
-                  <Tooltip cursor={false} contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
+                  <XAxis dataKey="month" tick={chartAxisTick} axisLine={false} tickLine={false} />
+                  <YAxis yAxisId="left" tick={chartAxisTick} axisLine={false} tickLine={false} />
+                  <YAxis yAxisId="right" orientation="right" tick={chartAxisTick} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} />
+                  <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Bar yAxisId="left" dataKey="count" name="Fines Count" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                  <Bar yAxisId="right" dataKey="revenue" name="Revenue ($)" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  <Bar yAxisId="left" dataKey="count" name="Fines Count" fill={CHART.primary} radius={[4, 4, 0, 0]} />
+                  <Bar yAxisId="right" dataKey="revenue" name="Revenue ($)" fill={CHART.secondary} radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -214,17 +221,17 @@ export function ReportsPage() {
 
       {tab === 'detections' && (
         <div className="space-y-6">
-          <Card className="bg-white rounded-2xl shadow-sm"  style={{ border: '1px solid rgba(37,99,235,0.07)' }}>
+          <Card className="bg-white rounded-2xl shadow-sm" style={{ border: '1px solid #E2E8F0' }}>
             <CardHeader className="pb-2"><CardTitle className="text-slate-800">Monthly AI Detections {reportYear}</CardTitle></CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={280}>
                 <LineChart data={stats.monthly_detections}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                  <Tooltip cursor={false} contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
+                  <XAxis dataKey="month" tick={chartAxisTick} axisLine={false} tickLine={false} />
+                  <YAxis tick={chartAxisTick} axisLine={false} tickLine={false} />
+                  <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Line type="monotone" dataKey="count" name="Detections" stroke="#8b5cf6" strokeWidth={2.5} dot={{ fill: '#8b5cf6', r: 3 }} activeDot={{ r: 5 }} />
+                  <Line type="monotone" dataKey="count" name="Detections" stroke={CHART.primary} strokeWidth={2} dot={{ fill: CHART.primary, r: 3 }} activeDot={{ r: 5, fill: CHART.primaryDark }} />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
@@ -252,15 +259,15 @@ export function ReportsPage() {
               </Card>
             ))}
           </div>
-          <Card className="bg-white rounded-2xl shadow-sm"  style={{ border: '1px solid rgba(37,99,235,0.07)' }}>
+          <Card className="bg-white rounded-2xl shadow-sm" style={{ border: '1px solid #E2E8F0' }}>
             <CardHeader className="pb-2"><CardTitle className="text-slate-800">User Role Distribution</CardTitle></CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={260}>
                 <PieChart>
-                  <Pie data={stats.user_distribution} dataKey="count" nameKey="role" cx="50%" cy="50%" outerRadius={100} innerRadius={60} paddingAngle={4}>
-                    {stats.user_distribution.map((_, i) => <Cell key={i} fill={['#10b981', '#3b82f6', '#8b5cf6'][i]} />)}
+                  <Pie data={stats.user_distribution} dataKey="count" nameKey="role" cx="50%" cy="50%" outerRadius={100} innerRadius={60} paddingAngle={3}>
+                    {stats.user_distribution.map((_, i) => <Cell key={i} fill={CHART_ROLE_COLORS[i % CHART_ROLE_COLORS.length]} />)}
                   </Pie>
-                  <Tooltip cursor={false} contentStyle={{ borderRadius: 8, fontSize: 12 }} />
+                  <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
                 </PieChart>
               </ResponsiveContainer>

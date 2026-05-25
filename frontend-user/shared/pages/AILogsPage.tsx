@@ -36,10 +36,10 @@ export function AILogsPage() {
             <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.2)' }}>
               <Activity size={14} style={{ color: '#C4B5FD' }} />
             </div>
-            <span className="text-[11px] font-bold uppercase tracking-widest" style={{ color: 'rgba(196,181,253,0.9)' }}>AI System Logs</span>
+            <span className="dashboard-welcome__eyebrow" style={{ color: 'rgba(196,181,253,0.9)' }}>{t('pages.aiLogs.eyebrow')}</span>
           </div>
-          <h1 className="text-white text-[20px] font-black leading-tight" style={{ letterSpacing: '-0.02em' }}>{t('pages.aiLogs.title')}</h1>
-          <p className="mt-1 text-[12px]" style={{ color: 'rgba(148,163,184,0.7)' }}>All traffic sign detection events across the system</p>
+          <h1 className="dashboard-welcome__title text-white">{t('pages.aiLogs.title')}</h1>
+          <p className="dashboard-welcome__meta mt-1" style={{ color: 'rgba(148,163,184,0.7)' }}>{t('pages.aiLogs.heroSubtitle')}</p>
         </div>
       </div>
 

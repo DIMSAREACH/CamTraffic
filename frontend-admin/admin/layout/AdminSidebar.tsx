@@ -7,6 +7,7 @@ import {
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { SidebarBrandToggle } from '@shared/components/layout/SidebarBrandToggle';
+import { NavbarProfileAvatar } from '@shared/components/NavbarProfileAvatar';
 import { cn } from '@shared/components/ui/utils';
 
 interface NavItem {
@@ -48,6 +49,7 @@ export function AdminSidebar({ collapsed, onToggle, unreadCount = 0, isMobile = 
   );
 
   const initials = user?.full_name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'A';
+  const avatarGradient = 'linear-gradient(135deg, #8b5cf6, #7c3aed)';
 
   const afterNavClick = () => {
     if (isMobile) onToggle();
@@ -127,12 +129,14 @@ export function AdminSidebar({ collapsed, onToggle, unreadCount = 0, isMobile = 
         {user && (
           <div className="sidebar-user-card sidebar-fade-when-collapsed">
             <div className="flex items-center gap-3">
-              <div
-                className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-                style={{ background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)' }}
-              >
-                {initials}
-              </div>
+              <NavbarProfileAvatar
+                initials={initials}
+                alt={user.full_name}
+                profileImage={user.profile_image}
+                gradient={avatarGradient}
+                size="xs"
+                showStatus={false}
+              />
               <div className="min-w-0 flex-1">
                 <p className="sidebar-user-card__name truncate">{user.full_name}</p>
                 <p className="sidebar-user-card__role text-violet-300 flex items-center gap-1">
@@ -147,12 +151,14 @@ export function AdminSidebar({ collapsed, onToggle, unreadCount = 0, isMobile = 
 
         {user && (
           <div className="sidebar-user-avatar--collapsed sidebar-show-when-collapsed">
-            <div
-              className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white"
-              style={{ background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)' }}
-            >
-              {initials}
-            </div>
+            <NavbarProfileAvatar
+              initials={initials}
+              alt={user.full_name}
+              profileImage={user.profile_image}
+              gradient={avatarGradient}
+              size="xs"
+              showStatus={false}
+            />
           </div>
         )}
 

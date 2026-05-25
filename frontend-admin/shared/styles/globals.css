@@ -6,10 +6,10 @@ body,
   margin: 0;
   padding: 0;
   overflow: hidden;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: var(--font-sans, 'Kantumruy Pro', 'Noto Sans Khmer', system-ui, sans-serif);
 }
 
-/* Khmer fonts: see khmer-fonts.css (Kantumruy Pro, Noto Sans Khmer, Moul, Battambang) */
+/* Primary UI: Kantumruy Pro — locale rules in khmer-fonts.css (Noto Sans Khmer, Moul, Battambang) */
 
 * {
   -webkit-font-smoothing: antialiased;

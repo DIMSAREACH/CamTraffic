@@ -1,15 +1,17 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+﻿import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 import {
   Upload, Camera, CheckCircle, AlertCircle, Clock, RefreshCw, Zap,
   Info, BarChart2, ChevronRight, Cpu, Layers, Target, Activity,
   Eye, Shield, TrendingUp, MapPin, Sparkles, Volume2, Square,
+  Image as ImageIcon, Package, Check, Signpost,
 } from 'lucide-react';
 import { SpeakButton } from '@shared/components/SpeakButton';
 import { useAIDetectionCopy } from '@shared/hooks/useAIDetectionCopy';
 import { buildTrafficSignSpeech, khmerSpeechText, useSpeech } from '@shared/hooks/useSpeech';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { aiAPI } from '@shared/services/api';
+import { getProfileImageUrl } from '@shared/utils/profileImage';
 import { toast } from 'sonner';
 import type { AIDetectionLog, AIDetectionPageStats, AIDetectionSampleSign } from '@shared/types';
 
@@ -44,6 +46,13 @@ const confGrad  = (c: number) =>
   c >= 80 ? 'linear-gradient(90deg,#F59E0B,#F97316)' :
             'linear-gradient(90deg,#EF4444,#EC4899)';
 
+function altScore(conf: number) {
+  return Math.max(2, conf - 14 - Math.random() * 8);
+}
+function thirdScore(conf: number) {
+  return Math.max(1, conf - 30 - Math.random() * 12);
+}
+
 function formatPct(n: number) {
   return n > 0 ? `${n.toFixed(1)}%` : '—';
 }
@@ -57,31 +66,10 @@ function formatScans(n: number) {
 /* ─────────────────────────────────────────────────────────
    Small reusable sub-components
 ───────────────────────────────────────────────────────── */
-function SectionIcon({ children, accent }: { children: React.ReactNode; accent: string }) {
-  return (
-    <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-      style={{ background: `${accent}18`, color: accent }}>
-      {children}
-    </span>
-  );
-}
-
 function CardWrap({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
     <div className={`bg-card rounded-2xl shadow-sm border border-border ${className}`}>
       {children}
-    </div>
-  );
-}
-
-function SectionHeader({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle?: string }) {
-  return (
-    <div className="flex items-center gap-3">
-      {icon}
-      <div>
-        <p className="dashboard-section__title text-[15px]">{title}</p>
-        {subtitle && <p className="dashboard-card__subtitle text-[12px]">{subtitle}</p>}
-      </div>
     </div>
   );
 }
@@ -108,98 +96,93 @@ function AwaitingCard({
       bg: 'rgba(245,158,11,0.10)',
     },
   ];
+
   return (
-    <CardWrap className="overflow-hidden flex flex-col min-h-[420px]">
-      {/* subtle top stripe */}
-      <div className="h-0.5 flex-shrink-0"
-        style={{ background: 'linear-gradient(90deg,rgba(139,92,246,0.4),rgba(6,182,212,0.4),rgba(16,185,129,0.4))' }} />
-
-      <div className="p-6 flex flex-col gap-5 flex-1">
-
-        {/* ── Central icon ── */}
-        <div className="flex flex-col items-center text-center pt-2">
-          {/* pulsing rings */}
-          <div className="relative flex items-center justify-center mb-5">
-            <div className="absolute w-24 h-24 rounded-full animate-ping opacity-10"
-              style={{ background: 'rgba(139,92,246,0.4)', animationDuration: '2.4s' }} />
-            <div className="absolute w-16 h-16 rounded-full animate-ping opacity-15"
-              style={{ background: 'rgba(139,92,246,0.5)', animationDuration: '1.8s' }} />
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center relative z-10 bg-muted"
-              style={{ boxShadow: '0 0 0 1px rgba(139,92,246,0.25), 0 4px 20px rgba(139,92,246,0.12)' }}>
-              <Eye size={26} color="#8B5CF6" />
+    <CardWrap className="overflow-hidden flex flex-col min-h-[420px] h-full">
+      <div className="dashboard-panel-header relative px-5 pt-5 pb-10 flex-shrink-0"
+        style={{ background: 'linear-gradient(135deg,#0F766E 0%,#06B6D4 100%)' }}>
+        <div className="absolute -top-5 -right-5 w-24 h-24 rounded-full pointer-events-none"
+          style={{ background: 'rgba(255,255,255,0.08)' }} />
+        <div className="relative flex items-center gap-3">
+          <div className="relative flex-shrink-0">
+            <div className="absolute inset-0 rounded-2xl animate-ping opacity-20"
+              style={{ background: 'rgba(255,255,255,0.4)', animationDuration: '2.2s' }} />
+            <div className="relative w-11 h-11 rounded-2xl flex items-center justify-center"
+              style={{ background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.25)' }}>
+              <Eye size={22} color="white" />
             </div>
           </div>
-
-          <p className="dashboard-section__title text-[16px] mb-1">{t('aiDetection.awaitingTitle')}</p>
-          <p className="text-[13px] text-muted-foreground leading-relaxed max-w-[260px]">
-            {t('aiDetection.awaitingDesc')}
-          </p>
-        </div>
-
-        {/* ── How-to steps ── */}
-        <div className="space-y-2.5">
-          {AWAIT_STEPS.map((s, i) => (
-            <div key={s.label}
-              className="flex items-center gap-3 p-3 rounded-xl bg-muted border border-border">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: `${s.color}18`, border: `1px solid ${s.color}30` }}>
-                <s.icon size={14} style={{ color: s.color }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-semibold text-foreground leading-tight">{s.label}</p>
-                <p className="text-[11.5px] text-muted-foreground mt-0.5">{s.desc}</p>
-              </div>
-              <span className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ background: `${s.color}15` }}>
-                <span style={{ fontSize: 9, fontWeight: 800, color: s.color }}>{i + 1}</span>
-              </span>
-            </div>
-          ))}
-        </div>
-
-        {/* ── Model stats grid (live) ── */}
-        <div className="grid grid-cols-2 gap-2">
-          {awaitStats.map(s => (
-            <div key={s.l}
-              className="rounded-xl px-3.5 py-3 flex items-center gap-3 border border-border"
-              style={{ background: s.bg }}>
-              <div>
-                <p className="text-[17px] font-black leading-none"
-                  style={{ color: s.c, letterSpacing: '-0.03em' }}>{s.v}</p>
-                <p className="text-[10.5px] text-muted-foreground mt-1">{s.l}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* ── Sample sign chips ── */}
-        <div>
-          <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2.5">
-            {t('aiDetection.exampleSigns')}
-          </p>
-          <div className="flex gap-2 flex-wrap">
-            {pageStats.sample_signs.map(s => (
-              <button
-                key={s.id}
-                type="button"
-                title={s.sign_name}
-                onClick={() => onSampleClick(s)}
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-[11px] font-black cursor-pointer transition-transform hover:scale-110"
-                style={{
-                  background: `${s.color}12`,
-                  border: `1.5px solid ${s.color}30`,
-                  color: s.color,
-                }}>
-                {s.image ? (
-                  <img src={s.image} alt={s.sign_name} className="w-full h-full object-cover rounded-lg" />
-                ) : (
-                  s.label
-                )}
-              </button>
-            ))}
+          <div className="min-w-0">
+            <p className="dashboard-card__title text-white leading-tight">{t('aiDetection.awaitingTitle')}</p>
+            <p className="dashboard-panel__subtitle mt-1 leading-snug">{t('aiDetection.awaitingDesc')}</p>
           </div>
         </div>
+      </div>
 
+      <div className="relative -mt-5 mx-4 mb-4 flex-1 flex flex-col min-h-0">
+        <div className="rounded-2xl bg-background border border-border/60 shadow-sm flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div className="p-4 flex flex-col gap-4 flex-1 min-h-0">
+            <div className="space-y-2.5 flex-shrink-0">
+              {AWAIT_STEPS.map((s, i) => (
+                <div key={s.label}
+                  className="flex items-center gap-3 p-3.5 rounded-xl border border-border/70 transition-colors hover:bg-muted/40"
+                  style={{ background: `${s.color}06` }}>
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: `${s.color}18`, border: `1px solid ${s.color}35` }}>
+                    <s.icon size={14} style={{ color: s.color }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="dashboard-text__title leading-tight">{s.label}</p>
+                    <p className="dashboard-text__caption mt-0.5 leading-snug">{s.desc}</p>
+                  </div>
+                  <span className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-black text-white"
+                    style={{ background: `linear-gradient(135deg, ${s.color}, ${s.color}CC)` }}>
+                    {i + 1}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 flex-shrink-0">
+              {awaitStats.map(s => (
+                <div key={s.l}
+                  className="rounded-xl px-3 py-2.5 border border-border/60"
+                  style={{ background: s.bg }}>
+                  <p className="dashboard-text__metric"
+                    style={{ color: s.c }}>{s.v}</p>
+                  <p className="text-[10px] text-muted-foreground mt-1 leading-tight">{s.l}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex-1 flex flex-col justify-between min-h-[100px] border-t border-border/60 pt-4">
+              <p className="dashboard-kpi__label text-muted-foreground mb-3 flex-shrink-0">
+                {t('aiDetection.exampleSigns')}
+              </p>
+              <div className="flex flex-1 flex-wrap justify-center items-center gap-2 content-center">
+                {pageStats.sample_signs.map(s => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    title={s.sign_name}
+                    onClick={() => onSampleClick(s)}
+                    className="w-14 h-14 rounded-xl flex items-center justify-center text-[11px] font-black cursor-pointer transition-all hover:scale-110 hover:shadow-md overflow-hidden"
+                    style={{
+                      background: `${s.color}12`,
+                      border: `1.5px solid ${s.color}35`,
+                      color: s.color,
+                    }}>
+                    {s.image ? (
+                      <img src={s.image} alt={s.sign_name} className="w-full h-full object-cover" />
+                    ) : (
+                      s.label
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </CardWrap>
   );
@@ -217,7 +200,7 @@ function ResultCard({
   preview: string | null;
   onReset: () => void;
 }) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const { speak, speakingId } = useSpeech('km');
   const km = khmerSpeechText(result);
   const displayName = km.name;
@@ -230,43 +213,51 @@ function ResultCard({
   const fullSpeech = buildTrafficSignSpeech(km.name, km.desc, km.guide, 'km');
   const guidanceSpeech = `សូមបញ្ជរកចរាចរតាមស្លាកចរាចរណ៍៖ ${km.guide}`;
 
-  /* Circumference for SVG circle meter */
+  const scores = useMemo(() => ({
+    primary: result.confidence,
+    alternate: altScore(result.confidence),
+    third: thirdScore(result.confidence),
+  }), [result.confidence]);
+
   const R = 42;
   const CIRC = 2 * Math.PI * R;
   const dash = (result.confidence / 100) * CIRC;
 
   return (
-    <CardWrap className="overflow-hidden flex flex-col">
-      {/* Accent stripe */}
-      <div className="h-1 flex-shrink-0" style={{ background: `linear-gradient(90deg,${sc},#8B5CF6,#06B6D4)` }} />
-
-      <div className="p-5 flex flex-col gap-4 flex-1">
-
-        {/* ── Header row ── */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg flex items-center justify-center"
-              style={{ background: 'rgba(16,185,129,0.12)' }}>
-              <CheckCircle size={14} color="#10B981" />
+    <CardWrap className="overflow-hidden flex flex-col h-full min-h-[420px]">
+      <div className="dashboard-panel-header relative px-5 pt-5 pb-10 flex-shrink-0"
+        style={{ background: 'linear-gradient(135deg,#047857 0%,#10B981 100%)' }}>
+        <div className="absolute -top-5 -right-5 w-24 h-24 rounded-full pointer-events-none"
+          style={{ background: 'rgba(255,255,255,0.08)' }} />
+        <div className="relative flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.25)' }}>
+              <CheckCircle size={18} color="white" />
             </div>
-            <p className="dashboard-section__title text-[14px]">{t('aiDetection.resultTitle')}</p>
+            <p className="dashboard-card__title text-white leading-tight">{t('aiDetection.resultTitle')}</p>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="text-[11px] text-white/80 flex items-center gap-1">
               <Clock size={10} />{result.processing_time}s
             </span>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-              style={{ background: 'rgba(16,185,129,0.12)', color: '#10B981' }}>
+              style={{ background: 'rgba(255,255,255,0.18)', color: 'white', border: '1px solid rgba(255,255,255,0.25)' }}>
               {t('aiDetection.aiVerified')}
             </span>
           </div>
         </div>
+      </div>
+
+      <div className="relative -mt-5 mx-4 mb-4 flex-1 flex flex-col min-h-0">
+        <div className="rounded-2xl bg-background border border-border/60 shadow-sm flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div className="p-4 flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto">
 
         {/* ── Analyzed image (full width) ── */}
         {imageSrc && (
           <div className="rounded-2xl overflow-hidden border border-border bg-muted/40">
             <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-card/80">
-              <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+              <span className="dashboard-kpi__label text-muted-foreground flex items-center gap-1.5">
                 <Camera size={12} /> {t('aiDetection.analyzedImage')}
               </span>
               {result.log_id != null && (
@@ -286,7 +277,7 @@ function ResultCard({
                 className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2 px-3 py-2 rounded-xl backdrop-blur-md"
                 style={{ background: 'rgba(15,23,42,0.72)', border: '1px solid rgba(255,255,255,0.1)' }}
               >
-                <span className="text-[12px] font-bold text-white truncate font-khmer">{displayName}</span>
+                <span className="text-[14px] font-bold text-white truncate">{displayName}</span>
                 <span className="text-[12px] font-black flex-shrink-0" style={{ color: cc }}>
                   {result.confidence.toFixed(1)}%
                 </span>
@@ -311,12 +302,12 @@ function ResultCard({
                   stroke="rgba(255,255,255,0.07)" strokeWidth="6" />
                 {/* progress */}
                 <circle cx="44" cy="44" r={R} fill="none"
-                  stroke="url(#confGrad)" strokeWidth="6"
+                  stroke="url(#confGradResult)" strokeWidth="6"
                   strokeLinecap="round"
                   strokeDasharray={`${dash} ${CIRC}`}
                   style={{ transition: 'stroke-dasharray 1.2s cubic-bezier(.4,0,.2,1)' }} />
                 <defs>
-                  <linearGradient id="confGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <linearGradient id="confGradResult" x1="0%" y1="0%" x2="100%" y2="0%">
                     <stop offset="0%" stopColor={cc} />
                     <stop offset="100%" stopColor={sc} />
                   </linearGradient>
@@ -324,7 +315,7 @@ function ResultCard({
               </svg>
               {/* centre label */}
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-[17px] font-black leading-none" style={{ color: cc, letterSpacing: '-0.04em' }}>
+                <span className="dashboard-text__metric-lg" style={{ color: cc }}>
                   {result.confidence.toFixed(0)}%
                 </span>
                 <span className="text-[8.5px] font-semibold text-muted-foreground uppercase tracking-wide mt-0.5">{t('aiDetection.confShort')}</span>
@@ -340,8 +331,8 @@ function ResultCard({
                 </span>
               </div>
               <div className="flex items-start justify-between gap-2 mb-1">
-                <p className="text-[18px] font-black text-foreground leading-tight flex-1 font-khmer"
-                  style={{ letterSpacing: '-0.025em' }}>
+                <p className="dashboard-stat__value leading-snug flex-1"
+                  style={{ letterSpacing: '-0.02em' }}>
                   {displayName}
                 </p>
                 <SpeakButton
@@ -352,14 +343,14 @@ function ResultCard({
                 />
               </div>
               {(result.sign_code || result.sign_name_en) && (
-                <p className="text-[11px] text-muted-foreground mb-2">
+                <p className="dashboard-text__caption mb-2">
                   {[result.sign_code, result.sign_name_en].filter(Boolean).join(' · ')}
                 </p>
               )}
               <div className="flex flex-wrap gap-1.5">
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1"
                   style={{ background: `${sc}20`, color: sc, border: `1px solid ${sc}40` }}>
-                  ✓ {t('aiDetection.detected')}
+                  <Check size={10} strokeWidth={3} /> {t('aiDetection.detected')}
                 </span>
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
                   {t('aiDetection.cambodiaSign')}
@@ -391,12 +382,12 @@ function ResultCard({
         {/* ── 3-score breakdown ── */}
         <div className="grid grid-cols-3 gap-2">
           {[
-            { label: t('aiDetection.primary'),   val: result.confidence },
-            { label: t('aiDetection.alternate'), val: Math.max(2, result.confidence - 14 - Math.random() * 8) },
-            { label: t('aiDetection.third'),     val: Math.max(1, result.confidence - 30 - Math.random() * 12) },
+            { label: t('aiDetection.primary'),   val: scores.primary },
+            { label: t('aiDetection.alternate'), val: scores.alternate },
+            { label: t('aiDetection.third'),     val: scores.third },
           ].map(c => (
             <div key={c.label} className="rounded-xl p-3 text-center bg-muted">
-              <p className="text-[16px] font-black leading-none" style={{ color: confColor(c.val), letterSpacing: '-0.03em' }}>
+              <p className="dashboard-text__metric" style={{ color: confColor(c.val) }}>
                 {c.val.toFixed(0)}%
               </p>
               <p className="text-[10.5px] text-muted-foreground mt-1.5">{c.label}</p>
@@ -422,60 +413,220 @@ function ResultCard({
         </button>
 
         {/* ── Description + Guidance ── */}
-        <div className="grid grid-cols-1 gap-3">
-          <div className="p-3.5 rounded-xl"
-            style={{ background: 'rgba(59,130,246,0.07)', border: '1px solid rgba(59,130,246,0.18)' }}>
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <p className="text-[11px] font-bold flex items-center gap-1.5" style={{ color: '#60A5FA' }}>
-                <Info size={11} /> {t('aiDetection.description')}
-              </p>
+        <div className="grid grid-cols-1 gap-4">
+          <div className="rounded-2xl overflow-hidden border border-blue-200/60 dark:border-blue-500/25">
+            <div className="flex items-center justify-between gap-3 px-4 py-3"
+              style={{ background: 'linear-gradient(135deg, rgba(59,130,246,0.14) 0%, rgba(59,130,246,0.06) 100%)' }}>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'rgba(59,130,246,0.18)', border: '1px solid rgba(59,130,246,0.28)' }}>
+                  <Info size={16} style={{ color: '#3B82F6' }} />
+                </div>
+                <p className="dashboard-card__title text-foreground leading-tight">{t('aiDetection.description')}</p>
+              </div>
               <SpeakButton
                 label={t('aiDetection.readDescription')}
                 isActive={speakingId === 'desc'}
                 onClick={() => speakKm(km.desc, 'desc')}
               />
             </div>
-            <p className="text-[12.5px] text-foreground leading-relaxed opacity-85 font-khmer">{km.desc}</p>
+            <div className="px-4 py-4 bg-blue-50/50 dark:bg-blue-950/20">
+              <p className="text-[15px] sm:text-[16px] text-foreground leading-[1.75]">{km.desc}</p>
+            </div>
           </div>
 
-          <div className="p-3.5 rounded-xl"
-            style={{ background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.2)' }}>
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <p className="text-[11px] font-bold flex items-center gap-1.5" style={{ color: '#FCD34D' }}>
-                <AlertCircle size={11} /> {t('aiDetection.guidance')}
-              </p>
+          <div className="rounded-2xl overflow-hidden border border-amber-200/70 dark:border-amber-500/25">
+            <div className="flex items-center justify-between gap-3 px-4 py-3"
+              style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.16) 0%, rgba(245,158,11,0.06) 100%)' }}>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'rgba(245,158,11,0.18)', border: '1px solid rgba(245,158,11,0.28)' }}>
+                  <AlertCircle size={16} style={{ color: '#D97706' }} />
+                </div>
+                <p className="dashboard-card__title text-foreground leading-tight">{t('aiDetection.guidance')}</p>
+              </div>
               <SpeakButton
                 label={t('aiDetection.readGuidance')}
                 isActive={speakingId === 'guide'}
                 onClick={() => speakKm(guidanceSpeech, 'guide')}
               />
             </div>
-            <p className="text-[12.5px] text-foreground leading-relaxed opacity-85 font-khmer">{km.guide}</p>
+            <div className="px-4 py-4 bg-amber-50/60 dark:bg-amber-950/20">
+              <p className="text-[15px] sm:text-[16px] text-foreground leading-[1.75]">{km.guide}</p>
+            </div>
           </div>
         </div>
 
         {/* ── Processing stats row ── */}
-        <div className="grid grid-cols-3 gap-2 border-t border-border pt-3">
+        <div className="grid grid-cols-3 gap-3 border-t border-border/70 pt-4">
           {[
-            { label: t('aiDetection.processTime'), value: `${result.processing_time}s`,   Icon: Clock },
-            { label: t('aiDetection.model'),        value: 'YOLOv8',                       Icon: Cpu },
-            { label: t('aiDetection.region'),       value: t('aiDetection.cambodia'),      Icon: MapPin },
+            { label: t('aiDetection.processTime'), value: `${result.processing_time}s`, Icon: Clock, color: '#8B5CF6', bg: 'rgba(139,92,246,0.10)' },
+            { label: t('aiDetection.model'), value: 'YOLOv8', Icon: Cpu, color: '#06B6D4', bg: 'rgba(6,182,212,0.10)' },
+            { label: t('aiDetection.region'), value: t('aiDetection.cambodia'), Icon: MapPin, color: '#10B981', bg: 'rgba(16,185,129,0.10)' },
           ].map(s => (
-            <div key={s.label} className="flex items-center gap-2">
-              <s.Icon size={12} className="text-muted-foreground flex-shrink-0" />
-              <div>
-                <p className="text-[12px] font-semibold text-foreground">{s.value}</p>
-                <p className="text-[10px] text-muted-foreground">{s.label}</p>
+            <div key={s.label} className="rounded-xl px-3 py-3 text-center border border-border/60"
+              style={{ background: s.bg }}>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center mx-auto mb-2"
+                style={{ background: `${s.color}18`, border: `1px solid ${s.color}30` }}>
+                <s.Icon size={15} style={{ color: s.color }} />
               </div>
+              <p className="text-[14px] font-bold text-foreground leading-tight">{s.value}</p>
+              <p className="text-[11.5px] text-muted-foreground mt-1 leading-snug">{s.label}</p>
             </div>
           ))}
         </div>
+
 
         {/* ── Reset button ── */}
         <button onClick={onReset}
           className="w-full py-2.5 rounded-xl text-[13px] font-semibold border border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center gap-2 cursor-pointer">
           <RefreshCw size={13} /> {t('aiDetection.detectAnother')}
         </button>
+          </div>
+        </div>
+      </div>
+    </CardWrap>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+   Recent detections
+═══════════════════════════════════════════════════════ */
+function RecentDetectionThumb({
+  log,
+  signColor,
+}: {
+  log: AIDetectionLog;
+  signColor: string;
+}) {
+  const { locale } = useLanguage();
+  const [imgFailed, setImgFailed] = useState(false);
+  const src = getProfileImageUrl(log.uploaded_image);
+
+  if (src && !imgFailed) {
+    return (
+      <img
+        src={src}
+        alt={log.detected_sign}
+        title={log.detected_sign}
+        className="w-11 h-11 rounded-xl object-cover flex-shrink-0 bg-muted ring-1 ring-border/80"
+        style={{ boxShadow: `0 0 0 1.5px ${signColor}30` }}
+        onError={() => setImgFailed(true)}
+      />
+    );
+  }
+
+  return (
+    <div
+      className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
+      style={{ background: `${signColor}18`, border: `1.5px solid ${signColor}35` }}
+    >
+      {locale === 'en' ? (
+        <Signpost size={14} style={{ color: signColor }} />
+      ) : (
+        <span className="text-[10px] font-black px-0.5 text-center leading-tight" style={{ color: signColor }}>
+          {log.detected_sign.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function RecentDetectionsCard({
+  logs,
+  loading,
+  onViewAll,
+  layout = 'sidebar',
+}: {
+  logs: AIDetectionLog[];
+  loading: boolean;
+  onViewAll: () => void;
+  layout?: 'sidebar' | 'full';
+}) {
+  const { t } = useLanguage();
+  const isSidebar = layout === 'sidebar';
+  const itemLimit = isSidebar ? 7 : 5;
+  const items = logs.slice(0, itemLimit);
+  const listClass = isSidebar ? 'flex-1 min-h-0 flex flex-col gap-2' : 'space-y-2';
+  const rowClass = isSidebar
+    ? 'flex-1 min-h-[52px] flex items-center gap-3 p-3 rounded-xl border border-border/70 bg-muted/30 hover:bg-muted/60 transition-colors'
+    : 'flex items-center gap-3 p-3 rounded-xl border border-border/70 bg-muted/30 hover:bg-muted/60 transition-colors';
+
+  return (
+    <CardWrap className={`overflow-hidden flex flex-col ${isSidebar ? 'flex-1 min-h-0' : ''}`}>
+      <div className="dashboard-panel-header relative px-5 pt-4 pb-8 flex-shrink-0"
+        style={{ background: 'linear-gradient(135deg,#047857 0%,#10B981 100%)' }}>
+        <div className="absolute -top-4 -right-4 w-20 h-20 rounded-full pointer-events-none"
+          style={{ background: 'rgba(255,255,255,0.08)' }} />
+        <div className="relative flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{ background: 'rgba(255,255,255,0.18)' }}>
+              <BarChart2 size={14} color="white" />
+            </div>
+            <div className="min-w-0">
+              <p className="dashboard-card__title text-white leading-tight">{t('aiDetection.recentTitle')}</p>
+              <p className="dashboard-panel__subtitle mt-0.5 truncate">{t('aiDetection.recentSubtitle')}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-lg flex-shrink-0 cursor-pointer transition-colors"
+            style={{ background: 'rgba(255,255,255,0.16)', color: 'white', border: '1px solid rgba(255,255,255,0.22)' }}
+            onClick={onViewAll}>
+            {t('aiDetection.viewAll')} <ChevronRight size={11} />
+          </button>
+        </div>
+      </div>
+
+      <div className={`relative -mt-4 mx-4 mb-4 ${isSidebar ? 'flex-1 min-h-0 flex flex-col' : ''}`}>
+        <div className={`rounded-2xl bg-background border border-border/60 shadow-sm p-4 ${isSidebar ? 'flex-1 min-h-0 flex flex-col overflow-hidden' : ''}`}>
+          {loading ? (
+            <div className={listClass}>
+              {[...Array(itemLimit)].map((_, i) => (
+                <div key={i} className={`rounded-xl bg-muted animate-pulse ${isSidebar ? 'flex-1 min-h-[52px]' : 'h-[52px]'}`} />
+              ))}
+            </div>
+          ) : items.length === 0 ? (
+            <div className="text-center py-8">
+              <Activity size={26} className="mx-auto mb-2 text-muted-foreground opacity-30" />
+              <p className="text-[13px] font-semibold text-muted-foreground">{t('aiDetection.noDetections')}</p>
+              <p className="text-[12px] text-muted-foreground mt-1">{t('aiDetection.noDetectionsHint')}</p>
+            </div>
+          ) : (
+            <div className={listClass}>
+              {items.map(log => {
+                const sc = getSignColor(log.detected_sign);
+                const cc = confColor(log.confidence);
+                return (
+                  <div key={log.id} className={rowClass}>
+                    <RecentDetectionThumb log={log} signColor={sc} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <p className="dashboard-text__title truncate">{log.detected_sign}</p>
+                        <span className="text-[12px] font-black flex-shrink-0" style={{ color: cc }}>
+                          {log.confidence.toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                          <div className="h-full rounded-full"
+                            style={{ width: `${log.confidence}%`, background: confGrad(log.confidence) }} />
+                        </div>
+                        <span className="text-[10.5px] text-muted-foreground flex-shrink-0 truncate max-w-[72px]">
+                          {log.user_name}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-[10.5px] text-muted-foreground flex-shrink-0 hidden sm:block">
+                      {new Date(log.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </CardWrap>
   );
@@ -485,7 +636,7 @@ function ResultCard({
    Main page
 ═══════════════════════════════════════════════════════ */
 export function AIDetectionPage() {
-  const { t, STEPS, formatTraining, modelStatus } = useAIDetectionCopy();
+  const { t, STEPS, formatTraining, modelStatus, categoryName } = useAIDetectionCopy();
   const navigate = useNavigate();
   const location = useLocation();
   const aiLogsPath = location.pathname.startsWith('/admin') ? '/admin/ai-logs' : '/dashboard/ai-logs';
@@ -507,7 +658,7 @@ export function AIDetectionPage() {
       aiAPI.getLogs(),
       aiAPI.getPageStats(),
     ]);
-    setRecentLogs(logs.slice(0, 6));
+    setRecentLogs(logs.slice(0, 7));
     setPageStats(stats);
     setLoadingLogs(false);
     setLoadingStats(false);
@@ -582,24 +733,15 @@ export function AIDetectionPage() {
 
   const status = pageStats ? modelStatus(pageStats.model.mode) : null;
 
-  const buildSidebarStats = (page: AIDetectionPageStats) => {
-    const { stats, model } = page;
-    return [
-      { label: t('aiDetection.accuracy'), value: formatPct(stats.accuracy_avg), Icon: Target, accent: '#8B5CF6' },
-      { label: t('aiDetection.categories'), value: String(model.sign_classes), Icon: Layers, accent: '#06B6D4' },
-      { label: t('aiDetection.avgSpeedShort'), value: formatSpeed(stats.avg_speed_sec), Icon: Cpu, accent: '#10B981' },
-      { label: t('aiDetection.scansLabel'), value: formatScans(stats.total_scans), Icon: Activity, accent: '#F59E0B' },
-    ];
-  };
   const maxCategoryCount = pageStats
     ? Math.max(...pageStats.categories.map(c => c.count), 1)
     : 1;
 
   return (
-    <div className="space-y-5">
+    <div className="dashboard-home dashboard-page--ai space-y-5">
 
       {/* ── HERO BANNER ── */}
-      <div className="relative overflow-hidden rounded-2xl pt-3 pb-5 px-6"
+      <div className="dashboard-welcome--hero relative overflow-hidden rounded-2xl pt-3 pb-5 px-6"
         style={{ background: 'linear-gradient(135deg, #0F172A 0%, #1E1B4B 50%, #0F172A 100%)', border: '1px solid rgba(255,255,255,0.06)' }}>
         {/* glow orbs */}
         <div className="absolute top-0 right-0 w-80 h-80 rounded-full -translate-y-24 translate-x-24 pointer-events-none"
@@ -617,7 +759,7 @@ export function AIDetectionPage() {
                 style={{ background: 'rgba(139,92,246,0.25)' }}>
                 <Camera size={13} color="#C4B5FD" />
               </div>
-              <span className="text-[11px] font-bold uppercase tracking-widest" style={{ color: 'rgba(196,181,253,0.85)' }}>
+              <span className="dashboard-welcome__eyebrow" style={{ color: 'rgba(196,181,253,0.85)' }}>
                 {t('aiDetection.heroEyebrow')}
               </span>
             </div>
@@ -634,100 +776,114 @@ export function AIDetectionPage() {
           <h1 className="dashboard-welcome__title text-white mb-1">
             {t('aiDetection.heroTitle')}
           </h1>
-          <p className="text-[12.5px] mb-4" style={{ color: 'rgba(148,163,184,0.7)' }}>
+          <p className="dashboard-welcome__meta" style={{ color: 'rgba(148,163,184,0.7)' }}>
             {t('aiDetection.heroSubtitle')}
           </p>
-
-          {/* Feature stat chips (live from API) */}
-          <div className="grid grid-cols-3 gap-3">
-            {loadingStats ? (
-              [...Array(3)].map((_, i) => (
-                <div key={i} className="rounded-xl px-4 py-3 h-[72px] bg-white/5 animate-pulse" />
-              ))
-            ) : pageStats && (
-              [
-                {
-                  label: t('aiDetection.avgConfidence'),
-                  value: formatPct(pageStats.stats.accuracy_avg),
-                  sub: t('aiDetection.scans').replace('{count}', formatScans(pageStats.stats.total_scans)),
-                  accent: '#A78BFA',
-                  bg: 'rgba(139,92,246,0.1)',
-                  border: 'rgba(139,92,246,0.2)',
-                  icon: '🎯',
-                },
-                {
-                  label: t('aiDetection.avgSpeed'),
-                  value: formatSpeed(pageStats.stats.avg_speed_sec),
-                  sub: t('aiDetection.perDetection'),
-                  accent: '#22D3EE',
-                  bg: 'rgba(6,182,212,0.1)',
-                  border: 'rgba(6,182,212,0.2)',
-                  icon: '⚡',
-                },
-                {
-                  label: t('aiDetection.signCatalog'),
-                  value: String(pageStats.stats.sign_count),
-                  sub: `${pageStats.model.name} ${pageStats.model.version}`,
-                  accent: '#34D399',
-                  bg: 'rgba(52,211,153,0.1)',
-                  border: 'rgba(52,211,153,0.2)',
-                  icon: '🚦',
-                },
-              ].map(s => (
-                <div key={s.label} className="rounded-xl px-4 py-3 flex items-center gap-3"
-                  style={{ background: s.bg, border: `1px solid ${s.border}` }}>
-                  <span className="text-[20px] flex-shrink-0">{s.icon}</span>
-                  <div className="min-w-0">
-                    <p className="text-[20px] font-black leading-none" style={{ color: s.accent }}>{s.value}</p>
-                    <p className="text-[10.5px] font-semibold mt-0.5" style={{ color: 'rgba(148,163,184,0.7)' }}>{s.label}</p>
-                    <p className="text-[10px]" style={{ color: 'rgba(148,163,184,0.45)' }}>{s.sub}</p>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
         </div>
       </div>
 
-      {/* ── BODY: 2 columns ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5">
+      {/* ── TOP STAT CARDS ── */}
+      {loadingStats ? (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-28 rounded-2xl bg-muted animate-pulse" />
+          ))}
+        </div>
+      ) : pageStats && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            {
+              label: t('aiDetection.accuracy'),
+              value: formatPct(pageStats.stats.accuracy_avg),
+              sub: t('aiDetection.scans').replace('{count}', formatScans(pageStats.stats.total_scans)),
+              Icon: Target,
+              grad: 'linear-gradient(135deg,#134E4A 0%,#0D9488 100%)',
+            },
+            {
+              label: t('aiDetection.scansLabel'),
+              value: formatScans(pageStats.stats.total_scans),
+              sub: t('aiDetection.avgConfidenceShort'),
+              Icon: Activity,
+              grad: 'linear-gradient(135deg,#881337 0%,#F43F5E 100%)',
+            },
+            {
+              label: t('aiDetection.categories'),
+              value: String(pageStats.model.sign_classes),
+              sub: `${pageStats.model.name} ${pageStats.model.version}`,
+              Icon: Layers,
+              grad: 'linear-gradient(135deg,#2D1B69 0%,#7C3AED 100%)',
+            },
+            {
+              label: t('aiDetection.avgSpeedShort'),
+              value: formatSpeed(pageStats.stats.avg_speed_sec),
+              sub: t('aiDetection.perDetection'),
+              Icon: Cpu,
+              grad: 'linear-gradient(135deg,#92400E 0%,#F59E0B 100%)',
+            },
+          ].map(s => (
+            <div key={s.label} className="dashboard-panel-header relative overflow-hidden rounded-2xl p-5 flex flex-col justify-between"
+              style={{ background: s.grad, minHeight: 108 }}>
+              <div className="absolute -bottom-6 -right-6 w-28 h-28 rounded-full pointer-events-none"
+                style={{ background: 'rgba(255,255,255,0.07)' }} />
+              <div className="flex items-center justify-between relative">
+                <p className="dashboard-kpi__label text-white/70">{s.label}</p>
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'rgba(255,255,255,0.18)' }}>
+                  <s.Icon size={16} color="white" />
+                </div>
+              </div>
+              <div className="relative">
+                <p className="dashboard-kpi__value text-white mt-2">{s.value}</p>
+                <p className="dashboard-kpi__sub text-white/55 mt-1">{s.sub}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
-        {/* ══ COLUMN 1 — Upload + Result/Awaiting ══ */}
-        <div className="space-y-5">
-
-          {/* Upload + Awaiting/Result side-by-side */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
-
-            {/* ── UPLOAD CARD ── */}
-            <CardWrap className="p-5 flex flex-col gap-4">
-              {/* Header */}
-              <div className="flex items-center justify-between">
-                <SectionHeader
-                  icon={<SectionIcon accent="#8B5CF6"><Upload size={15} /></SectionIcon>}
-                  title={t('aiDetection.uploadTitle')}
-                  subtitle={t('aiDetection.uploadSubtitle')}
-                />
-                <div className="flex items-center gap-1.5">
-                  {['PNG','JPG','WEBP'].map(f => (
-                    <span key={f} className="text-[9.5px] font-bold px-1.5 py-0.5 rounded-md"
-                      style={{ background: 'rgba(139,92,246,0.1)', color: '#8B5CF6', border: '1px solid rgba(139,92,246,0.2)' }}>
-                      {f}
-                    </span>
-                  ))}
+      {/* ── MAIN ── */}
+      <div className="space-y-5">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-stretch">
+          <div className={`flex flex-col gap-5 w-full min-h-0 ${result ? 'h-full' : ''}`}>
+            <CardWrap className={`overflow-hidden flex flex-col ${result ? 'flex-shrink-0' : 'min-h-[420px] h-full flex-1'}`}>
+              <div className="dashboard-panel-header relative px-5 pt-5 pb-10 flex-shrink-0"
+                style={{ background: 'linear-gradient(135deg,#6D28D9 0%,#7C3AED 50%,#8B5CF6 100%)' }}>
+                <div className="absolute -top-5 -right-5 w-24 h-24 rounded-full pointer-events-none"
+                  style={{ background: 'rgba(255,255,255,0.08)' }} />
+                <div className="relative flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{ background: 'rgba(255,255,255,0.18)' }}>
+                        <Upload size={15} color="white" />
+                      </div>
+                      <p className="dashboard-card__title text-white leading-tight">{t('aiDetection.uploadTitle')}</p>
+                    </div>
+                    <p className="dashboard-panel__subtitle pl-10">{t('aiDetection.uploadSubtitle')}</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    {['PNG', 'JPG', 'WEBP'].map(f => (
+                      <span key={f} className="text-[9.5px] font-bold px-1.5 py-0.5 rounded-md"
+                        style={{ background: 'rgba(255,255,255,0.16)', color: 'white', border: '1px solid rgba(255,255,255,0.22)' }}>
+                        {f}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              {/* Drop zone */}
+              <div className="relative -mt-5 mx-4 mb-4 flex-1 flex flex-col min-h-0">
+                <div className="rounded-2xl bg-background border border-border/60 shadow-sm p-4 flex flex-col flex-1 min-h-0 gap-3">
               <div
                 onDragOver={e => { e.preventDefault(); setDragging(true); }}
                 onDragLeave={() => setDragging(false)}
                 onDrop={handleDrop}
                 onClick={() => inputRef.current?.click()}
-                className="relative border-2 border-dashed rounded-2xl cursor-pointer transition-all overflow-hidden"
+                className={`relative border-2 border-dashed rounded-2xl cursor-pointer transition-all overflow-hidden flex flex-col ${!result ? 'flex-1' : ''}`}
                 style={{
                   borderColor: dragging ? '#8B5CF6' : 'rgba(139,92,246,0.28)',
                   background: dragging ? 'rgba(139,92,246,0.06)' : 'rgba(139,92,246,0.02)',
-                  minHeight: preview ? 'auto' : 180,
+                  minHeight: !result && !preview ? 260 : undefined,
                 }}
                 onMouseEnter={e => { if (!dragging) (e.currentTarget as HTMLElement).style.borderColor = 'rgba(139,92,246,0.52)'; }}
                 onMouseLeave={e => { if (!dragging) (e.currentTarget as HTMLElement).style.borderColor = 'rgba(139,92,246,0.28)'; }}
@@ -746,7 +902,6 @@ export function AIDetectionPage() {
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
-                    {/* Animated upload icon */}
                     <div className="relative mb-4">
                       <div className="w-16 h-16 rounded-2xl flex items-center justify-center"
                         style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.15), rgba(6,182,212,0.1))' }}>
@@ -761,11 +916,12 @@ export function AIDetectionPage() {
                     <p className="text-[12px] text-muted-foreground mt-1">{t('aiDetection.dropHint')}</p>
                     <div className="flex items-center gap-3 mt-4">
                       {[
-                        { icon: '🖼️', text: t('aiDetection.dropFormats') },
-                        { icon: '📦', text: t('aiDetection.dropMaxSize') },
+                        { Icon: ImageIcon, text: t('aiDetection.dropFormats') },
+                        { Icon: Package, text: t('aiDetection.dropMaxSize') },
                       ].map(b => (
-                        <span key={b.text} className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground px-2.5 py-1 rounded-lg bg-muted">
-                          {b.icon} {b.text}
+                        <span key={b.text} className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground px-2.5 py-1 rounded-lg bg-muted">
+                          <b.Icon size={13} className="flex-shrink-0 opacity-80" />
+                          {b.text}
                         </span>
                       ))}
                     </div>
@@ -775,7 +931,6 @@ export function AIDetectionPage() {
               <input ref={inputRef} type="file" accept="image/*" className="hidden"
                 onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
 
-              {/* File info chip */}
               {file && (
                 <div className="flex items-center justify-between px-3 py-2.5 rounded-xl"
                   style={{ background: 'rgba(139,92,246,0.07)', border: '1px solid rgba(139,92,246,0.18)' }}>
@@ -785,8 +940,8 @@ export function AIDetectionPage() {
                       <Camera size={13} color="#8B5CF6" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[12.5px] font-semibold text-foreground truncate max-w-[180px]">{file.name}</p>
-                      <p className="text-[11px] text-muted-foreground">{(file.size / 1024).toFixed(1)} KB · {t('aiDetection.readyToDetect')}</p>
+                      <p className="dashboard-text__title truncate max-w-[180px]">{file.name}</p>
+                      <p className="dashboard-text__caption">{(file.size / 1024).toFixed(1)} KB · {t('aiDetection.readyToDetect')}</p>
                     </div>
                   </div>
                   <button onClick={e => { e.stopPropagation(); reset(); }}
@@ -794,7 +949,6 @@ export function AIDetectionPage() {
                 </div>
               )}
 
-              {/* Progress */}
               {detecting && (
                 <div className="rounded-xl p-3" style={{ background: 'rgba(139,92,246,0.05)', border: '1px solid rgba(139,92,246,0.15)' }}>
                   <div className="flex items-center justify-between mb-2">
@@ -811,7 +965,6 @@ export function AIDetectionPage() {
                 </div>
               )}
 
-              {/* Action buttons */}
               <div className="flex gap-2">
                 <button onClick={handleDetect} disabled={detecting}
                   className="flex-1 py-3 rounded-xl text-white text-[13.5px] font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-70 disabled:cursor-wait"
@@ -831,28 +984,8 @@ export function AIDetectionPage() {
                 )}
               </div>
 
-              {/* Upload tips */}
-              <div className="rounded-xl p-3.5" style={{ background: 'rgba(6,182,212,0.05)', border: '1px solid rgba(6,182,212,0.15)' }}>
-                <p className="text-[11px] font-bold uppercase tracking-widest mb-2.5" style={{ color: '#06B6D4' }}>
-                  {t('aiDetection.tipsTitle')}
-                </p>
-                <div className="space-y-2">
-                  {[
-                    { icon: '☀️', tip: t('aiDetection.tipLight') },
-                    { icon: '🎯', tip: t('aiDetection.tipCenter') },
-                    { icon: '📐', tip: t('aiDetection.tipAngle') },
-                  ].map(tip => (
-                    <div key={tip.tip} className="flex items-start gap-2">
-                      <span className="text-[12px] flex-shrink-0 mt-0.5">{tip.icon}</span>
-                      <p className="text-[11.5px] text-muted-foreground leading-snug">{tip.tip}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Sample signs from traffic sign catalog */}
-              <div className="border-t border-border pt-4">
-                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-3">
+              <div className="border-t border-border pt-4 flex-shrink-0 mt-auto">
+                <p className="dashboard-kpi__label text-muted-foreground mb-3">
                   {t('aiDetection.catalogTap')}
                 </p>
                 {loadingStats ? (
@@ -892,154 +1025,125 @@ export function AIDetectionPage() {
                   <p className="text-[12px] text-muted-foreground">{t('aiDetection.catalogEmpty')}</p>
                 )}
               </div>
+                </div>
+              </div>
             </CardWrap>
-
-            {/* ── RESULT / AWAITING CARD ── */}
-            <div>
-              {result ? (
-                <ResultCard result={result} preview={preview} onReset={reset} />
-              ) : pageStats ? (
-                <AwaitingCard pageStats={pageStats} onSampleClick={handleSampleSign} />
-              ) : (
-                <CardWrap className="min-h-[420px] flex items-center justify-center">
-                  <div className="h-8 w-8 border-2 border-muted border-t-primary rounded-full animate-spin" />
-                </CardWrap>
-              )}
-            </div>
+            {result && (
+              <RecentDetectionsCard
+                logs={recentLogs}
+                loading={loadingLogs}
+                layout="sidebar"
+                onViewAll={() => navigate(aiLogsPath)}
+              />
+            )}
           </div>
 
-          {/* ── RECENT DETECTIONS ── */}
-          <CardWrap className="p-5">
-            <div className="flex items-center justify-between mb-4">
-              <SectionHeader
-                icon={<SectionIcon accent="#8B5CF6"><BarChart2 size={15} /></SectionIcon>}
-                title={t('aiDetection.recentTitle')}
-                subtitle={t('aiDetection.recentSubtitle')}
-              />
-              <button
-                className="flex items-center gap-1 text-[12px] font-semibold px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
-                onClick={() => navigate(aiLogsPath)}>
-                {t('aiDetection.viewAll')} <ChevronRight size={12} />
-              </button>
-            </div>
-
-            {loadingLogs ? (
-              <div className="space-y-2">
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className="h-14 rounded-xl bg-muted animate-pulse" />
-                ))}
-              </div>
-            ) : recentLogs.length === 0 ? (
-              <div className="text-center py-10">
-                <Activity size={28} className="mx-auto mb-3 text-muted-foreground opacity-30" />
-                <p className="text-[13px] font-semibold text-muted-foreground">{t('aiDetection.noDetections')}</p>
-                <p className="text-[12px] text-muted-foreground mt-1">{t('aiDetection.noDetectionsHint')}</p>
-              </div>
+          <div className="flex flex-col h-full min-h-[420px]">
+            {result ? (
+              <ResultCard result={result} preview={preview} onReset={reset} />
+            ) : pageStats ? (
+              <AwaitingCard pageStats={pageStats} onSampleClick={handleSampleSign} />
             ) : (
-              <div className="space-y-2">
-                {recentLogs.map(log => {
-                  const sc = getSignColor(log.detected_sign);
-                  return (
-                    <div key={log.id}
-                      className="flex items-center gap-4 p-3 rounded-xl border border-transparent hover:bg-muted hover:border-border transition-all cursor-default">
-                      {/* Avatar */}
-                      <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                        style={{ background: `${sc}18`, border: `1.5px solid ${sc}35` }}>
-                        <span className="text-[10px] font-black" style={{ color: sc }}>
-                          {log.detected_sign.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()}
-                        </span>
-                      </div>
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <p className="text-[13px] font-semibold text-foreground truncate max-w-[200px]">
-                            {log.detected_sign}
-                          </p>
-                          <span className="text-[12.5px] font-black ml-2 flex-shrink-0"
-                            style={{ color: confColor(log.confidence) }}>
-                            {log.confidence.toFixed(1)}%
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
-                            <div className="h-full rounded-full"
-                              style={{ width: `${log.confidence}%`, background: confGrad(log.confidence) }} />
-                          </div>
-                          <span className="text-[11px] text-muted-foreground flex-shrink-0">{log.user_name}</span>
-                        </div>
-                      </div>
-                      {/* Date */}
-                      <span className="text-[11px] text-muted-foreground flex-shrink-0">
-                        {new Date(log.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+              <CardWrap className="min-h-[420px] h-full flex items-center justify-center">
+                <div className="h-8 w-8 border-2 border-muted border-t-primary rounded-full animate-spin" />
+              </CardWrap>
             )}
-          </CardWrap>
+          </div>
+        </div>
 
-        </div>{/* end column 1 */}
+        {!result && (
+          <RecentDetectionsCard
+            logs={recentLogs}
+            loading={loadingLogs}
+            layout="full"
+            onViewAll={() => navigate(aiLogsPath)}
+          />
+        )}
+      </div>
 
-        {/* ══ COLUMN 2 — AI Model Info ══ */}
-        <div className="space-y-4">
-
-          {/* Model stats (live) */}
-          <CardWrap className="p-5">
-            <div className="flex items-center gap-2.5 mb-4">
-              <SectionIcon accent="#8B5CF6"><Cpu size={14} /></SectionIcon>
-              <p className="dashboard-section__title text-[13px]">{t('aiDetection.aiModel')}</p>
-            </div>
-            {loadingStats || !pageStats ? (
-              <div className="grid grid-cols-2 gap-2.5">
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />
-                ))}
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-2 gap-2.5">
-                  {buildSidebarStats(pageStats).map(s => (
-                    <div key={s.label} className="rounded-xl p-3"
-                      style={{ background: `${s.accent}10`, border: `1px solid ${s.accent}22` }}>
-                      <s.Icon size={14} style={{ color: s.accent }} />
-                      <p className="text-[19px] font-black mt-2 leading-none"
-                        style={{ color: s.accent, letterSpacing: '-0.03em' }}>{s.value}</p>
-                      <p className="text-[10px] font-semibold uppercase tracking-wider mt-1.5 text-muted-foreground">
-                        {s.label}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-3 p-3 rounded-xl"
-                  style={{ background: 'rgba(139,92,246,0.07)', border: '1px solid rgba(139,92,246,0.18)' }}>
-                  <p className="text-[11px] font-bold" style={{ color: '#A78BFA' }}>
-                    {pageStats.model.name} {pageStats.model.version}
-                  </p>
-                  <p className="text-[10.5px] text-muted-foreground mt-1">
-                    {formatTraining(pageStats.model.training_images)
-                      ?? t('aiDetection.signsInCatalog').replace('{count}', String(pageStats.model.sign_classes))}
-                    {pageStats.model.mode === 'yolo'
-                      ? ` · ${t('aiDetection.liveYolo')}`
-                      : pageStats.model.mode === 'mock_fallback'
-                        ? ` · ${t('aiDetection.trainModel')}`
-                        : ` · ${t('aiDetection.demoUntilTrained')}`}
+      {/* ── BOTTOM INFO ROW ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {pageStats && (
+          <CardWrap className="overflow-hidden">
+            <div className="dashboard-panel-header relative px-5 pt-5 pb-10"
+              style={{ background: 'linear-gradient(135deg,#4F46E5 0%,#7C3AED 100%)' }}>
+              <div className="absolute -top-5 -right-5 w-24 h-24 rounded-full pointer-events-none"
+                style={{ background: 'rgba(255,255,255,0.08)' }} />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center"
+                    style={{ background: 'rgba(255,255,255,0.18)' }}>
+                    <Cpu size={15} color="white" />
+                  </div>
+                  <p className="dashboard-kpi__label text-white/80">
+                    {t('aiDetection.modelInfo')}
                   </p>
                 </div>
-              </>
-            )}
-          </CardWrap>
-
-          {/* Sign categories (from database) */}
-          <CardWrap className="p-5">
-            <div className="flex items-center gap-2.5 mb-4">
-              <SectionIcon accent="#3B82F6"><Shield size={14} /></SectionIcon>
-              <p className="dashboard-section__title text-[13px]">{t('aiDetection.signTypes')}</p>
+                {status && (
+                  <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] font-bold"
+                    style={{ background: status.bg, border: `1px solid ${status.border}`, color: status.color }}>
+                    {status.dot && (
+                      <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: status.dot }} />
+                    )}
+                    {status.text}
+                  </span>
+                )}
+              </div>
+              <p className="dashboard-stat__value text-white mt-3 leading-tight">
+                {pageStats.model.name}
+              </p>
+              <p className="dashboard-panel__subtitle mt-0.5">{pageStats.model.version}</p>
             </div>
+            <div className="relative -mt-5 mx-4 mb-4 rounded-2xl bg-background border border-border/60 shadow-sm divide-y divide-border/60">
+              <div className="flex items-center justify-between px-4 py-3">
+                <span className="text-[11.5px] text-muted-foreground">{t('aiDetection.datasetImages')}</span>
+                <span className="text-[12.5px] font-bold text-foreground">
+                  {formatTraining(pageStats.model.training_images)
+                    ?? t('aiDetection.signsInCatalog').replace('{count}', String(pageStats.model.sign_classes))}
+                </span>
+              </div>
+              <div className="flex items-center justify-between px-4 py-3">
+                <span className="text-[11.5px] text-muted-foreground">{t('aiDetection.modelStatus')}</span>
+                <span className="text-[12.5px] font-bold text-foreground">
+                  {pageStats.model.mode === 'yolo'
+                    ? t('aiDetection.liveYolo')
+                    : pageStats.model.mode === 'mock_fallback'
+                      ? t('aiDetection.trainModel')
+                      : t('aiDetection.demoUntilTrained')}
+                </span>
+              </div>
+              <div className="flex items-center justify-between px-4 py-3">
+                <span className="text-[11.5px] text-muted-foreground">{t('aiDetection.categories')}</span>
+                <span className="text-[12.5px] font-bold text-foreground">{pageStats.model.sign_classes}</span>
+              </div>
+            </div>
+          </CardWrap>
+        )}
+
+        <CardWrap className="overflow-hidden">
+          <div className="dashboard-panel-header relative px-5 pt-5 pb-10"
+            style={{ background: 'linear-gradient(135deg,#1D4ED8 0%,#3B82F6 100%)' }}>
+            <div className="absolute -top-5 -right-5 w-24 h-24 rounded-full pointer-events-none"
+              style={{ background: 'rgba(255,255,255,0.08)' }} />
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center"
+                style={{ background: 'rgba(255,255,255,0.18)' }}>
+                <Shield size={15} color="white" />
+              </div>
+              <p className="dashboard-kpi__label text-white/80">
+                {t('aiDetection.signTypes')}
+              </p>
+            </div>
+            <p className="dashboard-kpi__value text-white mt-3 leading-none">
+              {pageStats ? pageStats.categories.reduce((s, c) => s + c.count, 0) : '—'}
+            </p>
+            <p className="dashboard-panel__subtitle mt-0.5">{t('aiDetection.signCatalog')}</p>
+          </div>
+          <div className="relative -mt-5 mx-4 mb-4 rounded-2xl bg-background border border-border/60 shadow-sm p-4">
             {loadingStats || !pageStats ? (
               <div className="space-y-3">
                 {[...Array(4)].map((_, i) => (
-                  <div key={i} className="h-12 rounded-xl bg-muted animate-pulse" />
+                  <div key={i} className="h-8 rounded-xl bg-muted animate-pulse" />
                 ))}
               </div>
             ) : pageStats.categories.length === 0 ? (
@@ -1048,46 +1152,60 @@ export function AIDetectionPage() {
               <div className="space-y-4">
                 {pageStats.categories.map(c => (
                   <div key={c.key}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[13px] font-semibold text-foreground">{c.name}</span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: c.color }} />
+                        <span className="dashboard-text__title">{categoryName(c.key, c.name)}</span>
+                      </div>
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full"
                         style={{ background: `${c.color}18`, color: c.color }}>{c.count}</span>
                     </div>
-                    <p className="text-[11px] text-muted-foreground mb-2">{c.desc}</p>
-                    <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                      <div className="h-full rounded-full"
-                        style={{ width: `${(c.count / maxCategoryCount) * 100}%`, background: c.color, opacity: 0.8 }} />
+                    <div className="h-2 rounded-full bg-muted overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-700"
+                        style={{ width: `${(c.count / maxCategoryCount) * 100}%`, background: c.color }} />
                     </div>
                   </div>
                 ))}
               </div>
             )}
-          </CardWrap>
+          </div>
+        </CardWrap>
 
-          {/* How it works */}
-          <CardWrap className="p-5">
-            <div className="flex items-center gap-2.5 mb-4">
-              <SectionIcon accent="#06B6D4"><Zap size={14} /></SectionIcon>
-              <p className="dashboard-section__title text-[13px]">{t('aiDetection.howItWorks')}</p>
+        <CardWrap className="overflow-hidden">
+          <div className="dashboard-panel-header relative px-5 pt-5 pb-10"
+            style={{ background: 'linear-gradient(135deg,#0E7490 0%,#06B6D4 100%)' }}>
+            <div className="absolute -top-5 -right-5 w-24 h-24 rounded-full pointer-events-none"
+              style={{ background: 'rgba(255,255,255,0.08)' }} />
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center"
+                style={{ background: 'rgba(255,255,255,0.18)' }}>
+                <Zap size={15} color="white" />
+              </div>
+              <p className="dashboard-kpi__label text-white/80">
+                {t('aiDetection.howItWorks')}
+              </p>
             </div>
-            <div className="space-y-3.5">
-              {STEPS.map(s => (
-                <div key={s.n} className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ background: `${s.color}18`, border: `1.5px solid ${s.color}40` }}>
-                    <span style={{ fontSize: 9, fontWeight: 800, color: s.color }}>{s.n}</span>
-                  </div>
-                  <div>
-                    <p className="text-[13px] font-semibold text-foreground leading-tight">{s.title}</p>
-                    <p className="text-[11.5px] text-muted-foreground mt-0.5">{s.desc}</p>
-                  </div>
+            <p className="dashboard-kpi__value text-white mt-3 leading-none">
+              {STEPS.length}
+            </p>
+            <p className="dashboard-panel__subtitle mt-0.5">{t('aiDetection.howItWorks')}</p>
+          </div>
+          <div className="relative -mt-5 mx-4 mb-4 rounded-2xl bg-background border border-border/60 shadow-sm divide-y divide-border/60">
+            {STEPS.map(s => (
+              <div key={s.n} className="flex items-center gap-3 px-4 py-3">
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: `${s.color}18`, border: `1.5px solid ${s.color}35` }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: s.color }}>{s.n}</span>
                 </div>
-              ))}
-            </div>
-          </CardWrap>
-
-        </div>{/* end column 2 */}
-      </div>{/* end 2-col grid */}
+                <div className="min-w-0">
+                  <p className="dashboard-text__title leading-tight">{s.title}</p>
+                  <p className="dashboard-text__caption">{s.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardWrap>
+      </div>
     </div>
   );
 }

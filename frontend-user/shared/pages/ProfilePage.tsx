@@ -211,10 +211,10 @@ export function ProfilePage() {
               <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(37,99,235,0.2)' }}>
                 <User size={14} style={{ color: '#60A5FA' }} />
               </div>
-              <span className="text-[11px] font-bold uppercase tracking-widest" style={{ color: 'rgba(96,165,250,0.9)' }}>Account Settings</span>
+              <span className="dashboard-welcome__eyebrow" style={{ color: 'rgba(96,165,250,0.9)' }}>{t('pages.profile.eyebrow')}</span>
             </div>
-            <h1 className="text-white text-[20px] font-black leading-tight" style={{ letterSpacing: '-0.02em' }}>{t('pages.profile.title')}</h1>
-            <p className="mt-1 text-[12px]" style={{ color: 'rgba(148,163,184,0.7)' }}>Manage your personal information, security, and sessions</p>
+            <h1 className="dashboard-welcome__title text-white">{t('pages.profile.title')}</h1>
+            <p className="dashboard-welcome__meta mt-1" style={{ color: 'rgba(148,163,184,0.7)' }}>{t('pages.profile.heroSubtitle')}</p>
           </div>
         </div>
 

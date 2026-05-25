@@ -13,11 +13,11 @@ export function modelStatusLabel(
   if (mode === 'mock_fallback') {
     return { text: t('aiDetection.modelWeightsMissing'), color: '#F59E0B', bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.25)' };
   }
-  return { text: t('aiDetection.modelDemo'), color: '#A78BFA', bg: 'rgba(139,92,246,0.12)', border: 'rgba(139,92,246,0.25)' };
+  return { text: t('aiDetection.modelDemo'), color: '#FFFFFF', dot: '#FBBF24', bg: 'rgba(255,255,255,0.16)', border: 'rgba(255,255,255,0.32)' };
 }
 
 export function useAIDetectionCopy() {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
 
   return useMemo(() => {
     const STEPS = [
@@ -39,12 +39,19 @@ export function useAIDetectionCopy() {
       return t('aiDetection.trainingImages').replace('{count}', String(n));
     };
 
+    const categoryName = (key: string, fallback: string) => {
+      if (locale !== 'km') return fallback;
+      return t(`signCategories.${key}`) || fallback;
+    };
+
     return {
       t,
+      locale,
       STEPS,
       AWAIT_STEPS,
       formatTraining,
+      categoryName,
       modelStatus: (mode: AIDetectionPageStats['model']['mode']) => modelStatusLabel(mode, t),
     };
-  }, [t]);
+  }, [t, locale]);
 }

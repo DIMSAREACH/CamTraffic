@@ -1,7 +1,7 @@
 /* Dashboard typography — shared admin + user portals */
 :root {
-  --dashboard-font-body: 'Inter', system-ui, -apple-system, sans-serif;
-  --dashboard-font-display: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  --dashboard-font-body: var(--font-sans);
+  --dashboard-font-display: var(--font-display);
 
   --db-font-xs: 0.6875rem;      /* 11px — KPI labels, badges */
   --db-font-sm: 0.75rem;        /* 12px — subtitles, notes */
@@ -46,6 +46,61 @@
   font-family: var(--dashboard-font-body);
   font-size: var(--db-font-sm);
   line-height: 1.45;
+}
+
+/* Dark gradient welcome hero — high-contrast light text */
+.dashboard-welcome--hero .dashboard-welcome__title {
+  color: #ffffff !important;
+}
+
+.dashboard-welcome--hero .dashboard-welcome__meta {
+  color: rgba(226, 232, 240, 0.92) !important;
+}
+
+.dashboard-welcome--hero .dashboard-welcome__status-card {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.dashboard-welcome--hero .dashboard-welcome__status-label {
+  font-family: var(--dashboard-font-body);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.dashboard-welcome--hero .dashboard-welcome__status-value {
+  font-family: var(--dashboard-font-display);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #ffffff !important;
+}
+
+/* Gradient panel headers (AI Detection, etc.) — never dark text on colored bg */
+.dashboard-panel-header .dashboard-card__title,
+.dashboard-panel-header .dashboard-panel__title {
+  color: #ffffff !important;
+}
+
+.dashboard-panel-header .dashboard-panel__subtitle {
+  color: rgba(255, 255, 255, 0.82) !important;
+}
+
+.dashboard-panel-header .dashboard-kpi__label {
+  color: rgba(255, 255, 255, 0.88) !important;
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
+.dashboard-panel-header .dashboard-kpi__value,
+.dashboard-panel-header .dashboard-stat__value {
+  color: #ffffff !important;
+}
+
+.dashboard-panel-header .dashboard-kpi__sub {
+  color: rgba(255, 255, 255, 0.75) !important;
 }
 
 /* KPI stat cards (gradient) */
@@ -101,10 +156,47 @@
   color: var(--foreground);
 }
 
-.app-dashboard .dashboard-card__subtitle {
+.app-dashboard .dashboard-card__subtitle,
+.app-dashboard .dashboard-panel__subtitle {
   font-family: var(--dashboard-font-body);
   font-size: var(--db-font-sm);
   color: var(--muted-foreground);
+  line-height: 1.45;
+}
+
+/* Shared text utilities — AI Detection & dashboard-home */
+.app-dashboard .dashboard-text__title {
+  font-family: var(--dashboard-font-display);
+  font-size: var(--db-font-sm);
+  font-weight: 600;
+  color: var(--foreground);
+  line-height: 1.35;
+}
+
+.app-dashboard .dashboard-text__caption {
+  font-family: var(--dashboard-font-body);
+  font-size: var(--db-font-xs);
+  font-weight: 500;
+  color: var(--muted-foreground);
+  line-height: 1.45;
+}
+
+.app-dashboard .dashboard-text__metric {
+  font-family: var(--dashboard-font-display);
+  font-size: var(--db-font-md);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-synthesis: none;
+}
+
+.app-dashboard .dashboard-text__metric-lg {
+  font-family: var(--dashboard-font-display);
+  font-size: 1.0625rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-synthesis: none;
 }
 
 .app-dashboard .dashboard-section__title {
@@ -120,7 +212,7 @@
   color: var(--muted-foreground);
 }
 
-/* Recharts axis labels inherit Inter */
+/* Recharts axis labels inherit dashboard body font */
 .app-dashboard .recharts-cartesian-axis-tick-value {
   font-family: var(--dashboard-font-body) !important;
   font-size: var(--db-font-sm) !important;
@@ -238,4 +330,77 @@ html.dark .app-dashboard .dashboard-kpi__sub {
 
 .app-dashboard .dashboard-home .text-base {
   font-size: var(--db-font-base) !important;
+}
+
+.app-dashboard .dashboard-home [class*='text-[8.5px]'] {
+  font-size: 0.5625rem !important;
+}
+
+.app-dashboard .dashboard-home [class*='text-[9.5px]'] {
+  font-size: 0.625rem !important;
+}
+
+.app-dashboard .dashboard-home [class*='text-[10.5px]'] {
+  font-size: 0.6875rem !important;
+}
+
+.app-dashboard .dashboard-home [class*='text-[11.5px]'] {
+  font-size: 0.75rem !important;
+}
+
+.app-dashboard .dashboard-home [class*='text-[12.5px]'] {
+  font-size: 0.8125rem !important;
+}
+
+.app-dashboard .dashboard-home [class*='text-[13.5px]'] {
+  font-size: 0.875rem !important;
+}
+
+.app-dashboard .dashboard-home [class*='text-[16px]'] {
+  font-size: 1rem !important;
+}
+
+.app-dashboard .dashboard-home [class*='text-[17px]'] {
+  font-size: 1.0625rem !important;
+}
+
+/* Match main dashboard: display font for emphasis inside dashboard-home */
+.app-dashboard .dashboard-home .font-black {
+  font-family: var(--dashboard-font-display);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-synthesis: none;
+}
+
+.app-dashboard .dashboard-home .font-bold:not(.dashboard-kpi__label):not(.dashboard-welcome__eyebrow) {
+  font-family: var(--dashboard-font-display);
+  font-weight: 700;
+}
+
+.app-dashboard .dashboard-home .font-semibold {
+  font-family: var(--dashboard-font-body);
+  font-weight: 600;
+}
+
+html.locale-km .app-dashboard .dashboard-home .font-black,
+html.locale-km .app-dashboard .dashboard-home .font-bold:not(.dashboard-kpi__label),
+html.locale-km .app-dashboard .dashboard-home .dashboard-text__metric,
+html.locale-km .app-dashboard .dashboard-home .dashboard-text__metric-lg,
+html.locale-km .app-dashboard .dashboard-home .dashboard-text__title {
+  font-weight: 700 !important;
+  letter-spacing: 0.02em !important;
+  font-synthesis: none !important;
+}
+
+/* Traffic Signs — full page catalog panel */
+.app-dashboard .dashboard-page--signs {
+  min-height: calc(100vh - 8rem);
+}
+
+.app-dashboard .dashboard-signs-page {
+  min-height: min(720px, calc(100vh - 14rem));
+}
+
+.app-dashboard .dashboard-signs-page .dashboard-panel__subtitle {
+  color: rgba(255, 255, 255, 0.82) !important;
 }

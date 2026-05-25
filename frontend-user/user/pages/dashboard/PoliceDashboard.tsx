@@ -119,8 +119,8 @@ export function PoliceDashboard() {
   if (loadError && !stats) {
     return (
       <div className="rounded-2xl bg-white p-8 text-center shadow-sm" style={{ border: '1px solid rgba(37,99,235,0.1)' }}>
-        <p className="text-slate-700 font-semibold mb-2">Dashboard could not load</p>
-        <p className="text-sm text-slate-500 mb-4">Check that the backend is running, then retry.</p>
+        <p className="text-slate-700 font-semibold mb-2">{t('dashboard.loadErrorTitle')}</p>
+        <p className="text-sm text-slate-500 mb-4">{t('dashboard.loadErrorHint')}</p>
         <button
           type="button"
           onClick={loadStats}

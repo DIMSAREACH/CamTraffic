@@ -1,81 +1,373 @@
 /**
- * Cambodia / Khmer typography (thesis recommendation)
+ * Cambodia typography — active when html.locale-km (Khmer language)
  * — Main UI / Dashboard: Kantumruy Pro
  * — Tables / Data: Noto Sans Khmer
  * — Headings: Moul (display) + Kantumruy Pro Bold (sections)
  * — Mobile UI: Battambang
  *
- * Active when html has class .locale-km (LanguageContext).
+ * English locale: theme.css defaults (Kantumruy Pro)
+ * Loaded last in index.css.
  */
 
-html.locale-km {
+:root {
+  --font-en-display: 'Kantumruy Pro', 'Noto Sans Khmer', system-ui, sans-serif;
+
   --font-khmer-ui: 'Kantumruy Pro', 'Noto Sans Khmer', system-ui, sans-serif;
   --font-khmer-table: 'Noto Sans Khmer', 'Kantumruy Pro', system-ui, sans-serif;
   --font-khmer-heading: 'Moul', 'Kantumruy Pro', serif;
   --font-khmer-heading-bold: 'Kantumruy Pro', 'Noto Sans Khmer', system-ui, sans-serif;
   --font-khmer-mobile: 'Battambang', 'Kantumruy Pro', system-ui, sans-serif;
+}
 
-  --dashboard-font-body: var(--font-khmer-ui);
-  --dashboard-font-display: var(--font-khmer-heading-bold);
+/* ── Khmer locale: thesis font tokens ── */
+html.locale-km {
   --font-sans: var(--font-khmer-ui);
   --font-display: var(--font-khmer-heading-bold);
   --font-display-sidebar: var(--font-khmer-heading-bold);
+  --dashboard-font-body: var(--font-khmer-ui);
+  --dashboard-font-display: var(--font-khmer-heading-bold);
 }
 
-/* ── Main UI / dashboard / forms ── */
+/* ── Khmer locale: Main UI / Dashboard → Kantumruy Pro ── */
 html.locale-km,
 html.locale-km body,
 html.locale-km #root,
+html.locale-km [data-radix-portal],
+html.locale-km [data-sonner-toaster] {
+  font-family: var(--font-khmer-ui) !important;
+}
+
+html.locale-km .font-sans,
+html.locale-km [class*='font-sans'] {
+  font-family: var(--font-khmer-ui) !important;
+}
+
 html.locale-km .app-sidebar,
 html.locale-km .app-navbar,
-html.locale-km main,
+html.locale-km .app-dashboard,
 html.locale-km .portal-main,
 html.locale-km .dashboard-page,
+html.locale-km main,
+html.locale-km .up-page,
+html.locale-km .ap-page,
+html.locale-km .auth-page {
+  font-family: var(--font-khmer-ui) !important;
+}
+
+html.locale-km .app-dashboard {
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
+  font-synthesis: none;
+  font-family: var(--font-khmer-ui) !important;
+}
+
+html.locale-km .app-sidebar,
+html.locale-km .app-navbar {
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
+  font-synthesis: none;
+}
+
+html.locale-km .app-dashboard *:not(.font-mono):not([class*='font-mono']),
+html.locale-km .app-sidebar *:not(.font-mono):not([class*='font-mono']),
+html.locale-km .app-navbar *:not(.font-mono):not([class*='font-mono']) {
+  font-family: var(--font-khmer-ui) !important;
+}
+
+html.locale-km .app-dashboard .uppercase,
+html.locale-km .app-sidebar .uppercase,
+html.locale-km .app-navbar .uppercase {
+  text-transform: none !important;
+  letter-spacing: 0.04em !important;
+}
+
+html.locale-km .app-dashboard .font-bold,
+html.locale-km .app-dashboard .font-semibold,
+html.locale-km .app-dashboard .font-medium {
+  font-synthesis: none !important;
+}
+
 html.locale-km button,
 html.locale-km input,
 html.locale-km select,
 html.locale-km textarea,
 html.locale-km label,
+html.locale-km option,
 html.locale-km p,
 html.locale-km span,
-html.locale-km li,
 html.locale-km a,
-html.locale-km .auth-form-panel,
-html.locale-km .auth-left {
-  font-family: var(--font-khmer-ui);
+html.locale-km li {
+  font-family: var(--font-khmer-ui) !important;
 }
 
-/* ── Headings: Moul (large) + Kantumruy Pro Bold (sections) ── */
-html.locale-km h1,
-html.locale-km .dashboard-welcome__title,
+html.locale-km [data-slot='dialog-content'],
+html.locale-km [data-slot='dialog-description'],
+html.locale-km [data-slot='dropdown-menu-content'],
+html.locale-km [data-slot='select-content'],
+html.locale-km [data-slot='sheet-content'],
+html.locale-km [role='dialog'],
+html.locale-km [role='menu'],
+html.locale-km [role='listbox'] {
+  font-family: var(--font-khmer-ui) !important;
+}
+
+html.locale-km [data-sonner-toast],
+html.locale-km [data-sonner-toast] * {
+  font-family: var(--font-khmer-ui) !important;
+}
+
+html.locale-km .up-tagline,
+html.locale-km .ap-tagline,
+html.locale-km .up-features li,
+html.locale-km .ap-features li,
+html.locale-km .up-card-sub,
+html.locale-km .ap-card-sub,
+html.locale-km .lf-input,
+html.locale-km .lf-field,
+html.locale-km .remember-label,
+html.locale-km .up-register-line,
+html.locale-km .appearance-settings,
+html.locale-km .appearance-settings *:not(.font-mono) {
+  font-family: var(--font-khmer-ui) !important;
+}
+
+html.locale-km .dashboard-welcome__status-label {
+  font-family: var(--font-khmer-ui) !important;
+  font-weight: 600 !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+html.locale-km .dashboard-welcome__status-value {
+  font-family: var(--font-khmer-heading-bold) !important;
+  font-weight: 700 !important;
+  color: #ffffff !important;
+}
+
+html.locale-km .dashboard-panel-header .dashboard-card__title,
+html.locale-km .dashboard-panel-header .dashboard-kpi__value,
+html.locale-km .dashboard-panel-header .dashboard-stat__value {
+  font-family: var(--font-khmer-heading-bold) !important;
+  color: #ffffff !important;
+}
+
+html.locale-km .dashboard-panel-header .dashboard-kpi__label,
+html.locale-km .dashboard-panel-header .dashboard-panel__subtitle,
+html.locale-km .dashboard-panel-header .dashboard-kpi__sub {
+  font-family: var(--font-khmer-ui) !important;
+  color: rgba(255, 255, 255, 0.88) !important;
+}
+
+/* AI Detection + dashboard-home — full Khmer stack when locale is km */
+html.locale-km .dashboard-home,
+html.locale-km .dashboard-home p,
+html.locale-km .dashboard-home span,
+html.locale-km .dashboard-home button,
+html.locale-km .dashboard-home label {
+  font-family: var(--font-khmer-ui) !important;
+}
+
+html.locale-km .dashboard-home .dashboard-welcome__title,
+html.locale-km .dashboard-home .dashboard-card__title,
+html.locale-km .dashboard-home .dashboard-kpi__value,
+html.locale-km .dashboard-home .dashboard-stat__value,
+html.locale-km .dashboard-home .dashboard-text__title,
+html.locale-km .dashboard-home .dashboard-text__metric,
+html.locale-km .dashboard-home .dashboard-text__metric-lg {
+  font-family: var(--font-khmer-heading-bold) !important;
+  font-weight: 700 !important;
+}
+
+html.locale-km .dashboard-home .dashboard-text__caption,
+html.locale-km .dashboard-home .dashboard-panel__subtitle {
+  font-family: var(--font-khmer-ui) !important;
+}
+
+html.locale-km .dashboard-home .dashboard-kpi__label,
+html.locale-km .dashboard-home .dashboard-welcome__eyebrow,
+html.locale-km .dashboard-home .dashboard-welcome__meta {
+  font-family: var(--font-khmer-ui) !important;
+}
+
+html.locale-km .dashboard-home .font-black {
+  font-weight: 700 !important;
+  font-family: var(--font-khmer-heading-bold) !important;
+  letter-spacing: 0.02em !important;
+  font-synthesis: none !important;
+}
+
+html.locale-km .dashboard-home .uppercase {
+  text-transform: none !important;
+  letter-spacing: 0.04em !important;
+}
+
+/* English locale — Kantumruy Pro (emphasis uses rules below) */
+html:not(.locale-km) .dashboard-home,
+html:not(.locale-km) .dashboard-home p,
+html:not(.locale-km) .dashboard-home button,
+html:not(.locale-km) .dashboard-home label {
+  font-family: var(--font-sans) !important;
+}
+
+html:not(.locale-km) .dashboard-home .dashboard-welcome__title,
+html:not(.locale-km) .dashboard-home .dashboard-card__title,
+html:not(.locale-km) .dashboard-home .dashboard-kpi__value,
+html:not(.locale-km) .dashboard-home .dashboard-stat__value,
+html:not(.locale-km) .dashboard-home .dashboard-text__title,
+html:not(.locale-km) .dashboard-home .dashboard-text__metric,
+html:not(.locale-km) .dashboard-home .dashboard-text__metric-lg,
+html:not(.locale-km) .dashboard-home .font-black,
+html:not(.locale-km) .dashboard-home .font-bold:not(.dashboard-kpi__label):not(.dashboard-welcome__eyebrow) {
+  font-family: var(--font-en-display) !important;
+}
+
+html:not(.locale-km) .dashboard-home .dashboard-text__caption,
+html:not(.locale-km) .dashboard-home .dashboard-panel__subtitle,
+html:not(.locale-km) .dashboard-home .font-semibold,
+html:not(.locale-km) .dashboard-home .font-medium {
+  font-family: var(--font-sans) !important;
+}
+
+html.locale-km .dashboard-kpi__label,
+html.locale-km .dashboard-kpi__sub,
+html.locale-km .dashboard-stat__label,
+html.locale-km .dashboard-welcome__eyebrow {
+  font-family: var(--font-khmer-ui) !important;
+  font-weight: 700 !important;
+  font-size: 0.8125rem !important;
+  text-transform: none !important;
+  letter-spacing: 0.06em !important;
+}
+
+/* AI Detection + dashboard: real bold (700), never synthetic font-black (900) */
+html.locale-km .app-dashboard .font-black {
+  font-weight: 700 !important;
+  letter-spacing: 0.02em !important;
+  font-synthesis: none !important;
+}
+
+html.locale-km .app-dashboard .dashboard-kpi__label,
+html.locale-km .app-dashboard .dashboard-welcome__eyebrow,
+html.locale-km .app-dashboard .dashboard-section__subtitle {
+  text-transform: none !important;
+  letter-spacing: 0.06em !important;
+}
+
+html.locale-km .sidebar-brand__tagline,
+html.locale-km .camtraffic-brand .sidebar-brand__tagline,
+html.locale-km .camtraffic-brand--sidebar .sidebar-brand__tagline--header,
+html.locale-km .sidebar-brand__tagline--header {
+  font-family: var(--font-khmer-ui) !important;
+  font-size: 1rem !important;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.35;
+  text-transform: none;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+}
+
+/* ── Khmer locale: Headings → Moul (auth hero) + Kantumruy Pro Bold (dashboard) ── */
+html.locale-km h1:not(.dashboard-welcome__title),
 html.locale-km .auth-headline,
 html.locale-km .login-heading h2,
 html.locale-km .form-title,
 html.locale-km .auth-hero h2,
+html.locale-km .up-headline,
+html.locale-km .ap-headline,
 html.locale-km .up-hero-title {
-  font-family: var(--font-khmer-heading);
-  font-weight: 400;
-  line-height: 1.35;
+  font-family: var(--font-khmer-heading) !important;
+  font-weight: 400 !important;
+  line-height: 1.35 !important;
+  letter-spacing: 0 !important;
 }
 
 html.locale-km h2,
 html.locale-km h3,
+html.locale-km .dashboard-welcome__title,
 html.locale-km .dashboard-section__title,
+html.locale-km .dashboard-card__title,
+html.locale-km .dashboard-kpi__value,
+html.locale-km .dashboard-stat__value,
 html.locale-km .dashboard-kpi-card__value,
 html.locale-km .sb-brand-title,
-html.locale-km .navbar-title {
-  font-family: var(--font-khmer-heading-bold);
-  font-weight: 700;
+html.locale-km .navbar-title,
+html.locale-km .sidebar-nav__label,
+html.locale-km .up-card-title,
+html.locale-km .ap-card-title,
+html.locale-km [data-slot='dialog-title'],
+html.locale-km [data-slot='card-title'] {
+  font-family: var(--font-khmer-heading-bold) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.01em !important;
+}
+
+html.locale-km .dashboard-welcome__title {
+  font-family: var(--font-khmer-heading-bold) !important;
+  font-weight: 700 !important;
+  font-size: 1.5rem !important;
+  letter-spacing: 0.03em !important;
+  line-height: 1.4 !important;
+  text-shadow: none !important;
+  font-synthesis: none !important;
+  -webkit-font-smoothing: auto !important;
+  -moz-osx-font-smoothing: auto !important;
+}
+
+/* Page heroes that use plain h1 (Signs Library, Profile, etc.) */
+html.locale-km .app-dashboard .dashboard-home h1,
+html.locale-km .app-dashboard h1:not(.auth-headline) {
+  font-family: var(--font-khmer-heading-bold) !important;
+  font-weight: 700 !important;
+  font-size: 1.5rem !important;
+  letter-spacing: 0.03em !important;
+  line-height: 1.4 !important;
+  text-shadow: none !important;
+  font-synthesis: none !important;
+  -webkit-font-smoothing: auto !important;
+  -moz-osx-font-smoothing: auto !important;
+}
+
+html.locale-km .app-dashboard .dashboard-kpi__value,
+html.locale-km .app-dashboard .dashboard-stat__value {
+  font-weight: 700 !important;
+  letter-spacing: 0.02em !important;
+  font-synthesis: none !important;
 }
 
 html.locale-km h4,
 html.locale-km h5,
-html.locale-km h6 {
-  font-family: var(--font-khmer-heading-bold);
-  font-weight: 600;
+html.locale-km h6,
+html.locale-km .dashboard-section__subtitle,
+html.locale-km .dashboard-card__subtitle,
+html.locale-km .sidebar-nav__link-text,
+html.locale-km .sidebar-user-card__name,
+html.locale-km .field-label {
+  font-family: var(--font-khmer-heading-bold) !important;
+  font-weight: 600 !important;
 }
 
-/* ── Tables / data grids ── */
+html.locale-km .sidebar-brand__title,
+html.locale-km .camtraffic-brand .sidebar-brand__title {
+  font-family: var(--font-khmer-heading-bold) !important;
+  font-size: 1.1875rem;
+  line-height: 1.25;
+}
+
+html.locale-km .camtraffic-brand--sm .sidebar-brand__title {
+  font-size: 1.0625rem;
+}
+
+html.locale-km .app-navbar__brand-slot .sidebar-brand__tagline,
+html.locale-km .camtraffic-brand--sm .sidebar-brand__tagline {
+  font-size: 0.9375rem !important;
+}
+
+html.locale-km .app-sidebar__header .sidebar-brand__text {
+  gap: 0.25rem;
+}
+
+/* ── Khmer locale: Tables / Data → Noto Sans Khmer ── */
 html.locale-km table,
 html.locale-km thead,
 html.locale-km tbody,
@@ -91,46 +383,121 @@ html.locale-km [data-slot='table-cell'],
 html.locale-km [data-slot='table-head'],
 html.locale-km .dashboard-table,
 html.locale-km .ui-table {
-  font-family: var(--font-khmer-table);
+  font-family: var(--font-khmer-table) !important;
   font-variant-numeric: tabular-nums;
 }
 
+html.locale-km .recharts-cartesian-axis-tick-value,
+html.locale-km .recharts-legend-item-text,
+html.locale-km .recharts-tooltip-wrapper,
+html.locale-km .recharts-default-tooltip {
+  font-family: var(--font-khmer-table) !important;
+}
+
+/* ── Khmer utility classes ── */
 html.locale-km .font-khmer,
 .font-khmer {
-  font-family: var(--font-khmer-ui, 'Kantumruy Pro', 'Noto Sans Khmer', sans-serif);
+  font-family: var(--font-khmer-ui) !important;
 }
 
 html.locale-km .font-khmer-table {
-  font-family: var(--font-khmer-table);
+  font-family: var(--font-khmer-table) !important;
 }
 
 html.locale-km .font-khmer-heading {
-  font-family: var(--font-khmer-heading);
+  font-family: var(--font-khmer-heading) !important;
   font-weight: 400;
 }
 
+html.locale-km .font-khmer-heading-bold {
+  font-family: var(--font-khmer-heading-bold) !important;
+  font-weight: 700;
+}
+
+html .font-mono,
+html [class*='font-mono'] {
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace !important;
+}
+
+/* ── Khmer locale: Mobile UI → Battambang ── */
 @media (max-width: 768px) {
   html.locale-km,
   html.locale-km body,
-  html.locale-km main,
+  html.locale-km #root,
   html.locale-km .app-sidebar,
   html.locale-km .app-navbar,
+  html.locale-km main,
   html.locale-km button,
   html.locale-km input,
   html.locale-km select,
-  html.locale-km textarea {
-    font-family: var(--font-khmer-mobile);
+  html.locale-km textarea,
+  html.locale-km p,
+  html.locale-km span,
+  html.locale-km a,
+  html.locale-km li,
+  html.locale-km label {
+    font-family: var(--font-khmer-mobile) !important;
   }
 
   html.locale-km h1,
+  html.locale-km .auth-headline,
+  html.locale-km .up-headline,
+  html.locale-km .ap-headline {
+    font-family: var(--font-khmer-heading) !important;
+  }
+
   html.locale-km .dashboard-welcome__title,
-  html.locale-km .auth-headline {
-    font-family: var(--font-khmer-heading);
+  html.locale-km h2,
+  html.locale-km h3,
+  html.locale-km .dashboard-section__title,
+  html.locale-km .dashboard-card__title {
+    font-family: var(--font-khmer-heading-bold) !important;
+    font-weight: 700 !important;
   }
 
   html.locale-km table,
   html.locale-km th,
-  html.locale-km td {
-    font-family: var(--font-khmer-table);
+  html.locale-km td,
+  html.locale-km [data-slot='table'],
+  html.locale-km [data-slot='table-cell'],
+  html.locale-km [data-slot='table-head'] {
+    font-family: var(--font-khmer-table) !important;
   }
+
+  html.locale-km .sidebar-brand__tagline,
+  html.locale-km .camtraffic-brand .sidebar-brand__tagline,
+  html.locale-km .camtraffic-brand--sidebar .sidebar-brand__tagline--header {
+    font-family: var(--font-khmer-mobile) !important;
+    font-size: 1.0625rem !important;
+  }
+}
+
+/* ── English locale: Kantumruy Pro headings (matches theme.css) ── */
+html:not(.locale-km) .sidebar-brand__tagline,
+html:not(.locale-km) .camtraffic-brand .sidebar-brand__tagline {
+  text-transform: uppercase;
+}
+
+html:not(.locale-km) h1,
+html:not(.locale-km) h2,
+html:not(.locale-km) h3,
+html:not(.locale-km) h4,
+html:not(.locale-km) .dashboard-welcome__title,
+html:not(.locale-km) .dashboard-section__title,
+html:not(.locale-km) .dashboard-card__title,
+html:not(.locale-km) .auth-headline,
+html:not(.locale-km) .up-headline,
+html:not(.locale-km) .ap-headline,
+html:not(.locale-km) .sidebar-brand__title,
+html:not(.locale-km) [data-slot='dialog-title'],
+html:not(.locale-km) [data-slot='card-title'] {
+  font-family: var(--font-en-display) !important;
+}
+
+html:not(.locale-km) .dashboard-welcome__title {
+  font-weight: 800 !important;
+}
+
+html:not(.locale-km) .font-khmer {
+  font-family: 'Kantumruy Pro', 'Noto Sans Khmer', system-ui, sans-serif !important;
 }

@@ -36,5 +36,11 @@ Thumbs.db
 *.log
 .cursor/
 
+# Agent / local scratch (do not commit)
+_extract_*.txt
+_t*.txt
+_*.py
+_result_*.txt
+
 # Optional large reference data (uncomment if you keep PDFs/images outside repo)
 # Reference(PDF Download)/

@@ -113,10 +113,14 @@ export function VehiclesPage() {
               <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(6,182,212,0.2)' }}>
                 <Car size={14} style={{ color: '#67E8F9' }} />
               </div>
-              <span className="text-[11px] font-bold uppercase tracking-widest" style={{ color: 'rgba(103,232,249,0.9)' }}>Vehicle Registry</span>
+              <span className="dashboard-welcome__eyebrow" style={{ color: 'rgba(103,232,249,0.9)' }}>{t('pages.vehicles.eyebrow')}</span>
             </div>
-            <h1 className="text-white text-[20px] font-black leading-tight" style={{ letterSpacing: '-0.02em' }}>{user?.role === 'driver' ? t('pages.vehicles.titleDriver') : t('pages.vehicles.titleAdmin')}</h1>
-            <p className="mt-1 text-[12px]" style={{ color: 'rgba(148,163,184,0.7)' }}>{vehicles.length} vehicle{vehicles.length !== 1 ? 's' : ''} registered</p>
+            <h1 className="dashboard-welcome__title text-white">{user?.role === 'driver' ? t('pages.vehicles.titleDriver') : t('pages.vehicles.titleAdmin')}</h1>
+            <p className="dashboard-welcome__meta mt-1" style={{ color: 'rgba(148,163,184,0.7)' }}>
+              {vehicles.length === 1
+                ? t('pages.vehicles.heroSubtitleOne')
+                : t('pages.vehicles.heroSubtitleMany', { count: vehicles.length })}
+            </p>
           </div>
           <button
             onClick={() => setAddOpen(true)}

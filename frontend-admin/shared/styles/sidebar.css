@@ -1,6 +1,6 @@
 /* CamTraffic sidebar — logo, display font, brand colors */
 :root {
-  --font-display: var(--font-display-sidebar, 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif);
+  --font-display: var(--font-display-sidebar, 'Kantumruy Pro', 'Noto Sans Khmer', system-ui, sans-serif);
   --sidebar-expanded: 260px;
   --sidebar-collapsed: 72px;
   --sidebar-transition-duration: 0.36s;
@@ -63,7 +63,7 @@
   border-right: 1px solid rgba(255, 255, 255, 0.06);
   overflow: hidden;
   overflow-x: clip;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-sans);
 }
 
 .app-sidebar--expanded {

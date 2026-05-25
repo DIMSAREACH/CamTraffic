@@ -147,10 +147,10 @@ export function FineManagement() {
               </div>
               <span className="text-[11px] font-bold uppercase tracking-widest" style={{ color: 'rgba(252,165,165,0.9)' }}>{t('pages.fines.eyebrow')}</span>
             </div>
-            <h1 className="text-white text-[20px] font-black leading-tight" style={{ letterSpacing: '-0.02em' }}>
+            <h1 className="dashboard-welcome__title text-white">
               {t('pages.fines.title')}
             </h1>
-            <p className="mt-1 text-[12px]" style={{ color: 'rgba(148,163,184,0.7)' }}>
+            <p className="dashboard-welcome__meta mt-1" style={{ color: 'rgba(148,163,184,0.7)' }}>
               {user?.role === 'driver' ? t('pages.fines.subtitleDriver') : t('pages.fines.subtitleAdmin')}
             </p>
           </div>

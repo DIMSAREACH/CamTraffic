@@ -221,7 +221,7 @@ export function DriverDashboard() {
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.08)', color: '#DC2626' }}>
                 <FileText size={15} />
               </div>
-              <h3 className="text-slate-800 text-[14px] font-bold">{t('dashboard.recentFines')}</h3>
+              <h3 className="dashboard-card__title text-slate-800">{t('dashboard.recentFines')}</h3>
             </div>
             <button onClick={() => navigate('/dashboard/fines')}
               className="text-[12px] font-semibold flex items-center gap-1 transition-colors" style={{ color: '#2563EB' }}>
@@ -274,7 +274,7 @@ export function DriverDashboard() {
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.08)', color: '#7C3AED' }}>
                 <Camera size={15} />
               </div>
-              <h3 className="text-slate-800 text-[14px] font-bold">{t('dashboard.recentDetections')}</h3>
+              <h3 className="dashboard-card__title text-slate-800">{t('dashboard.recentDetections')}</h3>
             </div>
             <button onClick={() => navigate('/dashboard/ai-detection')}
               className="text-[12px] font-semibold flex items-center gap-1" style={{ color: '#8B5CF6' }}>
