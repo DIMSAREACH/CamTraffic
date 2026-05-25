@@ -49,6 +49,7 @@ export interface TrafficSign {
   sign_name: string;
   sign_code: string;
   description: string;
+  guidance?: string;
   image: string;
   category: SignCategory;
   penalty?: string;

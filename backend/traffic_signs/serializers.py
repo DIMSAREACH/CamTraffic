@@ -1,22 +1,40 @@
+import json
+
 from rest_framework import serializers
 
 from .models import TrafficSign
 
 
 class TrafficSignSerializer(serializers.ModelSerializer):
-    image = serializers.SerializerMethodField()
-
     class Meta:
         model = TrafficSign
         fields = (
             'id', 'sign_name', 'sign_code', 'description', 'guidance',
             'image', 'category', 'penalty', 'rules',
         )
+        extra_kwargs = {
+            'image': {'required': False, 'allow_null': True},
+        }
 
-    def get_image(self, obj):
-        if obj.image:
+    def validate_rules(self, value):
+        if isinstance(value, str):
+            try:
+                parsed = json.loads(value)
+            except json.JSONDecodeError as exc:
+                raise serializers.ValidationError('Rules must be a JSON array.') from exc
+            if not isinstance(parsed, list):
+                raise serializers.ValidationError('Rules must be a JSON array.')
+            return parsed
+        return value
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.image:
             request = self.context.get('request')
             if request:
-                return request.build_absolute_uri(obj.image.url)
-            return obj.image.url
-        return ''
+                data['image'] = request.build_absolute_uri(instance.image.url)
+            else:
+                data['image'] = instance.image.url
+        else:
+            data['image'] = ''
+        return data

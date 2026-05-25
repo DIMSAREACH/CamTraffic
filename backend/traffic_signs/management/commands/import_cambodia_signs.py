@@ -8,6 +8,7 @@ from django.core.files import File
 from django.core.management.base import BaseCommand
 
 from traffic_signs.models import TrafficSign
+from traffic_signs.sign_image_utils import is_placeholder_sign_image
 
 CATALOG_PATH = Path(settings.BASE_DIR).parent / 'ai' / 'sign_catalog.json'
 REFERENCE_DIR = (
@@ -41,6 +42,11 @@ class Command(BaseCommand):
             '--update',
             action='store_true',
             help='Update existing signs with same sign_code',
+        )
+        parser.add_argument(
+            '--replace-placeholders',
+            action='store_true',
+            help='Replace green-circle placeholder images with reference art when available',
         )
 
     def handle(self, *args, **options):
@@ -82,7 +88,20 @@ class Command(BaseCommand):
                 updated += 1
 
             img_path = find_image_for_code(code)
-            if img_path and img_path.is_file() and not sign.image:
+            if not img_path or not img_path.is_file():
+                continue
+            if is_placeholder_sign_image(img_path):
+                continue
+
+            current_path = Path(sign.image.path) if sign.image else None
+            needs_image = not sign.image
+            replace_placeholder = (
+                options['replace_placeholders']
+                and current_path
+                and current_path.is_file()
+                and is_placeholder_sign_image(current_path)
+            )
+            if needs_image or replace_placeholder:
                 with open(img_path, 'rb') as f:
                     sign.image.save(f'{code}.png', File(f), save=True)
 

@@ -46,14 +46,30 @@ apiClient.interceptors.response.use(
         }
       }
     }
-    const message =
-      error.response?.data?.message ||
-      error.response?.data?.errors?.detail ||
-      (error.message === 'Network Error'
-        ? 'Cannot reach the API. Start the backend (port 8000) and restart the dev server.'
-        : error.message) ||
-      'Request failed';
-    return Promise.reject(new Error(typeof message === 'string' ? message : JSON.stringify(message)));
+    const body = error.response?.data;
+    let message: string | undefined;
+    if (body && typeof body === 'object') {
+      const errors = (body as { errors?: Record<string, unknown> }).errors;
+      if (errors && typeof errors === 'object') {
+        const parts: string[] = [];
+        for (const [field, val] of Object.entries(errors)) {
+          const text = Array.isArray(val) ? val.map(String).join(', ') : String(val);
+          if (text) parts.push(`${field}: ${text}`);
+        }
+        if (parts.length) message = parts.join(' · ');
+      }
+      const envelopeMsg = (body as { message?: string }).message;
+      if (!message && typeof envelopeMsg === 'string' && envelopeMsg.trim()) {
+        message = envelopeMsg;
+      }
+    }
+    if (!message) {
+      message =
+        (error.message === 'Network Error'
+          ? 'Cannot reach the API. Start the backend (port 8000) and restart the dev server.'
+          : error.message) || 'Request failed';
+    }
+    return Promise.reject(new Error(message));
   },
 );
 

@@ -40,14 +40,39 @@ class TrafficSignListCreateView(generics.ListCreateAPIView):
 
 
 class TrafficSignDetailView(generics.RetrieveUpdateDestroyAPIView):
-    permission_classes = [IsAuthenticated, IsAdmin]
     serializer_class = TrafficSignSerializer
     queryset = TrafficSign.objects.all()
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [IsAuthenticated()]
+        return [IsAuthenticated(), IsAdmin()]
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance, context={'request': request})
         return success_response(serializer.data)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(
+            instance,
+            data=request.data,
+            partial=partial,
+            context={'request': request},
+        )
+        serializer.is_valid(raise_exception=True)
+        sign = serializer.save()
+        return success_response(
+            TrafficSignSerializer(sign, context={'request': request}).data,
+            message='Traffic sign updated',
+        )
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.delete()
+        return success_response(None, message='Traffic sign deleted')
 
 
 class ChatbotView(generics.GenericAPIView):

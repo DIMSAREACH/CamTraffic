@@ -169,8 +169,55 @@ export const finesAPI = {
   getPdfUrl: (id: number) => `#mock-pdf-${id}`,
 };
 
+let mockSignIdSeq = 10000;
+
 export const signsAPI = {
   async getAll() { return mockTrafficSigns.map((s) => ({ ...s })); },
+  async getById(id: number) {
+    const sign = mockTrafficSigns.find((s) => s.id === id);
+    if (!sign) throw new Error('Sign not found');
+    return { ...sign };
+  },
+  async create(data: FormData) {
+    await delay(400);
+    const sign: TrafficSign = {
+      id: ++mockSignIdSeq,
+      sign_name: String(data.get('sign_name') ?? ''),
+      sign_code: String(data.get('sign_code') ?? ''),
+      description: String(data.get('description') ?? ''),
+      guidance: String(data.get('guidance') ?? ''),
+      category: (String(data.get('category') ?? 'warning') as TrafficSign['category']),
+      penalty: String(data.get('penalty') ?? '') || undefined,
+      rules: JSON.parse(String(data.get('rules') ?? '[]')) as string[],
+      image: '/media/signs/mock-new.png',
+    };
+    mockTrafficSigns.push(sign);
+    return { ...sign };
+  },
+  async update(id: number, data: FormData | Record<string, unknown>) {
+    await delay(400);
+    const idx = mockTrafficSigns.findIndex((s) => s.id === id);
+    if (idx < 0) throw new Error('Sign not found');
+    const cur = mockTrafficSigns[idx];
+    const patch = data instanceof FormData
+      ? {
+          sign_name: String(data.get('sign_name') ?? cur.sign_name),
+          sign_code: String(data.get('sign_code') ?? cur.sign_code),
+          description: String(data.get('description') ?? cur.description),
+          guidance: String(data.get('guidance') ?? cur.guidance ?? ''),
+          category: String(data.get('category') ?? cur.category) as TrafficSign['category'],
+          penalty: String(data.get('penalty') ?? cur.penalty ?? ''),
+          rules: JSON.parse(String(data.get('rules') ?? JSON.stringify(cur.rules ?? []))) as string[],
+        }
+      : data;
+    mockTrafficSigns[idx] = { ...cur, ...patch, id };
+    return { ...mockTrafficSigns[idx] };
+  },
+  async delete(id: number) {
+    await delay(300);
+    const idx = mockTrafficSigns.findIndex((s) => s.id === id);
+    if (idx >= 0) mockTrafficSigns.splice(idx, 1);
+  },
   async chatbot(question: string) {
     const sign = mockTrafficSigns.find((s) => question.toLowerCase().includes(s.sign_name.toLowerCase().split(' ')[0]));
     return { answer: sign ? `${sign.sign_name}: ${sign.description}` : 'Browse the learning page.', sign: sign ?? null };

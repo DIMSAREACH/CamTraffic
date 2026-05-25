@@ -63,7 +63,7 @@ function DialogContent({
         {...props}
       >
         {children}
-        <DialogPrimitive.Close className="absolute top-3.5 right-3.5 z-10 w-7 h-7 rounded-full flex items-center justify-center opacity-80 hover:opacity-100 transition-opacity disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0" style={{ background: 'rgba(255,255,255,0.18)', color: 'white', backdropFilter: 'blur(4px)' }}>
+        <DialogPrimitive.Close className="absolute top-3.5 right-3.5 z-10 w-7 h-7 rounded-full flex items-center justify-center cursor-pointer opacity-80 hover:opacity-100 transition-opacity disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0" style={{ background: 'rgba(255,255,255,0.18)', color: 'white', backdropFilter: 'blur(4px)' }}>
           <XIcon className="size-3.5" />
           <span className="sr-only">Close</span>
         </DialogPrimitive.Close>

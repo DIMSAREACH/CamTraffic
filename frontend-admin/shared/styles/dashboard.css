@@ -392,15 +392,1231 @@ html.locale-km .app-dashboard .dashboard-home .dashboard-text__title {
   font-synthesis: none !important;
 }
 
-/* Traffic Signs — full page catalog panel */
+/* Traffic Signs — full page + unified typography (dashboard scale) */
 .app-dashboard .dashboard-page--signs {
   min-height: calc(100vh - 8rem);
+  --db-font-xs: 0.875rem;
+  --db-font-sm: 1rem;
+  --db-font-base: 1.125rem;
+  --db-font-md: 1.1875rem;
+  --db-font-lg: 1.625rem;
+  --db-font-xl: 1.875rem;
+  --db-font-kpi: 2.375rem;
+  font-size: var(--db-font-md);
+  font-family: var(--dashboard-font-body);
+}
+
+.app-dashboard .dashboard-page--signs .dashboard-welcome__eyebrow {
+  font-size: var(--db-font-sm);
+}
+
+.app-dashboard .dashboard-page--signs .dashboard-welcome__title {
+  font-size: var(--db-font-lg);
+}
+
+.app-dashboard .dashboard-page--signs .dashboard-welcome__meta {
+  font-size: var(--db-font-sm);
+}
+
+.app-dashboard .dashboard-page--signs .dashboard-kpi__label {
+  font-size: var(--db-font-xs);
+}
+
+.app-dashboard .dashboard-page--signs .dashboard-kpi__value {
+  font-size: var(--db-font-kpi);
+}
+
+.app-dashboard .dashboard-page--signs .dashboard-card__title {
+  font-size: var(--db-font-base);
+}
+
+.app-dashboard .dashboard-page--signs .dashboard-section__title {
+  font-size: var(--db-font-base);
+}
+
+.app-dashboard .dashboard-page--signs .dashboard-text__title {
+  font-size: var(--db-font-base);
+  font-weight: 600;
+}
+
+.app-dashboard .dashboard-page--signs .dashboard-text__caption {
+  font-size: var(--db-font-sm);
+}
+
+.app-dashboard .dashboard-page--signs .dashboard-text__metric {
+  font-size: var(--db-font-md);
+}
+
+.app-dashboard .dashboard-page--signs .signs-search-input {
+  font-family: var(--dashboard-font-body);
+  font-size: var(--db-font-base) !important;
+}
+
+.app-dashboard .dashboard-page--signs .signs-filter-chip {
+  font-family: var(--dashboard-font-body);
+  font-size: var(--db-font-sm) !important;
+  font-weight: 600;
+}
+
+.app-dashboard .dashboard-page--signs .signs-category-badge {
+  font-family: var(--dashboard-font-body);
+  font-size: var(--db-font-xs) !important;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+/* Warning category — clear readable text */
+.app-dashboard .dashboard-page--signs .signs-category-badge--warning {
+  -webkit-font-smoothing: antialiased;
+}
+
+.app-dashboard .dashboard-page--signs .signs-category-badge--warning.signs-category-badge {
+  color: #ffffff !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.app-dashboard .dashboard-page--signs .signs-filter-chip--warning.signs-filter-chip--active {
+  color: #ffffff !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+
+.app-dashboard .dashboard-page--signs .signs-filter-chip--warning:not(.signs-filter-chip--active) {
+  color: #9a3412 !important;
+  font-weight: 700;
+}
+
+.dashboard-signs-dialog .signs-category-badge--warning {
+  color: #ffffff !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.app-dashboard .dashboard-page--signs .signs-view-toggle-label {
+  font-size: var(--db-font-sm);
+}
+
+.app-dashboard .dashboard-page--signs .signs-view-toggle-btn span {
+  font-size: var(--db-font-sm) !important;
+  font-weight: 600;
+}
+
+.app-dashboard .dashboard-page--signs .signs-action-btn {
+  font-family: var(--dashboard-font-body);
+  font-size: var(--db-font-sm) !important;
+  font-weight: 600;
+}
+
+.app-dashboard .dashboard-page--signs .signs-row-actions {
+  flex-shrink: 0;
+}
+
+.app-dashboard .dashboard-page--signs .signs-row-action {
+  flex-shrink: 0;
+}
+
+.app-dashboard .dashboard-page--signs .signs-row-action--view:hover {
+  filter: brightness(1.06);
+}
+
+.app-dashboard .dashboard-page--signs .signs-row-action--edit {
+  border-color: rgba(37, 99, 235, 0.14);
+  color: var(--foreground);
+}
+
+.app-dashboard .dashboard-page--signs .signs-row-action--delete:hover {
+  border-color: rgba(220, 38, 38, 0.35);
+}
+
+/* Traffic Signs — add sign (catalog header) */
+.app-dashboard .signs-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.375rem 1rem 0.375rem 0.375rem;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 0.875rem;
+  font-family: var(--dashboard-font-body);
+  font-size: var(--db-font-sm);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  color: #0f172a;
+  background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+  box-shadow:
+    0 4px 16px rgba(15, 23, 42, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.app-dashboard .signs-add-btn:hover {
+  transform: translateY(-1px);
+  border-color: #fff;
+  box-shadow:
+    0 8px 22px rgba(15, 23, 42, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+.app-dashboard .signs-add-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.18);
+}
+
+.app-dashboard .signs-add-btn:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.95);
+  outline-offset: 2px;
+}
+
+.app-dashboard .signs-add-btn__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.625rem;
+  color: #fff;
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 45%, #06b6d4 100%);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.45);
+}
+
+.app-dashboard .signs-add-btn__label {
+  padding-right: 0.125rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .app-dashboard .signs-add-btn__label {
+    display: none;
+  }
+
+  .app-dashboard .signs-add-btn {
+    padding: 0.375rem;
+  }
+
+  .app-dashboard .signs-add-btn__icon {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+}
+
+/* Traffic Signs — compact portrait cards, 5 columns on desktop */
+.app-dashboard .signs-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.875rem;
+}
+
+@media (min-width: 640px) {
+  .app-dashboard .signs-card-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .app-dashboard .signs-card-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .app-dashboard .signs-card-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+.app-dashboard .signs-card-grid__slot:empty {
+  display: none;
+}
+
+.app-dashboard .dashboard-page--signs .signs-card {
+  min-height: 19.5rem;
+}
+
+.app-dashboard .dashboard-page--signs .signs-card__media {
+  position: relative;
+}
+
+.app-dashboard .dashboard-page--signs .signs-card__img-wrap {
+  width: 100%;
+  max-width: 9.5rem;
+  height: 9.5rem;
+  margin: 0 auto;
+}
+
+.app-dashboard .dashboard-page--signs .signs-card__img {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 9.5rem !important;
+  max-height: 9.5rem !important;
+  filter: drop-shadow(0 6px 16px rgba(15, 23, 42, 0.14));
+  transition: transform 0.2s ease;
+}
+
+.app-dashboard .dashboard-page--signs .signs-card:hover .signs-card__img {
+  transform: scale(1.06);
+}
+
+.app-dashboard .dashboard-page--signs .signs-card__body {
+  position: relative;
+}
+
+.app-dashboard .dashboard-page--signs .signs-card__name {
+  font-size: var(--db-font-base) !important;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.app-dashboard .dashboard-page--signs .signs-card__code {
+  font-size: var(--db-font-sm) !important;
+  letter-spacing: 0.04em;
+}
+
+.app-dashboard .dashboard-page--signs .signs-card__badge {
+  font-size: var(--db-font-xs) !important;
+  font-weight: 700;
+}
+
+.app-dashboard .dashboard-page--signs .signs-card:hover .signs-card__body {
+  filter: brightness(0.98);
+}
+
+.app-dashboard .dashboard-page--signs .signs-card .signs-category-badge {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .app-dashboard .dashboard-signs-page {
   min-height: min(720px, calc(100vh - 14rem));
+  font-size: var(--db-font-md);
 }
 
 .app-dashboard .dashboard-signs-page .dashboard-panel__subtitle {
   color: rgba(255, 255, 255, 0.82) !important;
+  font-size: var(--db-font-sm) !important;
+}
+
+.app-dashboard .dashboard-signs-page .dashboard-card__title {
+  font-size: var(--db-font-base) !important;
+}
+
+/* Traffic Signs — data table */
+.app-dashboard .dashboard-signs-table {
+  font-size: var(--db-font-sm);
+}
+
+.app-dashboard .dashboard-signs-table [data-slot='table'] {
+  font-family: var(--dashboard-font-body);
+  font-size: var(--db-font-sm);
+}
+
+.app-dashboard .dashboard-signs-table [data-slot='table-head'] {
+  font-family: var(--dashboard-font-body);
+  font-size: var(--db-font-sm) !important;
+  font-weight: 700;
+}
+
+.app-dashboard .dashboard-signs-table [data-slot='table-cell'] {
+  font-family: var(--dashboard-font-body);
+  font-size: var(--db-font-sm);
+  vertical-align: middle;
+}
+
+.app-dashboard .dashboard-signs-table [data-slot='table-body'] [data-slot='table-row'] {
+  cursor: default;
+}
+
+.app-dashboard .dashboard-signs-table .signs-row-action {
+  cursor: pointer;
+}
+
+.app-dashboard .dashboard-signs-table .dashboard-card__title {
+  font-size: var(--db-font-base) !important;
+  font-weight: 600;
+}
+
+.app-dashboard .dashboard-signs-table .dashboard-text__caption {
+  font-size: var(--db-font-sm) !important;
+}
+
+/* Sign detail dialog — professional, no page scroll */
+.dashboard-signs-dialog {
+  font-family: var(--font-sans);
+  font-size: 1.0625rem;
+  display: flex;
+  flex-direction: column;
+  max-height: 88vh;
+  overflow: hidden;
+  box-shadow:
+    0 24px 48px rgba(15, 23, 42, 0.18),
+    0 0 0 1px rgba(15, 23, 42, 0.06);
+}
+
+.dashboard-signs-dialog--no-hero > button {
+  background: rgba(15, 23, 42, 0.08) !important;
+  color: var(--foreground) !important;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+}
+
+.dashboard-signs-dialog .signs-dialog {
+  height: 100%;
+  max-height: 88vh;
+}
+
+.dashboard-signs-dialog .signs-dialog-visual {
+  position: relative;
+  max-height: 31vh;
+  overflow: hidden;
+}
+
+.dashboard-signs-dialog .signs-dialog-visual__glow {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.dashboard-signs-dialog .signs-dialog-visual__glow--tr {
+  top: 0;
+  right: 0;
+  width: 11rem;
+  height: 11rem;
+  transform: translate(35%, -40%);
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.dashboard-signs-dialog .signs-dialog-visual__glow--bl {
+  bottom: 0.5rem;
+  left: 1.5rem;
+  width: 7rem;
+  height: 7rem;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dashboard-signs-dialog .signs-dialog-showcase {
+  width: 100%;
+  max-height: 27vh;
+}
+
+.dashboard-signs-dialog .signs-dialog-showcase__img {
+  width: auto !important;
+  height: auto !important;
+  max-width: min(100%, 20rem) !important;
+  max-height: min(27vh, 10rem) !important;
+  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.2));
+}
+
+.dashboard-signs-dialog .signs-dialog-body {
+  box-shadow: 0 -10px 28px rgba(15, 23, 42, 0.1);
+  overflow: hidden;
+}
+
+.dashboard-signs-dialog .signs-dialog-intro {
+  padding: 1.125rem 1.5rem 1rem;
+}
+
+.dashboard-signs-dialog .signs-dialog-meta {
+  margin-bottom: 0.625rem;
+}
+
+.dashboard-signs-dialog .signs-dialog-meta__dot {
+  font-size: 1.125rem;
+  line-height: 1;
+  opacity: 0.65;
+}
+
+.dashboard-signs-dialog .signs-dialog-title {
+  font-size: 1.4375rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+  color: var(--foreground);
+  margin-bottom: 0.75rem;
+}
+
+.dashboard-signs-dialog .signs-dialog-kingdom {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  letter-spacing: 0.01em;
+}
+
+.dashboard-signs-dialog .signs-dialog-meta__badge,
+.dashboard-signs-dialog .signs-category-badge {
+  font-size: 0.875rem !important;
+  font-weight: 700;
+  padding: 0.375rem 0.875rem;
+}
+
+.dashboard-signs-dialog .signs-dialog-code {
+  font-size: 0.9375rem;
+  margin-top: 0.125rem;
+}
+
+.dashboard-signs-dialog .signs-dialog-code__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.85;
+}
+
+.dashboard-signs-dialog .signs-dialog-code__value {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.dashboard-signs-dialog .signs-dialog-card {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.dashboard-signs-dialog .signs-dialog-section {
+  padding: 1rem 1.5rem;
+}
+
+.dashboard-signs-dialog .signs-dialog-section--rules,
+.dashboard-signs-dialog .signs-dialog-section--penalty {
+  padding-top: 0.875rem;
+  padding-bottom: 0.875rem;
+}
+
+.dashboard-signs-dialog .signs-dialog-section__head {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin-bottom: 0.625rem;
+}
+
+.dashboard-signs-dialog .signs-dialog-section__icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.625rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dashboard-signs-dialog .signs-dialog-section__icon--penalty {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.22);
+}
+
+.dashboard-signs-dialog .signs-dialog-section__label {
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.dashboard-signs-dialog .signs-dialog-section__label--penalty {
+  color: #991b1b;
+}
+
+.dashboard-signs-dialog .signs-dialog-desc-box {
+  padding: 1rem 1.125rem;
+}
+
+.dashboard-signs-dialog .signs-dialog-desc-text {
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  font-weight: 400;
+  color: var(--foreground);
+}
+
+.dashboard-signs-dialog .signs-dialog-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.dashboard-signs-dialog .signs-dialog-rule-item {
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.75rem;
+}
+
+.dashboard-signs-dialog .signs-dialog-rule-num {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+}
+
+.dashboard-signs-dialog .signs-dialog-rule-text {
+  font-size: 1rem;
+  line-height: 1.5;
+  font-weight: 400;
+  color: var(--foreground);
+}
+
+.dashboard-signs-dialog .signs-dialog-penalty-text {
+  font-size: 1rem;
+  line-height: 1.5;
+  font-weight: 600;
+  color: #dc2626;
+}
+
+html.locale-km .dashboard-signs-dialog .signs-dialog-title,
+html.locale-km .dashboard-signs-dialog .signs-dialog-desc-text,
+html.locale-km .dashboard-signs-dialog .signs-dialog-rule-text {
+  font-weight: 700 !important;
+  letter-spacing: 0.02em !important;
+  font-synthesis: none !important;
+}
+
+/* Traffic Signs — add / edit form dialog */
+.signs-form-dialog {
+  font-family: var(--dashboard-font-body);
+  font-size: var(--db-font-md);
+  line-height: 1.5;
+  width: calc(100% - 2rem) !important;
+  max-width: 52rem !important;
+  max-height: min(90vh, 40rem) !important;
+  border-radius: 1rem !important;
+  border: 1px solid rgba(148, 163, 184, 0.28) !important;
+  background: #ffffff !important;
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.04),
+    0 24px 48px -12px rgba(15, 23, 42, 0.18) !important;
+  display: flex;
+  flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+}
+
+.signs-form-dialog > button[data-slot='dialog-close'] {
+  top: 1rem !important;
+  right: 1rem !important;
+  z-index: 2;
+  width: 2rem !important;
+  height: 2rem !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  background: rgba(255, 255, 255, 0.14) !important;
+  color: #ffffff !important;
+  opacity: 1 !important;
+  backdrop-filter: blur(4px);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.signs-form-dialog > button[data-slot='dialog-close']:hover {
+  background: rgba(255, 255, 255, 0.26) !important;
+  border-color: rgba(255, 255, 255, 0.38) !important;
+  color: #ffffff !important;
+}
+
+.signs-form-dialog__header {
+  position: relative;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 1.25rem 1.375rem 1.125rem;
+  text-align: left;
+  border-bottom: none;
+  overflow: hidden;
+  background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 42%, #2563eb 68%, #0284c7 100%);
+}
+
+.signs-form-dialog__header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 90% 140% at 100% -20%, rgba(255, 255, 255, 0.18) 0%, transparent 58%);
+  pointer-events: none;
+}
+
+.signs-form-dialog__header::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+  pointer-events: none;
+}
+
+.signs-form-dialog__header--create {
+  background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 38%, #2563eb 62%, #06b6d4 100%);
+}
+
+.signs-form-dialog__header--edit {
+  background: linear-gradient(135deg, #312e81 0%, #3730a3 38%, #4f46e5 68%, #2563eb 100%);
+}
+
+.signs-form-dialog__header-main {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  padding-right: 2rem;
+}
+
+.signs-form-dialog__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-top: 0.125rem;
+  border-radius: 0.75rem;
+  color: #1d4ed8;
+  background: #ffffff;
+  border: none;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.14);
+}
+
+.signs-form-dialog__header--edit .signs-form-dialog__icon {
+  color: #4338ca;
+}
+
+.signs-form-dialog__eyebrow {
+  margin: 0 0 0.25rem;
+  font-family: var(--dashboard-font-body);
+  font-size: var(--db-font-sm);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.82);
+  line-height: 1.25;
+}
+
+.signs-form-dialog__title {
+  margin: 0 !important;
+  font-family: var(--dashboard-font-display);
+  font-size: var(--db-font-lg) !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em;
+  line-height: 1.25 !important;
+  color: #ffffff !important;
+}
+
+.signs-form-dialog__desc {
+  margin: 0.4rem 0 0 !important;
+  font-family: var(--dashboard-font-body);
+  font-size: var(--db-font-base) !important;
+  font-weight: 450;
+  line-height: 1.5 !important;
+  color: rgba(255, 255, 255, 0.78) !important;
+}
+
+.signs-form-dialog__form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  background: #f8fafc;
+}
+
+.signs-form-dialog__body {
+  display: grid;
+  grid-template-columns: 1fr 13.5rem;
+  gap: 1rem;
+  padding: 1.125rem 1.5rem;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.signs-form-dialog__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 1.125rem;
+  border-radius: 0.75rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  min-width: 0;
+}
+
+.signs-form-dialog__section-title {
+  margin: 0;
+  font-family: var(--dashboard-font-body);
+  font-size: var(--db-font-sm);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  line-height: 1.3;
+}
+
+.signs-form-dialog__section-title--spaced {
+  margin-top: 0.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.signs-form-dialog__row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.875rem;
+}
+
+.signs-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.signs-form-label {
+  font-family: var(--dashboard-font-body);
+  font-size: var(--db-font-base);
+  font-weight: 600;
+  line-height: 1.35;
+  color: #334155;
+}
+
+.signs-form-dialog .signs-form-control {
+  height: 2.5rem;
+  font-family: var(--dashboard-font-body);
+  font-size: var(--db-font-md);
+  font-weight: 500;
+  color: #0f172a;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.signs-form-dialog .signs-form-control--mono {
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  font-size: var(--db-font-base);
+  letter-spacing: 0.03em;
+}
+
+.signs-form-dialog .signs-form-control::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.signs-form-dialog .signs-form-control:focus-visible {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  outline: none;
+}
+
+.signs-form-dialog .signs-form-textarea {
+  height: auto;
+  min-height: 4.75rem;
+  padding: 0.625rem 0.875rem;
+  font-size: var(--db-font-md);
+  line-height: 1.55;
+  resize: none;
+}
+
+/* Category dropdown — single-layer colored field */
+.signs-form-field--category {
+  width: 100%;
+}
+
+.signs-form-dialog .signs-form-category-trigger {
+  display: flex !important;
+  width: 100% !important;
+  height: 2.625rem !important;
+  min-height: 2.625rem !important;
+  padding: 0 0.75rem !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 0.5rem !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+  border-radius: 0.5rem !important;
+  box-shadow: none !important;
+  font-family: var(--dashboard-font-body) !important;
+  font-size: var(--db-font-md) !important;
+  font-weight: 700 !important;
+  line-height: 1.3 !important;
+  white-space: nowrap !important;
+}
+
+.signs-form-dialog .signs-form-category-trigger:focus-visible {
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18) !important;
+}
+
+.signs-form-dialog .signs-form-category-trigger__inner {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.signs-form-dialog .signs-form-category-trigger__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.signs-form-dialog .signs-form-category-trigger [data-slot='select-value'] {
+  display: block !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  line-clamp: unset !important;
+  -webkit-line-clamp: unset !important;
+  letter-spacing: normal !important;
+  word-spacing: normal !important;
+  text-align: left !important;
+  font-weight: inherit !important;
+  color: inherit !important;
+}
+
+.signs-form-dialog .signs-form-category-trigger svg {
+  flex-shrink: 0 !important;
+  width: 1rem !important;
+  height: 1rem !important;
+  opacity: 1 !important;
+  color: var(--sign-cat-chevron, #64748b) !important;
+}
+
+.signs-form-category-menu {
+  min-width: var(--radix-select-trigger-width);
+}
+
+.signs-form-dialog .signs-form-category-option {
+  padding: 0.35rem 0.5rem !important;
+  cursor: pointer;
+}
+
+.signs-form-dialog .signs-form-category-option > span:first-child {
+  display: none;
+}
+
+.signs-form-dialog .signs-form-category-option [data-slot='select-item-text'] {
+  display: block !important;
+  width: 100% !important;
+  line-height: normal !important;
+}
+
+.signs-form-dialog .signs-form-category-option__row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.signs-form-dialog .signs-form-category-option__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.signs-form-dialog .signs-form-category-option__label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--db-font-md);
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: normal;
+  word-spacing: normal;
+}
+
+.signs-form-dialog .signs-form-category-option[data-highlighted] {
+  background: #f8fafc !important;
+}
+
+.signs-form-dialog__image-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.signs-form-dialog__upload-card {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.625rem;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+}
+
+.signs-form-dialog__dropzone {
+  display: block;
+  width: 100%;
+  cursor: pointer;
+  border-radius: 0.625rem;
+  transition: box-shadow 0.15s ease;
+}
+
+.signs-form-dialog__dropzone:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.22);
+}
+
+.signs-form-dialog__preview {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 9.5rem;
+  border-radius: 0.625rem;
+  overflow: hidden;
+  background:
+    linear-gradient(145deg, #f8fafc 0%, #f1f5f9 100%),
+    repeating-conic-gradient(#e2e8f0 0% 25%, transparent 0% 50%) 50% / 12px 12px;
+  border: 2px dashed #cbd5e1;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.signs-form-dialog__dropzone:hover .signs-form-dialog__preview {
+  border-color: #93c5fd;
+  background:
+    linear-gradient(145deg, #eff6ff 0%, #f8fafc 100%),
+    repeating-conic-gradient(#dbeafe 0% 25%, transparent 0% 50%) 50% / 12px 12px;
+}
+
+.signs-form-dialog__dropzone.is-filled .signs-form-dialog__preview {
+  background: #0f172a;
+  border-style: solid;
+  border-color: #e2e8f0;
+}
+
+.signs-form-dialog__dropzone.is-filled:hover .signs-form-dialog__preview {
+  border-color: #93c5fd;
+}
+
+.signs-form-dialog__preview-img {
+  width: 100%;
+  height: 100%;
+  min-height: 9.5rem;
+  object-fit: contain;
+  padding: 0.5rem;
+}
+
+.signs-form-dialog__preview-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0);
+  transition: background 0.15s ease;
+}
+
+.signs-form-dialog__dropzone.is-filled:hover .signs-form-dialog__preview-overlay {
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.signs-form-dialog__preview-overlay-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  border-radius: 999px;
+  font-family: var(--dashboard-font-body);
+  font-size: var(--db-font-sm);
+  font-weight: 700;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease,
+    background 0.15s ease;
+}
+
+.signs-form-dialog__dropzone.is-filled:hover .signs-form-dialog__preview-overlay-btn {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.signs-form-dialog__preview-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem 0.875rem;
+  text-align: center;
+}
+
+.signs-form-dialog__preview-empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 999px;
+  color: #2563eb;
+  background: linear-gradient(145deg, #ffffff 0%, #eff6ff 100%);
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.12);
+}
+
+.signs-form-dialog__preview-empty-title {
+  font-family: var(--dashboard-font-body);
+  font-size: var(--db-font-md);
+  font-weight: 700;
+  line-height: 1.3;
+  color: #1e40af;
+}
+
+.signs-form-dialog__preview-empty-hint {
+  font-family: var(--dashboard-font-body);
+  font-size: var(--db-font-sm);
+  font-weight: 500;
+  line-height: 1.45;
+  color: #64748b;
+  max-width: 11rem;
+}
+
+.signs-form-dialog__upload-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.375rem;
+}
+
+.signs-form-dialog__upload-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
+  font-family: var(--dashboard-font-body);
+  font-size: var(--db-font-sm);
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.signs-form-dialog__upload-badge.is-required {
+  color: #9a3412;
+  background: rgba(234, 179, 8, 0.14);
+  border: 1px solid rgba(234, 179, 8, 0.35);
+}
+
+.signs-form-dialog__upload-badge.is-optional {
+  color: #475569;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+
+.signs-form-dialog__filename {
+  display: block;
+  padding: 0.375rem 0.5rem;
+  border-radius: 0.375rem;
+  font-family: var(--dashboard-font-body);
+  font-size: var(--db-font-sm);
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: center;
+  color: #334155;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  word-break: break-all;
+}
+
+.signs-form-dialog__footer {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0.75rem 1.25rem 1rem;
+  gap: 0.625rem;
+  border-top: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.signs-form-dialog__btn-cancel {
+  height: 2.625rem !important;
+  padding: 0 1.125rem !important;
+  font-family: var(--dashboard-font-body) !important;
+  font-size: var(--db-font-md) !important;
+  font-weight: 600 !important;
+  color: #475569 !important;
+  cursor: pointer;
+}
+
+.signs-form-dialog__btn-cancel:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+.signs-form-dialog__btn-submit {
+  height: 2.625rem !important;
+  min-width: 9rem !important;
+  padding: 0 1.375rem !important;
+  font-family: var(--dashboard-font-body) !important;
+  font-size: var(--db-font-md) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em;
+  color: #ffffff !important;
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%) !important;
+  border: 1px solid #1d4ed8 !important;
+  border-radius: 0.5rem !important;
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2), 0 4px 12px rgba(37, 99, 235, 0.25) !important;
+  cursor: pointer;
+}
+
+.signs-form-dialog__btn-submit:hover:not(:disabled) {
+  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%) !important;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2), 0 6px 16px rgba(37, 99, 235, 0.3) !important;
+}
+
+@media (max-width: 580px) {
+  .signs-form-dialog__body {
+    grid-template-columns: 1fr;
+  }
+
+  .signs-form-dialog__image-panel {
+    order: -1;
+  }
+
+  .signs-form-dialog__preview,
+  .signs-form-dialog__preview-img {
+    min-height: 7.5rem;
+  }
+
+  .signs-form-dialog__row-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+html.locale-km .signs-form-dialog__title {
+  font-family: var(--dashboard-font-body);
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+html.locale-km .signs-form-dialog__desc,
+html.locale-km .signs-form-label,
+html.locale-km .signs-form-dialog .signs-form-control {
+  font-weight: 500;
+}
+
+html.locale-km .signs-form-label {
+  font-weight: 600;
 }

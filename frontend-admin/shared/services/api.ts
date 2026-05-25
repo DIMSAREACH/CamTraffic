@@ -132,7 +132,19 @@ export const finesAPI = USE_MOCK ? mockApi.finesAPI : {
 // ── TRAFFIC SIGNS ────────────────────────────────────────────────
 export const signsAPI = USE_MOCK ? mockApi.signsAPI : {
   async getAll(): Promise<TrafficSign[]> {
-    return unwrapList<TrafficSign>(await apiClient.get('/signs/', { params: { page_size: 100 } }));
+    return unwrapList<TrafficSign>(await apiClient.get('/signs/', { params: { page_size: 500 } }));
+  },
+  async getById(id: number): Promise<TrafficSign> {
+    return unwrap<TrafficSign>(await apiClient.get(`/signs/${id}/`));
+  },
+  async create(data: FormData): Promise<TrafficSign> {
+    return unwrap<TrafficSign>(await apiClient.post('/signs/', data));
+  },
+  async update(id: number, data: FormData | Record<string, unknown>): Promise<TrafficSign> {
+    return unwrap<TrafficSign>(await apiClient.patch(`/signs/${id}/`, data));
+  },
+  async delete(id: number): Promise<void> {
+    await apiClient.delete(`/signs/${id}/`);
   },
   async chatbot(question: string) {
     return unwrap<{ answer: string; sign: TrafficSign | null }>(
@@ -166,7 +178,6 @@ export const aiAPI = USE_MOCK ? mockApi.aiAPI : {
   async getPageStats(): Promise<AIDetectionPageStats> {
     return unwrap<AIDetectionPageStats>(await apiClient.get('/ai/stats/'));
   },
-  /** Khmer MP3 from server (edge-tts) — use when Windows has no Khmer voice */
   async speakKhmer(text: string): Promise<Blob> {
     const res = await apiClient.post('/ai/tts/', { text }, { responseType: 'blob' });
     return res.data as Blob;
