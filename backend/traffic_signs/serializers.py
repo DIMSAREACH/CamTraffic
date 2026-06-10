@@ -9,7 +9,8 @@ class TrafficSignSerializer(serializers.ModelSerializer):
     class Meta:
         model = TrafficSign
         fields = (
-            'id', 'sign_name', 'sign_code', 'description', 'guidance',
+            'id', 'sign_name', 'sign_name_km', 'sign_name_en', 'sign_code',
+            'description', 'description_en', 'guidance', 'guidance_en',
             'image', 'category', 'penalty', 'rules',
         )
         extra_kwargs = {

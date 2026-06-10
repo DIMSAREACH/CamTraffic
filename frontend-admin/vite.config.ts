@@ -3,6 +3,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
+import { createApiProxy } from './shared/vite/apiProxy'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -35,14 +36,8 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       host: true,
       proxy: {
-        '/api': {
-          target: apiProxyTarget,
-          changeOrigin: true,
-        },
-        '/media': {
-          target: apiProxyTarget,
-          changeOrigin: true,
-        },
+        '/api': createApiProxy(apiProxyTarget),
+        '/media': createApiProxy(apiProxyTarget),
       },
     },
     assetsInclude: ['**/*.svg', '**/*.csv'],

@@ -4,7 +4,7 @@ from rest_framework.views import APIView
 from core.permissions import IsAdmin
 from core.responses import success_response
 
-from .services import get_admin_stats, get_driver_stats, get_police_stats
+from .services import get_admin_stats, get_driver_stats, get_police_report_stats, get_police_stats
 
 
 class AdminDashboardView(APIView):
@@ -19,8 +19,17 @@ class PoliceDashboardView(APIView):
 
     def get(self, request):
         if request.user.role not in ('police', 'admin'):
-            return success_response(get_driver_stats(request.user))
+            return success_response(get_driver_stats(request.user, request))
         return success_response(get_police_stats(request.user, request))
+
+
+class PoliceReportsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role not in ('police', 'admin'):
+            return success_response(get_driver_stats(request.user, request))
+        return success_response(get_police_report_stats(request.user, request))
 
 
 class DriverDashboardView(APIView):

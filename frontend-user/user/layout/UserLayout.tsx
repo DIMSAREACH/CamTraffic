@@ -6,6 +6,7 @@ import { Navbar } from '@shared/layout/Navbar';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { useSidebarState } from '@shared/hooks/useSidebarState';
+import { useLiveData } from '@shared/hooks/useLiveData';
 import { notificationsAPI } from '@shared/services/api';
 import { cn } from '@shared/components/ui/utils';
 
@@ -33,6 +34,13 @@ export function UserLayout() {
       setUnreadCount(ns.filter((n) => !n.is_read).length),
     );
   }, [user]);
+
+  useLiveData(() => {
+    if (!user) return;
+    notificationsAPI.getByUser(user.id).then((ns) =>
+      setUnreadCount(ns.filter((n) => !n.is_read).length),
+    );
+  }, 30_000, Boolean(user));
 
   useEffect(() => {
     closeMobile();
@@ -70,6 +78,8 @@ export function UserLayout() {
   }
 
   if (!user || user.role === 'admin') return null;
+
+  const isProfilePage = location.pathname.includes('/profile');
 
   return (
     <div
@@ -115,7 +125,7 @@ export function UserLayout() {
           onMobileMenuOpen={openMobile}
         />
         <main className="flex-1 overflow-y-auto">
-          <div className="app-dashboard relative p-5 lg:p-6">
+          <div className={cn('app-dashboard relative', isProfilePage ? 'app-dashboard--profile-route' : 'p-5 lg:p-6')}>
             <Outlet key={locale} />
           </div>
         </main>

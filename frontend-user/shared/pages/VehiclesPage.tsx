@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Car, Plus, Trash2, Search } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@shared/components/ui/card';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import { Car, Plus, Trash2, Search, Truck, Bike } from 'lucide-react';
 import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
 import { Label } from '@shared/components/ui/label';
@@ -9,72 +8,138 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@shared/components/ui/table';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
+import { useLiveData } from '@shared/hooks/useLiveData';
 import { vehiclesAPI } from '@shared/services/api';
 import { toast } from 'sonner';
 import type { Vehicle } from '@shared/types';
 
 const TYPE_ICON: Record<string, string> = {
-  car: '🚗', motorcycle: '🏍️', truck: '🚚', bus: '🚌', 'tuk-tuk': '🛺',
+  car: '🚗',
+  motorcycle: '🏍️',
+  truck: '🚚',
+  bus: '🚌',
+  'tuk-tuk': '🛺',
 };
 
-const TYPE_COLORS: Record<string, string> = {
-  car: 'bg-blue-100 text-blue-800',
-  motorcycle: 'bg-orange-100 text-orange-800',
-  truck: 'bg-gray-100 text-gray-800',
-  bus: 'bg-purple-100 text-purple-800',
-  'tuk-tuk': 'bg-emerald-100 text-emerald-800',
+const VEHICLE_TYPES = ['car', 'motorcycle', 'truck', 'bus', 'tuk-tuk'] as const;
+type VehicleType = typeof VEHICLE_TYPES[number];
+type TypeTab = 'all' | VehicleType;
+
+const TYPE_TABS: TypeTab[] = ['all', ...VEHICLE_TYPES];
+
+const TYPE_STYLE: Record<VehicleType, { bg: string; color: string; gradient: string }> = {
+  car: { bg: 'rgba(37,99,235,0.1)', color: '#2563EB', gradient: 'linear-gradient(135deg, #2563EB, #1D4ED8)' },
+  motorcycle: { bg: 'rgba(245,158,11,0.12)', color: '#D97706', gradient: 'linear-gradient(135deg, #F59E0B, #D97706)' },
+  truck: { bg: 'rgba(100,116,139,0.12)', color: '#475569', gradient: 'linear-gradient(135deg, #64748B, #475569)' },
+  bus: { bg: 'rgba(139,92,246,0.12)', color: '#7C3AED', gradient: 'linear-gradient(135deg, #8B5CF6, #7C3AED)' },
+  'tuk-tuk': { bg: 'rgba(16,185,129,0.12)', color: '#059669', gradient: 'linear-gradient(135deg, #10B981, #059669)' },
 };
+
+const STAT_CARDS = [
+  { key: 'all', labelKey: 'vehicles.statTotal', icon: Car, variant: 'teal', filterable: true },
+  { key: 'car', labelKey: 'vehicles.statCars', icon: Car, variant: 'blue', filterable: true },
+  { key: 'motorcycle', labelKey: 'vehicles.statMotorcycles', icon: Bike, variant: 'amber', filterable: true },
+  { key: 'commercial', labelKey: 'vehicles.statCommercial', icon: Truck, variant: 'slate', filterable: false },
+] as const;
+
+function initials(name: string) {
+  return name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'DR';
+}
+
+function getColorDot(color: string) {
+  const c = color.toLowerCase();
+  if (c.includes('white')) return '#fff';
+  if (c.includes('black')) return '#000';
+  if (c.includes('red')) return '#EF4444';
+  if (c.includes('blue')) return '#2563EB';
+  if (c.includes('silver') || c.includes('grey') || c.includes('gray')) return '#9CA3AF';
+  return '#D1D5DB';
+}
 
 export function VehiclesPage() {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const dateLocale = locale === 'km' ? 'km-KH' : 'en-US';
   const { user } = useAuth();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [filtered, setFiltered] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState<TypeTab>('all');
   const [addOpen, setAddOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [form, setForm] = useState({ plate_number: '', vehicle_type: '', model: '', color: '', year: new Date().getFullYear().toString() });
+  const [form, setForm] = useState({
+    plate_number: '',
+    vehicle_type: '',
+    model: '',
+    color: '',
+    year: new Date().getFullYear().toString(),
+  });
 
-  const loadVehicles = async () => {
+  const isDriver = user?.role === 'driver';
+  const typeLabel = (type: string) => t(`vehicles.types.${type === 'tuk-tuk' ? 'tukTuk' : type}`);
+
+  const loadVehicles = useCallback(async (silent = false) => {
     if (!user) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
-      const data = user.role === 'driver' ? await vehiclesAPI.getByOwner(user.id) : await vehiclesAPI.getAll();
+      const data = isDriver ? await vehiclesAPI.getByOwner(user.id) : await vehiclesAPI.getAll();
       setVehicles(data);
-      setFiltered(data);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  };
+  }, [isDriver, user]);
 
-  useEffect(() => { loadVehicles(); }, [user]);
+  useEffect(() => { loadVehicles(); }, [loadVehicles]);
+  useLiveData(() => loadVehicles(true), 30_000, Boolean(user));
 
-  useEffect(() => {
-    if (!search) { setFiltered(vehicles); return; }
-    const q = search.toLowerCase();
-    setFiltered(vehicles.filter(v =>
-      v.plate_number.toLowerCase().includes(q) ||
-      v.model.toLowerCase().includes(q) ||
-      v.owner_name.toLowerCase().includes(q) ||
-      v.color.toLowerCase().includes(q)
-    ));
-  }, [search, vehicles]);
+  const filtered = useMemo(() => {
+    let rows = [...vehicles];
+    if (typeFilter !== 'all') rows = rows.filter((v) => v.vehicle_type === typeFilter);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      rows = rows.filter((v) =>
+        v.plate_number.toLowerCase().includes(q)
+        || v.model.toLowerCase().includes(q)
+        || v.owner_name.toLowerCase().includes(q)
+        || v.color.toLowerCase().includes(q),
+      );
+    }
+    return rows;
+  }, [vehicles, search, typeFilter]);
+
+  const counts = useMemo(() => ({
+    all: vehicles.length,
+    car: vehicles.filter((v) => v.vehicle_type === 'car').length,
+    motorcycle: vehicles.filter((v) => v.vehicle_type === 'motorcycle').length,
+    truck: vehicles.filter((v) => v.vehicle_type === 'truck').length,
+    bus: vehicles.filter((v) => v.vehicle_type === 'bus').length,
+    'tuk-tuk': vehicles.filter((v) => v.vehicle_type === 'tuk-tuk').length,
+    commercial: vehicles.filter((v) => ['truck', 'bus', 'tuk-tuk'].includes(v.vehicle_type)).length,
+  }), [vehicles]);
+
+  const getTypeMeta = (type: string) => TYPE_STYLE[type as VehicleType] ?? TYPE_STYLE.car;
 
   const handleAdd = async () => {
     if (!user || !form.plate_number || !form.vehicle_type || !form.model || !form.color) {
-      toast.error('Fill all required fields'); return;
+      toast.error(t('vehicles.toastFillRequired'));
+      return;
     }
     setAdding(true);
     try {
-      await vehiclesAPI.create({ owner_id: user.id, plate_number: form.plate_number, vehicle_type: form.vehicle_type as Vehicle['vehicle_type'], model: form.model, color: form.color, year: parseInt(form.year) });
-      toast.success('Vehicle registered successfully!');
+      await vehiclesAPI.create({
+        owner_id: user.id,
+        plate_number: form.plate_number,
+        vehicle_type: form.vehicle_type as Vehicle['vehicle_type'],
+        model: form.model,
+        color: form.color,
+        year: parseInt(form.year, 10),
+      });
+      toast.success(t('vehicles.toastRegistered'));
       setAddOpen(false);
       setForm({ plate_number: '', vehicle_type: '', model: '', color: '', year: new Date().getFullYear().toString() });
       loadVehicles();
     } catch {
-      toast.error('Failed to register vehicle');
+      toast.error(t('vehicles.toastRegisterFail'));
     } finally {
       setAdding(false);
     }
@@ -83,189 +148,349 @@ export function VehiclesPage() {
   const handleDelete = async (id: number) => {
     try {
       await vehiclesAPI.delete(id);
-      toast.success('Vehicle removed');
+      toast.success(t('vehicles.toastRemoved'));
       setDeleteId(null);
       loadVehicles();
     } catch {
-      toast.error('Failed to remove vehicle');
+      toast.error(t('vehicles.toastRemoveFail'));
     }
   };
 
-  const getColorDot = (color: string) => {
-    const c = color.toLowerCase();
-    if (c.includes('white')) return '#fff';
-    if (c.includes('black')) return '#000';
-    if (c.includes('red')) return '#EF4444';
-    if (c.includes('blue')) return '#2563EB';
-    if (c.includes('silver') || c.includes('grey') || c.includes('gray')) return '#9CA3AF';
-    return '#D1D5DB';
-  };
+  const tableHeaders = [
+    t('vehicles.colPlate'),
+    t('vehicles.colType'),
+    t('vehicles.colModel'),
+    t('vehicles.colColor'),
+    t('vehicles.colYear'),
+    ...(isDriver ? [] : [t('vehicles.colOwner')]),
+    t('vehicles.colRegistered'),
+    t('vehicles.colActions'),
+  ];
 
   return (
-    <div className="space-y-5">
-      {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-2xl p-5" style={{ background: 'linear-gradient(135deg, #0F172A, #162035)', border: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="absolute top-0 right-0 w-56 h-56 rounded-full -translate-y-16 translate-x-16"
-          style={{ background: 'radial-gradient(circle, rgba(6,182,212,0.18) 0%, transparent 70%)' }} />
-        <div className="relative flex items-center justify-between flex-wrap gap-3">
+    <div className="enforcement-page enforcement-page--vehicles dashboard-page--vehicles">
+      <div className="enforcement-page__hero">
+        <div className="enforcement-page__hero-glow--primary" aria-hidden />
+        <div className="enforcement-page__hero-glow--secondary" aria-hidden />
+        <div className="enforcement-page__hero-inner">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(6,182,212,0.2)' }}>
-                <Car size={14} style={{ color: '#67E8F9' }} />
-              </div>
-              <span className="dashboard-welcome__eyebrow" style={{ color: 'rgba(103,232,249,0.9)' }}>{t('pages.vehicles.eyebrow')}</span>
+            <div className="enforcement-page__eyebrow">
+              <span className="enforcement-page__eyebrow-icon">
+                <Car size={14} />
+              </span>
+              {t('pages.vehicles.eyebrow')}
             </div>
-            <h1 className="dashboard-welcome__title text-white">{user?.role === 'driver' ? t('pages.vehicles.titleDriver') : t('pages.vehicles.titleAdmin')}</h1>
-            <p className="dashboard-welcome__meta mt-1" style={{ color: 'rgba(148,163,184,0.7)' }}>
+            <h1 className="enforcement-page__title">
+              {isDriver ? t('pages.vehicles.titleDriver') : t('pages.vehicles.titleAdmin')}
+            </h1>
+            <p className="enforcement-page__subtitle">
               {vehicles.length === 1
                 ? t('pages.vehicles.heroSubtitleOne')
                 : t('pages.vehicles.heroSubtitleMany', { count: vehicles.length })}
             </p>
           </div>
-          <button
-            onClick={() => setAddOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold transition-all active:scale-[0.98]"
-            style={{ background: 'linear-gradient(135deg, #06B6D4, #0891B2)', boxShadow: '0 4px 16px rgba(6,182,212,0.45)' }}
-          >
-            <Plus size={16} /> Register Vehicle
+          <button type="button" className="enforcement-page__hero-btn enforcement-page__hero-btn--teal" onClick={() => setAddOpen(true)}>
+            <Plus size={16} /> {t('vehicles.register')}
           </button>
         </div>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input
-          value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="Search by plate, model, or owner..."
-          className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white text-sm text-slate-700 outline-none"
-          style={{ border: '1px solid rgba(37,99,235,0.1)' }}
-        />
+      <div className="enforcement-page__stat-grid enforcement-page__stat-grid--four">
+        {STAT_CARDS.map((card) => {
+          const Icon = card.icon;
+          const value = card.key === 'commercial' ? counts.commercial : counts[card.key as keyof typeof counts];
+          const active = card.filterable && typeFilter === card.key;
+          const inner = (
+            <>
+              <div className={`enforcement-page__stat-icon enforcement-page__stat-icon--${card.variant}`}>
+                <Icon size={18} />
+              </div>
+              <div className="enforcement-page__stat-copy">
+                <p className="enforcement-page__stat-value">{value}</p>
+                <p className={`enforcement-page__stat-label enforcement-page__stat-label--${card.variant}`}>
+                  {t(card.labelKey)}
+                </p>
+              </div>
+            </>
+          );
+          if (!card.filterable) {
+            return (
+              <div key={card.key} className={`enforcement-page__stat-card enforcement-page__stat-card--${card.variant}`}>
+                {inner}
+              </div>
+            );
+          }
+          return (
+            <button
+              key={card.key}
+              type="button"
+              onClick={() => setTypeFilter(card.key as TypeTab)}
+              className={`enforcement-page__stat-card enforcement-page__stat-card--${card.variant}${active ? ' enforcement-page__stat-card--active' : ''}`}
+            >
+              {inner}
+            </button>
+          );
+        })}
       </div>
 
-      {user?.role === 'driver' ? (
+      <div className="enforcement-page__toolbar">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+          <div className="enforcement-page__filters">
+            {TYPE_TABS.map((tab) => {
+              const active = typeFilter === tab;
+              const meta = tab !== 'all' ? getTypeMeta(tab) : null;
+              const count = counts[tab];
+              return (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setTypeFilter(tab)}
+                  className={`enforcement-page__filter-btn${active ? ' enforcement-page__filter-btn--active' : ''}`}
+                  style={active ? { background: meta?.gradient ?? 'linear-gradient(135deg, #0F172A, #1E293B)' } : undefined}
+                >
+                  {tab === 'all' ? t('vehicles.types.all') : typeLabel(tab)}
+                  <span className={`enforcement-page__filter-count${active ? ' enforcement-page__filter-count--active' : ''}`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="enforcement-page__search-wrap">
+            <Search size={14} className="enforcement-page__search-icon" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t('vehicles.searchPlaceholder')}
+              className="enforcement-page__search"
+            />
+          </div>
+        </div>
+      </div>
+
+      {isDriver ? (
         loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(3)].map((_, i) => <div key={i} className="h-40 rounded-2xl animate-pulse" style={{ background: 'rgba(37,99,235,0.05)' }} />)}
+          <div className="enforcement-page__vehicle-grid">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="enforcement-page__vehicle-card enforcement-page__skeleton" style={{ height: '10rem' }} />
+            ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-16">
-            <Car size={48} className="mx-auto mb-3" style={{ color: 'rgba(37,99,235,0.15)' }} />
-            <p className="text-slate-400 mb-4">{search ? 'No vehicles found.' : 'No vehicles registered yet.'}</p>
-            {!search && (
-              <button onClick={() => setAddOpen(true)}
-                className="px-4 py-2 rounded-xl text-white text-sm font-semibold"
-                style={{ background: 'linear-gradient(135deg, #2563EB, #1D4ED8)' }}>
-                <Plus size={14} className="inline mr-1" /> Add First Vehicle
-              </button>
-            )}
+          <div className="enforcement-page__panel enforcement-page__panel--vehicles">
+            <div className="flex flex-col items-center gap-3 py-16">
+              <div className="enforcement-page__empty-icon enforcement-page__empty-icon--teal">
+                <Car size={28} />
+              </div>
+              <div className="text-center">
+                <p className="enforcement-page__empty-title">{search ? t('vehicles.empty') : t('vehicles.emptyDriver')}</p>
+                <p className="enforcement-page__empty-subtitle">{t('vehicles.emptyHint')}</p>
+              </div>
+              {!search && (
+                <button type="button" className="enforcement-page__hero-btn enforcement-page__hero-btn--teal" onClick={() => setAddOpen(true)}>
+                  <Plus size={14} /> {t('vehicles.addFirst')}
+                </button>
+              )}
+            </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filtered.map(v => (
-              <div key={v.id} className="bg-white rounded-2xl p-5 shadow-sm transition-all"
-                style={{ border: '1px solid rgba(37,99,235,0.07)' }}
-                onMouseEnter={e => (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 24px rgba(37,99,235,0.1)'}
-                onMouseLeave={e => (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 4px rgba(15,23,42,0.04)'}>
-                <div className="flex items-start justify-between mb-3">
-                  <div className="text-3xl">{TYPE_ICON[v.vehicle_type] || '🚗'}</div>
-                  <button onClick={() => setDeleteId(v.id)} className="p-1.5 rounded-lg transition-colors text-slate-300 hover:text-red-500"
-                    style={{ '--tw-bg-opacity': '1' } as React.CSSProperties}>
-                    <Trash2 size={15} />
-                  </button>
-                </div>
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="font-black font-mono text-sm px-2 py-0.5 rounded-lg text-slate-700" style={{ background: '#F1F5F9' }}>{v.plate_number}</span>
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full capitalize" style={{ background: 'rgba(37,99,235,0.08)', color: '#2563EB' }}>{v.vehicle_type}</span>
+          <div className="enforcement-page__vehicle-grid">
+            {filtered.map((v) => {
+              const meta = getTypeMeta(v.vehicle_type);
+              return (
+                <div key={v.id} className="enforcement-page__vehicle-card">
+                  <div className="enforcement-page__vehicle-card-top">
+                    <span className="enforcement-page__vehicle-icon">{TYPE_ICON[v.vehicle_type] || '🚗'}</span>
+                    <button type="button" className="enforcement-page__icon-btn enforcement-page__icon-btn--delete" onClick={() => setDeleteId(v.id)}>
+                      <Trash2 size={15} />
+                    </button>
                   </div>
-                  <p className="font-semibold text-slate-800">{v.model}</p>
-                  <div className="flex items-center gap-2 text-xs text-slate-500">
-                    <span className="w-3 h-3 rounded-full border border-slate-200" style={{ backgroundColor: getColorDot(v.color) }} />
-                    {v.color} · {v.year}
+                  <div className="enforcement-page__vehicle-card-body">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="enforcement-page__code-pill">{v.plate_number}</span>
+                      <span className="enforcement-page__badge" style={{ background: meta.bg, color: meta.color }}>
+                        {typeLabel(v.vehicle_type)}
+                      </span>
+                    </div>
+                    <p className="enforcement-page__cell-primary mt-2">{v.model}</p>
+                    <div className="enforcement-page__vehicle-meta">
+                      <span className="enforcement-page__color-dot" style={{ backgroundColor: getColorDot(v.color) }} />
+                      <span>{v.color} · {v.year}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )
       ) : (
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden" style={{ border: '1px solid rgba(37,99,235,0.07)' }}>
+        <div className="enforcement-page__panel enforcement-page__panel--vehicles">
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="enforcement-page__table">
               <TableHeader>
-                <TableRow style={{ background: '#F8FAFC', borderBottom: '1px solid rgba(37,99,235,0.07)' }}>
-                  {['Plate', 'Type', 'Model', 'Color', 'Year', 'Owner', 'Registered', 'Action'].map(h => (
-                    <TableHead key={h} className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{h}</TableHead>
+                <TableRow className="enforcement-page__table-head">
+                  {tableHeaders.map((h) => (
+                    <TableHead key={h} className="enforcement-page__th text-center">{h}</TableHead>
                   ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {loading ? [...Array(5)].map((_, i) => (
-                  <TableRow key={i}>{[...Array(8)].map((_, j) => <TableCell key={j}><div className="h-4 rounded-lg animate-pulse" style={{ background: 'rgba(37,99,235,0.05)' }} /></TableCell>)}</TableRow>
-                )) : filtered.map(v => (
-                  <TableRow key={v.id} style={{ borderBottom: '1px solid rgba(37,99,235,0.04)' }}
-                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#FAFBFF'}
-                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ''}>
-                    <TableCell><span className="font-mono font-semibold text-slate-700 text-xs px-2 py-1 rounded-lg" style={{ background: '#F1F5F9' }}>{v.plate_number}</span></TableCell>
-                    <TableCell><span className="text-xs font-semibold px-2 py-0.5 rounded-full capitalize" style={{ background: 'rgba(37,99,235,0.07)', color: '#2563EB' }}>{TYPE_ICON[v.vehicle_type]} {v.vehicle_type}</span></TableCell>
-                    <TableCell className="text-sm text-slate-700">{v.model}</TableCell>
-                    <TableCell className="text-sm text-slate-500">{v.color}</TableCell>
-                    <TableCell className="text-sm text-slate-500">{v.year}</TableCell>
-                    <TableCell className="text-sm font-semibold text-slate-700">{v.owner_name}</TableCell>
-                    <TableCell className="text-sm text-slate-400">{new Date(v.created_at).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      <button onClick={() => setDeleteId(v.id)} className="p-1.5 rounded-lg transition-colors text-slate-300 hover:text-red-500">
-                        <Trash2 size={14} />
-                      </button>
+                {loading ? (
+                  [...Array(5)].map((_, i) => (
+                    <TableRow key={i}>
+                      {[...Array(tableHeaders.length)].map((__, j) => (
+                        <TableCell key={j}><div className="enforcement-page__skeleton" /></TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : filtered.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={tableHeaders.length} className="text-center py-16">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="enforcement-page__empty-icon enforcement-page__empty-icon--teal">
+                          <Car size={28} />
+                        </div>
+                        <div>
+                          <p className="enforcement-page__empty-title">{t('vehicles.empty')}</p>
+                          <p className="enforcement-page__empty-subtitle">{t('vehicles.emptyHint')}</p>
+                        </div>
+                      </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : filtered.map((row) => {
+                  const meta = getTypeMeta(row.vehicle_type);
+                  return (
+                    <TableRow key={row.id} className="enforcement-page__table-row">
+                      <TableCell className="py-3.5">
+                        <span className="enforcement-page__code-pill">{row.plate_number}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="enforcement-page__badge" style={{ background: meta.bg, color: meta.color }}>
+                          {TYPE_ICON[row.vehicle_type]} {typeLabel(row.vehicle_type)}
+                        </span>
+                      </TableCell>
+                      <TableCell><span className="enforcement-page__cell-primary">{row.model}</span></TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span className="enforcement-page__color-dot" style={{ backgroundColor: getColorDot(row.color) }} />
+                          <span className="enforcement-page__cell-body">{row.color}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell><span className="enforcement-page__cell-secondary">{row.year}</span></TableCell>
+                      {!isDriver && (
+                        <TableCell>
+                          <div className="flex items-center gap-2.5">
+                            <div className="enforcement-page__avatar enforcement-page__avatar--owner">
+                              {initials(row.owner_name)}
+                            </div>
+                            <span className="enforcement-page__cell-primary">{row.owner_name}</span>
+                          </div>
+                        </TableCell>
+                      )}
+                      <TableCell>
+                        <span className="enforcement-page__cell-secondary">
+                          {new Date(row.created_at).toLocaleDateString(dateLocale)}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <button type="button" className="enforcement-page__icon-btn enforcement-page__icon-btn--delete" onClick={() => setDeleteId(row.id)}>
+                          <Trash2 size={14} />
+                        </button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
+
+          {filtered.length > 0 && (
+            <div className="enforcement-page__footer">
+              <p className="enforcement-page__footer-text">
+                {t('vehicles.showing', { shown: filtered.length, total: vehicles.length })}
+              </p>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Add Vehicle Dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Register New Vehicle</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2.5">
+              <div className="enforcement-page__dialog-icon enforcement-page__dialog-icon--teal">
+                <Plus size={15} />
+              </div>
+              <span className="enforcement-page__dialog-title">{t('vehicles.registerTitle')}</span>
+            </DialogTitle>
+          </DialogHeader>
           <div className="space-y-3 py-2">
             <div>
-              <Label className="text-sm">Plate Number *</Label>
-              <Input className="mt-1" placeholder="e.g. 2AA 1234" value={form.plate_number} onChange={e => setForm(f => ({ ...f, plate_number: e.target.value }))} />
+              <Label className="enforcement-page__form-label">{t('vehicles.plateLabel')} *</Label>
+              <Input
+                className="mt-1"
+                placeholder={t('vehicles.platePlaceholder')}
+                value={form.plate_number}
+                onChange={(e) => setForm((f) => ({ ...f, plate_number: e.target.value }))}
+              />
             </div>
             <div>
-              <Label className="text-sm">Vehicle Type *</Label>
-              <Select onValueChange={v => setForm(f => ({ ...f, vehicle_type: v }))}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="Select type" /></SelectTrigger>
+              <Label className="enforcement-page__form-label">{t('vehicles.typeLabel')} *</Label>
+              <Select onValueChange={(v) => setForm((f) => ({ ...f, vehicle_type: v }))}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder={t('vehicles.selectType')} /></SelectTrigger>
                 <SelectContent>
-                  {['car', 'motorcycle', 'truck', 'bus', 'tuk-tuk'].map(t => <SelectItem key={t} value={t}>{TYPE_ICON[t]} {t.charAt(0).toUpperCase() + t.slice(1)}</SelectItem>)}
+                  {VEHICLE_TYPES.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {TYPE_ICON[type]} {typeLabel(type)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label className="text-sm">Model *</Label>
-              <Input className="mt-1" placeholder="e.g. Toyota Camry 2022" value={form.model} onChange={e => setForm(f => ({ ...f, model: e.target.value }))} />
+              <Label className="enforcement-page__form-label">{t('vehicles.modelLabel')} *</Label>
+              <Input
+                className="mt-1"
+                placeholder={t('vehicles.modelPlaceholder')}
+                value={form.model}
+                onChange={(e) => setForm((f) => ({ ...f, model: e.target.value }))}
+              />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-sm">Color *</Label>
-                <Input className="mt-1" placeholder="e.g. Silver" value={form.color} onChange={e => setForm(f => ({ ...f, color: e.target.value }))} />
+                <Label className="enforcement-page__form-label">{t('vehicles.colorLabel')} *</Label>
+                <Input
+                  className="mt-1"
+                  placeholder={t('vehicles.colorPlaceholder')}
+                  value={form.color}
+                  onChange={(e) => setForm((f) => ({ ...f, color: e.target.value }))}
+                />
               </div>
               <div>
-                <Label className="text-sm">Year</Label>
-                <Input className="mt-1" type="number" min="2000" max="2025" value={form.year} onChange={e => setForm(f => ({ ...f, year: e.target.value }))} />
+                <Label className="enforcement-page__form-label">{t('vehicles.yearLabel')}</Label>
+                <Input
+                  className="mt-1"
+                  type="number"
+                  min="2000"
+                  max={new Date().getFullYear() + 1}
+                  value={form.year}
+                  onChange={(e) => setForm((f) => ({ ...f, year: e.target.value }))}
+                />
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
-            <button onClick={handleAdd} disabled={adding}
-              className="px-4 py-2 rounded-lg text-white text-sm font-semibold flex items-center gap-2 disabled:opacity-60"
-              style={{ background: 'linear-gradient(135deg, #2563EB, #1D4ED8)' }}>
-              {adding ? <><span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />Registering...</> : 'Register'}
+            <Button variant="outline" onClick={() => setAddOpen(false)}>{t('vehicles.cancel')}</Button>
+            <button type="button" className="enforcement-page__btn-primary enforcement-page__btn-teal" onClick={handleAdd} disabled={adding}>
+              {adding ? (
+                <>
+                  <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  {t('vehicles.registering')}
+                </>
+              ) : (
+                <>
+                  <Plus size={14} /> {t('vehicles.register')}
+                </>
+              )}
             </button>
           </DialogFooter>
         </DialogContent>
@@ -273,11 +498,15 @@ export function VehiclesPage() {
 
       <Dialog open={deleteId !== null} onOpenChange={() => setDeleteId(null)}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>Remove Vehicle?</DialogTitle></DialogHeader>
-          <p className="text-sm text-slate-500 py-2">This will permanently remove the vehicle from the system.</p>
+          <DialogHeader>
+            <DialogTitle className="enforcement-page__dialog-title">{t('vehicles.deleteTitle')}</DialogTitle>
+          </DialogHeader>
+          <p className="enforcement-page__dialog-text">{t('vehicles.deleteConfirm')}</p>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteId(null)}>Cancel</Button>
-            <Button onClick={() => deleteId && handleDelete(deleteId)} className="bg-red-600 hover:bg-red-700 text-white">Remove</Button>
+            <Button variant="outline" onClick={() => setDeleteId(null)}>{t('vehicles.cancel')}</Button>
+            <button type="button" className="enforcement-page__btn-danger" onClick={() => deleteId && handleDelete(deleteId)}>
+              {t('vehicles.remove')}
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

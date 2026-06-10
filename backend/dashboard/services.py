@@ -11,7 +11,9 @@ from ai_detection.models import AIDetectionLog
 from ai_detection.serializers import AIDetectionLogSerializer
 from fines.models import Fine
 from fines.serializers import FineSerializer
+from traffic_signs.models import TrafficSign
 from vehicles.models import Vehicle
+from violations.models import TrafficViolation
 
 User = get_user_model()
 
@@ -95,6 +97,7 @@ def get_admin_stats(request=None):
     fines = Fine.objects.all()
     paid = fines.filter(status='paid')
     detections = AIDetectionLog.objects.all()
+    violations = TrafficViolation.objects.all()
     monthly_fines = _monthly_fine_stats(fines)
 
     return {
@@ -106,6 +109,10 @@ def get_admin_stats(request=None):
         'pending_fines': fines.filter(status='pending').count(),
         'total_detections': detections.count(),
         'total_vehicles': Vehicle.objects.count(),
+        'total_signs': TrafficSign.objects.count(),
+        'total_violations': violations.count(),
+        'pending_violations': violations.filter(status='pending_review').count(),
+        'confirmed_violations': violations.filter(status='confirmed').count(),
         'fine_revenue': float(paid.aggregate(total=Sum('amount'))['total'] or 0),
         'detection_accuracy': round(
             float(detections.aggregate(avg=Avg('confidence'))['avg'] or 0),
@@ -113,9 +120,14 @@ def get_admin_stats(request=None):
         ),
         'monthly_fines': monthly_fines,
         'monthly_detections': _monthly_counts(detections),
+        'monthly_violations': _monthly_counts(violations, date_field='violation_date'),
         'fine_by_reason': [
             {'reason': (row['reason'] or 'Other')[:40], 'count': row['count']}
             for row in fines.values('reason').annotate(count=Count('id')).order_by('-count')[:8]
+        ],
+        'violation_by_type': [
+            {'violation_type': (row['violation_type'] or 'Unknown'), 'count': row['count']}
+            for row in violations.values('violation_type').annotate(count=Count('id')).order_by('-count')[:8]
         ],
         'user_distribution': [
             {'role': 'Drivers', 'count': User.objects.filter(role='driver').count()},
@@ -126,6 +138,64 @@ def get_admin_stats(request=None):
             'users': None,
             'fines': _fine_trend(fines),
             'detections': _fine_trend(detections),
+            'violations': _fine_trend(violations),
+            'revenue': _fine_trend(paid),
+        },
+    }
+
+
+def get_police_report_stats(police_user, request=None):
+    """DashboardStats-shaped analytics scoped to fines issued by this officer."""
+    from users.models import Officer
+
+    fines = Fine.objects.filter(police=police_user)
+    paid = fines.filter(status='paid')
+    detections = AIDetectionLog.objects.filter(user=police_user)
+    monthly_fines = _monthly_fine_stats(fines)
+    driver_ids = list(fines.values_list('driver_id', flat=True).distinct())
+    officer = Officer.objects.filter(user=police_user).first()
+    violations = (
+        TrafficViolation.objects.filter(officer=officer)
+        if officer
+        else TrafficViolation.objects.none()
+    )
+
+    return {
+        'total_users': len(driver_ids),
+        'total_drivers': len(driver_ids),
+        'total_police': 1,
+        'total_fines': fines.count(),
+        'paid_fines': paid.count(),
+        'pending_fines': fines.filter(status='pending').count(),
+        'total_detections': detections.count(),
+        'total_vehicles': Vehicle.objects.filter(owner_id__in=driver_ids).count() if driver_ids else 0,
+        'total_signs': TrafficSign.objects.count(),
+        'total_violations': violations.count(),
+        'pending_violations': violations.filter(status='pending_review').count(),
+        'confirmed_violations': violations.filter(status='confirmed').count(),
+        'fine_revenue': float(paid.aggregate(total=Sum('amount'))['total'] or 0),
+        'detection_accuracy': round(
+            float(detections.aggregate(avg=Avg('confidence'))['avg'] or 0),
+            1,
+        ),
+        'monthly_fines': monthly_fines,
+        'monthly_detections': _monthly_counts(detections),
+        'monthly_violations': _monthly_counts(violations, date_field='violation_date'),
+        'fine_by_reason': [
+            {'reason': (row['reason'] or 'Other')[:40], 'count': row['count']}
+            for row in fines.values('reason').annotate(count=Count('id')).order_by('-count')[:8]
+        ],
+        'violation_by_type': [
+            {'violation_type': (row['violation_type'] or 'Unknown'), 'count': row['count']}
+            for row in violations.values('violation_type').annotate(count=Count('id')).order_by('-count')[:8]
+        ],
+        'user_distribution': [
+            {'role': 'Drivers fined', 'count': len(driver_ids)},
+        ],
+        'trends': {
+            'fines': _fine_trend(fines),
+            'detections': _fine_trend(detections),
+            'violations': _fine_trend(violations),
             'revenue': _fine_trend(paid),
         },
     }

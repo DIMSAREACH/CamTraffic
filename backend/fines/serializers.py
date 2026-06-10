@@ -4,6 +4,7 @@ from .models import Fine
 
 
 class FineSerializer(serializers.ModelSerializer):
+    violation_id = serializers.IntegerField(source='violation.id', read_only=True, allow_null=True)
     driver_id = serializers.IntegerField(source='driver.id', read_only=True)
     driver_name = serializers.CharField(source='driver.full_name', read_only=True)
     driver_license = serializers.CharField(source='driver.license_no', read_only=True)
@@ -16,6 +17,7 @@ class FineSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'driver_id', 'driver_name', 'driver_license', 'police_id', 'police_name',
             'amount', 'reason', 'status', 'evidence_image', 'location', 'vehicle_plate',
+            'violation_id', 'due_date', 'payment_method',
             'created_at', 'paid_at',
         )
         read_only_fields = ('id', 'created_at', 'police_id', 'police_name')

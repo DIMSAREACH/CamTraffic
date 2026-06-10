@@ -140,6 +140,14 @@ def request_password_reset(email: str) -> User:
             'Email delivery is not configured on the server.',
         )
     if not send_password_reset_email(user, to_email=email):
-        detail = get_last_send_error() or 'Check RESEND_API_KEY and RESEND_FROM_EMAIL in backend/.env.'
-        raise PasswordResetError('send_failed', f'Could not send the reset email. {detail}')
+        if settings.DEBUG:
+            # In local/dev, avoid blocking the flow when provider TLS/cert setup fails.
+            link = build_reset_link(user)[0]
+            print(f'\n[CamTraffic] Email send failed for {email}. Use this reset link locally:\n{link}\n')
+            logger.warning('Password reset email send failed in DEBUG mode: %s', get_last_send_error())
+            return user
+        raise PasswordResetError(
+            'send_failed',
+            'Could not send the reset email right now. Please try again later or contact support.',
+        )
     return user

@@ -1020,60 +1020,56 @@ html.dark .admin-portal-hint-link {
   overflow: hidden;
 }
 
-/* Ministry of Interior Cambodia — full image, clearly visible */
+/* Ministry of Interior Cambodia — full-width background */
 .up-bg {
   position: absolute;
   inset: 0;
-  background-image:
-    url('/moi-building.png'),
-    linear-gradient(135deg, #0c1530 0%, #1e3a5f 40%, #0f172a 100%);
-  background-color: #0d1825;
-  background-size: cover;
-  background-position: center center;
-  filter: brightness(0.88) saturate(1.05);
-  transform: scale(1.0);
   z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #0d1825;
 }
-.up-page:hover .up-bg { transform: scale(1.02); transition: transform 14s ease; }
 
-/* User portal — city photo + navy fallback */
-.up-page--user .up-bg {
-  background-image:
-    url('/moi-building.png'),
-    linear-gradient(135deg, #0c1530 0%, #1e3a5f 40%, #0f172a 100%);
-  background-color: #0d1825;
-  background-size: cover;
-  background-position: center center;
-  background-repeat: no-repeat;
-  filter: brightness(0.85) saturate(1.08);
+.up-bg__img {
+  display: block;
+  width: 100%;
+  min-width: 100%;
+  height: 100%;
+  min-height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  transform: scale(1);
+  transition: transform 18s ease;
 }
-.up-page--user:hover .up-bg {
-  transform: scale(1.02);
-  transition: transform 14s ease;
+
+.up-page:hover .up-bg__img {
+  transform: scale(1.03);
 }
+
+/* User portal — login, register, password flows */
 .up-page--user .up-overlay {
   background: linear-gradient(
-    108deg,
-    rgba(4, 8, 22, 0.88) 0%,
-    rgba(4, 8, 22, 0.72) 28%,
-    rgba(4, 8, 22, 0.32) 52%,
-    rgba(4, 8, 22, 0.00) 72%
+    90deg,
+    rgba(8, 14, 28, 0.72) 0%,
+    rgba(8, 14, 28, 0.45) 40%,
+    rgba(8, 14, 28, 0.1) 58%,
+    transparent 76%
   );
 }
 .up-page--user .up-headline em {
   color: #38bdf8;
 }
 
-/* overlay — strong dark left text panel, fully transparent right for building */
+/* Overlay — readable text on the left; building stays clear on the right */
 .up-overlay {
   position: absolute;
   inset: 0;
   background: linear-gradient(
-    108deg,
-    rgba(4, 8, 22, 0.90) 0%,
-    rgba(4, 8, 22, 0.78) 25%,
-    rgba(4, 8, 22, 0.35) 50%,
-    rgba(4, 8, 22, 0.00) 72%
+    90deg,
+    rgba(8, 14, 28, 0.74) 0%,
+    rgba(8, 14, 28, 0.42) 38%,
+    rgba(8, 14, 28, 0.08) 58%,
+    transparent 76%
   );
   z-index: 1;
 }
@@ -1192,6 +1188,16 @@ html.dark .admin-portal-hint-link {
   color: #c4b5fd;
 }
 
+.up-badge-logo.camtraffic-logo-img {
+  width: 2rem !important;
+  height: 2rem !important;
+  min-width: 2rem !important;
+  min-height: 2rem !important;
+  padding: 0.2rem !important;
+  background: #ffffff;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
 .up-footer {
   display: flex;
   align-items: center;
@@ -1218,13 +1224,15 @@ html.dark .admin-portal-hint-link {
 }
 
 .up-card {
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.98);
   border-radius: 20px;
   padding: 2.5rem 2.75rem 2.25rem;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.85);
   box-shadow:
-    0 24px 64px rgba(0, 0, 0, 0.35),
-    0 4px 16px rgba(0, 0, 0, 0.12);
+    0 20px 50px rgba(15, 23, 42, 0.18),
+    0 4px 16px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   animation: fadeUp .4s ease both;
 }
 
@@ -1355,24 +1363,18 @@ html.dark .admin-portal-hint-link {
    ADMIN PORTAL — city-background, teal/cyan theme overrides
 ═══════════════════════════════════════════════════════════ */
 
-/* Admin portal — same full aerial photo */
+/* Admin portal — same full photo; cool edge fill */
 .ap-bg {
-  background-image:
-    url('/moi-building.png'),
-    linear-gradient(135deg, #020810 0%, #0c2340 50%, #0f172a 100%) !important;
-  background-color: #0d1825 !important;
-  background-position: center center !important;
-  filter: brightness(0.85) saturate(1.05) !important;
+  background: #070d14 !important;
 }
 
-/* Deeper, cooler overlay */
 .ap-overlay {
   background: linear-gradient(
-    108deg,
-    rgba(2, 8, 20, 0.92) 0%,
-    rgba(2, 8, 20, 0.80) 25%,
-    rgba(2, 8, 20, 0.38) 50%,
-    rgba(2, 8, 20, 0.00) 72%
+    90deg,
+    rgba(4, 10, 22, 0.76) 0%,
+    rgba(4, 10, 22, 0.44) 40%,
+    rgba(4, 10, 22, 0.1) 58%,
+    transparent 76%
   ) !important;
 }
 

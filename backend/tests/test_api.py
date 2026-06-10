@@ -3,6 +3,9 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from rest_framework.test import APIClient
 
+from rbac.models import UserRole
+from users.models import Driver
+
 User = get_user_model()
 
 
@@ -55,6 +58,30 @@ class AuthAPITest(TestCase):
         })
         self.assertEqual(res.status_code, 201)
 
+    def test_register_creates_driver_profile_and_user_role(self):
+        res = self.client.post('/api/auth/register/', {
+            'full_name': 'Profile Test',
+            'email': 'profile@camtraffic.kh',
+            'password': 'Strong@99',
+            'password_confirm': 'Strong@99',
+            'license_no': 'LIC-PROFILE-01',
+        })
+        self.assertEqual(res.status_code, 201)
+        user = User.objects.get(email='profile@camtraffic.kh')
+        self.assertTrue(Driver.objects.filter(user=user, license_no='LIC-PROFILE-01').exists())
+        self.assertTrue(UserRole.objects.filter(user=user, role__role_name='driver').exists())
+
+    def test_register_rejects_duplicate_license(self):
+        Driver.objects.filter(user=self.user).update(license_no='LIC-DUP-99')
+        res = self.client.post('/api/auth/register/', {
+            'full_name': 'Dup Lic',
+            'email': 'dup@camtraffic.kh',
+            'password': 'Strong@99',
+            'password_confirm': 'Strong@99',
+            'license_no': 'LIC-DUP-99',
+        })
+        self.assertEqual(res.status_code, 400)
+
     def test_user_portal_rejects_driver_on_police_tab(self):
         res = self.client.post('/api/auth/login/', {
             'email': 'test@camtraffic.kh',
@@ -81,3 +108,125 @@ class AuthAPITest(TestCase):
             'role': 'driver',
         })
         self.assertEqual(res.status_code, 200)
+
+    def test_profile_overview_returns_preferences_and_activity(self):
+        login = self.client.post('/api/auth/login/', {
+            'email': 'test@camtraffic.kh',
+            'password': self.password,
+            'portal': 'user',
+            'role': 'driver',
+        })
+        token = login.data['data']['access']
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        res = self.client.get('/api/auth/profile/overview/')
+        self.assertEqual(res.status_code, 200)
+        payload = res.data['data']
+        self.assertIn('preferences', payload)
+        self.assertIn('activity', payload)
+        self.assertIn('sessions', payload)
+        self.assertIn('login_history', payload)
+        self.assertTrue(payload['login_history'])
+
+    def test_profile_preferences_patch(self):
+        login = self.client.post('/api/auth/login/', {
+            'email': 'test@camtraffic.kh',
+            'password': self.password,
+        })
+        token = login.data['data']['access']
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        res = self.client.patch('/api/auth/profile/preferences/', {'notify_system': True}, format='json')
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.data['data']['notify_system'])
+
+    def test_profile_update_via_auth_profile(self):
+        login = self.client.post('/api/auth/login/', {
+            'email': 'test@camtraffic.kh',
+            'password': self.password,
+        })
+        token = login.data['data']['access']
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+        res = self.client.patch('/api/auth/profile/', {'phone': '+85512345678'}, format='json')
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.data['data']['phone'], '+85512345678')
+
+
+class InfrastructureAPITest(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.password = 'Test@12345'
+        self.admin = User.objects.create_user(
+            email='admin@camtraffic.kh',
+            password=self.password,
+            full_name='Admin User',
+            role='admin',
+        )
+        self.driver = User.objects.create_user(
+            email='driver2@camtraffic.kh',
+            password=self.password,
+            full_name='Driver Two',
+            role='driver',
+        )
+        login = self.client.post('/api/auth/login/', {
+            'email': 'admin@camtraffic.kh',
+            'password': self.password,
+            'portal': 'admin',
+        })
+        self.token = login.data['data']['access']
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.token}')
+
+    def test_road_crud(self):
+        create = self.client.post('/api/roads/', {
+            'name': 'Monivong Blvd',
+            'road_type': 'urban',
+            'city': 'Phnom Penh',
+            'speed_limit': 50,
+            'status': 'active',
+        }, format='json')
+        self.assertEqual(create.status_code, 201)
+        road_id = create.data['data']['id']
+
+        detail = self.client.get(f'/api/roads/{road_id}/')
+        self.assertEqual(detail.status_code, 200)
+        self.assertEqual(detail.data['data']['name'], 'Monivong Blvd')
+
+        patch = self.client.patch(f'/api/roads/{road_id}/', {'speed_limit': 40}, format='json')
+        self.assertEqual(patch.status_code, 200)
+        self.assertEqual(patch.data['data']['speed_limit'], 40)
+
+    def test_camera_crud(self):
+        road = self.client.post('/api/roads/', {
+            'name': 'Test Road',
+            'road_type': 'intersection',
+            'city': 'Phnom Penh',
+        }, format='json').data['data']
+
+        cam = self.client.post('/api/cameras/', {
+            'road': road['id'],
+            'name': 'Cam-01',
+            'code': 'CAM-TEST-01',
+            'camera_type': 'fixed',
+            'status': 'active',
+            'frame_source_url': 'https://example.com/snapshot.jpg',
+        }, format='json')
+        self.assertEqual(cam.status_code, 201)
+        cam_id = cam.data['data']['id']
+        self.assertEqual(cam.data['data']['road_name'], 'Test Road')
+
+        listed = self.client.get('/api/cameras/')
+        self.assertEqual(listed.status_code, 200)
+        self.assertGreaterEqual(len(listed.data['data']), 1)
+
+        deleted = self.client.delete(f'/api/cameras/{cam_id}/')
+        self.assertEqual(deleted.status_code, 200)
+
+    def test_infrastructure_admin_only(self):
+        self.client.credentials()
+        driver_login = self.client.post('/api/auth/login/', {
+            'email': 'driver2@camtraffic.kh',
+            'password': self.password,
+            'portal': 'user',
+            'role': 'driver',
+        })
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {driver_login.data['data']['access']}")
+        res = self.client.get('/api/roads/')
+        self.assertEqual(res.status_code, 403)

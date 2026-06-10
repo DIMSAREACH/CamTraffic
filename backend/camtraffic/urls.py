@@ -11,9 +11,11 @@ urlpatterns = [
     path('api/vehicles/', include('vehicles.urls')),
     path('api/signs/', include('traffic_signs.urls')),
     path('api/fines/', include('fines.urls')),
+    path('api/', include('violations.urls')),
     path('api/ai/', include('ai_detection.urls')),
     path('api/notifications/', include('notifications.urls')),
     path('api/dashboard/', include('dashboard.urls')),
+    path('api/', include('infrastructure.urls')),
 ]
 
 if settings.DEBUG:

@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router';
 import {
   LayoutDashboard, Car, FileText, Camera,
   BookOpen, BarChart3, Bell, User, LogOut,
-  Activity, Zap, X,
+  Activity, Zap, X, AlertTriangle,
 } from 'lucide-react';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
@@ -36,6 +36,7 @@ const NAV_ITEMS: NavItem[] = [
   { labelKey: 'sidebar.nav.aiDetection', path: '/dashboard/ai-detection', icon: <Camera size={18} strokeWidth={1.75} />, roles: ['driver'], section: 'main' },
   { labelKey: 'sidebar.nav.trafficSigns', path: '/dashboard/signs', icon: <BookOpen size={18} strokeWidth={1.75} />, roles: ['police', 'driver'], section: 'main' },
   { labelKey: 'sidebar.nav.fineManagement', path: '/dashboard/fines', icon: <FileText size={18} strokeWidth={1.75} />, roles: ['police', 'driver'], section: 'manage' },
+  { labelKey: 'sidebar.nav.violationManagement', path: '/dashboard/violations', icon: <AlertTriangle size={18} strokeWidth={1.75} />, roles: ['police', 'driver'], section: 'manage' },
   { labelKey: 'sidebar.nav.myVehicles', path: '/dashboard/vehicles', icon: <Car size={18} strokeWidth={1.75} />, roles: ['driver'], section: 'manage' },
   { labelKey: 'sidebar.nav.detectionLogs', path: '/dashboard/ai-logs', icon: <Activity size={18} strokeWidth={1.75} />, roles: ['police'], section: 'manage' },
   { labelKey: 'sidebar.nav.reports', path: '/dashboard/reports', icon: <BarChart3 size={18} strokeWidth={1.75} />, roles: ['police'], section: 'manage' },

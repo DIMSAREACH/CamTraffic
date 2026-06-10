@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.db import models
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, generics, status
 from rest_framework.permissions import IsAuthenticated
@@ -90,6 +91,9 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
             return error_response('You cannot deactivate your own account.', status_code=status.HTTP_400_BAD_REQUEST)
         instance.is_active = False
         instance.save(update_fields=['is_active'])
+        from users.profile_services import sync_profile_status
+
+        sync_profile_status(instance)
         return success_response(message='User deactivated')
 
 
@@ -105,6 +109,9 @@ class ToggleActiveView(APIView):
             return error_response('You cannot deactivate your own account.', status_code=status.HTTP_400_BAD_REQUEST)
         user.is_active = not user.is_active
         user.save(update_fields=['is_active'])
+        from users.profile_services import sync_profile_status
+
+        sync_profile_status(user)
         return success_response(UserSerializer(user).data, message='Status toggled')
 
 
@@ -116,5 +123,17 @@ class DriverSearchView(APIView):
         license_no = request.query_params.get('license', '').strip()
         if not license_no:
             return error_response('License number required')
-        drivers = User.objects.filter(role='driver', license_no__icontains=license_no, is_active=True)
+        from users.models import Driver
+
+        driver_user_ids = Driver.objects.filter(
+            license_no__icontains=license_no,
+            status='active',
+            user__is_active=True,
+        ).values_list('user_id', flat=True)
+        drivers = User.objects.filter(
+            role='driver',
+            is_active=True,
+        ).filter(
+            models.Q(pk__in=driver_user_ids) | models.Q(license_no__icontains=license_no),
+        ).distinct()
         return success_response(UserSerializer(drivers, many=True).data)

@@ -1,19 +1,25 @@
-﻿import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 import {
   Upload, Camera, CheckCircle, AlertCircle, Clock, RefreshCw, Zap,
   Info, BarChart2, ChevronRight, Cpu, Layers, Target, Activity,
   Eye, Shield, TrendingUp, MapPin, Sparkles, Volume2, Square,
-  Image as ImageIcon, Package, Check, Signpost,
+  Image as ImageIcon, Package, Check, Signpost, Car, Hash,
 } from 'lucide-react';
 import { SpeakButton } from '@shared/components/SpeakButton';
+import { LiveWebcamPanel } from '@shared/components/ai/LiveWebcamPanel';
+import type { VehicleDetectionItem, WebcamDetectionResult } from '@shared/hooks/useWebcamDetection';
 import { useAIDetectionCopy } from '@shared/hooks/useAIDetectionCopy';
-import { buildTrafficSignSpeech, khmerSpeechText, useSpeech } from '@shared/hooks/useSpeech';
+import { detectionDisplayText, useSpeech } from '@shared/hooks/useSpeech';
+import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { aiAPI } from '@shared/services/api';
+import { convertImageToJpeg } from '@shared/utils/convertImageToJpeg';
+import { detectionHero, heroSpeechText, heroTitleSpeech, logDisplay, logDisplayColor } from '@shared/utils/detectionDisplay';
+import { resolvePipelineVehicle } from '@shared/utils/pipelineVehicle';
 import { getProfileImageUrl } from '@shared/utils/profileImage';
 import { toast } from 'sonner';
-import type { AIDetectionLog, AIDetectionPageStats, AIDetectionSampleSign } from '@shared/types';
+import type { AIDetectionLog, AIDetectionPageStats, AIDetectionSampleSign, TrafficViolation } from '@shared/types';
 
 interface DetectionResult {
   sign_name: string;
@@ -29,6 +35,43 @@ interface DetectionResult {
   processing_time: number;
   uploaded_image?: string;
   log_id?: number;
+  vehicles?: VehicleDetectionItem[];
+  vehicle_count?: number;
+  detected_plate?: string;
+  plate_confidence?: number;
+  plate_type?: string;
+  matched_vehicle?: {
+    id: number;
+    plate_number: string;
+    owner_name: string;
+    vehicle_type: string;
+  } | null;
+  detection_mode?: 'sign' | 'vehicle' | 'plate' | 'unknown_sign' | 'no_sign';
+  detection_engine?: string;
+  display_title?: string;
+  display_title_en?: string;
+  display_title_km?: string;
+  display_confidence?: number;
+  pipeline_vehicle?: {
+    vehicle_type: string;
+    vehicle_label_en: string;
+    vehicle_label_km: string;
+    vehicle_confidence: number;
+    source?: 'yolo' | 'database';
+  };
+  violation_evaluation?: {
+    is_violation: boolean;
+    violation_type?: string;
+    title?: string;
+    description?: string;
+    observed_action?: string;
+    default_fine_amount?: number;
+    reason?: string;
+  };
+  violation?: TrafficViolation;
+  violation_error?: string;
+  vehicle_snapshot?: string;
+  plate_snapshot?: string;
 }
 
 const SIGN_COLORS: Record<string, string> = {
@@ -46,11 +89,11 @@ const confGrad  = (c: number) =>
   c >= 80 ? 'linear-gradient(90deg,#F59E0B,#F97316)' :
             'linear-gradient(90deg,#EF4444,#EC4899)';
 
-function altScore(conf: number) {
-  return Math.max(2, conf - 14 - Math.random() * 8);
+function sampleSignLabel(s: AIDetectionSampleSign) {
+  return s.sign_name_km || s.sign_name;
 }
-function thirdScore(conf: number) {
-  return Math.max(1, conf - 30 - Math.random() * 12);
+function sampleSignSubtitle(s: AIDetectionSampleSign) {
+  return s.sign_name_en || s.sign_name;
 }
 
 function formatPct(n: number) {
@@ -164,7 +207,7 @@ function AwaitingCard({
                   <button
                     key={s.id}
                     type="button"
-                    title={s.sign_name}
+                    title={sampleSignSubtitle(s)}
                     onClick={() => onSampleClick(s)}
                     className="w-14 h-14 rounded-xl flex items-center justify-center text-[11px] font-black cursor-pointer transition-all hover:scale-110 hover:shadow-md overflow-hidden"
                     style={{
@@ -173,7 +216,7 @@ function AwaitingCard({
                       color: s.color,
                     }}>
                     {s.image ? (
-                      <img src={s.image} alt={s.sign_name} className="w-full h-full object-cover" />
+                      <img src={s.image} alt={sampleSignSubtitle(s)} className="w-full h-full object-cover" />
                     ) : (
                       s.label
                     )}
@@ -191,6 +234,13 @@ function AwaitingCard({
 /* ═══════════════════════════════════════════════════════
    Result card — full premium analysis display
 ═══════════════════════════════════════════════════════ */
+const CATEGORY_COLORS: Record<string, string> = {
+  prohibitory: '#EF4444',
+  warning: '#F59E0B',
+  mandatory: '#3B82F6',
+  informative: '#10B981',
+};
+
 function ResultCard({
   result,
   preview,
@@ -201,27 +251,39 @@ function ResultCard({
   onReset: () => void;
 }) {
   const { t, locale } = useLanguage();
-  const { speak, speakingId } = useSpeech('km');
-  const km = khmerSpeechText(result);
-  const displayName = km.name;
-  const sc = getSignColor(displayName);
-  const cc = confColor(result.confidence);
-  const cg = confGrad(result.confidence);
+  const { categoryName } = useAIDetectionCopy();
+  const speechLocale = locale === 'en' ? 'en' : 'km';
+  const { speak, speakingId } = useSpeech(speechLocale);
+  const hero = detectionHero(result, speechLocale);
+  const voice = detectionDisplayText(result, speechLocale);
+  const displayName = hero.title;
+  const sc = hero.mode === 'vehicle' ? '#3B82F6' : hero.mode === 'plate' ? '#0EA5E9' : hero.mode === 'unknown_sign' ? '#F97316' : hero.mode === 'no_sign' ? '#F59E0B' : getSignColor(displayName);
+  const cc = confColor(hero.confidence);
+  const cg = confGrad(hero.confidence);
   const imageSrc = preview || result.uploaded_image || null;
-  const speakKm = (text: string, id: string) => speak(text, id, 'km-KH');
+  const speakLine = (text: string, id: string) => speak(text, id);
 
-  const fullSpeech = buildTrafficSignSpeech(km.name, km.desc, km.guide, 'km');
-  const guidanceSpeech = `សូមបញ្ជរកចរាចរតាមស្លាកចរាចរណ៍៖ ${km.guide}`;
+  const fullSpeech = heroSpeechText(result, speechLocale);
+  const titleSpeech = heroTitleSpeech(result, speechLocale);
+  const pipelineVehicle = resolvePipelineVehicle(result, speechLocale);
+  const violationEval = result.violation_evaluation;
+  const violationRecord = result.violation;
+  const hasViolation = Boolean(violationEval?.is_violation);
 
-  const scores = useMemo(() => ({
-    primary: result.confidence,
-    alternate: altScore(result.confidence),
-    third: thirdScore(result.confidence),
-  }), [result.confidence]);
+  const autoSpokenRef = useRef<string | null>(null);
+  useEffect(() => {
+    const key =
+      result.log_id != null
+        ? `log-${result.log_id}`
+        : `${hero.mode}-${result.sign_code || result.sign_name}-${hero.confidence}`;
+    if (autoSpokenRef.current === key) return;
+    autoSpokenRef.current = key;
+    speak(fullSpeech, 'auto');
+  }, [result, speechLocale, speak, fullSpeech, hero.mode, hero.confidence]);
 
   const R = 42;
   const CIRC = 2 * Math.PI * R;
-  const dash = (result.confidence / 100) * CIRC;
+  const dash = (hero.confidence / 100) * CIRC;
 
   return (
     <CardWrap className="overflow-hidden flex flex-col h-full min-h-[420px]">
@@ -279,10 +341,97 @@ function ResultCard({
               >
                 <span className="text-[14px] font-bold text-white truncate">{displayName}</span>
                 <span className="text-[12px] font-black flex-shrink-0" style={{ color: cc }}>
-                  {result.confidence.toFixed(1)}%
+                  {hero.confidence.toFixed(1)}%
                 </span>
               </div>
             </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="rounded-2xl p-4 border border-border/70 bg-muted/30">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Car size={12} /> {t('aiDetection.pipeline.showVehicle')}
+              </span>
+              <p className="text-[16px] font-extrabold mt-2">
+                {pipelineVehicle?.label ?? t('aiDetection.pipeline.vehicleUnknown')}
+              </p>
+              {pipelineVehicle && pipelineVehicle.confidence > 0 && (
+                <p className="text-[11px] font-semibold text-emerald-600 mt-1">
+                  {pipelineVehicle.confidence.toFixed(1)}%
+                </p>
+              )}
+            </div>
+            <div className="rounded-2xl p-4 border border-border/70 bg-muted/30">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Hash size={12} /> {t('aiDetection.pipeline.showPlate')}
+              </span>
+              <p className="text-[16px] font-extrabold mt-2 tracking-wide">
+                {result.detected_plate || t('aiDetection.pipeline.plateUnknown')}
+              </p>
+              {(result.plate_confidence ?? 0) > 0 && (
+                <p className="text-[11px] font-semibold text-sky-600 mt-1">
+                  {(result.plate_confidence ?? 0).toFixed(1)}%
+                </p>
+              )}
+            </div>
+          </div>
+
+        {(result.plate_snapshot || result.vehicle_snapshot) && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {result.vehicle_snapshot && (
+              <div className="rounded-2xl p-3 border border-border/70 bg-muted/20">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                  {t('aiDetection.vehicleEvidence')}
+                </p>
+                <img src={result.vehicle_snapshot} alt={t('aiDetection.vehicleEvidence')} className="w-full rounded-xl object-contain max-h-28 bg-muted" />
+              </div>
+            )}
+            {result.plate_snapshot && (
+              <div className="rounded-2xl p-3 border border-border/70 bg-muted/20">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                  {t('aiDetection.plateEvidence')}
+                </p>
+                <img src={result.plate_snapshot} alt={t('aiDetection.plateEvidence')} className="w-full rounded-xl object-contain max-h-28 bg-muted" />
+              </div>
+            )}
+          </div>
+        )}
+
+        {(hasViolation || violationRecord || result.violation_error) && (
+          <div
+            className="rounded-2xl p-4 border"
+            style={{
+              background: hasViolation ? 'rgba(239,68,68,0.06)' : 'rgba(245,158,11,0.06)',
+              borderColor: hasViolation ? 'rgba(239,68,68,0.25)' : 'rgba(245,158,11,0.25)',
+            }}
+          >
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <Shield size={12} style={{ color: hasViolation ? '#EF4444' : '#F59E0B' }} />
+              {t('aiDetection.violationTitle')}
+            </span>
+            {hasViolation ? (
+              <div className="mt-2 space-y-1">
+                <p className="text-[16px] font-extrabold text-foreground">
+                  {violationEval?.title || violationRecord?.violation_type}
+                </p>
+                {violationRecord?.vehicle_plate && (
+                  <p className="text-[12px] text-muted-foreground">
+                    {t('aiDetection.violationPlate')}: <span className="font-semibold">{violationRecord.vehicle_plate}</span>
+                  </p>
+                )}
+                {violationRecord?.id != null && (
+                  <p className="text-[11px] font-semibold text-emerald-600">
+                    {t('aiDetection.violationSaved').replace('{id}', String(violationRecord.id))}
+                  </p>
+                )}
+                {result.violation_error && (
+                  <p className="text-[11px] text-amber-600">{result.violation_error}</p>
+                )}
+              </div>
+            ) : (
+              <p className="text-[13px] text-muted-foreground mt-2">{t('aiDetection.violationNone')}</p>
+            )}
           </div>
         )}
 
@@ -316,7 +465,7 @@ function ResultCard({
               {/* centre label */}
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="dashboard-text__metric-lg" style={{ color: cc }}>
-                  {result.confidence.toFixed(0)}%
+                  {hero.confidence.toFixed(0)}%
                 </span>
                 <span className="text-[8.5px] font-semibold text-muted-foreground uppercase tracking-wide mt-0.5">{t('aiDetection.confShort')}</span>
               </div>
@@ -327,7 +476,15 @@ function ResultCard({
               <div className="flex items-center gap-2 mb-1">
                 <Sparkles size={12} style={{ color: sc }} />
                 <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                  {t('aiDetection.identifiedSign')}
+                  {hero.mode === 'vehicle'
+                    ? t('aiDetection.identifiedVehicle')
+                    : hero.mode === 'plate'
+                      ? t('aiDetection.identifiedPlate')
+                      : hero.mode === 'unknown_sign'
+                        ? t('aiDetection.unknownSignFound')
+                        : hero.mode === 'no_sign'
+                          ? t('aiDetection.noSignFound')
+                          : t('aiDetection.identifiedSign')}
                 </span>
               </div>
               <div className="flex items-start justify-between gap-2 mb-1">
@@ -337,28 +494,130 @@ function ResultCard({
                 </p>
                 <SpeakButton
                   size="md"
-                  label={t('aiDetection.listenSign')}
+                  label={
+                    hero.mode === 'vehicle'
+                      ? t('aiDetection.listenVehicle')
+                      : hero.mode === 'plate'
+                        ? t('aiDetection.listenPlate')
+                        : hero.mode === 'no_sign'
+                          ? t('aiDetection.listenResult')
+                          : t('aiDetection.listenSign')
+                  }
                   isActive={speakingId === 'sign-name'}
-                  onClick={() => speakKm(`ស្លាកចរាចរណ៍ ${displayName}`, 'sign-name')}
+                  onClick={() => speakLine(titleSpeech, 'sign-name')}
                 />
               </div>
-              {(result.sign_code || result.sign_name_en) && (
+              {hero.mode === 'sign' && result.sign_name_en && result.sign_name_en !== displayName && (
+                <p className="dashboard-text__caption mb-2">{result.sign_name_en}</p>
+              )}
+              {hero.mode === 'vehicle' && result.display_title_en && speechLocale === 'km' && (
+                <p className="dashboard-text__caption mb-2">{result.display_title_en}</p>
+              )}
+              {hero.mode === 'plate' && result.matched_vehicle && (
                 <p className="dashboard-text__caption mb-2">
-                  {[result.sign_code, result.sign_name_en].filter(Boolean).join(' · ')}
+                  {t('aiDetection.plateLinked')}: {result.matched_vehicle.owner_name}
                 </p>
               )}
               <div className="flex flex-wrap gap-1.5">
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1"
                   style={{ background: `${sc}20`, color: sc, border: `1px solid ${sc}40` }}>
-                  <Check size={10} strokeWidth={3} /> {t('aiDetection.detected')}
+                  <Check size={10} strokeWidth={3} />
+                  {hero.mode === 'vehicle'
+                    ? t('aiDetection.vehicleDetected')
+                    : hero.mode === 'plate'
+                      ? t('aiDetection.plateBadge')
+                      : hero.mode === 'unknown_sign'
+                        ? t('aiDetection.unknownSignBadge')
+                        : hero.mode === 'no_sign'
+                          ? t('aiDetection.noSignBadge')
+                          : t('aiDetection.detected')}
                 </span>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                  {t('aiDetection.cambodiaSign')}
-                </span>
+                {hero.mode === 'plate' && result.plate_type && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full capitalize"
+                    style={{ background: 'rgba(14,165,233,0.12)', color: '#0284C7', border: '1px solid rgba(14,165,233,0.28)' }}>
+                    {result.plate_type}
+                  </span>
+                )}
+                {hero.mode === 'sign' && result.sign_code && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full font-mono"
+                    style={{ background: 'rgba(15,23,42,0.06)', color: '#475569', border: '1px solid rgba(15,23,42,0.12)' }}>
+                    {result.sign_code}
+                  </span>
+                )}
+                {hero.mode === 'sign' && result.category && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full capitalize"
+                    style={{
+                      background: `${CATEGORY_COLORS[result.category] ?? '#8B5CF6'}18`,
+                      color: CATEGORY_COLORS[result.category] ?? '#8B5CF6',
+                      border: `1px solid ${CATEGORY_COLORS[result.category] ?? '#8B5CF6'}35`,
+                    }}>
+                    {categoryName(result.category, result.category)}
+                  </span>
+                )}
+                {hero.mode === 'sign' && (
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                    {t('aiDetection.cambodiaSign')}
+                  </span>
+                )}
               </div>
             </div>
           </div>
         </div>
+
+        {/* ── License plate OCR ── */}
+        {result.detected_plate && hero.mode !== 'plate' && (
+          <div className="rounded-2xl p-4 border border-border/70 bg-muted/30">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <span className="text-[12px] font-semibold text-muted-foreground flex items-center gap-1.5">
+                <Hash size={12} /> {t('aiDetection.plateDetected')}
+              </span>
+              {result.plate_type && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-600 border border-sky-500/25 capitalize">
+                  {result.plate_type}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl bg-background border border-border/60">
+              <p className="text-[15px] font-extrabold tracking-wide">{result.detected_plate}</p>
+              <span className="text-[12px] font-bold flex-shrink-0" style={{ color: confColor(result.plate_confidence ?? 0) }}>
+                {(result.plate_confidence ?? 0).toFixed(1)}%
+              </span>
+            </div>
+            {result.matched_vehicle && (
+              <p className="text-[11px] text-muted-foreground mt-2">
+                {t('aiDetection.plateLinked')}: <strong>{result.matched_vehicle.owner_name}</strong>
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* ── Vehicles detected ── */}
+        {(result.vehicle_count ?? result.vehicles?.length ?? 0) > 0 && (
+          <div className="rounded-2xl p-4 border border-border/70 bg-muted/30">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <span className="text-[12px] font-semibold text-muted-foreground flex items-center gap-1.5">
+                <Car size={12} /> {t('aiDetection.vehiclesDetected')}
+              </span>
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/25">
+                {result.vehicle_count ?? result.vehicles?.length ?? 0}
+              </span>
+            </div>
+            <div className="space-y-2">
+              {(result.vehicles ?? []).map((v, i) => (
+                <div key={`${v.vehicle_type}-${i}`}
+                  className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl bg-background border border-border/60">
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-semibold leading-tight">{v.label}</p>
+                    <p className="text-[10px] text-muted-foreground capitalize mt-0.5">{v.vehicle_type}</p>
+                  </div>
+                  <span className="text-[12px] font-bold flex-shrink-0" style={{ color: confColor(v.confidence) }}>
+                    {v.confidence.toFixed(1)}%
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ── Confidence bar ── */}
         <div>
@@ -366,11 +625,11 @@ function ResultCard({
             <span className="text-[12px] font-semibold text-muted-foreground flex items-center gap-1.5">
               <TrendingUp size={12} /> {t('aiDetection.confidenceLabel')}
             </span>
-            <span className="text-[13px] font-bold" style={{ color: cc }}>{result.confidence.toFixed(1)}%</span>
+            <span className="text-[13px] font-bold" style={{ color: cc }}>{hero.confidence.toFixed(1)}%</span>
           </div>
           <div className="h-2 rounded-full bg-muted overflow-hidden">
             <div className="h-full rounded-full transition-all duration-1000"
-              style={{ width: `${result.confidence}%`, background: cg }} />
+              style={{ width: `${hero.confidence}%`, background: cg }} />
           </div>
           <div className="flex justify-between mt-1.5">
             <span className="text-[10px] text-muted-foreground">0%</span>
@@ -379,26 +638,10 @@ function ResultCard({
           </div>
         </div>
 
-        {/* ── 3-score breakdown ── */}
-        <div className="grid grid-cols-3 gap-2">
-          {[
-            { label: t('aiDetection.primary'),   val: scores.primary },
-            { label: t('aiDetection.alternate'), val: scores.alternate },
-            { label: t('aiDetection.third'),     val: scores.third },
-          ].map(c => (
-            <div key={c.label} className="rounded-xl p-3 text-center bg-muted">
-              <p className="dashboard-text__metric" style={{ color: confColor(c.val) }}>
-                {c.val.toFixed(0)}%
-              </p>
-              <p className="text-[10.5px] text-muted-foreground mt-1.5">{c.label}</p>
-            </div>
-          ))}
-        </div>
-
         {/* ── Listen: full sign + guidance (voice) ── */}
         <button
           type="button"
-          onClick={() => speakKm(fullSpeech, 'full')}
+          onClick={() => speakLine(fullSpeech, 'full')}
           className={`w-full py-3 px-4 rounded-xl flex items-center justify-center gap-2.5 text-[13px] font-bold transition-all cursor-pointer border ${
             speakingId === 'full'
               ? 'bg-violet-500/15 border-violet-400/50 text-violet-700 dark:text-violet-200'
@@ -427,11 +670,11 @@ function ResultCard({
               <SpeakButton
                 label={t('aiDetection.readDescription')}
                 isActive={speakingId === 'desc'}
-                onClick={() => speakKm(km.desc, 'desc')}
+                onClick={() => speakLine(hero.description, 'desc')}
               />
             </div>
             <div className="px-4 py-4 bg-blue-50/50 dark:bg-blue-950/20">
-              <p className="text-[15px] sm:text-[16px] text-foreground leading-[1.75]">{km.desc}</p>
+              <p className="text-[15px] sm:text-[16px] text-foreground leading-[1.75]">{hero.description}</p>
             </div>
           </div>
 
@@ -448,11 +691,11 @@ function ResultCard({
               <SpeakButton
                 label={t('aiDetection.readGuidance')}
                 isActive={speakingId === 'guide'}
-                onClick={() => speakKm(guidanceSpeech, 'guide')}
+                onClick={() => speakLine(guidanceSpeech, 'guide')}
               />
             </div>
             <div className="px-4 py-4 bg-amber-50/60 dark:bg-amber-950/20">
-              <p className="text-[15px] sm:text-[16px] text-foreground leading-[1.75]">{km.guide}</p>
+              <p className="text-[15px] sm:text-[16px] text-foreground leading-[1.75]">{hero.guidance}</p>
             </div>
           </div>
         </div>
@@ -494,23 +737,28 @@ function ResultCard({
 ═══════════════════════════════════════════════════════ */
 function RecentDetectionThumb({
   log,
-  signColor,
+  accent,
+  mode,
 }: {
   log: AIDetectionLog;
-  signColor: string;
+  accent: string;
+  mode: 'sign' | 'vehicle' | 'plate' | 'unknown_sign' | 'no_sign';
 }) {
   const { locale } = useLanguage();
+  const speechLocale = locale === 'en' ? 'en' : 'km';
+  const hero = logDisplay(log, speechLocale);
   const [imgFailed, setImgFailed] = useState(false);
   const src = getProfileImageUrl(log.uploaded_image);
+  const FallbackIcon = mode === 'vehicle' ? Car : mode === 'plate' ? Hash : (mode === 'no_sign' || mode === 'unknown_sign') ? AlertCircle : Signpost;
 
   if (src && !imgFailed) {
     return (
       <img
         src={src}
-        alt={log.detected_sign}
-        title={log.detected_sign}
+        alt={hero.title}
+        title={hero.title}
         className="w-11 h-11 rounded-xl object-cover flex-shrink-0 bg-muted ring-1 ring-border/80"
-        style={{ boxShadow: `0 0 0 1.5px ${signColor}30` }}
+        style={{ boxShadow: `0 0 0 1.5px ${accent}30` }}
         onError={() => setImgFailed(true)}
       />
     );
@@ -519,15 +767,9 @@ function RecentDetectionThumb({
   return (
     <div
       className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
-      style={{ background: `${signColor}18`, border: `1.5px solid ${signColor}35` }}
+      style={{ background: `${accent}18`, border: `1.5px solid ${accent}35` }}
     >
-      {locale === 'en' ? (
-        <Signpost size={14} style={{ color: signColor }} />
-      ) : (
-        <span className="text-[10px] font-black px-0.5 text-center leading-tight" style={{ color: signColor }}>
-          {log.detected_sign.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()}
-        </span>
-      )}
+      <FallbackIcon size={14} style={{ color: accent }} />
     </div>
   );
 }
@@ -543,7 +785,8 @@ function RecentDetectionsCard({
   onViewAll: () => void;
   layout?: 'sidebar' | 'full';
 }) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const speechLocale = locale === 'en' ? 'en' : 'km';
   const isSidebar = layout === 'sidebar';
   const itemLimit = isSidebar ? 7 : 5;
   const items = logs.slice(0, itemLimit);
@@ -596,22 +839,23 @@ function RecentDetectionsCard({
           ) : (
             <div className={listClass}>
               {items.map(log => {
-                const sc = getSignColor(log.detected_sign);
-                const cc = confColor(log.confidence);
+                const hero = logDisplay(log, speechLocale);
+                const sc = logDisplayColor(hero.mode);
+                const cc = confColor(hero.confidence);
                 return (
                   <div key={log.id} className={rowClass}>
-                    <RecentDetectionThumb log={log} signColor={sc} />
+                    <RecentDetectionThumb log={log} accent={sc} mode={hero.mode} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2 mb-1">
-                        <p className="dashboard-text__title truncate">{log.detected_sign}</p>
+                        <p className="dashboard-text__title truncate">{hero.title}</p>
                         <span className="text-[12px] font-black flex-shrink-0" style={{ color: cc }}>
-                          {log.confidence.toFixed(1)}%
+                          {hero.confidence.toFixed(1)}%
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
                           <div className="h-full rounded-full"
-                            style={{ width: `${log.confidence}%`, background: confGrad(log.confidence) }} />
+                            style={{ width: `${hero.confidence}%`, background: confGrad(hero.confidence) }} />
                         </div>
                         <span className="text-[10.5px] text-muted-foreground flex-shrink-0 truncate max-w-[72px]">
                           {log.user_name}
@@ -637,10 +881,13 @@ function RecentDetectionsCard({
 ═══════════════════════════════════════════════════════ */
 export function AIDetectionPage() {
   const { t, STEPS, formatTraining, modelStatus, categoryName } = useAIDetectionCopy();
+  const { locale } = useLanguage();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const aiLogsPath = location.pathname.startsWith('/admin') ? '/admin/ai-logs' : '/dashboard/ai-logs';
 
+  const [inputMode, setInputMode] = useState<'upload' | 'webcam'>('upload');
   const [file, setFile]           = useState<File | null>(null);
   const [preview, setPreview]     = useState<string | null>(null);
   const [detecting, setDetecting] = useState(false);
@@ -652,6 +899,7 @@ export function AIDetectionPage() {
   const [pageStats, setPageStats] = useState<AIDetectionPageStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
+  const lastTrainedAtRef = useRef<number | null>(null);
 
   const refreshPageData = useCallback(async () => {
     const [logs, stats] = await Promise.all([
@@ -671,38 +919,36 @@ export function AIDetectionPage() {
     });
   }, [refreshPageData]);
 
-  const handleFile = (f: File) => {
-    if (!f.type.startsWith('image/')) { toast.error(t('aiDetection.toast.imageOnly')); return; }
-    if (f.size > 10 * 1024 * 1024) { toast.error(t('aiDetection.toast.imageTooBig')); return; }
-    setFile(f); setResult(null); setPreview(URL.createObjectURL(f));
-  };
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault(); setDragging(false);
-    const f = e.dataTransfer.files[0];
-    if (f) handleFile(f);
+  useEffect(() => {
+    const poll = async () => {
+      try {
+        const stats = await aiAPI.getPageStats();
+        const trainedAt = stats.model.last_trained_at ?? null;
+        if (
+          trainedAt &&
+          lastTrainedAtRef.current &&
+          trainedAt > lastTrainedAtRef.current
+        ) {
+          toast.success('AI model updated — new trained signs are ready.');
+        }
+        if (trainedAt) lastTrainedAtRef.current = trainedAt;
+        setPageStats(stats);
+        setLoadingStats(false);
+      } catch {
+        /* ignore polling errors */
+      }
+    };
+    const intervalId = window.setInterval(poll, 12000);
+    window.addEventListener('focus', poll);
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', poll);
+    };
   }, []);
 
-  const handleSampleSign = async (sample: AIDetectionSampleSign) => {
-    if (sample.image) {
-      try {
-        const res = await fetch(sample.image);
-        const blob = await res.blob();
-        const ext = blob.type.includes('png') ? 'png' : 'jpg';
-        handleFile(new File([blob], `${sample.sign_code || 'sign'}.${ext}`, { type: blob.type || 'image/jpeg' }));
-        toast.success(t('aiDetection.toast.sampleLoaded').replace('{name}', sample.sign_name));
-      } catch {
-        toast.error(t('aiDetection.toast.loadImageFail'));
-        inputRef.current?.click();
-      }
-    } else {
-      toast.info(t('aiDetection.toast.uploadOwnPhoto').replace('{name}', sample.sign_name));
-      inputRef.current?.click();
-    }
-  };
-
-  const handleDetect = async () => {
-    if (!file) {
+  const runDetection = useCallback(async (targetFile?: File) => {
+    const f = targetFile ?? file;
+    if (!f) {
       toast.error(t('aiDetection.toast.uploadFirst'));
       inputRef.current?.click();
       return;
@@ -711,25 +957,90 @@ export function AIDetectionPage() {
     const iv = setInterval(() =>
       setProgress(p => p >= 88 ? (clearInterval(iv), 88) : p + Math.random() * 14), 200);
     try {
-      const res = await aiAPI.detect(file);
-      clearInterval(iv); setProgress(100); setResult(res);
-      toast.success(
-        t('aiDetection.toast.detected')
-          .replace('{name}', res.sign_name)
-          .replace('{confidence}', res.confidence.toFixed(1)),
-      );
-      await refreshPageData();
-    } catch {
+      const uploadFile = await convertImageToJpeg(f);
+      const enforceDemo = user?.role === 'admin' || user?.role === 'police';
+      const res = await aiAPI.detect(uploadFile, enforceDemo ? {
+        demo_violation: true,
+        auto_create_violation: true,
+      } : undefined);
       clearInterval(iv);
-      toast.error(t('aiDetection.toast.detectFailed'));
+      setProgress(100); setResult(res);
+      const heroToast = detectionHero(res, locale === 'en' ? 'en' : 'km');
+      if (res.violation?.id) {
+        toast.success(t('aiDetection.toast.violationSaved').replace('{id}', String(res.violation.id)));
+      } else {
+        toast.success(
+          t('aiDetection.toast.detected')
+            .replace('{name}', heroToast.title)
+            .replace('{confidence}', heroToast.confidence.toFixed(1)),
+        );
+      }
+      await refreshPageData();
+    } catch (err) {
+      clearInterval(iv);
+      const msg = err instanceof Error ? err.message : t('aiDetection.toast.detectFailed');
+      toast.error(msg || t('aiDetection.toast.detectFailed'));
     } finally { setDetecting(false); }
+  }, [file, locale, refreshPageData, t, user?.role]);
+
+  const handleFile = useCallback(async (f: File, autoDetect = true) => {
+    if (!f.type.startsWith('image/')) { toast.error(t('aiDetection.toast.imageOnly')); return; }
+    if (f.size > 10 * 1024 * 1024) { toast.error(t('aiDetection.toast.imageTooBig')); return; }
+    if (preview?.startsWith('blob:')) URL.revokeObjectURL(preview);
+    setFile(f); setResult(null); setPreview(URL.createObjectURL(f));
+    if (autoDetect) await runDetection(f);
+  }, [preview, runDetection, t]);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault(); setDragging(false);
+    const f = e.dataTransfer.files[0];
+    if (f) handleFile(f);
+  }, [handleFile]);
+
+  const handleSampleSign = async (sample: AIDetectionSampleSign) => {
+    if (sample.image) {
+      try {
+        const res = await fetch(sample.image);
+        const blob = await res.blob();
+        const ext = blob.type.includes('png') ? 'png' : 'jpg';
+        const signFile = new File(
+          [blob],
+          `${sample.sign_code || 'sign'}.${ext}`,
+          { type: blob.type || 'image/jpeg' },
+        );
+        handleFile(signFile);
+        toast.success(t('aiDetection.toast.sampleLoaded').replace('{name}', sampleSignLabel(sample)));
+      } catch {
+        toast.error(t('aiDetection.toast.loadImageFail'));
+        inputRef.current?.click();
+      }
+    } else {
+      toast.info(t('aiDetection.toast.uploadOwnPhoto').replace('{name}', sampleSignLabel(sample)));
+      inputRef.current?.click();
+    }
   };
+
+  const handleDetect = () => runDetection();
 
   const reset = () => {
     if (preview?.startsWith('blob:')) URL.revokeObjectURL(preview);
     setFile(null); setPreview(null); setResult(null); setProgress(0);
     if (inputRef.current) inputRef.current.value = '';
   };
+
+  const handleWebcamResult = useCallback((res: WebcamDetectionResult) => {
+    setResult(res);
+    if (res.uploaded_image) {
+      setPreview(res.uploaded_image);
+    }
+    const heroToast = detectionHero(res, locale === 'en' ? 'en' : 'km');
+    toast.success(
+      t('aiDetection.toast.detected')
+        .replace('{name}', heroToast.title)
+        .replace('{confidence}', heroToast.confidence.toFixed(1)),
+    );
+    void refreshPageData();
+  }, [locale, refreshPageData, t]);
 
   const status = pageStats ? modelStatus(pageStats.model.mode) : null;
 
@@ -850,23 +1161,36 @@ export function AIDetectionPage() {
                 style={{ background: 'linear-gradient(135deg,#6D28D9 0%,#7C3AED 50%,#8B5CF6 100%)' }}>
                 <div className="absolute -top-5 -right-5 w-24 h-24 rounded-full pointer-events-none"
                   style={{ background: 'rgba(255,255,255,0.08)' }} />
-                <div className="relative flex items-center justify-between gap-3">
+                <div className="relative flex items-center justify-between gap-3 flex-wrap">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
                         style={{ background: 'rgba(255,255,255,0.18)' }}>
-                        <Upload size={15} color="white" />
+                        {inputMode === 'upload' ? <Upload size={15} color="white" /> : <Camera size={15} color="white" />}
                       </div>
-                      <p className="dashboard-card__title text-white leading-tight">{t('aiDetection.uploadTitle')}</p>
+                      <p className="dashboard-card__title text-white leading-tight">
+                        {inputMode === 'upload' ? t('aiDetection.uploadTitle') : t('aiDetection.webcam.title')}
+                      </p>
                     </div>
-                    <p className="dashboard-panel__subtitle pl-10">{t('aiDetection.uploadSubtitle')}</p>
+                    <p className="dashboard-panel__subtitle pl-10">
+                      {inputMode === 'upload' ? t('aiDetection.uploadSubtitle') : t('aiDetection.webcam.subtitle')}
+                    </p>
                   </div>
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    {['PNG', 'JPG', 'WEBP'].map(f => (
-                      <span key={f} className="text-[9.5px] font-bold px-1.5 py-0.5 rounded-md"
-                        style={{ background: 'rgba(255,255,255,0.16)', color: 'white', border: '1px solid rgba(255,255,255,0.22)' }}>
-                        {f}
-                      </span>
+                  <div className="flex items-center gap-1 p-1 rounded-xl flex-shrink-0"
+                    style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.15)' }}>
+                    {(['upload', 'webcam'] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setInputMode(mode)}
+                        className="px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors cursor-pointer"
+                        style={{
+                          background: inputMode === mode ? 'rgba(255,255,255,0.2)' : 'transparent',
+                          color: inputMode === mode ? '#fff' : 'rgba(255,255,255,0.7)',
+                        }}
+                      >
+                        {mode === 'upload' ? t('aiDetection.webcam.tabUpload') : t('aiDetection.webcam.tabLive')}
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -874,31 +1198,40 @@ export function AIDetectionPage() {
 
               <div className="relative -mt-5 mx-4 mb-4 flex-1 flex flex-col min-h-0">
                 <div className="rounded-2xl bg-background border border-border/60 shadow-sm p-4 flex flex-col flex-1 min-h-0 gap-3">
+              {inputMode === 'webcam' ? (
+                <LiveWebcamPanel
+                  onResult={handleWebcamResult}
+                  disabled={detecting}
+                />
+              ) : (
+              <>
               <div
-                onDragOver={e => { e.preventDefault(); setDragging(true); }}
+                onDragOver={e => { if (!detecting) { e.preventDefault(); setDragging(true); } }}
                 onDragLeave={() => setDragging(false)}
-                onDrop={handleDrop}
-                onClick={() => inputRef.current?.click()}
-                className={`relative border-2 border-dashed rounded-2xl cursor-pointer transition-all overflow-hidden flex flex-col ${!result ? 'flex-1' : ''}`}
+                onDrop={e => { if (!detecting) handleDrop(e); }}
+                onClick={() => { if (!detecting) inputRef.current?.click(); }}
+                className={`relative border-2 border-dashed rounded-2xl transition-all overflow-hidden flex flex-col ${!result ? 'flex-1' : ''} ${detecting ? 'cursor-wait' : 'cursor-pointer'}`}
                 style={{
                   borderColor: dragging ? '#8B5CF6' : 'rgba(139,92,246,0.28)',
                   background: dragging ? 'rgba(139,92,246,0.06)' : 'rgba(139,92,246,0.02)',
                   minHeight: !result && !preview ? 260 : undefined,
                 }}
-                onMouseEnter={e => { if (!dragging) (e.currentTarget as HTMLElement).style.borderColor = 'rgba(139,92,246,0.52)'; }}
-                onMouseLeave={e => { if (!dragging) (e.currentTarget as HTMLElement).style.borderColor = 'rgba(139,92,246,0.28)'; }}
+                onMouseEnter={e => { if (!dragging && !detecting) (e.currentTarget as HTMLElement).style.borderColor = 'rgba(139,92,246,0.52)'; }}
+                onMouseLeave={e => { if (!dragging && !detecting) (e.currentTarget as HTMLElement).style.borderColor = 'rgba(139,92,246,0.28)'; }}
               >
                 {preview ? (
                   <div className="relative">
                     <img src={preview} alt="Preview"
                       className="w-full max-h-52 rounded-xl object-contain mx-auto p-2" />
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity rounded-xl"
-                      style={{ background: 'rgba(0,0,0,0.45)' }}>
-                      <div className="text-center text-white">
-                        <Camera size={20} className="mx-auto mb-1" />
-                        <p className="text-[12px] font-semibold">{t('aiDetection.clickToChange')}</p>
+                    {!detecting && (
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity rounded-xl"
+                        style={{ background: 'rgba(0,0,0,0.45)' }}>
+                        <div className="text-center text-white">
+                          <Camera size={20} className="mx-auto mb-1" />
+                          <p className="text-[12px] font-semibold">{t('aiDetection.clickToChange')}</p>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
@@ -929,7 +1262,11 @@ export function AIDetectionPage() {
                 )}
               </div>
               <input ref={inputRef} type="file" accept="image/*" className="hidden"
-                onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
+                onChange={e => {
+                  const picked = e.target.files?.[0];
+                  if (picked) handleFile(picked);
+                  e.target.value = '';
+                }} />
 
               {file && (
                 <div className="flex items-center justify-between px-3 py-2.5 rounded-xl"
@@ -941,11 +1278,20 @@ export function AIDetectionPage() {
                     </div>
                     <div className="min-w-0">
                       <p className="dashboard-text__title truncate max-w-[180px]">{file.name}</p>
-                      <p className="dashboard-text__caption">{(file.size / 1024).toFixed(1)} KB · {t('aiDetection.readyToDetect')}</p>
+                      <p className="dashboard-text__caption">
+                        {(file.size / 1024).toFixed(1)} KB ·{' '}
+                        {detecting
+                          ? t('aiDetection.analysingShort')
+                          : result
+                            ? `${result.confidence.toFixed(1)}% ${t('aiDetection.detected').toLowerCase()}`
+                            : t('aiDetection.readyToDetect')}
+                      </p>
                     </div>
                   </div>
-                  <button onClick={e => { e.stopPropagation(); reset(); }}
-                    className="w-6 h-6 rounded-lg flex items-center justify-center text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 ml-2 transition-colors text-sm cursor-pointer">✕</button>
+                  {!detecting && (
+                    <button onClick={e => { e.stopPropagation(); reset(); }}
+                      className="w-6 h-6 rounded-lg flex items-center justify-center text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 ml-2 transition-colors text-sm cursor-pointer">✕</button>
+                  )}
                 </div>
               )}
 
@@ -966,19 +1312,19 @@ export function AIDetectionPage() {
               )}
 
               <div className="flex gap-2">
-                <button onClick={handleDetect} disabled={detecting}
+                <button onClick={handleDetect} disabled={detecting || !file}
                   className="flex-1 py-3 rounded-xl text-white text-[13.5px] font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-70 disabled:cursor-wait"
                   style={{
                     background: 'linear-gradient(135deg,#7C3AED,#2563EB)',
-                    boxShadow: !detecting ? '0 4px 20px rgba(124,58,237,0.4)' : 'none',
+                    boxShadow: !detecting && file ? '0 4px 20px rgba(124,58,237,0.4)' : 'none',
                   }}>
                   {detecting
                     ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />{t('aiDetection.analysingShort')}</>
-                    : <><Zap size={15} />{t('aiDetection.detectSign')}</>}
+                    : <><Zap size={15} />{t('aiDetection.runPipeline')}</>}
                 </button>
                 {file && (
-                  <button onClick={reset}
-                    className="w-12 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-red-500 hover:border-red-300 transition-colors cursor-pointer">
+                  <button onClick={reset} disabled={detecting}
+                    className="w-12 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-red-500 hover:border-red-300 transition-colors cursor-pointer disabled:opacity-50">
                     <RefreshCw size={15} />
                   </button>
                 )}
@@ -1001,7 +1347,8 @@ export function AIDetectionPage() {
                         key={s.id}
                         type="button"
                         onClick={() => handleSampleSign(s)}
-                        className="flex flex-col items-center gap-1.5 cursor-pointer group"
+                        disabled={detecting}
+                        className="flex flex-col items-center gap-1.5 cursor-pointer group disabled:opacity-50 disabled:cursor-wait"
                       >
                         <div className="w-12 h-12 rounded-xl flex items-center justify-center text-[11px] font-black overflow-hidden transition-all group-hover:scale-110 group-hover:shadow-md"
                           style={{
@@ -1010,13 +1357,13 @@ export function AIDetectionPage() {
                             color: s.color,
                           }}>
                           {s.image ? (
-                            <img src={s.image} alt={s.sign_name} className="w-full h-full object-cover" />
+                            <img src={s.image} alt={sampleSignLabel(s)} className="w-full h-full object-cover" />
                           ) : (
                             s.label
                           )}
                         </div>
                         <p className="text-[10.5px] text-muted-foreground text-center leading-tight line-clamp-2">
-                          {s.sign_name}
+                          {sampleSignLabel(s)}
                         </p>
                       </button>
                     ))}
@@ -1025,6 +1372,8 @@ export function AIDetectionPage() {
                   <p className="text-[12px] text-muted-foreground">{t('aiDetection.catalogEmpty')}</p>
                 )}
               </div>
+              </>
+              )}
                 </div>
               </div>
             </CardWrap>

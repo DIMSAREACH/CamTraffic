@@ -12,6 +12,7 @@ from django.core import signing
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from users.serializers import UserSerializer
+from .login_messages import LOGIN_ADMIN_ON_USER_PORTAL, LOGIN_NON_ADMIN_ON_ADMIN_PORTAL
 
 User = get_user_model()
 
@@ -97,6 +98,7 @@ def exchange_code(
     code: str,
     state: str,
     redirect_uri: str | None = None,
+    portal: str | None = None,
     *,
     request=None,
 ) -> dict:
@@ -116,6 +118,10 @@ def exchange_code(
     user = _get_or_create_user(profile)
     if not user.is_active:
         raise OAuthError('This account has been deactivated.', 403)
+    if portal == 'admin' and user.role != 'admin':
+        raise OAuthError(LOGIN_NON_ADMIN_ON_ADMIN_PORTAL, 403)
+    if portal == 'user' and user.role == 'admin':
+        raise OAuthError(LOGIN_ADMIN_ON_USER_PORTAL, 403)
 
     refresh = RefreshToken.for_user(user)
     return {
@@ -217,6 +223,9 @@ def _get_or_create_user(profile: OAuthProfile) -> User:
         if not user.full_name:
             user.full_name = profile.full_name
         user.save(update_fields=['auth_provider', 'social_uid', 'full_name', 'updated_at'])
+        from users.profile_services import provision_user_account
+
+        provision_user_account(user)
         return user
 
     return User.objects.create_user(

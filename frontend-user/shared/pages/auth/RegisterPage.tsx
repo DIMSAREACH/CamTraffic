@@ -5,7 +5,9 @@ import {
   CreditCard, Eye, EyeOff, UserPlus, AlertCircle, CheckCircle, Circle,
 } from 'lucide-react';
 import { authAPI } from '@shared/services/api';
+import { AuthPageBackground } from '@shared/components/auth/AuthPageBackground';
 import { AuthFeatureList } from '@shared/components/auth/AuthFeatureList';
+import { CamTrafficLogo } from '@shared/components/layout/CamTrafficLogo';
 import { AuthThemeToggle } from '@shared/components/AuthThemeToggle';
 import { toast } from 'sonner';
 import {
@@ -118,13 +120,13 @@ export function RegisterPage() {
   return (
     <div className="up-page up-page--user">
       <AuthThemeToggle />
-      <div className="up-bg" />
+      <AuthPageBackground />
       <div className="up-overlay" />
 
       <div className="up-inner">
         <div className="up-hero">
           <div className="up-badge">
-            <Camera size={14} className="up-badge-icon" aria-hidden />
+            <CamTrafficLogo size={32} className="up-badge-logo" alt="Norton University" />
             <span>CamTraffic · Cambodia</span>
           </div>
           <h1 className="up-headline">

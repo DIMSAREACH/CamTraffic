@@ -1,0 +1,29 @@
+{
+  "generated_at": "2026-06-05 12:51 UTC",
+  "model": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\weights\\best.pt",
+  "class_count": 20,
+  "held_out_val_generic_filename": {
+    "total": 24,
+    "correct": 14,
+    "incorrect": 10,
+    "accuracy_pct": 58.3,
+    "avg_confidence_correct": 83.8,
+    "avg_confidence_all": 85.2
+  },
+  "reference_upload_original_filename": {
+    "total": 20,
+    "correct": 20,
+    "incorrect": 0,
+    "accuracy_pct": 100.0,
+    "avg_confidence_correct": 95.0,
+    "avg_confidence_all": 95.0
+  },
+  "combined": {
+    "total": 44,
+    "correct": 34,
+    "incorrect": 10,
+    "accuracy_pct": 77.3,
+    "avg_confidence_correct": 90.4,
+    "avg_confidence_all": 89.8
+  }
+}

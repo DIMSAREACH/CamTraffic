@@ -6,14 +6,16 @@ import {
   KeyRound, ClipboardList, Activity,
 } from 'lucide-react';
 import { useAuth } from '@shared/context/AuthContext';
+import { AuthPageBackground } from '@shared/components/auth/AuthPageBackground';
 import { AuthFeatureList } from '@shared/components/auth/AuthFeatureList';
+import { CamTrafficLogo } from '@shared/components/layout/CamTrafficLogo';
 import { SocialLoginButtons } from '@shared/components/auth/SocialLoginButtons';
 import { AuthThemeToggle } from '@shared/components/AuthThemeToggle';
 import { getAdminDevUrl, getUserDevUrl } from '@shared/utils/portal';
 import { getSavedLoginEmail, isRememberMeEnabled } from '@shared/utils/authStorage';
 import { useLanguage } from '@shared/context/LanguageContext';
 
-type LoginLocationState = { email?: string; registered?: boolean };
+type LoginLocationState = { email?: string; registered?: boolean; clearLogin?: boolean };
 const IS_ADMIN_SURFACE = import.meta.env.VITE_PORTAL_SURFACE === 'admin';
 
 const USER_FEATURE_KEYS = ['auth.featUser1', 'auth.featUser2', 'auth.featUser3', 'auth.featUser4', 'auth.featUser5'] as const;
@@ -44,8 +46,17 @@ export function LoginPage() {
 
   useEffect(() => {
     const state = location.state as LoginLocationState | null;
-    if (!state?.registered && !state?.email) return;
-    if (state.email) setEmail(state.email);
+    if (!state?.registered && !state?.email && !state?.clearLogin) return;
+    if (state.clearLogin) {
+      setEmail('');
+      setPassword('');
+      setRemember(false);
+      setShowPass(false);
+      setError('');
+      setLoginSuccess(false);
+    } else if (state.email) {
+      setEmail(state.email);
+    }
     navigate(location.pathname, { replace: true, state: null });
   }, [location.state, location.pathname, navigate]);
 
@@ -213,12 +224,12 @@ export function LoginPage() {
     return (
       <div className="up-page ap-page">
         <AuthThemeToggle />
-        <div className="up-bg ap-bg" />
+        <AuthPageBackground variant="admin" />
         <div className="up-overlay ap-overlay" />
         <div className="up-inner">
           <div className="up-hero">
             <div className="up-badge ap-badge">
-              <Shield size={14} />
+              <CamTrafficLogo size={32} className="up-badge-logo" alt="Norton University" />
               <span>{t('auth.adminPortal')}</span>
             </div>
             <h1 className="up-headline ap-headline">
@@ -296,12 +307,12 @@ export function LoginPage() {
   return (
     <div className="up-page up-page--user">
       <AuthThemeToggle />
-      <div className="up-bg" />
+      <AuthPageBackground />
       <div className="up-overlay" />
       <div className="up-inner">
         <div className="up-hero">
           <div className="up-badge">
-            <Camera size={14} className="up-badge-icon" aria-hidden />
+            <CamTrafficLogo size={32} className="up-badge-logo" alt="Norton University" />
             <span>{t('auth.userBadge')}</span>
           </div>
           <h1 className="up-headline">

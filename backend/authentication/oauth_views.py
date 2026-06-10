@@ -33,12 +33,13 @@ class OAuthCompleteView(APIView):
         code = request.data.get('code')
         state = request.data.get('state')
         redirect_uri = request.data.get('redirect_uri') or default_redirect_uri()
+        portal = request.data.get('portal')
 
         if not provider or not code or not state:
             return error_response('provider, code, and state are required.')
 
         try:
-            data = exchange_code(provider, code, state, redirect_uri, request=request)
+            data = exchange_code(provider, code, state, redirect_uri, portal=portal, request=request)
         except OAuthError as exc:
             return error_response(exc.message, status_code=exc.status_code)
 

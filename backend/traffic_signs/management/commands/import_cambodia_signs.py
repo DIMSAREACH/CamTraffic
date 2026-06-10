@@ -11,6 +11,7 @@ from traffic_signs.models import TrafficSign
 from traffic_signs.sign_image_utils import is_placeholder_sign_image
 
 CATALOG_PATH = Path(settings.BASE_DIR).parent / 'ai' / 'sign_catalog.json'
+MANIFEST_PATH = Path(settings.BASE_DIR).parent / 'data' / 'traffic_signs' / 'import_manifest.json'
 REFERENCE_DIR = (
     Path(settings.BASE_DIR).parent.parent.parent
     / 'Reference(PDF Download)'
@@ -49,14 +50,21 @@ class Command(BaseCommand):
             help='Replace green-circle placeholder images with reference art when available',
         )
 
+    def _load_rows(self):
+        if MANIFEST_PATH.exists():
+            return json.loads(MANIFEST_PATH.read_text(encoding='utf-8'))
+        if CATALOG_PATH.exists():
+            return json.loads(CATALOG_PATH.read_text(encoding='utf-8'))
+        return None
+
     def handle(self, *args, **options):
-        if not CATALOG_PATH.exists():
+        data = self._load_rows()
+        if not data:
             self.stderr.write(
-                'Run: cd ai && python build_dataset.py (creates sign_catalog.json)'
+                'Run: python manage.py build_sign_import_manifest '
+                'or cd ai && python build_dataset.py'
             )
             return
-
-        data = json.loads(CATALOG_PATH.read_text(encoding='utf-8'))
         created = updated = 0
         overrides_path = Path(settings.BASE_DIR).parent / 'ai' / 'sign_metadata_overrides.json'
         overrides = {}
@@ -71,9 +79,13 @@ class Command(BaseCommand):
             merged = {**row, **(overrides.get(code.upper(), {}))}
             defaults = {
                 'sign_name': merged['sign_name'],
+                'sign_name_km': merged.get('sign_name_km') or merged['sign_name'],
+                'sign_name_en': merged.get('sign_name_en', ''),
                 'category': merged['category'],
                 'description': merged['description'],
-                'guidance': merged['guidance'],
+                'description_en': merged.get('description_en', ''),
+                'guidance': merged.get('guidance', ''),
+                'guidance_en': merged.get('guidance_en', ''),
             }
             sign, was_created = TrafficSign.objects.get_or_create(
                 sign_code=code,

@@ -1,5 +1,8 @@
-import { useState, useEffect } from 'react';
-import { Search, Plus, Eye, CheckCircle, XCircle, Clock, AlertTriangle, MapPin, FileText, DollarSign, TrendingUp } from 'lucide-react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import {
+  Search, Plus, Eye, CheckCircle, XCircle, Clock, AlertTriangle,
+  MapPin, FileText, DollarSign, TrendingUp,
+} from 'lucide-react';
 import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
 import { Label } from '@shared/components/ui/label';
@@ -8,93 +11,172 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@shared/components/ui/table';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
+import { useLiveData } from '@shared/hooks/useLiveData';
 import { finesAPI } from '@shared/services/api';
 import { toast } from 'sonner';
 import type { Fine } from '@shared/types';
 
-const STATUS_STYLE: Record<string, { icon: React.ReactNode; bg: string; color: string; gradient: string }> = {
-  pending:   { icon: <Clock size={11} />,         bg: 'rgba(245,158,11,0.1)',    color: '#D97706',  gradient: 'linear-gradient(135deg, #F59E0B, #D97706)' },
-  paid:      { icon: <CheckCircle size={11} />,    bg: 'rgba(16,185,129,0.1)',    color: '#059669',  gradient: 'linear-gradient(135deg, #10B981, #059669)' },
-  overdue:   { icon: <AlertTriangle size={11} />,  bg: 'rgba(239,68,68,0.1)',     color: '#DC2626',  gradient: 'linear-gradient(135deg, #EF4444, #DC2626)' },
-  dismissed: { icon: <XCircle size={11} />,        bg: 'rgba(100,116,139,0.1)',   color: '#475569',  gradient: 'linear-gradient(135deg, #64748B, #475569)' },
+const STATUS_STYLE: Record<string, {
+  icon: React.ReactNode;
+  bg: string;
+  color: string;
+  gradient: string;
+}> = {
+  pending: {
+    icon: <Clock size={11} />,
+    bg: 'rgba(245,158,11,0.1)',
+    color: '#D97706',
+    gradient: 'linear-gradient(135deg, #F59E0B, #D97706)',
+  },
+  paid: {
+    icon: <CheckCircle size={11} />,
+    bg: 'rgba(16,185,129,0.1)',
+    color: '#059669',
+    gradient: 'linear-gradient(135deg, #10B981, #059669)',
+  },
+  overdue: {
+    icon: <AlertTriangle size={11} />,
+    bg: 'rgba(239,68,68,0.1)',
+    color: '#DC2626',
+    gradient: 'linear-gradient(135deg, #EF4444, #DC2626)',
+  },
+  dismissed: {
+    icon: <XCircle size={11} />,
+    bg: 'rgba(100,116,139,0.1)',
+    color: '#475569',
+    gradient: 'linear-gradient(135deg, #64748B, #475569)',
+  },
 };
 
-function statusMeta(status: string, label: string) {
-  const base = STATUS_STYLE[status] ?? STATUS_STYLE.dismissed;
-  return { ...base, label };
-}
-
 const VIOLATION_REASONS = [
-  'Running Red Light', 'Speeding (above limit)', 'No Helmet (Motorcycle)', 'No Seatbelt',
-  'Illegal Parking', 'Wrong Way on One-Way Street', 'Using Mobile Phone While Driving',
-  'Failure to Stop at Stop Sign', 'No Valid License', 'Reckless Driving',
-  'Speeding in School Zone', 'No Vehicle Registration',
-];
+  { key: 'runningRedLight', value: 'Running Red Light' },
+  { key: 'speeding', value: 'Speeding (above limit)' },
+  { key: 'noHelmet', value: 'No Helmet (Motorcycle)' },
+  { key: 'noSeatbelt', value: 'No Seatbelt' },
+  { key: 'illegalParking', value: 'Illegal Parking' },
+  { key: 'wrongWay', value: 'Wrong Way on One-Way Street' },
+  { key: 'mobilePhone', value: 'Using Mobile Phone While Driving' },
+  { key: 'failureToStop', value: 'Failure to Stop at Stop Sign' },
+  { key: 'noValidLicense', value: 'No Valid License' },
+  { key: 'recklessDriving', value: 'Reckless Driving' },
+  { key: 'speedingSchoolZone', value: 'Speeding in School Zone' },
+  { key: 'noRegistration', value: 'No Vehicle Registration' },
+] as const;
+
+const REASON_VALUE_TO_KEY = Object.fromEntries(
+  VIOLATION_REASONS.map((reason) => [reason.value, reason.key]),
+) as Record<string, typeof VIOLATION_REASONS[number]['key']>;
 
 const STATUS_TABS = ['all', 'pending', 'paid', 'overdue', 'dismissed'] as const;
 type StatusTab = typeof STATUS_TABS[number];
 
+const STAT_CARDS = [
+  { key: 'all', labelKey: 'fines.statTotal', icon: FileText, variant: 'blue', filterable: true },
+  { key: 'pending', labelKey: 'fines.statPending', icon: Clock, variant: 'amber', filterable: true },
+  { key: 'paid', labelKey: 'fines.statPaid', icon: CheckCircle, variant: 'emerald', filterable: true },
+  { key: 'revenue', labelKey: 'fines.statRevenue', icon: DollarSign, variant: 'violet', filterable: false },
+] as const;
+
+function initials(name: string) {
+  return name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'DR';
+}
+
 export function FineManagement() {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const dateLocale = locale === 'km' ? 'km-KH' : 'en-US';
   const statusLabel = (s: string) => t(`fines.status.${s}`);
-  const getStatusMeta = (status: string) => statusMeta(status, statusLabel(status));
+
+  const formatFineReason = (reason: string) => {
+    if (!reason) return '—';
+    const reasonKey = REASON_VALUE_TO_KEY[reason];
+    if (reasonKey) {
+      const translated = t(`fines.reasons.${reasonKey}`);
+      if (translated !== `fines.reasons.${reasonKey}`) return translated;
+    }
+    return reason;
+  };
+  const getStatusMeta = (status: string) => {
+    const base = STATUS_STYLE[status] ?? STATUS_STYLE.dismissed;
+    return { ...base, label: statusLabel(status) };
+  };
   const { user } = useAuth();
   const [fines, setFines] = useState<Fine[]>([]);
-  const [filtered, setFiltered] = useState<Fine[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusTab>('all');
   const [selected, setSelected] = useState<Fine | null>(null);
   const [issueFineOpen, setIssueFineOpen] = useState(false);
   const [issuing, setIssuing] = useState(false);
-  const [fineForm, setFineForm] = useState({ driver_license: '', vehicle_plate: '', reason: '', amount: '', location: '' });
+  const [fineForm, setFineForm] = useState({
+    driver_license: '', vehicle_plate: '', reason: '', amount: '', location: '',
+  });
   const [searchResult, setSearchResult] = useState<{ driver: { id: number; full_name: string } | null }>({ driver: null });
 
-  const loadFines = async () => {
+  const canIssue = user?.role === 'admin' || user?.role === 'police';
+  const canManage = canIssue;
+
+  const loadFines = useCallback(async (silent = false) => {
     if (!user) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
       let data: Fine[];
       if (user.role === 'admin') data = await finesAPI.getAll();
       else if (user.role === 'police') data = await finesAPI.getByPolice(user.id);
       else data = await finesAPI.getByDriver(user.id);
       setFines(data);
-      setFiltered(data);
-    } finally { setLoading(false); }
-  };
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, [user]);
 
-  useEffect(() => { loadFines(); }, [user]);
+  useEffect(() => { loadFines(); }, [loadFines]);
+  useLiveData(() => loadFines(true), 30_000, Boolean(user));
 
-  useEffect(() => {
-    let result = [...fines];
-    if (statusFilter !== 'all') result = result.filter(f => f.status === statusFilter);
-    if (search) {
+  const filtered = useMemo(() => {
+    let rows = [...fines];
+    if (statusFilter !== 'all') rows = rows.filter((f) => f.status === statusFilter);
+    if (search.trim()) {
       const q = search.toLowerCase();
-      result = result.filter(f =>
-        f.driver_name.toLowerCase().includes(q) ||
-        f.driver_license.toLowerCase().includes(q) ||
-        f.vehicle_plate.toLowerCase().includes(q) ||
-        f.reason.toLowerCase().includes(q) ||
-        f.location.toLowerCase().includes(q)
+      rows = rows.filter((f) =>
+        f.driver_name.toLowerCase().includes(q)
+        || f.driver_license.toLowerCase().includes(q)
+        || f.vehicle_plate.toLowerCase().includes(q)
+        || f.reason.toLowerCase().includes(q)
+        || f.location.toLowerCase().includes(q),
       );
     }
-    setFiltered(result);
+    return rows;
   }, [fines, search, statusFilter]);
+
+  const counts = useMemo(() => ({
+    all: fines.length,
+    pending: fines.filter((f) => f.status === 'pending').length,
+    paid: fines.filter((f) => f.status === 'paid').length,
+    overdue: fines.filter((f) => f.status === 'overdue').length,
+    dismissed: fines.filter((f) => f.status === 'dismissed').length,
+  }), [fines]);
+
+  const totalRevenue = useMemo(
+    () => fines.filter((f) => f.status === 'paid').reduce((sum, f) => sum + f.amount, 0),
+    [fines],
+  );
 
   const handleStatusUpdate = async (id: number, status: Fine['status']) => {
     try {
       const updated = await finesAPI.updateStatus(id, status);
-      setFines(prev => prev.map(f => f.id === id ? updated : f));
+      setFines((prev) => prev.map((f) => (f.id === id ? updated : f)));
       if (selected?.id === id) setSelected(updated);
-      toast.success(`Status updated to ${status}`);
-    } catch { toast.error(t('fines.toastStatusFail')); }
+      toast.success(t('fines.toastStatusUpdated', { status: statusLabel(status) }));
+    } catch {
+      toast.error(t('fines.toastStatusFail'));
+    }
   };
 
   const handleLookup = async () => {
     const r = await finesAPI.searchByLicense(fineForm.driver_license);
     if (r.driver) {
       setSearchResult({ driver: { id: r.driver.id, full_name: r.driver.full_name } });
-      toast.success(`Found: ${r.driver.full_name}`);
+      toast.success(t('fines.foundDriver', { name: r.driver.full_name }));
     } else {
       setSearchResult({ driver: null });
       toast.error(t('fines.toastDriverNotFound'));
@@ -103,143 +185,142 @@ export function FineManagement() {
 
   const handleIssueFine = async () => {
     if (!user || !searchResult.driver || !fineForm.reason || !fineForm.amount || !fineForm.location) {
-      toast.error(t('fines.toastFillRequired')); return;
+      toast.error(t('fines.toastFillRequired'));
+      return;
     }
     setIssuing(true);
     try {
       await finesAPI.create({
-        driver_id: searchResult.driver.id, police_id: user.id,
-        vehicle_plate: fineForm.vehicle_plate, reason: fineForm.reason,
-        amount: parseFloat(fineForm.amount), location: fineForm.location,
+        driver_id: searchResult.driver.id,
+        police_id: user.id,
+        vehicle_plate: fineForm.vehicle_plate,
+        reason: fineForm.reason,
+        amount: parseFloat(fineForm.amount),
+        location: fineForm.location,
       });
       toast.success(t('fines.toastIssued'));
       setIssueFineOpen(false);
       setFineForm({ driver_license: '', vehicle_plate: '', reason: '', amount: '', location: '' });
       setSearchResult({ driver: null });
       loadFines();
-    } catch { toast.error(t('fines.toastIssueFail')); }
-    finally { setIssuing(false); }
+    } catch {
+      toast.error(t('fines.toastIssueFail'));
+    } finally {
+      setIssuing(false);
+    }
   };
-
-  const counts = {
-    all: fines.length,
-    pending: fines.filter(f => f.status === 'pending').length,
-    paid: fines.filter(f => f.status === 'paid').length,
-    overdue: fines.filter(f => f.status === 'overdue').length,
-    dismissed: fines.filter(f => f.status === 'dismissed').length,
-  };
-
-  const totalRevenue = fines.filter(f => f.status === 'paid').reduce((sum, f) => sum + f.amount, 0);
 
   return (
-    <div className="space-y-5">
-      {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-2xl p-5" style={{ background: 'linear-gradient(135deg, #0F172A, #162035)', border: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="absolute top-0 right-0 w-56 h-56 rounded-full -translate-y-16 translate-x-16"
-          style={{ background: 'radial-gradient(circle, rgba(239,68,68,0.15) 0%, transparent 70%)' }} />
-        <div className="absolute bottom-0 left-0 w-40 h-40 rounded-full translate-y-14 -translate-x-8"
-          style={{ background: 'radial-gradient(circle, rgba(37,99,235,0.1) 0%, transparent 70%)' }} />
-        <div className="relative flex items-center justify-between flex-wrap gap-4">
+    <div className="enforcement-page enforcement-page--fines dashboard-page--fines">
+      {/* Hero */}
+      <div className="enforcement-page__hero">
+        <div className="enforcement-page__hero-glow--primary" aria-hidden />
+        <div className="enforcement-page__hero-glow--secondary" aria-hidden />
+        <div className="enforcement-page__hero-inner">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.18)' }}>
-                <FileText size={14} style={{ color: '#FCA5A5' }} />
-              </div>
-              <span className="text-[11px] font-bold uppercase tracking-widest" style={{ color: 'rgba(252,165,165,0.9)' }}>{t('pages.fines.eyebrow')}</span>
+            <div className="enforcement-page__eyebrow">
+              <span className="enforcement-page__eyebrow-icon">
+                <FileText size={14} />
+              </span>
+              {t('pages.fines.eyebrow')}
             </div>
-            <h1 className="dashboard-welcome__title text-white">
-              {t('pages.fines.title')}
-            </h1>
-            <p className="dashboard-welcome__meta mt-1" style={{ color: 'rgba(148,163,184,0.7)' }}>
+            <h1 className="enforcement-page__title">{t('pages.fines.title')}</h1>
+            <p className="enforcement-page__subtitle">
               {user?.role === 'driver' ? t('pages.fines.subtitleDriver') : t('pages.fines.subtitleAdmin')}
             </p>
           </div>
-          {(user?.role === 'admin' || user?.role === 'police') && (
-            <button
-              onClick={() => setIssueFineOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold transition-all active:scale-[0.98]"
-              style={{ background: 'linear-gradient(135deg, #2563EB, #1D4ED8)', boxShadow: '0 4px 16px rgba(37,99,235,0.45)' }}
-            >
+          {canIssue && (
+            <button type="button" className="enforcement-page__hero-btn" onClick={() => setIssueFineOpen(true)}>
               <Plus size={16} /> {t('fines.issueFine')}
             </button>
           )}
         </div>
       </div>
 
-      {/* Summary stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: t('fines.statTotal'), value: counts.all, icon: <FileText size={17} />, bg: 'rgba(37,99,235,0.08)', color: '#2563EB' },
-          { label: t('fines.statPending'), value: counts.pending, icon: <Clock size={17} />, bg: 'rgba(245,158,11,0.1)', color: '#D97706' },
-          { label: t('fines.statPaid'), value: counts.paid, icon: <CheckCircle size={17} />, bg: 'rgba(16,185,129,0.1)', color: '#059669' },
-          { label: t('fines.statRevenue'), value: `$${totalRevenue}`, icon: <DollarSign size={17} />, bg: 'rgba(139,92,246,0.1)', color: '#7C3AED' },
-        ].map(s => (
-          <div key={s.label} className="bg-white rounded-2xl p-4 shadow-sm flex items-center gap-3.5 transition-all"
-            style={{ border: '1px solid rgba(37,99,235,0.07)' }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 20px rgba(37,99,235,0.08)'; (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = ''; (e.currentTarget as HTMLElement).style.transform = ''; }}>
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm"
-              style={{ background: s.bg, color: s.color }}>
-              {s.icon}
-            </div>
-            <div>
-              <p className="text-[20px] font-black text-slate-900" style={{ letterSpacing: '-0.02em' }}>{s.value}</p>
-              <p className="text-[11px] text-slate-500 font-medium mt-0.5">{s.label}</p>
-            </div>
-          </div>
-        ))}
+      {/* Stats */}
+      <div className="enforcement-page__stat-grid enforcement-page__stat-grid--four">
+        {STAT_CARDS.map((card) => {
+          const Icon = card.icon;
+          const value = card.key === 'revenue'
+            ? `$${totalRevenue.toLocaleString()}`
+            : counts[card.key as keyof typeof counts];
+          const active = card.filterable && statusFilter === card.key;
+          const inner = (
+            <>
+              <div className={`enforcement-page__stat-icon enforcement-page__stat-icon--${card.variant}`}>
+                <Icon size={18} />
+              </div>
+              <div className="enforcement-page__stat-copy">
+                <p className="enforcement-page__stat-value">{value}</p>
+                <p className={`enforcement-page__stat-label enforcement-page__stat-label--${card.variant}`}>
+                  {t(card.labelKey)}
+                </p>
+              </div>
+            </>
+          );
+          if (!card.filterable) {
+            return (
+              <div key={card.key} className={`enforcement-page__stat-card enforcement-page__stat-card--${card.variant}`}>
+                {inner}
+              </div>
+            );
+          }
+          return (
+            <button
+              key={card.key}
+              type="button"
+              onClick={() => setStatusFilter(card.key as StatusTab)}
+              className={`enforcement-page__stat-card enforcement-page__stat-card--${card.variant}${active ? ' enforcement-page__stat-card--active' : ''}`}
+            >
+              {inner}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Filters row */}
-      <div className="bg-white rounded-2xl p-4 shadow-sm" style={{ border: '1px solid rgba(37,99,235,0.07)' }}>
-        <div className="flex flex-wrap gap-3 items-center">
-          {/* Status tabs */}
-          <div className="flex flex-wrap gap-2 flex-1">
-            {STATUS_TABS.map(s => {
-              const active = statusFilter === s;
-              const meta = s !== 'all' ? getStatusMeta(s) : null;
+      {/* Filters */}
+      <div className="enforcement-page__toolbar">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+          <div className="enforcement-page__filters">
+            {STATUS_TABS.map((tab) => {
+              const active = statusFilter === tab;
+              const meta = tab !== 'all' ? getStatusMeta(tab) : null;
               return (
                 <button
-                  key={s}
-                  onClick={() => setStatusFilter(s)}
-                  className="px-3.5 py-2 rounded-xl text-[12px] font-semibold transition-all"
-                  style={active
-                    ? { background: meta?.gradient ?? 'linear-gradient(135deg, #0F172A, #1E293B)', color: '#fff', boxShadow: `0 4px 12px ${meta ? meta.bg.replace('0.1)', '0.4)') : 'rgba(15,23,42,0.3)'}` }
-                    : { background: '#F8FAFC', color: '#64748B', border: '1px solid rgba(37,99,235,0.08)' }
-                  }
+                  key={tab}
+                  type="button"
+                  onClick={() => setStatusFilter(tab)}
+                  className={`enforcement-page__filter-btn${active ? ' enforcement-page__filter-btn--active' : ''}`}
+                  style={active ? {
+                    background: meta?.gradient ?? 'linear-gradient(135deg, #0F172A, #1E293B)',
+                  } : undefined}
                 >
-                  {statusLabel(s)}
-                  <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full"
-                    style={active ? { background: 'rgba(255,255,255,0.25)' } : { background: '#EEF2FF', color: '#6366F1' }}>
-                    {counts[s]}
+                  {statusLabel(tab)}
+                  <span className={`enforcement-page__filter-count${active ? ' enforcement-page__filter-count--active' : ''}`}>
+                    {counts[tab]}
                   </span>
                 </button>
               );
             })}
           </div>
-
-          {/* Search */}
-          <div className="relative min-w-[240px]">
-            <Search size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <div className="enforcement-page__search-wrap">
+            <Search size={14} className="enforcement-page__search-icon" />
             <input
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={(e) => setSearch(e.target.value)}
               placeholder={t('fines.searchPlaceholder')}
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-50 text-[13px] text-slate-700 outline-none transition-all"
-              style={{ border: '1.5px solid rgba(37,99,235,0.08)' }}
-              onFocus={e => { (e.currentTarget as HTMLElement).style.borderColor = '#2563EB'; (e.currentTarget as HTMLElement).style.boxShadow = '0 0 0 3px rgba(37,99,235,0.08)'; }}
-              onBlur={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(37,99,235,0.08)'; (e.currentTarget as HTMLElement).style.boxShadow = ''; }}
+              className="enforcement-page__search"
             />
           </div>
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden" style={{ border: '1px solid rgba(37,99,235,0.07)' }}>
+      <div className="enforcement-page__panel enforcement-page__panel--fines">
         <div className="overflow-x-auto">
-          <Table>
+          <Table className="enforcement-page__table">
             <TableHeader>
-              <TableRow style={{ background: '#F8FAFC', borderBottom: '1px solid rgba(37,99,235,0.08)' }}>
+              <TableRow className="enforcement-page__table-head">
                 {[
                   t('fines.colDriver'),
                   t('fines.colVehicle'),
@@ -248,8 +329,8 @@ export function FineManagement() {
                   t('fines.colDate'),
                   t('fines.colStatus'),
                   t('fines.colActions'),
-                ].map(h => (
-                  <TableHead key={h} className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.1em] py-3.5">{h}</TableHead>
+                ].map((h) => (
+                  <TableHead key={h} className="enforcement-page__th text-center">{h}</TableHead>
                 ))}
               </TableRow>
             </TableHeader>
@@ -257,8 +338,10 @@ export function FineManagement() {
               {loading ? (
                 [...Array(5)].map((_, i) => (
                   <TableRow key={i}>
-                    {[...Array(7)].map((_, j) => (
-                      <TableCell key={j}><div className="h-4 rounded-lg animate-pulse" style={{ background: 'rgba(37,99,235,0.05)' }} /></TableCell>
+                    {[...Array(7)].map((__, j) => (
+                      <TableCell key={j}>
+                        <div className="enforcement-page__skeleton" />
+                      </TableCell>
                     ))}
                   </TableRow>
                 ))
@@ -266,74 +349,65 @@ export function FineManagement() {
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-16">
                     <div className="flex flex-col items-center gap-3">
-                      <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(37,99,235,0.06)' }}>
-                        <FileText size={28} style={{ color: 'rgba(37,99,235,0.25)' }} />
+                      <div className="enforcement-page__empty-icon enforcement-page__empty-icon--blue">
+                        <FileText size={28} />
                       </div>
                       <div>
-                        <p className="text-slate-500 font-semibold text-sm">No fines found</p>
-                        <p className="text-slate-300 text-xs mt-1">Try adjusting your search or filter</p>
+                        <p className="enforcement-page__empty-title">{t('fines.empty')}</p>
+                        <p className="enforcement-page__empty-subtitle">{t('fines.emptyHint')}</p>
                       </div>
                     </div>
                   </TableCell>
                 </TableRow>
-              ) : filtered.map(f => {
-                const st = getStatusMeta(f.status);
+              ) : filtered.map((row) => {
+                const st = getStatusMeta(row.status);
                 return (
-                  <TableRow key={f.id} className="transition-all" style={{ borderBottom: '1px solid rgba(37,99,235,0.04)' }}
-                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#FAFBFF'}
-                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ''}>
+                  <TableRow key={row.id} className="enforcement-page__table-row">
                     <TableCell className="py-3.5">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-black text-white flex-shrink-0"
-                          style={{ background: 'linear-gradient(135deg, #2563EB, #06B6D4)' }}>
-                          {f.driver_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                        <div className="enforcement-page__avatar enforcement-page__avatar--driver">
+                          {initials(row.driver_name)}
                         </div>
                         <div>
-                          <p className="font-semibold text-slate-800 text-[13px]">{f.driver_name}</p>
-                          <p className="text-[11px] text-slate-400 font-mono">{f.driver_license}</p>
+                          <p className="enforcement-page__cell-primary">{row.driver_name}</p>
+                          <p className="enforcement-page__cell-mono">{row.driver_license}</p>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className="text-[11px] font-mono font-semibold px-2.5 py-1 rounded-lg text-slate-700"
-                        style={{ background: '#F1F5F9', border: '1px solid rgba(37,99,235,0.07)' }}>
-                        {f.vehicle_plate}
-                      </span>
+                      <span className="enforcement-page__code-pill">{row.vehicle_plate}</span>
                     </TableCell>
-                    <TableCell>
-                      <p className="text-[13px] text-slate-700 max-w-[160px] truncate font-medium" title={f.reason}>{f.reason}</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
-                        <MapPin size={9} />{f.location}
+                    <TableCell className="max-w-[180px]">
+                      <p className="enforcement-page__cell-primary truncate" title={formatFineReason(row.reason)}>{formatFineReason(row.reason)}</p>
+                      <p className="enforcement-page__location-meta">
+                        <MapPin size={9} /> {row.location}
                       </p>
                     </TableCell>
                     <TableCell>
-                      <span className="font-black text-slate-900 text-[14px]" style={{ letterSpacing: '-0.02em' }}>${f.amount}</span>
+                      <span className="enforcement-page__amount">${row.amount.toLocaleString()}</span>
                     </TableCell>
                     <TableCell>
-                      <p className="text-[12px] text-slate-500">{new Date(f.created_at).toLocaleDateString()}</p>
+                      <span className="enforcement-page__cell-secondary">
+                        {new Date(row.created_at).toLocaleDateString(dateLocale)}
+                      </span>
                     </TableCell>
                     <TableCell>
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wide"
-                        style={{ background: st.bg, color: st.color }}>
+                      <span className="enforcement-page__badge" style={{ background: st.bg, color: st.color }}>
                         {st.icon}{st.label}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1">
-                        <button onClick={() => setSelected(f)}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all"
-                          style={{ color: '#64748B', background: '#F8FAFC', border: '1px solid rgba(37,99,235,0.08)' }}
-                          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#EEF2FF'; (e.currentTarget as HTMLElement).style.color = '#2563EB'; }}
-                          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#F8FAFC'; (e.currentTarget as HTMLElement).style.color = '#64748B'; }}>
-                          <Eye size={12} /> View
+                      <div className="enforcement-page__table-actions">
+                        <button type="button" className="enforcement-page__action-btn" onClick={() => setSelected(row)}>
+                          <Eye size={12} /> {t('fines.view')}
                         </button>
-                        {(user?.role === 'admin' || user?.role === 'police') && f.status === 'pending' && (
-                          <button onClick={() => handleStatusUpdate(f.id, 'paid')}
-                            className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all"
-                            style={{ color: '#059669', background: 'rgba(16,185,129,0.08)' }}
-                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(16,185,129,0.15)'; }}
-                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(16,185,129,0.08)'; }}>
-                            Mark Paid
+                        {canManage && row.status === 'pending' && (
+                          <button
+                            type="button"
+                            className="enforcement-page__action-btn enforcement-page__action-btn--success"
+                            onClick={() => handleStatusUpdate(row.id, 'paid')}
+                          >
+                            {t('fines.markPaid')}
                           </button>
                         )}
                       </div>
@@ -344,133 +418,174 @@ export function FineManagement() {
             </TableBody>
           </Table>
         </div>
+
         {filtered.length > 0 && (
-          <div className="px-5 py-3 flex items-center justify-between" style={{ borderTop: '1px solid rgba(37,99,235,0.06)', background: '#FAFBFF' }}>
-            <p className="text-[12px] text-slate-400">Showing {filtered.length} of {fines.length} fines</p>
-            <div className="flex items-center gap-1.5">
-              <TrendingUp size={13} style={{ color: '#059669' }} />
-              <span className="text-[12px] font-semibold" style={{ color: '#059669' }}>${totalRevenue} collected</span>
-            </div>
+          <div className="enforcement-page__footer">
+            <p className="enforcement-page__footer-text">
+              {t('fines.showing', { shown: filtered.length, total: fines.length })}
+            </p>
+            <p className="enforcement-page__revenue">
+              <TrendingUp size={13} className="enforcement-page__revenue-icon" />
+              {t('fines.revenueCollected', { amount: `$${totalRevenue.toLocaleString()}` })}
+            </p>
           </div>
         )}
       </div>
 
-      {/* Fine Detail Dialog */}
-      <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
+      {/* Detail dialog */}
+      <Dialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
         <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(37,99,235,0.08)', color: '#2563EB' }}>
-                <FileText size={15} />
-              </div>
-              Fine Details — #{selected?.id}
-            </DialogTitle>
-          </DialogHeader>
           {selected && (() => {
             const st = getStatusMeta(selected.status);
+            const detailRows = [
+              { label: t('fines.colDriver'), value: selected.driver_name },
+              { label: t('fines.licenseNo'), value: selected.driver_license },
+              { label: t('fines.vehiclePlate'), value: selected.vehicle_plate },
+              { label: t('fines.issuedBy'), value: selected.police_name },
+              { label: t('fines.colViolation'), value: formatFineReason(selected.reason) },
+              { label: t('fines.colAmount'), value: `$${selected.amount} USD` },
+              { label: t('fines.location'), value: selected.location },
+              { label: t('fines.dateIssued'), value: new Date(selected.created_at).toLocaleString(dateLocale) },
+              ...(selected.paid_at
+                ? [{ label: t('fines.datePaid'), value: new Date(selected.paid_at).toLocaleString(dateLocale) }]
+                : []),
+            ];
             return (
-              <div className="space-y-2 py-2">
-                <div className="flex items-center justify-between p-3.5 rounded-xl" style={{ background: st.bg }}>
-                  <span className="text-sm text-slate-500 font-medium">Current Status</span>
-                  <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wide"
-                    style={{ background: st.bg, color: st.color, border: `1px solid ${st.color}30` }}>
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2.5">
+                    <div className="enforcement-page__dialog-icon enforcement-page__dialog-icon--primary">
+                      <FileText size={15} />
+                    </div>
+                    <span className="enforcement-page__dialog-title">
+                      {t('fines.fineDetails')} — #{selected.id}
+                    </span>
+                  </DialogTitle>
+                </DialogHeader>
+
+                <div className="enforcement-page__status-banner" style={{ background: st.bg }}>
+                  <span className="enforcement-page__detail-label">{t('fines.currentStatus')}</span>
+                  <span
+                    className="enforcement-page__badge"
+                    style={{ background: st.bg, color: st.color, border: `1px solid ${st.color}30` }}
+                  >
                     {st.icon}{st.label}
                   </span>
                 </div>
-                <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(37,99,235,0.07)' }}>
-                  {[
-                    { label: t('fines.colDriver'), value: selected.driver_name },
-                    { label: t('fines.licenseNo'), value: selected.driver_license },
-                    { label: t('fines.vehiclePlate'), value: selected.vehicle_plate },
-                    { label: t('fines.issuedBy'), value: selected.police_name },
-                    { label: t('fines.colViolation'), value: selected.reason },
-                    { label: t('fines.colAmount'), value: `$${selected.amount} USD` },
-                    { label: t('fines.location'), value: selected.location },
-                    { label: t('fines.dateIssued'), value: new Date(selected.created_at).toLocaleString() },
-                    ...(selected.paid_at ? [{ label: t('fines.datePaid'), value: new Date(selected.paid_at).toLocaleString() }] : []),
-                  ].map((r, idx, arr) => (
-                    <div key={r.label} className="flex justify-between items-center px-4 py-2.5 text-sm"
-                      style={{ background: idx % 2 === 0 ? '#FAFBFF' : '#fff', borderBottom: idx < arr.length - 1 ? '1px solid rgba(37,99,235,0.05)' : 'none' }}>
-                      <span className="text-slate-400 font-medium text-[12px]">{r.label}</span>
-                      <span className="font-semibold text-slate-800 text-right max-w-[55%] text-[13px]">{r.value}</span>
+
+                <div className="enforcement-page__detail-grid">
+                  {detailRows.map((item) => (
+                    <div key={item.label} className="enforcement-page__detail-row">
+                      <span className="enforcement-page__detail-label">{item.label}</span>
+                      <span className="enforcement-page__detail-value">{item.value}</span>
                     </div>
                   ))}
                 </div>
 
-                {(user?.role === 'admin' || user?.role === 'police') && selected.status !== 'paid' && selected.status !== 'dismissed' && (
-                  <div className="flex gap-2 pt-1">
-                    <button onClick={() => handleStatusUpdate(selected.id, 'paid')}
-                      className="flex-1 py-2.5 rounded-xl text-white text-sm font-semibold flex items-center justify-center gap-1.5"
-                      style={{ background: 'linear-gradient(135deg, #10B981, #059669)', boxShadow: '0 4px 12px rgba(16,185,129,0.3)' }}>
-                      <CheckCircle size={14} /> Mark as Paid
+                {canManage && selected.status !== 'paid' && selected.status !== 'dismissed' && (
+                  <div className="enforcement-page__dialog-actions">
+                    <button type="button" className="enforcement-page__btn-success" onClick={() => handleStatusUpdate(selected.id, 'paid')}>
+                      <CheckCircle size={14} /> {t('fines.markPaidDialog')}
                     </button>
-                    <button onClick={() => handleStatusUpdate(selected.id, 'dismissed')}
-                      className="flex-1 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-1.5 text-slate-500"
-                      style={{ border: '1.5px solid rgba(37,99,235,0.12)', background: '#fff' }}>
-                      <XCircle size={14} /> Dismiss
+                    <button type="button" className="enforcement-page__btn-outline" onClick={() => handleStatusUpdate(selected.id, 'dismissed')}>
+                      <XCircle size={14} /> {t('fines.dismiss')}
                     </button>
                   </div>
                 )}
-              </div>
+              </>
             );
           })()}
         </DialogContent>
       </Dialog>
 
-      {/* Issue Fine Dialog */}
+      {/* Issue fine dialog */}
       <Dialog open={issueFineOpen} onOpenChange={setIssueFineOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #2563EB, #1D4ED8)' }}>
-                <Plus size={15} className="text-white" />
+            <DialogTitle className="flex items-center gap-2.5">
+              <div className="enforcement-page__dialog-icon enforcement-page__dialog-icon--brand">
+                <Plus size={15} />
               </div>
-              Issue New Fine
+              <span className="enforcement-page__dialog-title">{t('fines.issueNewFine')}</span>
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div>
-              <Label className="text-sm">Driver License * <span className="text-slate-400 font-normal">(lookup required)</span></Label>
+              <Label className="enforcement-page__form-label">
+                {t('fines.driverLicense')} *{' '}
+                <span className="enforcement-page__form-hint">{t('fines.lookupRequired')}</span>
+              </Label>
               <div className="flex gap-2 mt-1">
-                <Input placeholder="DL-KH-2024-XXXXXX" value={fineForm.driver_license}
-                  onChange={e => setFineForm(f => ({ ...f, driver_license: e.target.value }))} className="flex-1" />
-                <Button size="sm" variant="outline" onClick={handleLookup}>Lookup</Button>
+                <Input
+                  placeholder={t('fines.licensePlaceholder')}
+                  value={fineForm.driver_license}
+                  onChange={(e) => setFineForm((f) => ({ ...f, driver_license: e.target.value }))}
+                  className="flex-1"
+                />
+                <Button size="sm" variant="outline" onClick={handleLookup}>{t('fines.lookup')}</Button>
               </div>
-              {searchResult.driver && <p className="text-xs mt-1 font-semibold" style={{ color: '#059669' }}>✓ {searchResult.driver.full_name}</p>}
+              {searchResult.driver && (
+                <p className="enforcement-page__form-success">✓ {searchResult.driver.full_name}</p>
+              )}
             </div>
             <div>
-              <Label className="text-sm">Vehicle Plate</Label>
-              <Input className="mt-1" placeholder="e.g. 2AA 1234" value={fineForm.vehicle_plate}
-                onChange={e => setFineForm(f => ({ ...f, vehicle_plate: e.target.value }))} />
+              <Label className="enforcement-page__form-label">{t('fines.vehiclePlateLabel')}</Label>
+              <Input
+                className="mt-1"
+                placeholder={t('fines.platePlaceholder')}
+                value={fineForm.vehicle_plate}
+                onChange={(e) => setFineForm((f) => ({ ...f, vehicle_plate: e.target.value }))}
+              />
             </div>
             <div>
-              <Label className="text-sm">Violation *</Label>
-              <Select onValueChange={v => setFineForm(f => ({ ...f, reason: v }))}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="Select violation" /></SelectTrigger>
-                <SelectContent>{VIOLATION_REASONS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
+              <Label className="enforcement-page__form-label">{t('fines.violationLabel')} *</Label>
+              <Select onValueChange={(v) => setFineForm((f) => ({ ...f, reason: v }))}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder={t('fines.selectViolation')} /></SelectTrigger>
+                <SelectContent>
+                  {VIOLATION_REASONS.map((reason) => (
+                    <SelectItem key={reason.key} value={reason.value}>
+                      {t(`fines.reasons.${reason.key}`)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-sm">Amount (USD) *</Label>
-                <Input className="mt-1" type="number" min="5" placeholder="e.g. 50" value={fineForm.amount}
-                  onChange={e => setFineForm(f => ({ ...f, amount: e.target.value }))} />
+                <Label className="enforcement-page__form-label">{t('fines.amountLabel')} *</Label>
+                <Input
+                  className="mt-1"
+                  type="number"
+                  min="5"
+                  placeholder={t('fines.amountPlaceholder')}
+                  value={fineForm.amount}
+                  onChange={(e) => setFineForm((f) => ({ ...f, amount: e.target.value }))}
+                />
               </div>
               <div>
-                <Label className="text-sm">Location *</Label>
-                <Input className="mt-1" placeholder="District, City" value={fineForm.location}
-                  onChange={e => setFineForm(f => ({ ...f, location: e.target.value }))} />
+                <Label className="enforcement-page__form-label">{t('fines.locationLabel')} *</Label>
+                <Input
+                  className="mt-1"
+                  placeholder={t('fines.locationPlaceholder')}
+                  value={fineForm.location}
+                  onChange={(e) => setFineForm((f) => ({ ...f, location: e.target.value }))}
+                />
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIssueFineOpen(false)}>Cancel</Button>
-            <button
-              onClick={handleIssueFine} disabled={issuing}
-              className="px-4 py-2 rounded-lg text-white text-sm font-semibold flex items-center gap-2 disabled:opacity-60 transition-all"
-              style={{ background: 'linear-gradient(135deg, #2563EB, #1D4ED8)', boxShadow: '0 4px 12px rgba(37,99,235,0.3)' }}
-            >
-              {issuing ? <><span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />{t('fines.issuing')}</> : <><Plus size={14} />{t('fines.issueFine')}</>}
+            <Button variant="outline" onClick={() => setIssueFineOpen(false)}>{t('fines.cancel')}</Button>
+            <button type="button" className="enforcement-page__btn-primary" onClick={handleIssueFine} disabled={issuing}>
+              {issuing ? (
+                <>
+                  <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  {t('fines.issuing')}
+                </>
+              ) : (
+                <>
+                  <Plus size={14} /> {t('fines.issueFine')}
+                </>
+              )}
             </button>
           </DialogFooter>
         </DialogContent>

@@ -1,22 +1,93 @@
 /** In-memory mock API — used when VITE_USE_MOCK=true */
 import type {
-  User, Vehicle, Fine, TrafficSign, AIDetectionLog, AIDetectionPageStats, Notification,
-  DashboardStats, AuthResponse, LoginOptions,
+  User, Vehicle, Fine, TrafficSign, TrafficViolation, AIDetectionLog, AIDetectionPageStats, Notification,
+  DashboardStats, AuthResponse, LoginOptions, Road, Camera,
 } from '../types';
 import {
   mockUsers, mockVehicles, mockFines, mockTrafficSigns,
   mockAILogs, mockNotifications, mockDashboardStats,
-  MOCK_CREDENTIALS, AI_DETECTION_RESULTS,
+  MOCK_CREDENTIALS, AI_DETECTION_RESULTS, mockRoads, mockCameras,
 } from './mockData';
 import { LOGIN_ERRORS } from '@shared/utils/loginErrors';
+import { loadAuthSession } from '@shared/utils/authStorage';
+import type { ProfileOverview, UserPreferences } from '../types';
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+function withUserProfileImage(log: AIDetectionLog): AIDetectionLog {
+  if (log.user_profile_image) return log;
+  const user = users.find((u) => u.id === log.user_id) ?? mockUsers.find((u) => u.id === log.user_id);
+  return {
+    ...log,
+    user_profile_image: user?.profile_image ?? '',
+  };
+}
 
 let users = [...mockUsers];
 let vehicles = [...mockVehicles];
 let fines = [...mockFines];
 const aiLogs = [...mockAILogs];
 let notifications = [...mockNotifications];
+const mockPreferences = new Map<number, UserPreferences>();
+
+function defaultPreferences(): UserPreferences {
+  return {
+    notify_fines: true,
+    notify_detections: true,
+    notify_alerts: true,
+    notify_system: false,
+    two_factor_enabled: false,
+    login_notifications: true,
+    suspicious_alerts: true,
+  };
+}
+
+function getMockUser(): User {
+  const session = loadAuthSession();
+  const user = session?.user ?? users.find((u) => u.is_active);
+  if (!user) throw new Error('Not authenticated');
+  return users.find((u) => u.id === user.id) ?? user;
+}
+
+function buildMockOverview(user: User): ProfileOverview {
+  if (!mockPreferences.has(user.id)) mockPreferences.set(user.id, defaultPreferences());
+  const userNotifications = notifications.filter((n) => n.user_id === user.id).slice(0, 6);
+  const userLogs = aiLogs.filter((l) => l.user_id === user.id).slice(0, 4);
+  return {
+    user: { ...user, last_login: user.last_login ?? new Date().toISOString() },
+    preferences: { ...mockPreferences.get(user.id)! },
+    activity: [
+      ...userNotifications.map((n) => ({
+        action: n.title,
+        time: n.created_at,
+        time_label: 'Recently',
+        type: n.type,
+        color: '#2563EB',
+      })),
+      ...userLogs.map((l) => ({
+        action: `AI detection: ${l.detected_sign}`,
+        time: l.created_at,
+        time_label: 'Recently',
+        type: 'detection',
+        color: '#7C3AED',
+      })),
+    ].slice(0, 8),
+    sessions: [{
+      device: 'Chrome · Windows',
+      location: 'Current device',
+      ip_masked: '203.144.x.x',
+      time_label: 'Just now',
+      current: true,
+    }],
+    login_history: [{
+      status: 'success' as const,
+      device: 'Chrome · Windows',
+      ip_masked: '203.144.x.x',
+      time: new Date().toISOString(),
+      time_label: 'Just now',
+    }],
+  };
+}
 
 export const authAPI = {
   async login(email: string, password: string, options?: LoginOptions): Promise<AuthResponse> {
@@ -59,6 +130,61 @@ export const authAPI = {
     return { user: newUser };
   },
   async logout() { await delay(200); },
+  async changePassword(_old: string, _new: string) {
+    await delay(500);
+    return { message: 'Password changed' };
+  },
+  async getProfile() {
+    await delay(300);
+    return { ...getMockUser() };
+  },
+  async updateProfile(data: Partial<User>) {
+    await delay(400);
+    const user = getMockUser();
+    return usersAPI.update(user.id, data);
+  },
+  async requestPasswordReset(email: string): Promise<{ message?: string }> {
+    await delay(600);
+    if (!users.some((u) => u.email.toLowerCase() === email.toLowerCase())) {
+      throw new Error('No account found with this email address.');
+    }
+    return { message: `Password reset link has been sent to ${email}.` };
+  },
+  async confirmPasswordReset(_uid: string, _token: string, new_password: string): Promise<{ message?: string }> {
+    await delay(700);
+    if (!new_password || new_password.length < 8) {
+      throw new Error('Password must be at least 8 characters long.');
+    }
+    return { message: 'Password reset successful' };
+  },
+  async getOAuthAuthorizeUrl(_provider: 'google' | 'github', redirect_uri?: string): Promise<{ authorization_url: string }> {
+    await delay(300);
+    return { authorization_url: redirect_uri || `${window.location.origin}/auth/oauth/callback` };
+  },
+  async completeOAuth(
+    provider: 'google' | 'github',
+    _code: string,
+    _state: string,
+    portal: 'admin' | 'user',
+  ): Promise<AuthResponse> {
+    await delay(700);
+    const preferredRole = provider === 'github' ? 'police' : 'driver';
+    const roleFiltered = portal === 'admin'
+      ? users.filter((u) => u.role === 'admin' && u.is_active)
+      : users.filter((u) => u.role !== 'admin' && u.is_active);
+    const user =
+      roleFiltered.find((u) => u.role === preferredRole)
+      || roleFiltered[0]
+      || users[0];
+    if (!user) throw new Error('No mock user available for OAuth login.');
+    if (portal === 'admin' && user.role !== 'admin') {
+      throw new Error('This email is not an Administrator account. Please sign in on the Driver or Officer page with this email.');
+    }
+    if (portal === 'user' && user.role === 'admin') {
+      throw new Error('This email is for an Administrator account. Please use the Administrator sign-in page instead of Driver or Officer.');
+    }
+    return { access: `jwt_${user.id}`, refresh: `refresh_${user.id}`, user: { ...user } };
+  },
 };
 
 export const usersAPI = {
@@ -100,6 +226,31 @@ export const usersAPI = {
     const idx = users.findIndex((u) => u.id === id);
     users[idx].is_active = !users[idx].is_active;
     return { ...users[idx] };
+  },
+};
+
+export const profileAPI = {
+  async getOverview(): Promise<ProfileOverview> {
+    await delay(500);
+    return buildMockOverview(getMockUser());
+  },
+  async updatePreferences(data: Partial<UserPreferences>): Promise<UserPreferences> {
+    await delay(300);
+    const user = getMockUser();
+    const current = mockPreferences.get(user.id) ?? defaultPreferences();
+    const next = { ...current, ...data };
+    mockPreferences.set(user.id, next);
+    return next;
+  },
+  async deactivate() {
+    await delay(400);
+    const user = getMockUser();
+    await usersAPI.update(user.id, { is_active: false });
+    return { message: 'Account deactivated' };
+  },
+  async logoutOtherSessions(_refresh: string) {
+    await delay(400);
+    return { revoked: 1, message: 'Other sessions revoked' };
   },
 };
 
@@ -241,7 +392,7 @@ export const aiAPI = {
       : AI_DETECTION_RESULTS[Math.floor(Math.random() * AI_DETECTION_RESULTS.length)];
     const confidence = parseFloat((r.confidence + Math.random() * 2 - 1).toFixed(1));
     const processing_time = parseFloat((0.7 + Math.random() * 0.8).toFixed(2));
-    const entry: AIDetectionLog = {
+    const entry: AIDetectionLog = withUserProfileImage({
       id: aiLogs.length ? Math.max(...aiLogs.map((l) => l.id)) + 1 : 1,
       user_id: 4,
       user_name: 'Kosal Pich',
@@ -251,7 +402,7 @@ export const aiAPI = {
       description: r.description,
       guidance: r.guidance,
       created_at: new Date().toISOString(),
-    };
+    });
     aiLogs.unshift(entry);
     return {
       sign_name: r.detected_sign,
@@ -264,7 +415,8 @@ export const aiAPI = {
     };
   },
   async getLogs(userId?: number) {
-    return userId ? aiLogs.filter((l) => l.user_id === userId) : [...aiLogs];
+    const rows = userId ? aiLogs.filter((l) => l.user_id === userId) : [...aiLogs];
+    return rows.map(withUserProfileImage);
   },
   async getPageStats(): Promise<AIDetectionPageStats> {
     await delay(200);
@@ -328,10 +480,133 @@ export const notificationsAPI = {
   async markAllRead(userId: number) {
     notifications.filter((n) => n.user_id === userId).forEach((n) => { n.is_read = true; });
   },
+  async clearRead() {
+    await delay(200);
+    notifications = notifications.filter((n) => !n.is_read);
+    return { deleted: 0 };
+  },
+};
+
+export const roadsAPI = {
+  async getAll(): Promise<Road[]> {
+    await delay(300);
+    return [...mockRoads];
+  },
+  async getById(id: number): Promise<Road> {
+    await delay(200);
+    const road = mockRoads.find((r) => r.id === id);
+    if (!road) throw new Error('Road not found');
+    return { ...road };
+  },
+  async create(data: Partial<Road>): Promise<Road> {
+    await delay(400);
+    const road: Road = {
+      id: mockRoads.length + 1,
+      name: data.name || 'New Road',
+      road_type: data.road_type || 'urban',
+      length_km: data.length_km ?? null,
+      speed_limit: data.speed_limit ?? 60,
+      region: data.region || '',
+      city: data.city || '',
+      latitude: data.latitude ?? null,
+      longitude: data.longitude ?? null,
+      status: data.status || 'active',
+      camera_count: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    mockRoads.push(road);
+    return road;
+  },
+  async update(id: number, data: Partial<Road>): Promise<Road> {
+    await delay(300);
+    const idx = mockRoads.findIndex((r) => r.id === id);
+    if (idx < 0) throw new Error('Road not found');
+    mockRoads[idx] = { ...mockRoads[idx], ...data, updated_at: new Date().toISOString() };
+    return mockRoads[idx];
+  },
+  async delete(id: number): Promise<void> {
+    await delay(300);
+    const idx = mockRoads.findIndex((r) => r.id === id);
+    if (idx >= 0) mockRoads.splice(idx, 1);
+  },
+};
+
+export const camerasAPI = {
+  async getAll(): Promise<Camera[]> {
+    await delay(350);
+    return [...mockCameras];
+  },
+  async getById(id: number): Promise<Camera> {
+    await delay(200);
+    const cam = mockCameras.find((c) => c.id === id);
+    if (!cam) throw new Error('Camera not found');
+    return { ...cam };
+  },
+  async create(data: Partial<Camera> & { road: number }): Promise<Camera> {
+    await delay(400);
+    const road = mockRoads.find((r) => r.id === data.road);
+    const cam: Camera = {
+      id: mockCameras.length + 1,
+      road_id: data.road,
+      road_name: road?.name || 'Unknown road',
+      name: data.name || 'New Camera',
+      code: data.code || `CAM-MOCK-${mockCameras.length + 1}`,
+      model: data.model || '',
+      camera_type: data.camera_type || 'fixed',
+      installed_date: data.installed_date ?? null,
+      latitude: data.latitude ?? null,
+      longitude: data.longitude ?? null,
+      status: data.status || 'active',
+      frame_source_url: data.frame_source_url || '',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    mockCameras.push(cam);
+    return cam;
+  },
+  async update(id: number, data: Partial<Camera>): Promise<Camera> {
+    await delay(300);
+    const idx = mockCameras.findIndex((c) => c.id === id);
+    if (idx < 0) throw new Error('Camera not found');
+    mockCameras[idx] = { ...mockCameras[idx], ...data, updated_at: new Date().toISOString() };
+    return mockCameras[idx];
+  },
+  async delete(id: number): Promise<void> {
+    await delay(300);
+    const idx = mockCameras.findIndex((c) => c.id === id);
+    if (idx >= 0) mockCameras.splice(idx, 1);
+  },
+};
+
+export const violationsAPI = {
+  async getAll(): Promise<TrafficViolation[]> { return []; },
+  async getById(_id: number): Promise<TrafficViolation> { throw new Error('Not found'); },
+  async evaluate(_data: { class_key: string; observed_action: string; sign_code?: string }) {
+    return { is_violation: false };
+  },
+  async create(_data: {
+    driver_id: number;
+    class_key: string;
+    observed_action: string;
+    sign_code?: string;
+    location?: string;
+    ai_detection_log_id?: number;
+  }): Promise<TrafficViolation> {
+    throw new Error('Mock violations create not implemented');
+  },
+  async update(_id: number, _data: Partial<TrafficViolation>): Promise<TrafficViolation> {
+    throw new Error('Mock violations update not implemented');
+  },
+  async delete(_id: number): Promise<void> {},
+  async getStats() {
+    return { total_violations: 0, pending_review: 0, confirmed: 0, rejected: 0, by_type: [] };
+  },
 };
 
 export const dashboardAPI = {
   async getAdminStats(): Promise<DashboardStats> { return { ...mockDashboardStats }; },
+  async getPoliceReportStats(): Promise<DashboardStats> { return { ...mockDashboardStats }; },
   async getPoliceStats(policeId: number) {
     const pf = fines.filter((f) => f.police_id === policeId);
     return {

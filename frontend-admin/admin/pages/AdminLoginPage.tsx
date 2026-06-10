@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import {
   Shield, Users, Camera, BarChart3,
   Mail, Lock, Eye, EyeOff, LogIn, AlertCircle,
   KeyRound, ClipboardList, Activity, LockKeyhole,
 } from 'lucide-react';
+import { AuthPageBackground } from '@shared/components/auth/AuthPageBackground';
+import { CamTrafficLogo } from '@shared/components/layout/CamTrafficLogo';
 import { useAuth } from '@shared/context/AuthContext';
 import { getUserDevUrl } from '@shared/utils/portal';
-import { getSavedLoginEmail, isRememberMeEnabled } from '@shared/utils/authStorage';
+import { isRememberMeEnabled } from '@shared/utils/authStorage';
 import { toast } from 'sonner';
 import { LOGIN_ERRORS } from '@shared/utils/loginErrors';
 
@@ -27,7 +29,8 @@ const STAT_CHIPS = [
 export function AdminLoginPage() {
   const { login, logout, user, isLoading } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState(() => getSavedLoginEmail());
+  const location = useLocation();
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(() => isRememberMeEnabled());
   const [showPass, setShowPass] = useState(false);
@@ -37,6 +40,17 @@ export function AdminLoginPage() {
   useEffect(() => {
     document.title = 'Admin sign-in · CamTraffic';
   }, []);
+
+  useEffect(() => {
+    const state = location.state as { clearLogin?: boolean } | null;
+    if (!state?.clearLogin) return;
+    setEmail('');
+    setPassword('');
+    setRemember(false);
+    setShowPass(false);
+    setError('');
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.state, location.pathname, navigate]);
 
   useEffect(() => {
     if (!isLoading && user?.role === 'admin') {
@@ -80,13 +94,13 @@ export function AdminLoginPage() {
 
   return (
     <div className="up-page ap-page">
-      <div className="up-bg ap-bg" />
+      <AuthPageBackground variant="admin" />
       <div className="up-overlay ap-overlay" />
 
       <div className="up-inner">
         <div className="up-hero">
           <div className="up-badge ap-badge">
-            <Shield size={14} className="ap-badge-icon" aria-hidden />
+            <CamTrafficLogo size={32} className="up-badge-logo" alt="Norton University" />
             <span>Administrator Portal</span>
           </div>
           <h1 className="up-headline ap-headline">
@@ -169,9 +183,9 @@ export function AdminLoginPage() {
               <div className="mb-3">
                 <div className="pw-label-row">
                   <label htmlFor="admin-password" className="field-label mb-0">Password</label>
-                  <a href={getUserDevUrl('/forgot-password')} className="forgot-link" style={{ fontSize: '.85rem' }}>
+                  <Link to="/forgot-password" className="forgot-link" style={{ fontSize: '.85rem' }}>
                     Forgot password?
-                  </a>
+                  </Link>
                 </div>
                 <div className={`lf-field ${error ? 'lf-err' : ''}`}>
                   <Lock size={16} className="lf-icon" />

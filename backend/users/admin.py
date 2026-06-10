@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-from .models import User
+from .models import Driver, Officer, User
 
 
 @admin.register(User)
@@ -21,3 +21,15 @@ class UserAdmin(BaseUserAdmin):
             'fields': ('email', 'full_name', 'role', 'password1', 'password2'),
         }),
     )
+
+
+@admin.register(Officer)
+class OfficerAdmin(admin.ModelAdmin):
+    list_display = ('badge_no', 'user', 'rank', 'department', 'status')
+    search_fields = ('badge_no', 'user__email', 'user__full_name')
+
+
+@admin.register(Driver)
+class DriverAdmin(admin.ModelAdmin):
+    list_display = ('license_no', 'user', 'license_expiry', 'status')
+    search_fields = ('license_no', 'user__email', 'user__full_name')

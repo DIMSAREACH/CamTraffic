@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { aiAPI } from '@shared/services/api';
+import { heroSpeechText, resolveDetectionMode } from '@shared/utils/detectionDisplay';
 
 function pickLang(text: string, preferred?: 'en' | 'km') {
   if (preferred === 'km') return 'km-KH';
@@ -8,7 +9,18 @@ function pickLang(text: string, preferred?: 'en' | 'km') {
   return /[\u1780-\u17FF]/.test(text) ? 'km-KH' : 'en-US';
 }
 
-const USE_SERVER_KHMER =
+function pickBrowserVoice(lang: string): SpeechSynthesisVoice | null {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
+  const voices = window.speechSynthesis.getVoices();
+  const wantKm = lang.startsWith('km');
+  const ranked = voices.filter(v => {
+    if (wantKm) return v.lang.toLowerCase().startsWith('km');
+    return v.lang.toLowerCase().startsWith('en');
+  });
+  return ranked.find(v => !v.localService) || ranked[0] || null;
+}
+
+const USE_SERVER_TTS =
   import.meta.env.VITE_USE_MOCK !== 'true' &&
   import.meta.env.VITE_KHMER_SERVER_TTS !== 'false';
 
@@ -42,8 +54,11 @@ export function useSpeech(preferredLocale?: 'en' | 'km') {
 
   const speakBrowser = useCallback(
     (text: string, id: string, langOverride?: string) => {
+      const lang = langOverride || pickLang(text, preferredLocale);
       const utter = new SpeechSynthesisUtterance(text.trim());
-      utter.lang = langOverride || pickLang(text, preferredLocale);
+      utter.lang = lang;
+      const voice = pickBrowserVoice(lang);
+      if (voice) utter.voice = voice;
       utter.rate = 0.92;
       utter.pitch = 1;
       utter.onend = () => {
@@ -53,9 +68,11 @@ export function useSpeech(preferredLocale?: 'en' | 'km') {
       utter.onerror = () => {
         setSpeaking(false);
         setSpeakingId(null);
+        toast.error('Browser voice could not speak this text.');
       };
       setSpeakingId(id);
       setSpeaking(true);
+      window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utter);
     },
     [preferredLocale],
@@ -76,12 +93,19 @@ export function useSpeech(preferredLocale?: 'en' | 'km') {
 
       stop();
 
-      const wantKhmer =
-        langOverride === 'km-KH' || preferredLocale === 'km' || /[\u1780-\u17FF]/.test(text);
+      const lang: 'km' | 'en' =
+        langOverride === 'en-US' || preferredLocale === 'en'
+          ? 'en'
+          : langOverride === 'km-KH' || preferredLocale === 'km' || /[\u1780-\u17FF]/.test(text)
+            ? 'km'
+            : 'en';
 
-      if (wantKhmer && USE_SERVER_KHMER) {
+      if (USE_SERVER_TTS) {
         try {
-          const blob = await aiAPI.speakKhmer(text.trim());
+          const blob = await aiAPI.speakText(text.trim(), lang);
+          if (!blob || blob.size < 128) {
+            throw new Error('Empty audio from server');
+          }
           const url = URL.createObjectURL(blob);
           urlRef.current = url;
           const audio = new Audio(url);
@@ -95,14 +119,17 @@ export function useSpeech(preferredLocale?: 'en' | 'km') {
             cleanupAudio();
             setSpeaking(false);
             setSpeakingId(null);
-            toast.error('Could not play Khmer audio.');
+            toast.error('Could not play audio.');
           };
           setSpeakingId(id);
           setSpeaking(true);
           await audio.play();
           return;
-        } catch {
-          /* fall back to browser voice */
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : 'Voice failed';
+          if (!msg.includes('Network Error')) {
+            toast.message('Using browser voice (server TTS unavailable).');
+          }
         }
       }
 
@@ -114,6 +141,16 @@ export function useSpeech(preferredLocale?: 'en' | 'km') {
     },
     [cleanupAudio, preferredLocale, speakBrowser, speaking, speakingId, stop],
   );
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      const warm = () => { window.speechSynthesis.getVoices(); };
+      warm();
+      window.speechSynthesis.addEventListener('voiceschanged', warm);
+      return () => window.speechSynthesis.removeEventListener('voiceschanged', warm);
+    }
+    return undefined;
+  }, []);
 
   useEffect(() => () => stop(), [stop]);
 
@@ -142,7 +179,6 @@ export function buildTrafficSignSpeech(
 
 const KHMER_RE = /[\u1780-\u17FF]/;
 
-/** Khmer text for TTS on any traffic sign (API or local fallback). */
 export function khmerSpeechText(result: {
   sign_name: string;
   sign_name_km?: string;
@@ -170,4 +206,48 @@ export function khmerSpeechText(result: {
     : `សូមបញ្ជរកចរាចរតាមស្លាក ${name}។ រក្សាសុវត្ថិភាពចរាចរណ៍។`;
 
   return { name, desc, guide };
+}
+
+export type DetectionSpeechFields = {
+  sign_name: string;
+  sign_name_km?: string;
+  sign_name_en?: string;
+  sign_code?: string;
+  category?: string;
+  description: string;
+  description_en?: string;
+  guidance: string;
+  guidance_en?: string;
+  detection_mode?: 'sign' | 'vehicle' | 'plate' | 'no_sign';
+  display_title?: string;
+  display_title_en?: string;
+  display_title_km?: string;
+  display_confidence?: number;
+  vehicles?: Array<{ vehicle_type: string; label: string; confidence: number }>;
+  vehicle_count?: number;
+};
+
+export function detectionDisplayText(result: DetectionSpeechFields, locale: 'en' | 'km') {
+  if (locale === 'en') {
+    return {
+      name: result.sign_name_en || result.sign_name,
+      desc: result.description_en || result.description,
+      guide: result.guidance_en || result.guidance,
+    };
+  }
+  return khmerSpeechText(result);
+}
+
+export function detectionSpeechText(result: DetectionSpeechFields, locale: 'en' | 'km') {
+  const mode = resolveDetectionMode(result);
+  if (
+    result.detection_mode
+    || result.display_title
+    || result.display_title_en
+    || mode !== 'sign'
+  ) {
+    return heroSpeechText(result, locale);
+  }
+  const { name, desc, guide } = detectionDisplayText(result, locale);
+  return buildTrafficSignSpeech(name, desc, guide, locale);
 }

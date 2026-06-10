@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import type { User, LoginOptions } from '../types';
+import type { User, AuthResponse, LoginOptions } from '../types';
 import { authAPI } from '../services/api';
 import {
   clearAuthSession,
@@ -13,6 +13,7 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   login: (email: string, password: string, options?: LoginOptions, remember?: boolean) => Promise<User>;
+  setSession: (response: AuthResponse, remember?: boolean) => void;
   logout: () => void;
   updateUser: (user: User) => void;
 }
@@ -33,6 +34,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, []);
 
+  const setSession = (response: AuthResponse, remember = true) => {
+    setToken(response.access);
+    setUser(response.user);
+    saveAuthSession(response, remember);
+  };
+
   const login = async (
     email: string,
     password: string,
@@ -40,9 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     remember = false,
   ) => {
     const response = await authAPI.login(email, password, options);
-    setToken(response.access);
-    setUser(response.user);
-    saveAuthSession(response, remember);
+    setSession(response, remember);
     return response.user;
   };
 
@@ -61,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, setSession, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

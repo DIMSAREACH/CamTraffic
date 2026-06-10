@@ -1,5 +1,5 @@
 import { useState, useEffect, type ReactNode } from 'react';
-import { Users, Car, FileText, Camera, TrendingUp, AlertTriangle, CheckCircle, Clock, ArrowUpRight, ArrowDownRight, Shield, RefreshCw } from 'lucide-react';
+import { Users, Car, FileText, Camera, TrendingUp, AlertTriangle, Clock, ArrowUpRight, ArrowDownRight, Shield, RefreshCw } from 'lucide-react';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -58,6 +58,9 @@ function normalizeAdminStats(raw: Partial<DashboardStats>): DashboardStats {
     user_distribution: raw.user_distribution ?? [],
     total_detections: raw.total_detections ?? 0,
     total_fines: raw.total_fines ?? 0,
+    total_signs: raw.total_signs ?? 0,
+    total_violations: raw.total_violations ?? 0,
+    pending_violations: raw.pending_violations ?? 0,
     paid_fines: raw.paid_fines ?? 0,
     fine_revenue: raw.fine_revenue ?? 0,
     detection_accuracy: raw.detection_accuracy ?? 0,
@@ -118,9 +121,7 @@ function SecondaryCard({ label, value, icon, bg, color }: { label: string; value
         {icon}
       </div>
       <div>
-        <p className="dashboard-stat__value">
-          {typeof value === 'number' ? value.toLocaleString() : value}
-        </p>
+        <p className="dashboard-stat__value">{typeof value === 'number' ? value.toLocaleString() : value}</p>
         <p className="dashboard-stat__label mt-0.5">{label}</p>
       </div>
     </div>
@@ -229,6 +230,13 @@ export function AdminDashboard() {
     role: translateRoleLabel(d.role, t),
   }));
 
+  const violationTypeChart = (stats.violation_by_type ?? []).map((row) => ({
+    reason: (row.violation_type || row.reason || 'Unknown').replace(/_/g, ' '),
+    count: row.count,
+  }));
+
+  const topViolationChart = violationTypeChart.length > 0 ? violationTypeChart : stats.fine_by_reason;
+
   return (
     <div className="dashboard-home space-y-5">
       {/* Welcome banner */}
@@ -297,9 +305,9 @@ export function AdminDashboard() {
       {/* Secondary stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <SecondaryCard label={t('dashboard.registeredVehicles')} value={stats.total_vehicles} icon={<Car size={17} />} bg="rgba(37,99,235,0.08)" color="#2563EB" />
-        <SecondaryCard label={t('dashboard.pendingFines')} value={stats.pending_fines} icon={<Clock size={17} />} bg="rgba(245,158,11,0.1)" color="#D97706" />
-        <SecondaryCard label={t('dashboard.paidFines')} value={stats.paid_fines} icon={<CheckCircle size={17} />} bg="rgba(16,185,129,0.1)" color="#059669" />
-        <SecondaryCard label={t('dashboard.activeOfficers')} value={stats.total_police} icon={<AlertTriangle size={17} />} bg="rgba(139,92,246,0.1)" color="#7C3AED" />
+        <SecondaryCard label={t('dashboard.totalTrafficSigns')} value={stats.total_signs ?? 0} icon={<Shield size={17} />} bg="rgba(16,185,129,0.1)" color="#059669" />
+        <SecondaryCard label={t('dashboard.totalViolations')} value={stats.total_violations ?? 0} icon={<AlertTriangle size={17} />} bg="rgba(239,68,68,0.1)" color="#DC2626" />
+        <SecondaryCard label={t('dashboard.pendingViolations')} value={stats.pending_violations ?? 0} icon={<Clock size={17} />} bg="rgba(245,158,11,0.1)" color="#D97706" />
       </div>
 
       {/* Charts row 1 */}
@@ -346,19 +354,19 @@ export function AdminDashboard() {
       </div>
 
       {/* Charts row 2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <ChartCard title={t('dashboard.topViolationsTitle')} subtitle={t('dashboard.topViolationsSubtitle')}>
-          {stats.fine_by_reason.length === 0 ? (
+          {topViolationChart.length === 0 ? (
             <ChartEmpty message={t('dashboard.chartNoViolations')} />
           ) : (
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={stats.fine_by_reason} layout="vertical">
+              <BarChart data={topViolationChart} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} horizontal={false} />
                 <XAxis type="number" tick={chartAxisTick} axisLine={false} tickLine={false} />
                 <YAxis dataKey="reason" type="category" tick={chartCategoryTick} axisLine={false} tickLine={false} width={95} />
                 <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
                 <Bar dataKey="count" name="Count" radius={[0, 6, 6, 0]}>
-                  {stats.fine_by_reason.map((_, i) => <Cell key={i} fill={CHART_SERIES[i % CHART_SERIES.length]} />)}
+                  {topViolationChart.map((_, i) => <Cell key={i} fill={CHART_SERIES[i % CHART_SERIES.length]} />)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -383,6 +391,28 @@ export function AdminDashboard() {
                 <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
                 <Bar dataKey="count" name="Detections" fill="url(#detGrad)" radius={[4, 4, 0, 0]} maxBarSize={40} />
               </BarChart>
+            </ResponsiveContainer>
+          )}
+        </ChartCard>
+
+        <ChartCard title={t('dashboard.monthlyViolationsTitle', { year: chartYear })} subtitle={t('dashboard.monthlyViolationsSubtitle')}>
+          {(stats.monthly_violations ?? []).length === 0 ? (
+            <ChartEmpty message={t('dashboard.chartNoViolations')} />
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart data={stats.monthly_violations ?? []}>
+                <defs>
+                  <linearGradient id="violationGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#DC2626" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="#DC2626" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} vertical={false} />
+                <XAxis dataKey="month" tick={chartAxisTick} axisLine={false} tickLine={false} />
+                <YAxis tick={chartAxisTick} axisLine={false} tickLine={false} />
+                <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
+                <Area type="monotone" dataKey="count" name="Violations" stroke="#DC2626" fill="url(#violationGrad)" strokeWidth={2} dot={false} />
+              </AreaChart>
             </ResponsiveContainer>
           )}
         </ChartCard>

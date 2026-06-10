@@ -56,6 +56,13 @@ const THEME_MAP: Record<
     color: '#dc2626',
     gradient: 'linear-gradient(90deg,#dc2626,#ef4444,#f87171,transparent)',
   },
+  '/dashboard/violations': {
+    crumbKeys: ['pageTheme.crumbEnforcement', 'pageTheme.crumbViolationManagement'],
+    labelKey: 'pageTheme.violations',
+    icon: <Shield size={13} className="text-red-600" />,
+    color: '#b91c1c',
+    gradient: 'linear-gradient(90deg,#991b1b,#dc2626,#f87171,transparent)',
+  },
   '/dashboard/signs': {
     crumbKeys: ['pageTheme.crumbReference', 'pageTheme.crumbTrafficSigns'],
     labelKey: 'pageTheme.signs',

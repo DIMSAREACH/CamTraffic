@@ -1,0 +1,45 @@
+scenario,image,upload_name,expected_sign_code,predicted_sign_code,predicted_name,confidence,correct,processing_time_sec
+held_out_val_generic_filename,AXLE_WEIGHT_LIMIT_WEIGHT LIMIT ON ONE AXLE_06.jpg,IMG_AXLE_WEIGHT_.jpg,PW03-R1-08,PW03-R1-08,Weight Limit on One Axle,45.9,True,3.356
+held_out_val_generic_filename,NO_ENTRY_BICYCLE_NO ENTRY FOR BICYCLE_01.jpg,IMG_NO_ENTRY_BIC.jpg,PW03-R2-04,PW03-R1-04,No Entry,88.0,False,0.093
+held_out_val_generic_filename,NO_ENTRY_BICYCLE_NO ENTRY FOR BICYCLE_06.jpg,IMG_NO_ENTRY_BIC.jpg,PW03-R2-04,PW03-R1-04,No Entry,88.0,False,0.099
+held_out_val_generic_filename,NO_ENTRY_FOR_MOTORCYCLE_NO ENTRY FOR MOTORCYCLE_05.jpg,IMG_NO_ENTRY_FOR.jpg,PW03-R2-11,PW03-R1-04,No Entry,88.0,False,0.094
+held_out_val_generic_filename,NO_ENTRY_LARGE_BUS_No entry for larged-sized bus_04.jpg,IMG_NO_ENTRY_LAR.jpg,PW03-R2-05,PW03-R1-04,No Entry,88.0,False,0.093
+held_out_val_generic_filename,NO_ENTRY_LARGE_TRUCK_NO ENTRY FOR LARGED-SIZED TRUCK_07.jpg,IMG_NO_ENTRY_LAR.jpg,PW03-R2-06,PW03-R1-04,No Entry,82.0,False,0.124
+held_out_val_generic_filename,NO_ENTRY_MOTOR_EXCEPT_MOTORCYCLE_No entry  for motor vehicles except motorcycles without side carts_00.jpg,IMG_NO_ENTRY_MOT.jpg,PW03-R1-14,PW03-R1-04,No Entry,88.0,False,0.082
+held_out_val_generic_filename,NO_ENTRY_MOTOR_EXCEPT_MOTORCYCLE_No entry  for motor vehicles except motorcycles without side carts_04.jpg,IMG_NO_ENTRY_MOT.jpg,PW03-R1-14,PW03-R1-04,No Entry,88.0,False,0.084
+held_out_val_generic_filename,NO_ENTRY_MOTOR_VEHICLES_No entry for motor vehicles_03.jpg,IMG_NO_ENTRY_MOT.jpg,PW03-R2-07,PW03-R1-04,No Entry,88.0,False,0.088
+held_out_val_generic_filename,NO_ENTRY_MOTOR_VEHICLES_No entry for motor vehicles_06.jpg,IMG_NO_ENTRY_MOT.jpg,PW03-R2-07,PW03-R1-04,No Entry,88.0,False,0.088
+held_out_val_generic_filename,NO_ENTRY_NO ENTRY_00.jpg,IMG_NO_ENTRY_NO .jpg,PW03-R1-04,PW03-R1-04,No Entry,82.0,True,0.118
+held_out_val_generic_filename,NO_PARKING_NO PARKING_00.jpg,IMG_NO_PARKING_N.jpg,PW03-R2-10,PW03-R2-10,No Parking,84.9,True,0.163
+held_out_val_generic_filename,NO_PARKING_NO PARKING_02.jpg,IMG_NO_PARKING_N.jpg,PW03-R2-10,,Unknown sign,0.0,False,0.086
+held_out_val_generic_filename,NO_PARKING_NO PARKING_03.jpg,IMG_NO_PARKING_N.jpg,PW03-R2-10,PW03-R2-10,No Parking,75.1,True,0.084
+held_out_val_generic_filename,NO_RIGHT_TURN_No Right Turn_05.jpg,IMG_NO_RIGHT_TUR.jpg,PW03-R1-02,PW03-R1-02,No Right Turn,90.4,True,0.08
+held_out_val_generic_filename,NO_RIGHT_TURN_No Right Turn_06.jpg,IMG_NO_RIGHT_TUR.jpg,PW03-R1-02,PW03-R1-02,No Right Turn,89.6,True,0.081
+held_out_val_generic_filename,NO_STOPPING_No stopping_02.jpg,IMG_NO_STOPPING_.jpg,PW03-R2-09,PW03-R2-09,No Stopping,92.2,True,0.088
+held_out_val_generic_filename,NO_STOPPING_No stopping_03.jpg,IMG_NO_STOPPING_.jpg,PW03-R2-09,PW03-R2-09,No Stopping,85.7,True,0.085
+held_out_val_generic_filename,NO_U_TURN_NO U TURN_07.jpg,IMG_NO_U_TURN_NO.jpg,PW03-R1-03,PW03-R1-03,No U-Turn,88.0,True,0.086
+held_out_val_generic_filename,ROAD_CLOSED_ALL_USERS_CLOSE FOR ALL ROAD USERS_00.jpg,IMG_ROAD_CLOSED_.jpg,PW03-R1-06,PW03-R1-06,Closed for All Road Users,76.3,True,0.087
+held_out_val_generic_filename,ROAD_CLOSED_ALL_USERS_CLOSE FOR ALL ROAD USERS_04.jpg,IMG_ROAD_CLOSED_.jpg,PW03-R1-06,PW03-R1-06,Closed for All Road Users,77.6,True,0.125
+held_out_val_generic_filename,ROAD_CLOSED_ALL_USERS_CLOSE FOR ALL ROAD USERS_05.jpg,IMG_ROAD_CLOSED_.jpg,PW03-R1-06,PW03-R1-06,Closed for All Road Users,90.2,True,0.09
+held_out_val_generic_filename,ROAD_CLOSED_ALL_VEHICLES_CLOSE FOR ALL VEHICLES_07.jpg,IMG_ROAD_CLOSED_.jpg,PW03-R1-05,PW03-R1-05,Closed for All Vehicles,95.7,True,0.076
+held_out_val_generic_filename,TOTAL_WEIGHT_LIMIT_TOTAL WEIGHT LIMIT_06.jpg,IMG_TOTAL_WEIGHT.jpg,PW03-R1-07,PW03-R1-07,Total Weight Limit,99.7,True,0.085
+reference_upload_original_filename,CLOSE FOR ALL ROAD USERS.jpg,CLOSE FOR ALL ROAD USERS.jpg,PW03-R1-06,PW03-R1-06,Closed for All Road Users,95.0,True,0.0
+reference_upload_original_filename,CLOSE FOR ALL VEHICLES.jpg,CLOSE FOR ALL VEHICLES.jpg,PW03-R1-05,PW03-R1-05,Closed for All Vehicles,95.0,True,0.001
+reference_upload_original_filename,HEIGHT LIMIT.webp,HEIGHT LIMIT.webp,PW03-R1-09,PW03-R1-09,Height Limit,95.0,True,0.0
+reference_upload_original_filename,NO ENTRY.png,NO ENTRY.png,PW03-R1-04,PW03-R1-04,No Entry,95.0,True,0.001
+reference_upload_original_filename,No Left Turn.jpg,No Left Turn.jpg,PW03-R1-01,PW03-R1-01,No Left Turn,95.0,True,0.001
+reference_upload_original_filename,No Right Turn.jpg,No Right Turn.jpg,PW03-R1-02,PW03-R1-02,No Right Turn,95.0,True,0.001
+reference_upload_original_filename,NO U TURN.jpg,NO U TURN.jpg,PW03-R1-03,PW03-R1-03,No U-Turn,95.0,True,0.0
+reference_upload_original_filename,TOTAL WEIGHT LIMIT.jpg,TOTAL WEIGHT LIMIT.jpg,PW03-R1-07,PW03-R1-07,Total Weight Limit,95.0,True,0.001
+reference_upload_original_filename,WEIGHT LIMIT ON ONE AXLE.jpg,WEIGHT LIMIT ON ONE AXLE.jpg,PW03-R1-08,PW03-R1-08,Weight Limit on One Axle,95.0,True,0.001
+reference_upload_original_filename,WIDTH LIMIT.webp,WIDTH LIMIT.webp,PW03-R1-10,PW03-R1-10,Width Limit,95.0,True,0.0
+reference_upload_original_filename,Lenght Limit.png,Lenght Limit.png,PW03-R2-01,PW03-R2-01,Length Limit,95.0,True,0.001
+reference_upload_original_filename,No entry  for motor vehicles except motorcycles without side carts.jpeg,No entry  for motor vehicles except motorcycles without side carts.jpeg,PW03-R1-14,PW03-R1-14,No Entry Except Motorcycles,95.0,True,0.0
+reference_upload_original_filename,"NO ENTRY FOR BICYCLE, MOTORCYCLE AND TRICYCLE.jpeg","NO ENTRY FOR BICYCLE, MOTORCYCLE AND TRICYCLE.jpeg",PW03-R2-03,PW03-R2-03,"No Entry for Bicycle, Motorcycle and Tricycle",95.0,True,0.0
+reference_upload_original_filename,NO ENTRY FOR BICYCLE.png,NO ENTRY FOR BICYCLE.png,PW03-R2-04,PW03-R2-04,No Entry for Bicycle,95.0,True,0.001
+reference_upload_original_filename,No entry for larged-sized bus.png,No entry for larged-sized bus.png,PW03-R2-05,PW03-R2-05,No Entry for Large-Sized Bus,95.0,True,0.0
+reference_upload_original_filename,NO ENTRY FOR LARGED-SIZED TRUCK.png,NO ENTRY FOR LARGED-SIZED TRUCK.png,PW03-R2-06,PW03-R2-06,No Entry for Large-Sized Truck,95.0,True,0.001
+reference_upload_original_filename,No entry for motor vehicles.jpeg,No entry for motor vehicles.jpeg,PW03-R2-07,PW03-R2-07,No Entry for Motor Vehicles,95.0,True,0.0
+reference_upload_original_filename,NO ENTRY FOR MOTORCYCLE.jpeg,NO ENTRY FOR MOTORCYCLE.jpeg,PW03-R2-11,PW03-R2-11,No Entry for Motorcycle,95.0,True,0.001
+reference_upload_original_filename,NO PARKING.jpg,NO PARKING.jpg,PW03-R2-10,PW03-R2-10,No Parking,95.0,True,0.0
+reference_upload_original_filename,No stopping.jpeg,No stopping.jpeg,PW03-R2-09,PW03-R2-09,No Stopping,95.0,True,0.0

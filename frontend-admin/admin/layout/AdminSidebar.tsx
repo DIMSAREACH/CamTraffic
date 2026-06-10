@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router';
 import {
   LayoutDashboard, Car, Users, FileText, Camera,
   BookOpen, BarChart3, Bell, User, LogOut, Shield,
-  Activity, Zap, X,
+  Activity, Zap, X, Cctv, AlertTriangle,
 } from 'lucide-react';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
@@ -28,8 +28,10 @@ interface AdminSidebarProps {
 const ADMIN_NAV: NavItem[] = [
   { labelKey: 'sidebar.nav.dashboard', path: '/admin/dashboard', icon: <LayoutDashboard size={18} strokeWidth={1.75} />, section: 'main' },
   { labelKey: 'sidebar.nav.aiDetection', path: '/admin/ai-detection', icon: <Camera size={18} strokeWidth={1.75} />, section: 'main' },
+  { labelKey: 'sidebar.nav.cameras', path: '/admin/cameras', icon: <Cctv size={18} strokeWidth={1.75} />, section: 'main' },
   { labelKey: 'sidebar.nav.trafficSigns', path: '/admin/signs', icon: <BookOpen size={18} strokeWidth={1.75} />, section: 'main' },
   { labelKey: 'sidebar.nav.fineManagement', path: '/admin/fines', icon: <FileText size={18} strokeWidth={1.75} />, section: 'manage' },
+  { labelKey: 'sidebar.nav.violationManagement', path: '/admin/violations', icon: <AlertTriangle size={18} strokeWidth={1.75} />, section: 'manage' },
   { labelKey: 'sidebar.nav.allVehicles', path: '/admin/vehicles', icon: <Car size={18} strokeWidth={1.75} />, section: 'manage' },
   { labelKey: 'sidebar.nav.detectionLogs', path: '/admin/ai-logs', icon: <Activity size={18} strokeWidth={1.75} />, section: 'manage' },
   { labelKey: 'sidebar.nav.userManagement', path: '/admin/users', icon: <Users size={18} strokeWidth={1.75} />, section: 'manage' },

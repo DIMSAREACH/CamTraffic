@@ -1,81 +1,92 @@
 # CamTraffic AI Module
 
-YOLOv8-based **Cambodia traffic sign** detection trained from your thesis reference folder.
+## Important: `sign_catalog.json` is not live-linked
 
-## Source data
+The app **does not** read `sign_catalog.json` on every page load. Traffic sign names, descriptions, and images shown in the UI come from the **database** (`TrafficSign` table).
 
-Official sign images from:
+| File | Used for |
+|------|----------|
+| `sign_catalog.json` | Source metadata when you **sync** or **train** |
+| `data.yaml` | YOLO training class list |
+| `weights/best.pt` | Live AI detection model |
+| Database | Traffic Signs page, detection labels, TTS text |
 
-`Reference(PDF Download)/Dim Sareach/ស្លាកសញ្ញាចរាចរណ៏/`
-
-- **232 sign classes** (R1-xx, W1-xx, G4-xx, P1-xx, S1-xx, …)
-- PDF: `ស្លាកសញ្ញាចរាចរណ៏.pdf` (reference document)
-
-## Quick pipeline (full train)
-
-```bash
-cd ai
-..\backend\venv\Scripts\python.exe build_dataset.py --augments 8
-..\backend\venv\Scripts\python.exe train.py --epochs 30 --batch 8 --device cpu
-```
-
-With NVIDIA GPU (faster):
+After you edit `sign_catalog.json`, run:
 
 ```bash
-python train.py --epochs 50 --batch 16 --device 0
+python scripts/sync_sign_catalog.py
 ```
 
-Import signs into Django + copy images:
+Or from `backend`:
 
 ```bash
-cd ..\backend
-python manage.py import_cambodia_signs --update
+python manage.py sync_ai_training --skip-env --source-dir "D:/Year4/Project Thesis/Expert System/Reference(PDF Download)/Dim Sareach/Traffic Sign/01-Sign"
 ```
 
-## Enable live detection in the app
+Then refresh the Traffic Signs page (Ctrl+F5).
 
-After `ai/weights/best.pt` exists, set in `backend/.env`:
+`sync_ai_training` also runs automatically at the **end of** `python ai/train.py`.
+
+## Quick pipeline (01-Sign + 02-Sign)
+
+By default `build_dataset.py` merges **both** reference folders:
+
+```bash
+python ai/build_dataset.py --augments 8
+python ai/train.py --epochs 30 --batch 4 --device cpu
+python scripts/sync_sign_catalog.py
+```
+
+Single folder only:
+
+```bash
+python ai/build_dataset.py --source "D:/.../Traffic Sign/02-Sign" --augments 8
+```
+
+Sign names/descriptions: edit `ai/reference_sign_meta.json`, then:
+
+```bash
+python ai/build_dataset.py --augments 8
+python scripts/sync_sign_catalog.py
+```
+
+`reference_sign_meta.json` does **not** store images — `sync_sign_catalog.py` copies art from `01-Sign` / `02-Sign` and removes outside backdrop automatically.
+
+**Images are not stored in JSON.** Reference photos live in `Traffic Sign/01-Sign` and `02-Sign`. After JSON edits:
+
+```bash
+python ai/build_dataset.py --augments 8
+python scripts/sync_sign_catalog.py
+```
+
+Do not hand-edit `class_key` in `sign_catalog.json` — it must match the YOLO class name from `data.yaml` or image sync will fail and the UI shows the red circle placeholder.
+
+Sign images synced to the database have **outside sign margins** removed (white/black backdrop outside the sign shape → transparent). Colors inside the sign are kept.
+
+## Thesis evidence (AI-06.5)
+
+After training, export plots and sample prediction screenshots:
+
+```bash
+python scripts/export_ai06_evidence.py
+```
+
+Output: `docs/thesis_evidence/AI-06/` (`training/`, `predictions/`, `README.md`, `metrics_summary.json`).
+
+## Hybrid detection (YOLO + Gemini)
+
+Live detection uses **YOLO first**. If confidence is below **70%** (`AI_HYBRID_CONFIDENCE_THRESHOLD`), the backend calls **Gemini Vision** as fallback.
+
+1. Copy `backend/.env.example` → `backend/.env` if needed.
+2. Add your key from [Google AI Studio](https://aistudio.google.com/apikey):
 
 ```env
-AI_USE_MOCK=False
-AI_MODEL_PATH=../ai/weights/best.pt
-AI_CONFIDENCE_THRESHOLD=0.35
+GEMINI_API_KEY=your-key-here
+GEMINI_ENABLED=True
+GEMINI_MODEL=gemini-2.0-flash
+AI_HYBRID_CONFIDENCE_THRESHOLD=70
 ```
 
-Restart Django: `python manage.py runserver`
+3. Restart Django. The detect API returns `detection_engine`: `yolo`, `gemini`, `hash`, or `filename`.
 
-## Test one image
-
-```bash
-cd backend
-python manage.py test_sign_detect "..\ai\test_samples\R1-01-no-left-turn-reference.png"
-```
-
-## Files
-
-| File | Purpose |
-|------|---------|
-| `build_dataset.py` | Build YOLO dataset from reference PNGs |
-| `train.py` | Train YOLOv8 → `weights/best.pt` |
-| `data.yaml` | Auto-generated class list |
-| `sign_catalog.json` | Sign codes for DB import |
-| `dataset/` | Train/val images + labels |
-
-## Khmer voice (no Windows Khmer voice needed)
-
-Windows often has **no Khmer** under Settings → Speech. CamTraffic uses **server TTS** instead:
-
-```bash
-cd backend
-venv\Scripts\pip install edge-tts
-# .env: TTS_ENABLED=True
-python manage.py runserver
-```
-
-The app calls `POST /api/ai/tts/` and plays MP3 (Microsoft **km-KH-SreymomNeural** / **km-KH-PisethNeural**). Requires **internet** on the machine running Django.
-
-## Notes
-
-- Training **232 classes** on CPU can take **several hours**. Use GPU if available.
-- For better real-road accuracy, add photos taken on streets and label with [LabelImg](https://github.com/HumanSignal/labelImg), then re-run `build_dataset.py` and `train.py`.
-- Until `AI_USE_MOCK=False`, the API still works in demo mode but uses the full **232-sign catalog** in the database.
+Implementation: `backend/ai_detection/gemini_service.py`, hybrid logic in `backend/ai_detection/services.py`.

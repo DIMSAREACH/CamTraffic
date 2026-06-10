@@ -4,8 +4,11 @@ import {
   Camera, Shield, BarChart3, Bell, Mail, Lock, User, Phone, MapPin,
   CreditCard, Eye, EyeOff, UserPlus, AlertCircle, CheckCircle, Circle,
 } from 'lucide-react';
-import { AuthThemeToggle } from '@shared/components/AuthThemeToggle';
 import { authAPI } from '@shared/services/api';
+import { AuthPageBackground } from '@shared/components/auth/AuthPageBackground';
+import { AuthFeatureList } from '@shared/components/auth/AuthFeatureList';
+import { CamTrafficLogo } from '@shared/components/layout/CamTrafficLogo';
+import { AuthThemeToggle } from '@shared/components/AuthThemeToggle';
 import { toast } from 'sonner';
 import {
   PASSWORD_REQUIREMENTS,
@@ -14,11 +17,12 @@ import {
   isStrongPassword,
 } from '@shared/utils/passwordPolicy';
 
-const FEATURES = [
-  { Icon: Shield, text: 'Secure role-based access' },
-  { Icon: Camera, text: 'Real-time AI detection' },
-  { Icon: BarChart3, text: 'Analytics & reporting' },
-  { Icon: Bell, text: 'Instant violation alerts' },
+const REGISTER_FEATURES = [
+  { Icon: UserPlus, text: 'Fast driver account setup' },
+  { Icon: Shield, text: 'Secure sign-up & data protection' },
+  { Icon: Camera, text: 'Real-time camera surveillance' },
+  { Icon: BarChart3, text: 'Analytics & reporting dashboard' },
+  { Icon: Bell, text: 'Violation alerts & fine reminders' },
 ];
 
 export function RegisterPage() {
@@ -114,35 +118,26 @@ export function RegisterPage() {
   };
 
   return (
-    <div className="up-page">
+    <div className="up-page up-page--user">
       <AuthThemeToggle />
-      <div className="up-bg" />
+      <AuthPageBackground />
       <div className="up-overlay" />
 
       <div className="up-inner">
         <div className="up-hero">
           <div className="up-badge">
-            <Camera size={14} />
+            <CamTrafficLogo size={32} className="up-badge-logo" alt="Norton University" />
             <span>CamTraffic · Cambodia</span>
           </div>
           <h1 className="up-headline">
-            Join the<br />
-            Traffic <em>Safety</em>
-            <br />
-            <em>Platform</em>
+            Join the Traffic<br />
+            <em>Safety Platform</em>
           </h1>
           <p className="up-tagline">
-            Create an account to access violations, fines and the city-wide enforcement
-            dashboard — built for drivers across Cambodia.
+            Create your driver account to access violations, pay fines, and track your cases
+            in one unified platform — built for drivers across Cambodia.
           </p>
-          <ul className="up-features">
-            {FEATURES.map(({ Icon, text }) => (
-              <li key={text}>
-                <Icon size={14} />
-                {text}
-              </li>
-            ))}
-          </ul>
+          <AuthFeatureList items={REGISTER_FEATURES} />
           <div className="up-footer">
             <span className="up-status-dot" />
             All systems operational · © {new Date().getFullYear()} CamTraffic

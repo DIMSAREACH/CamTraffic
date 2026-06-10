@@ -1,72 +1,58 @@
-"""Khmer display and TTS text for Cambodia traffic signs (all codes)."""
+﻿"""Khmer display and TTS text for Cambodia traffic signs."""
 from __future__ import annotations
 
+import json
 import re
+from pathlib import Path
 
 KHMER_RE = re.compile(r'[\u1780-\u17FF]')
+ROOT = Path(__file__).resolve().parent
+META_PATH = ROOT / 'reference_sign_meta.json'
+CATALOG_PATH = ROOT / 'sign_catalog.json'
 
-CATEGORY_SPEECH = {
-    'prohibitory': {
-        'label': 'ស្លាកហាមចរាចរណ៍',
-        'description': (
-            'នេះជាស្លាកហាមដែលហាមឱ្យអ្នកបើកបរធ្វើសកម្មភាពមួយចំនួន។ '
-            'សូមគោរពច្បាប់ចរាចរណ៍កម្ពុជា និងមិនធ្វើអត្តអត្តដែលស្លាកបង្ហាញ។'
-        ),
-        'guidance': (
-            'សូមកុំធ្វើអត្តអត្តដែលស្លាកនេះហាមប្រាមាណ៌។ '
-            'បន្តដំណើរតាមផ្លូវដែលអនុញ្ញាត និងរក្សាសុវត្ថិភាពចរាចរណ៍។'
-        ),
-    },
-    'warning': {
-        'label': 'ស្លាកព្រមានចរាចរណ៍',
-        'description': (
-            'នេះជាស្លាកព្រមានអំពីគ្រោះថ្នាក់ ឬស្ថានភាពផ្លូវខាងមុខ។ '
-            'សូមប្រុងប្រយ័ត្ន និងត្រៀមខ្លួនបើកបរសុវត្ថិភាព។'
-        ),
-        'guidance': (
-            'សូមបន្ថយល្បឿន មើលផ្លូវឱ្យបានល្អ និងបើកបរតាមស្លាកព្រមាននេះ។'
-        ),
-    },
-    'mandatory': {
-        'label': 'ស្លាកបញ្ជាចរាចរណ៍',
-        'description': (
-            'នេះជាស្លាកបញ្ជាឱ្យអ្នកបើកបរត្រូវធ្វើតាមដែលបង្ហាញ។ '
-            'ការមិនអនុវត្តអាចបង្កគ្រោះថ្នាក់ ឬប្រឈមមានការផាកពិន័យ។'
-        ),
-        'guidance': (
-            'សូមអនុវត្តតាមទិសដៅ ឬល្បឿនដែលស្លាកបញ្ជា។ '
-            'រក្សាចរណ្តម្មមជាមួយចរាចរផ្សេងទៀត។'
-        ),
-    },
-    'informative': {
-        'label': 'ស្លាកផ្តល់ព័ត៌មាន',
-        'description': (
-            'នេះជាស្លាកផ្តល់ព័ត៌មានអំពីផ្លូវ ទីតាំង ឬសេវាកម្ម។ '
-            'សូមអានស្លាកឱ្យបានច្បាស់មុនបើកបរបន្ត។'
-        ),
-        'guidance': (
-            'សូមបញ្ជរកចរាចរតាមព័ត៌មានដែលស្លាកបង្ហាញ។ '
-            'បន្ថយល្បឿនបើមានស្ថានភាពផ្លូវពិសេស។'
-        ),
-    },
+_CATEGORY_LABELS = {
+    'prohibitory': 'សញ្ញាហាមឃាត់',
+    'warning': 'សញ្ញាព្រមាន',
+    'mandatory': 'សញ្ញាបញ្ជា',
+    'informative': 'សញ្ញាផ្តល់ព័ត៌មាន',
 }
 
-# Common English catalog / mock names → Khmer
-ENGLISH_NAME_KHMER = {
-    'stop sign': 'ស្លាកឈប់',
-    'stop': 'ស្លាកឈប់',
-    'no entry': 'ហាមចូល',
-    'no left turn': 'ហាមបត់ឆ្វេង',
-    'no right turn': 'ហាមបត់ស្តាំ',
-    'no u-turn': 'ហាមបត់កោដ្ឋ',
-    'no parking': 'ហាមចត់',
-    'speed limit': 'កំណត់ល្បឿន',
-    'yield': 'ផ្តល់ផ្លូវ',
-    'give way': 'ផ្តល់ផ្លូវ',
-    'pedestrian crossing': 'ផ្លូវឆ្លងថ្នល់ជើរ',
-    'one way': 'ផ្លូវដោយឡែក',
-    'roundabout': 'រង្វង់ផ្ទុះ',
-}
+
+def _load_json(path: Path) -> dict:
+    if not path.is_file():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding='utf-8'))
+    except (json.JSONDecodeError, OSError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _load_meta_rows() -> dict[str, dict]:
+    return _load_json(META_PATH)
+
+
+def _load_catalog_rows() -> list[dict]:
+    data = _load_json(CATALOG_PATH)
+    return data if isinstance(data, list) else []
+
+
+def _build_english_name_khmer() -> dict[str, str]:
+    mapping: dict[str, str] = {}
+    for row in _load_catalog_rows():
+        en = (row.get('sign_name_en') or '').strip().lower()
+        km = (row.get('sign_name_km') or row.get('sign_name') or '').strip()
+        if en and km and KHMER_RE.search(km):
+            mapping[en] = km
+    for row in _load_meta_rows().values():
+        en = (row.get('sign_name_en') or '').strip().lower()
+        km = (row.get('sign_name_km') or '').strip()
+        if en and km and KHMER_RE.search(km):
+            mapping[en] = km
+    return mapping
+
+
+ENGLISH_NAME_KHMER = _build_english_name_khmer()
 
 
 def has_khmer(text: str) -> bool:
@@ -77,11 +63,10 @@ def is_generic_sign_name(name: str) -> bool:
     if not name:
         return True
     n = name.strip()
-    return n.startswith('Traffic Sign ') or n == f'Traffic Sign'
+    return n.startswith('Traffic Sign ') or n == 'Traffic Sign'
 
 
 def is_khmer_primary_text(text: str) -> bool:
-    """True when text is mainly Khmer (not catalog English with one Khmer word)."""
     if not text or not has_khmer(text):
         return False
     lower = text.lower()
@@ -89,16 +74,14 @@ def is_khmer_primary_text(text: str) -> bool:
         return False
     if 'follow the rules indicated' in lower:
         return False
-    # Khmer should be a large share of content
-    khmer_chars = len(KHMER_RE.findall(text))
-    return khmer_chars >= 8
+    return len(KHMER_RE.findall(text)) >= 8
 
 
 def category_for_code(code: str) -> str:
     if not code:
         return 'warning'
     prefix = code[0].upper()
-    if prefix == 'R':
+    if prefix == 'R' or code.upper().startswith('PW'):
         return 'prohibitory'
     if prefix == 'W':
         return 'warning'
@@ -109,78 +92,114 @@ def category_for_code(code: str) -> str:
     return 'warning'
 
 
+def _catalog_row(sign_code: str = '', class_key: str = '') -> dict | None:
+    code = (sign_code or '').upper()
+    ck = (class_key or '').upper()
+    for row in _load_catalog_rows():
+        if code and (row.get('sign_code') or '').upper() == code:
+            return row
+        if ck and (row.get('class_key') or '').upper() == ck:
+            return row
+    meta = _load_meta_rows()
+    if ck and ck in meta:
+        return meta[ck]
+    return None
+
+
 def khmer_name_from_english(name: str) -> str | None:
-    lower = name.lower()
+    lower = (name or '').strip().lower()
+    if not lower:
+        return None
+    if lower in ENGLISH_NAME_KHMER:
+        return ENGLISH_NAME_KHMER[lower]
     for key, km in ENGLISH_NAME_KHMER.items():
         if key in lower:
             return km
     return None
 
 
+def _category_fallback(cat: str, code: str) -> dict[str, str]:
+    label = _CATEGORY_LABELS.get(cat, _CATEGORY_LABELS['warning'])
+    return {
+        'description': (
+            f'សញ្ញា {code} ជា{label}។ សូមគោរពច្បាប់ចរាចរណ៍កម្ពុជា '
+            'និងបញ្ជរកចរាចរតាមស្លាកដែលបានរកឃើញ។'
+            if code else
+            f'{label}។ សូមគោរពច្បាប់ចរាចរណ៍កម្ពុជា។'
+        ),
+        'guidance': (
+            f'សូមបញ្ជរកចរាចរតាមស្លាក {code} ដែលបានរកឃើញ។ រក្សាសុវត្ថិភាពចរាចរណ៍។'
+            if code else
+            'សូមបញ្ជរកចរាចរតាមស្លាកចរាចរណ៍ និងរក្សាសុវត្ថិភាពចរាចរណ៍។'
+        ),
+    }
+
+
 def ensure_khmer_speech_fields(result: dict) -> dict:
-    """
-    Ensure sign_name, description, guidance are Khmer for TTS and UI.
-    Preserves detailed overrides (e.g. R1-01) when already in Khmer.
-    """
+    """Ensure sign_name, description, guidance are Khmer for TTS and UI."""
     code = result.get('sign_code') or (result.get('class_key') or '').replace('_', '-')
     if code:
         result['sign_code'] = code
 
-    cat = result.get('category') or category_for_code(code)
-    tpl = CATEGORY_SPEECH.get(cat, CATEGORY_SPEECH['warning'])
+    class_key = (result.get('class_key') or '').upper()
+    catalog = _catalog_row(sign_code=code, class_key=class_key)
+    cat = result.get('category') or (catalog or {}).get('category') or category_for_code(code)
+    result['category'] = cat
+    fallback = _category_fallback(cat, code)
 
-    # --- Sign name (Khmer) ---
-    km_name = result.get('sign_name_km') or ''
+    km_name = (result.get('sign_name_km') or '').strip()
     if not has_khmer(km_name):
-        current = result.get('sign_name', '')
+        current = (result.get('sign_name') or '').strip()
         if has_khmer(current) and not is_generic_sign_name(current):
             km_name = current
+        elif catalog and has_khmer(catalog.get('sign_name_km', '')):
+            km_name = catalog['sign_name_km']
         else:
-            from_en = khmer_name_from_english(
-                result.get('sign_name_en') or current,
-            )
+            from_en = khmer_name_from_english(result.get('sign_name_en') or current)
             km_name = from_en or (
-                f"{tpl['label']} {code}" if code else tpl['label']
+                f"{_CATEGORY_LABELS.get(cat, 'ស្លាកចរាចរណ៍')} {code}".strip()
+                if code else _CATEGORY_LABELS.get(cat, 'ស្លាកចរាចរណ៍')
             )
         result['sign_name_km'] = km_name
 
-    # Primary display name = Khmer
-    if not has_khmer(result.get('sign_name', '')) or is_generic_sign_name(
-        result.get('sign_name', ''),
-    ):
+    if not has_khmer(result.get('sign_name', '')) or is_generic_sign_name(result.get('sign_name', '')):
         old = result.get('sign_name', '')
         if old and not is_generic_sign_name(old) and not result.get('sign_name_en'):
             result['sign_name_en'] = old
-        elif old and is_generic_sign_name(old) and not result.get('sign_name_en'):
-            en = khmer_name_from_english(old)
-            if en:
-                result['sign_name_en'] = en
         result['sign_name'] = result['sign_name_km']
 
-    # --- Description ---
     if not is_khmer_primary_text(result.get('description', '')):
         if not result.get('description_en'):
             result['description_en'] = result.get('description', '')
-        desc = tpl['description']
-        if code:
-            desc = f"ស្លាកលេខ {code}។ {desc}"
-        result['description'] = desc
+        if catalog and has_khmer(catalog.get('description', '')):
+            result['description'] = catalog['description']
+        else:
+            result['description'] = fallback['description']
 
-    # --- Guidance ---
     if not is_khmer_primary_text(result.get('guidance', '')):
         if not result.get('guidance_en'):
             result['guidance_en'] = result.get('guidance', '')
-        guide = tpl['guidance']
-        name = result.get('sign_name_km') or result.get('sign_name', '')
-        if name:
-            guide = f"សូមបញ្ជរកចរាចរតាមស្លាក {name}។ {guide}"
-        result['guidance'] = guide
+        if catalog and has_khmer(catalog.get('guidance', '')):
+            result['guidance'] = catalog['guidance']
+        else:
+            name = result.get('sign_name_km') or result.get('sign_name', '')
+            result['guidance'] = (
+                f'សូមបញ្ជរកចរាចរតាមស្លាក {name}។ {fallback["guidance"]}'
+                if name else fallback['guidance']
+            )
+
+    if catalog:
+        if not result.get('sign_name_en') and catalog.get('sign_name_en'):
+            result['sign_name_en'] = catalog['sign_name_en']
+        if not result.get('description_en') and catalog.get('description_en'):
+            result['description_en'] = catalog['description_en']
+        if not result.get('guidance_en') and catalog.get('guidance_en'):
+            result['guidance_en'] = catalog['guidance_en']
 
     return result
 
 
 def enrich_catalog_row(row: dict) -> dict:
-    """Apply Khmer speech fields to a sign_catalog.json row (in place)."""
     merged = {
         'class_key': row.get('class_key', ''),
         'sign_code': row.get('sign_code', ''),
@@ -194,14 +213,8 @@ def enrich_catalog_row(row: dict) -> dict:
         'category': row.get('category', ''),
     }
     out = ensure_khmer_speech_fields(merged)
-    row['sign_name'] = out['sign_name']
-    row['sign_name_km'] = out.get('sign_name_km', out['sign_name'])
-    if out.get('sign_name_en'):
-        row['sign_name_en'] = out['sign_name_en']
-    row['description'] = out['description']
-    if out.get('description_en'):
-        row['description_en'] = out['description_en']
-    row['guidance'] = out['guidance']
-    if out.get('guidance_en'):
-        row['guidance_en'] = out['guidance_en']
+    row.update({k: out[k] for k in out if k in row or k in (
+        'sign_name', 'sign_name_km', 'sign_name_en', 'description',
+        'description_en', 'guidance', 'guidance_en', 'sign_code', 'category',
+    )})
     return row

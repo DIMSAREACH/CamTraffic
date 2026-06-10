@@ -1,12 +1,16 @@
-import { useState, useEffect } from 'react';
-import { BarChart3, Download, TrendingUp, FileText, Users, Camera } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@shared/components/ui/card';
+import { useState, useEffect, useCallback } from 'react';
+import {
+  BarChart3, Download, TrendingUp, FileText, Users, Camera, PieChart as PieChartIcon,
+  BarChart2, LineChart as LineChartIcon, AlertCircle, RefreshCw, Shield, Car, BadgeCheck,
+} from 'lucide-react';
 import { Button } from '@shared/components/ui/button';
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from 'recharts';
+import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
+import { useLiveData } from '@shared/hooks/useLiveData';
 import { dashboardAPI } from '@shared/services/api';
 import { toast } from 'sonner';
 import type { DashboardStats } from '@shared/types';
@@ -18,261 +22,448 @@ import {
   chartAxisTick,
 } from '@shared/constants/chartPalette';
 
+type ReportTab = 'overview' | 'fines' | 'detections' | 'users';
+
+const TABS: { key: ReportTab; labelKey: string; gradient: string }[] = [
+  { key: 'overview', labelKey: 'reports.tabOverview', gradient: 'linear-gradient(135deg, #D97706, #F59E0B)' },
+  { key: 'fines', labelKey: 'reports.tabFines', gradient: 'linear-gradient(135deg, #EF4444, #DC2626)' },
+  { key: 'detections', labelKey: 'reports.tabDetections', gradient: 'linear-gradient(135deg, #8B5CF6, #7C3AED)' },
+  { key: 'users', labelKey: 'reports.tabUsers', gradient: 'linear-gradient(135deg, #2563EB, #1D4ED8)' },
+];
+
+const MAIN_STATS = [
+  { key: 'revenue', labelKey: 'reports.statRevenue', subKey: 'reports.statRevenueSub', icon: TrendingUp, variant: 'teal' },
+  { key: 'fines', labelKey: 'reports.statFines', subKey: 'reports.statFinesSub', icon: FileText, variant: 'amber' },
+  { key: 'users', labelKey: 'reports.statUsers', subKey: 'reports.statUsersSub', icon: Users, variant: 'blue' },
+  { key: 'detections', labelKey: 'reports.statDetections', subKey: 'reports.statDetectionsSub', icon: Camera, variant: 'violet' },
+] as const;
+
+function formatRevenue(value: number) {
+  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `$${(value / 1_000).toFixed(1)}K`;
+  return `$${value.toLocaleString()}`;
+}
+
+function ChartPanel({
+  title,
+  icon,
+  accent,
+  children,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  accent: 'teal' | 'violet' | 'rose' | 'blue' | 'amber';
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="enforcement-page__panel reports-page__panel">
+      <div className={`reports-page__chart-head reports-page__chart-head--${accent}`}>
+        <div className={`reports-page__chart-icon reports-page__chart-icon--${accent}`}>
+          {icon}
+        </div>
+        <h3 className="reports-page__chart-title">{title}</h3>
+      </div>
+      <div className="reports-page__chart-body">{children}</div>
+    </div>
+  );
+}
+
+function MiniStat({
+  label,
+  value,
+  variant,
+}: {
+  label: string;
+  value: string | number;
+  variant: 'slate' | 'emerald' | 'amber' | 'rose' | 'blue' | 'violet' | 'teal';
+}) {
+  return (
+    <div className={`reports-page__mini-stat reports-page__mini-stat--${variant}`}>
+      <p className="reports-page__mini-stat-value">
+        {typeof value === 'number' ? value.toLocaleString() : value}
+      </p>
+      <p className="reports-page__mini-stat-label">{label}</p>
+    </div>
+  );
+}
+
 export function ReportsPage() {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
-  const [tab, setTab] = useState<'overview' | 'fines' | 'detections' | 'users'>('overview');
+  const [tab, setTab] = useState<ReportTab>('overview');
   const reportYear = new Date().getFullYear();
 
-  const loadStats = () => {
-    setLoading(true);
-    setLoadError(false);
-    dashboardAPI
-      .getAdminStats()
-      .then(s => setStats(s))
+  const loadStats = useCallback((silent = false) => {
+    if (!user) return;
+    if (!silent) {
+      setLoading(true);
+      setLoadError(false);
+    }
+    const request = user.role === 'admin'
+      ? dashboardAPI.getAdminStats()
+      : user.role === 'police'
+        ? dashboardAPI.getPoliceReportStats()
+        : dashboardAPI.getPoliceReportStats();
+
+    request
+      .then((s) => setStats(s))
       .catch(() => {
         setStats(null);
         setLoadError(true);
-        toast.error('Could not load reports data.');
+        if (!silent) toast.error(t('reports.loadFail'));
       })
-      .finally(() => setLoading(false));
-  };
+      .finally(() => {
+        if (!silent) setLoading(false);
+      });
+  }, [t, user]);
 
   useEffect(() => {
     loadStats();
-  }, []);
+  }, [loadStats]);
+
+  useLiveData(() => loadStats(true), 60_000, Boolean(user));
 
   const handleExport = () => {
-    toast.success('Report exported as PDF (demo)');
+    if (!stats) return;
+    const blob = new Blob([JSON.stringify(stats, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `camtraffic-report-${reportYear}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success(t('reports.exportSuccess'));
   };
 
-  if (loading) return (
-    <div className="space-y-5">
-      <div className="h-28 rounded-2xl animate-pulse" style={{ background: 'rgba(15,23,42,0.08)' }} />
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[...Array(4)].map((_, i) => <div key={i} className="h-28 rounded-2xl animate-pulse" style={{ background: 'rgba(37,99,235,0.07)' }} />)}
-      </div>
-    </div>
-  );
-
-  if (!stats) {
+  if (loading) {
     return (
-      <div className="rounded-2xl bg-white p-8 text-center shadow-sm" style={{ border: '1px solid rgba(37,99,235,0.1)' }}>
-        <p className="text-slate-700 font-semibold mb-2">Reports could not load</p>
-        <p className="text-sm text-slate-500 mb-4">
-          {loadError ? 'Check that the backend is running, then retry.' : 'No data available.'}
-        </p>
-        <Button onClick={loadStats}>Retry</Button>
+      <div className="enforcement-page enforcement-page--reports dashboard-page--reports">
+        <div className="enforcement-page__hero">
+          <div className="enforcement-page__hero-glow--primary" aria-hidden />
+          <div className="enforcement-page__skeleton" style={{ height: '7rem', borderRadius: '1rem' }} />
+        </div>
+        <div className="enforcement-page__stat-grid enforcement-page__stat-grid--four">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="enforcement-page__skeleton" style={{ height: '5.5rem', borderRadius: '1rem' }} />
+          ))}
+        </div>
+        <div className="enforcement-page__skeleton" style={{ height: '3.5rem', borderRadius: '1rem' }} />
+        <div className="enforcement-page__skeleton" style={{ height: '18rem', borderRadius: '1rem' }} />
       </div>
     );
   }
 
-  const totalRevenue = stats.fine_revenue;
+  if (!stats) {
+    return (
+      <div className="enforcement-page enforcement-page--reports dashboard-page--reports">
+        <div className="enforcement-page__panel reports-page__empty-panel">
+          <div className="enforcement-page__empty-icon enforcement-page__empty-icon--amber">
+            <AlertCircle size={28} />
+          </div>
+          <p className="enforcement-page__empty-title">{t('reports.loadFail')}</p>
+          <p className="enforcement-page__empty-subtitle">
+            {loadError ? t('reports.loadFailHint') : t('reports.noData')}
+          </p>
+          <Button type="button" className="reports-page__retry-btn" onClick={() => loadStats()}>
+            <RefreshCw size={14} />
+            {t('reports.retry')}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   const collectionRate = stats.total_fines > 0
     ? Math.round((stats.paid_fines / stats.total_fines) * 100)
     : 0;
+  const overdueFines = Math.max(0, stats.total_fines - stats.paid_fines - stats.pending_fines);
+
+  const mainStatValues: Record<typeof MAIN_STATS[number]['key'], { value: string; sub: string }> = {
+    revenue: { value: formatRevenue(stats.fine_revenue), sub: t('reports.statRevenueSub') },
+    fines: { value: stats.total_fines.toLocaleString(), sub: t('reports.collectedRate', { rate: collectionRate }) },
+    users: { value: stats.total_users.toLocaleString(), sub: t('reports.driversCount', { count: stats.total_drivers }) },
+    detections: {
+      value: stats.total_detections.toLocaleString(),
+      sub: t('reports.accuracyRate', { rate: stats.detection_accuracy }),
+    },
+  };
 
   return (
-    <div className="space-y-5">
-      {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-2xl p-5" style={{ background: 'linear-gradient(135deg, #0F172A, #162035)', border: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="absolute top-0 right-0 w-56 h-56 rounded-full -translate-y-16 translate-x-16"
-          style={{ background: 'radial-gradient(circle, rgba(245,158,11,0.15) 0%, transparent 70%)' }} />
-        <div className="absolute bottom-0 left-1/3 w-40 h-40 rounded-full translate-y-14"
-          style={{ background: 'radial-gradient(circle, rgba(37,99,235,0.1) 0%, transparent 70%)' }} />
-        <div className="relative flex items-center justify-between flex-wrap gap-4">
+    <div className="enforcement-page enforcement-page--reports dashboard-page--reports">
+      <div className="enforcement-page__hero">
+        <div className="enforcement-page__hero-glow--primary" aria-hidden />
+        <div className="enforcement-page__hero-glow--secondary" aria-hidden />
+        <div className="enforcement-page__hero-inner">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.2)' }}>
-                <BarChart3 size={14} style={{ color: '#FCD34D' }} />
-              </div>
-              <span className="dashboard-welcome__eyebrow" style={{ color: 'rgba(252,211,77,0.9)' }}>{t('pages.reports.eyebrow')}</span>
+            <div className="enforcement-page__eyebrow">
+              <span className="enforcement-page__eyebrow-icon">
+                <BarChart3 size={14} />
+              </span>
+              {t('pages.reports.eyebrow')}
             </div>
-            <h1 className="dashboard-welcome__title text-white">{t('pages.reports.title')}</h1>
-            <p className="dashboard-welcome__meta mt-1" style={{ color: 'rgba(148,163,184,0.7)' }}>
+            <h1 className="enforcement-page__title">{t('pages.reports.title')}</h1>
+            <p className="enforcement-page__subtitle">
               {t('pages.reports.heroSubtitle', { year: reportYear })}
             </p>
           </div>
-          <button onClick={handleExport}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold transition-all"
-            style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)' }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.18)'; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.1)'; }}
+          <button
+            type="button"
+            className="enforcement-page__hero-btn enforcement-page__hero-btn--amber"
+            onClick={handleExport}
           >
-            <Download size={14} /> Export PDF
+            <Download size={16} />
+            {t('pages.reports.exportPdf')}
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { title: 'Annual Revenue', value: `$${(totalRevenue / 1000).toFixed(1)}K`, sub: 'Fine collections', icon: <TrendingUp size={18} />, gradient: 'linear-gradient(135deg, #06B6D4, #0891B2)' },
-          { title: 'Total Fines', value: stats.total_fines.toLocaleString(), sub: `${collectionRate}% collected`, icon: <FileText size={18} />, gradient: 'linear-gradient(135deg, #EF4444, #DC2626)' },
-          { title: 'Registered Users', value: stats.total_users.toLocaleString(), sub: `${stats.total_drivers} drivers`, icon: <Users size={18} />, gradient: 'linear-gradient(135deg, #2563EB, #1D4ED8)' },
-          { title: 'AI Detections', value: stats.total_detections.toLocaleString(), sub: `${stats.detection_accuracy}% accuracy`, icon: <Camera size={18} />, gradient: 'linear-gradient(135deg, #8B5CF6, #7C3AED)' },
-        ].map(s => (
-          <div key={s.title} className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg" style={{ background: s.gradient }}>
-            <div className="absolute top-0 right-0 w-24 h-24 rounded-full -translate-y-6 translate-x-6" style={{ background: 'rgba(255,255,255,0.08)' }} />
-            <div className="relative flex items-start justify-between">
-              <div>
-                <p className="text-white/65 text-[11px] font-semibold uppercase tracking-widest">{s.title}</p>
-                <p className="text-3xl font-black mt-1.5 leading-none" style={{ letterSpacing: '-0.02em' }}>{s.value}</p>
-                <p className="text-white/55 text-xs mt-1">{s.sub}</p>
+      <div className="enforcement-page__stat-grid enforcement-page__stat-grid--four">
+        {MAIN_STATS.map((card) => {
+          const Icon = card.icon;
+          const { value, sub } = mainStatValues[card.key];
+          return (
+            <div
+              key={card.key}
+              className={`enforcement-page__stat-card enforcement-page__stat-card--${card.variant}`}
+            >
+              <div className={`enforcement-page__stat-icon enforcement-page__stat-icon--${card.variant}`}>
+                <Icon size={18} />
               </div>
-              <div className="w-10 h-10 bg-white/15 rounded-xl flex items-center justify-center">{s.icon}</div>
+              <div className="enforcement-page__stat-copy">
+                <p className="enforcement-page__stat-value">{value}</p>
+                <p className={`enforcement-page__stat-label enforcement-page__stat-label--${card.variant}`}>
+                  {t(card.labelKey)}
+                </p>
+                <p className="reports-page__stat-sub">{sub}</p>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      <div className="flex gap-1 p-1 rounded-xl bg-white shadow-sm" style={{ border: '1px solid rgba(37,99,235,0.07)' }}>
-        {(['overview', 'fines', 'detections', 'users'] as const).map(t => (
-          <button key={t} onClick={() => setTab(t)}
-            className="flex-1 px-3 py-2 rounded-lg text-[12px] font-bold capitalize transition-all"
-            style={tab === t
-              ? { background: 'linear-gradient(135deg, #0F172A, #1E293B)', color: '#fff', boxShadow: '0 2px 8px rgba(15,23,42,0.25)' }
-              : { color: '#94A3B8' }
-            }>{t}</button>
-        ))}
+      <div className="enforcement-page__toolbar">
+        <div className="enforcement-page__filters">
+          {TABS.map((item) => {
+            const active = tab === item.key;
+            return (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => setTab(item.key)}
+                className={`enforcement-page__filter-btn${active ? ' enforcement-page__filter-btn--active' : ''}`}
+                style={active ? { background: item.gradient } : undefined}
+              >
+                {t(item.labelKey)}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {tab === 'overview' && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="bg-white rounded-2xl shadow-sm" style={{ border: '1px solid #E2E8F0' }}>
-              <CardHeader className="pb-2"><CardTitle className="text-slate-800">Monthly Revenue {reportYear}</CardTitle></CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={240}>
-                  <AreaChart data={stats.monthly_fines}>
-                    <defs>
-                      <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={CHART.secondary} stopOpacity={0.22} />
-                        <stop offset="95%" stopColor={CHART.secondary} stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
-                    <XAxis dataKey="month" tick={chartAxisTick} axisLine={false} tickLine={false} />
-                    <YAxis tick={chartAxisTick} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} />
-                    <Tooltip cursor={false} formatter={(v) => [`$${v}`, 'Revenue']} contentStyle={chartTooltipStyle} />
-                    <Area type="monotone" dataKey="revenue" stroke={CHART.secondary} fill="url(#revGrad)" strokeWidth={2} dot={false} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
+        <div className="reports-page__grid reports-page__grid--two">
+          <ChartPanel
+            title={t('reports.chartMonthlyRevenue', { year: reportYear })}
+            icon={<TrendingUp size={16} />}
+            accent="teal"
+          >
+            <ResponsiveContainer width="100%" height={260}>
+              <AreaChart data={stats.monthly_fines}>
+                <defs>
+                  <linearGradient id="reportsRevGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={CHART.secondary} stopOpacity={0.22} />
+                    <stop offset="95%" stopColor={CHART.secondary} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
+                <XAxis dataKey="month" tick={chartAxisTick} axisLine={false} tickLine={false} />
+                <YAxis tick={chartAxisTick} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v}`} />
+                <Tooltip
+                  cursor={false}
+                  formatter={(v) => [`$${v}`, t('reports.legendRevenue')]}
+                  contentStyle={chartTooltipStyle}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke={CHART.secondary}
+                  fill="url(#reportsRevGrad)"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </ChartPanel>
 
-            <Card className="bg-white rounded-2xl shadow-sm" style={{ border: '1px solid #E2E8F0' }}>
-              <CardHeader className="pb-2"><CardTitle className="text-slate-800">Violations Breakdown</CardTitle></CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={240}>
-                  <PieChart>
-                    <Pie data={stats.fine_by_reason} dataKey="count" nameKey="reason" cx="50%" cy="50%" outerRadius={90} innerRadius={50} paddingAngle={3}>
-                      {stats.fine_by_reason.map((_, i) => <Cell key={i} fill={CHART_SERIES[i % CHART_SERIES.length]} />)}
-                    </Pie>
-                    <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
-                    <Legend wrapperStyle={{ fontSize: 11 }} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
+          <ChartPanel
+            title={t('reports.chartViolationsBreakdown')}
+            icon={<PieChartIcon size={16} />}
+            accent="rose"
+          >
+            <ResponsiveContainer width="100%" height={260}>
+              <PieChart>
+                <Pie
+                  data={stats.fine_by_reason}
+                  dataKey="count"
+                  nameKey="reason"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={92}
+                  innerRadius={52}
+                  paddingAngle={3}
+                >
+                  {stats.fine_by_reason.map((_, i) => (
+                    <Cell key={i} fill={CHART_SERIES[i % CHART_SERIES.length]} />
+                  ))}
+                </Pie>
+                <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </ChartPanel>
         </div>
       )}
 
       {tab === 'fines' && (
-        <div className="space-y-6">
-          <Card className="bg-white rounded-2xl shadow-sm" style={{ border: '1px solid #E2E8F0' }}>
-            <CardHeader className="pb-2"><CardTitle className="text-slate-800">Monthly Fine Volume vs Revenue</CardTitle></CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={stats.monthly_fines}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
-                  <XAxis dataKey="month" tick={chartAxisTick} axisLine={false} tickLine={false} />
-                  <YAxis yAxisId="left" tick={chartAxisTick} axisLine={false} tickLine={false} />
-                  <YAxis yAxisId="right" orientation="right" tick={chartAxisTick} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} />
-                  <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Bar yAxisId="left" dataKey="count" name="Fines Count" fill={CHART.primary} radius={[4, 4, 0, 0]} />
-                  <Bar yAxisId="right" dataKey="revenue" name="Revenue ($)" fill={CHART.secondary} radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+        <div className="reports-page__section">
+          <ChartPanel
+            title={t('reports.chartFineVolume')}
+            icon={<BarChart2 size={16} />}
+            accent="amber"
+          >
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={stats.monthly_fines}>
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
+                <XAxis dataKey="month" tick={chartAxisTick} axisLine={false} tickLine={false} />
+                <YAxis yAxisId="left" tick={chartAxisTick} axisLine={false} tickLine={false} />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  tick={chartAxisTick}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(v) => `$${v}`}
+                />
+                <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Bar
+                  yAxisId="left"
+                  dataKey="count"
+                  name={t('reports.legendFinesCount')}
+                  fill={CHART.primary}
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar
+                  yAxisId="right"
+                  dataKey="revenue"
+                  name={t('reports.legendRevenueDollar')}
+                  fill={CHART.secondary}
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartPanel>
 
-          {/* Fine status breakdown */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-              { label: 'Total Fines', value: stats.total_fines, color: 'border-l-gray-400' },
-              { label: 'Paid', value: stats.paid_fines, color: 'border-l-emerald-500' },
-              { label: 'Pending', value: stats.pending_fines, color: 'border-l-amber-500' },
-              { label: 'Overdue', value: stats.total_fines - stats.paid_fines - stats.pending_fines, color: 'border-l-red-500' },
-            ].map(s => (
-              <Card key={s.label} className={`border border-gray-100 border-l-4 shadow-sm ${s.color}`}>
-                <CardContent className="p-4">
-                  <p className="text-2xl font-bold text-gray-900">{s.value.toLocaleString()}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="reports-page__mini-grid reports-page__mini-grid--four">
+            <MiniStat label={t('reports.statTotalFines')} value={stats.total_fines} variant="slate" />
+            <MiniStat label={t('reports.statPaid')} value={stats.paid_fines} variant="emerald" />
+            <MiniStat label={t('reports.statPending')} value={stats.pending_fines} variant="amber" />
+            <MiniStat label={t('reports.statOverdue')} value={overdueFines} variant="rose" />
           </div>
         </div>
       )}
 
       {tab === 'detections' && (
-        <div className="space-y-6">
-          <Card className="bg-white rounded-2xl shadow-sm" style={{ border: '1px solid #E2E8F0' }}>
-            <CardHeader className="pb-2"><CardTitle className="text-slate-800">Monthly AI Detections {reportYear}</CardTitle></CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={280}>
-                <LineChart data={stats.monthly_detections}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
-                  <XAxis dataKey="month" tick={chartAxisTick} axisLine={false} tickLine={false} />
-                  <YAxis tick={chartAxisTick} axisLine={false} tickLine={false} />
-                  <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Line type="monotone" dataKey="count" name="Detections" stroke={CHART.primary} strokeWidth={2} dot={{ fill: CHART.primary, r: 3 }} activeDot={{ r: 5, fill: CHART.primaryDark }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-          <div className="grid grid-cols-2 gap-4">
-            <Card className="bg-white rounded-2xl shadow-sm"  style={{ border: '1px solid rgba(37,99,235,0.07)' }}><CardContent className="p-4"><p className="text-2xl font-bold text-gray-900">{stats.total_detections.toLocaleString()}</p><p className="text-xs text-gray-500">Total Detections</p></CardContent></Card>
-            <Card className="bg-white rounded-2xl shadow-sm"  style={{ border: '1px solid rgba(37,99,235,0.07)' }}><CardContent className="p-4"><p className="text-2xl font-bold text-gray-900">{stats.detection_accuracy}%</p><p className="text-xs text-gray-500">Model Accuracy</p></CardContent></Card>
+        <div className="reports-page__section">
+          <ChartPanel
+            title={t('reports.chartMonthlyDetections', { year: reportYear })}
+            icon={<LineChartIcon size={16} />}
+            accent="violet"
+          >
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={stats.monthly_detections}>
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
+                <XAxis dataKey="month" tick={chartAxisTick} axisLine={false} tickLine={false} />
+                <YAxis tick={chartAxisTick} axisLine={false} tickLine={false} />
+                <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Line
+                  type="monotone"
+                  dataKey="count"
+                  name={t('reports.legendDetections')}
+                  stroke={CHART.primary}
+                  strokeWidth={2}
+                  dot={{ fill: CHART.primary, r: 3 }}
+                  activeDot={{ r: 5, fill: CHART.primaryDark }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartPanel>
+
+          <div className="reports-page__mini-grid reports-page__mini-grid--two">
+            <MiniStat label={t('reports.statTotalDetections')} value={stats.total_detections} variant="violet" />
+            <MiniStat
+              label={t('reports.statModelAccuracy')}
+              value={`${stats.detection_accuracy}%`}
+              variant="blue"
+            />
           </div>
         </div>
       )}
 
       {tab === 'users' && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-            {[
-              { label: 'Total Users', value: stats.total_users, color: 'border-l-slate-500' },
-              { label: 'Drivers', value: stats.total_drivers, color: 'border-l-emerald-500' },
-              { label: 'Police Officers', value: stats.total_police, color: 'border-l-blue-500' },
-            ].map(s => (
-              <Card key={s.label} className={`border border-gray-100 border-l-4 shadow-sm ${s.color}`}>
-                <CardContent className="p-5">
-                  <p className="text-3xl font-bold text-gray-900">{s.value.toLocaleString()}</p>
-                  <p className="text-sm text-gray-500 mt-0.5">{s.label}</p>
-                </CardContent>
-              </Card>
-            ))}
+        <div className="reports-page__section">
+          <div className="reports-page__mini-grid reports-page__mini-grid--three">
+            <MiniStat label={t('reports.statTotalUsers')} value={stats.total_users} variant="slate" />
+            <MiniStat label={t('reports.statDrivers')} value={stats.total_drivers} variant="teal" />
+            <MiniStat label={t('reports.statPolice')} value={stats.total_police} variant="blue" />
           </div>
-          <Card className="bg-white rounded-2xl shadow-sm" style={{ border: '1px solid #E2E8F0' }}>
-            <CardHeader className="pb-2"><CardTitle className="text-slate-800">User Role Distribution</CardTitle></CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={260}>
-                <PieChart>
-                  <Pie data={stats.user_distribution} dataKey="count" nameKey="role" cx="50%" cy="50%" outerRadius={100} innerRadius={60} paddingAngle={3}>
-                    {stats.user_distribution.map((_, i) => <Cell key={i} fill={CHART_ROLE_COLORS[i % CHART_ROLE_COLORS.length]} />)}
-                  </Pie>
-                  <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+
+          <ChartPanel
+            title={t('reports.chartUserRoles')}
+            icon={<Users size={16} />}
+            accent="blue"
+          >
+            <ResponsiveContainer width="100%" height={280}>
+              <PieChart>
+                <Pie
+                  data={stats.user_distribution}
+                  dataKey="count"
+                  nameKey="role"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={102}
+                  innerRadius={62}
+                  paddingAngle={3}
+                >
+                  {stats.user_distribution.map((_, i) => (
+                    <Cell key={i} fill={CHART_ROLE_COLORS[i % CHART_ROLE_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </ChartPanel>
+
+          <div className="reports-page__role-legend">
+            {[
+              { label: t('reports.roleAdmin'), icon: Shield, variant: 'violet' },
+              { label: t('reports.rolePolice'), icon: BadgeCheck, variant: 'blue' },
+              { label: t('reports.roleDriver'), icon: Car, variant: 'teal' },
+            ].map((item) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.label} className={`reports-page__role-chip reports-page__role-chip--${item.variant}`}>
+                  <Icon size={13} />
+                  {item.label}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

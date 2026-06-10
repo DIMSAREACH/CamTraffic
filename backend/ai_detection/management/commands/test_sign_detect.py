@@ -26,6 +26,8 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS('\n--- Detection result ---'))
         self.stdout.write(f"Sign:        {result['sign_name']}")
+        if result.get('sign_code'):
+            self.stdout.write(f"Sign code:   {result['sign_code']}")
         self.stdout.write(f"Confidence:  {result['confidence']}%")
         self.stdout.write(f"Time:        {result.get('processing_time', 0)}s")
         self.stdout.write(f"\nDescription:\n{result['description']}")

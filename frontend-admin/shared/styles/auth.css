@@ -418,6 +418,10 @@ html.dark .req-pending        { color: var(--dm-text3, #6a5f85); }
 .btn-submit:active:not(:disabled) { transform: translateY(0); }
 /* only spinner/loading state should fade the button */
 .btn-submit:disabled { opacity: .75; cursor: not-allowed; }
+.btn-submit--success {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+  box-shadow: 0 5px 20px rgba(5, 150, 105, 0.35) !important;
+}
 
 /* ── Divider / register line ─────────────── */
 .or-row { display: flex; align-items: center; gap: .8rem; font-size: .85rem; color: #c4b5fd; margin: 1.5rem 0; font-weight: 600; }
@@ -673,6 +677,11 @@ html.dark .otp-switch-note   { color: var(--dm-text2); }
 html.dark .fp-success h2 { color: var(--dm-text); }
 html.dark .fp-success p  { color: var(--dm-text2); }
 
+.fp-resend-btn {
+  margin-top: .5rem;
+  width: 100%;
+}
+
 /* ══════════════════════════════════════════
    SOCIAL LOGIN BUTTONS
 ══════════════════════════════════════════ */
@@ -727,6 +736,7 @@ html.dark .fp-success p  { color: var(--dm-text2); }
 .social-github svg {
   color: #24292f;
 }
+
 .social-login-block {
   margin-top: 0.25rem;
 }
@@ -1010,32 +1020,56 @@ html.dark .admin-portal-hint-link {
   overflow: hidden;
 }
 
-/* Ministry of Interior Cambodia — full image, clearly visible */
+/* Ministry of Interior Cambodia — full-width background */
 .up-bg {
   position: absolute;
   inset: 0;
-  background-image:
-    url('/moi-building.png'),
-    linear-gradient(135deg, #0c1530 0%, #1e3a5f 40%, #0f172a 100%);
-  background-color: #0d1825;
-  background-size: cover;
-  background-position: center center;
-  filter: brightness(0.88) saturate(1.05);
-  transform: scale(1.0);
   z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #0d1825;
 }
-.up-page:hover .up-bg { transform: scale(1.02); transition: transform 14s ease; }
 
-/* overlay — strong dark left text panel, fully transparent right for building */
+.up-bg__img {
+  display: block;
+  width: 100%;
+  min-width: 100%;
+  height: 100%;
+  min-height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  transform: scale(1);
+  transition: transform 18s ease;
+}
+
+.up-page:hover .up-bg__img {
+  transform: scale(1.03);
+}
+
+/* User portal — login, register, password flows */
+.up-page--user .up-overlay {
+  background: linear-gradient(
+    90deg,
+    rgba(8, 14, 28, 0.72) 0%,
+    rgba(8, 14, 28, 0.45) 40%,
+    rgba(8, 14, 28, 0.1) 58%,
+    transparent 76%
+  );
+}
+.up-page--user .up-headline em {
+  color: #38bdf8;
+}
+
+/* Overlay — readable text on the left; building stays clear on the right */
 .up-overlay {
   position: absolute;
   inset: 0;
   background: linear-gradient(
-    108deg,
-    rgba(4, 8, 22, 0.90) 0%,
-    rgba(4, 8, 22, 0.78) 25%,
-    rgba(4, 8, 22, 0.35) 50%,
-    rgba(4, 8, 22, 0.00) 72%
+    90deg,
+    rgba(8, 14, 28, 0.74) 0%,
+    rgba(8, 14, 28, 0.42) 38%,
+    rgba(8, 14, 28, 0.08) 58%,
+    transparent 76%
   );
   z-index: 1;
 }
@@ -1091,7 +1125,7 @@ html.dark .admin-portal-hint-link {
 }
 .up-headline em {
   font-style: normal;
-  color: #60a5fa;   /* sky-blue accent — complements the blue sky in the photo */
+  color: #60a5fa;
 }
 
 .up-tagline {
@@ -1132,6 +1166,7 @@ html.dark .admin-portal-hint-link {
   color: #c4b5fd;
   flex-shrink: 0;
 }
+
 .up-feature-icon {
   width: 32px;
   height: 32px;
@@ -1151,6 +1186,16 @@ html.dark .admin-portal-hint-link {
 .up-badge-icon {
   flex-shrink: 0;
   color: #c4b5fd;
+}
+
+.up-badge-logo.camtraffic-logo-img {
+  width: 2rem !important;
+  height: 2rem !important;
+  min-width: 2rem !important;
+  min-height: 2rem !important;
+  padding: 0.2rem !important;
+  background: #ffffff;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35);
 }
 
 .up-footer {
@@ -1179,13 +1224,15 @@ html.dark .admin-portal-hint-link {
 }
 
 .up-card {
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.98);
   border-radius: 20px;
   padding: 2.5rem 2.75rem 2.25rem;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.85);
   box-shadow:
-    0 24px 64px rgba(0, 0, 0, 0.35),
-    0 4px 16px rgba(0, 0, 0, 0.12);
+    0 20px 50px rgba(15, 23, 42, 0.18),
+    0 4px 16px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   animation: fadeUp .4s ease both;
 }
 
@@ -1316,172 +1363,119 @@ html.dark .admin-portal-hint-link {
    ADMIN PORTAL — city-background, teal/cyan theme overrides
 ═══════════════════════════════════════════════════════════ */
 
-/* Admin portal — dark navy + optional city photo */
+/* Admin portal — same full photo; cool edge fill */
 .ap-bg {
-  background-image:
-    url('/moi-building.png'),
-    linear-gradient(160deg, #030712 0%, #0a1628 45%, #0c2340 100%) !important;
-  background-color: #050a12 !important;
-  background-position: center center !important;
-  background-size: cover !important;
-  background-repeat: no-repeat !important;
-  filter: brightness(0.82) saturate(1.1) !important;
+  background: #070d14 !important;
 }
 
-/* Deeper, cooler overlay */
 .ap-overlay {
   background: linear-gradient(
-    108deg,
-    rgba(2, 8, 20, 0.92) 0%,
-    rgba(2, 8, 20, 0.80) 25%,
-    rgba(2, 8, 20, 0.38) 50%,
-    rgba(2, 8, 20, 0.00) 72%
+    90deg,
+    rgba(4, 10, 22, 0.76) 0%,
+    rgba(4, 10, 22, 0.44) 40%,
+    rgba(4, 10, 22, 0.1) 58%,
+    transparent 76%
   ) !important;
 }
 
-/* Badge — teal outline pill */
-.ap-page .up-badge.ap-badge {
+/* Badge — teal */
+.ap-badge {
   background: rgba(2, 14, 38, 0.55) !important;
   backdrop-filter: blur(8px) !important;
   -webkit-backdrop-filter: blur(8px) !important;
-  border: 1px solid rgba(56, 189, 248, 0.55) !important;
-  color: #e0f2fe !important;
-  padding: 0.38rem 0.95rem !important;
-  font-size: 0.72rem !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.1em !important;
-  text-transform: uppercase !important;
-  margin-bottom: 1.35rem !important;
-  gap: 0.5rem !important;
-}
-.ap-badge-icon {
-  color: #7dd3fc !important;
-  flex-shrink: 0;
+  border-color: rgba(34, 211, 238, 0.55) !important;
+  color: #bae6fd !important;
 }
 
-/* Headline — white + cyan two-line title */
-.ap-page .ap-headline {
-  font-size: clamp(2.15rem, 3.8vw, 3.1rem) !important;
-  font-weight: 900 !important;
-  line-height: 1.1 !important;
-  letter-spacing: -0.03em !important;
-  margin-bottom: 1rem !important;
-  color: #ffffff !important;
-  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.75) !important;
+/* Headline — cyan accent */
+.ap-headline {
+  font-size: clamp(1.75rem, 2.9vw, 2.25rem) !important;
+  line-height: 1.18 !important;
+  margin-bottom: .7rem !important;
+  text-shadow: 0 2px 16px rgba(0,0,0,0.70), 0 1px 4px rgba(0,0,0,0.50) !important;
 }
-.ap-page .ap-headline em {
-  font-style: normal !important;
-  color: #58c4f5 !important;
-  display: inline-block;
-  margin-top: 0.05em;
+.ap-headline em {
+  color: #38bdf8 !important;
 }
-
-.ap-page .ap-tagline {
-  font-size: 1rem !important;
+.ap-tagline {
+  font-size: .94rem !important;
   line-height: 1.65 !important;
-  margin-bottom: 1.35rem !important;
-  max-width: 440px !important;
-  color: rgba(241, 245, 249, 0.92) !important;
-  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.65) !important;
+  margin-bottom: 1.1rem !important;
+  color: rgba(226, 232, 240, 0.92) !important;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.60) !important;
+}
+.ap-badge {
+  padding: .32rem .88rem !important;
+  font-size: .74rem !important;
+  margin-bottom: .6rem !important;
 }
 
-/* Stat row — three outlined cards */
+/* Stat row */
 .ap-stat-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.65rem;
-  margin-bottom: 1.25rem;
-  max-width: 420px;
+  display: flex;
+  gap: .7rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
 }
 .ap-stat-chip {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  min-height: 88px;
-  padding: 0.7rem 0.5rem;
-  background: rgba(4, 16, 38, 0.45);
+  background: rgba(4, 16, 38, 0.55);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 1.5px solid rgba(56, 189, 248, 0.42);
-  border-radius: 12px;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 10px;
+  padding: .55rem .85rem;
+  flex: 1;
+  min-width: 90px;
 }
 .ap-stat-icon {
-  color: #58c4f5;
-  margin-bottom: 0.45rem;
-  flex-shrink: 0;
+  display: block;
+  color: #38bdf8;
+  margin-bottom: .35rem;
+  opacity: 0.95;
 }
 .ap-stat-value {
   display: block;
-  font-size: 1.05rem;
+  font-size: 1.0rem;
   font-weight: 800;
   color: #ffffff;
-  line-height: 1.1;
-  margin-bottom: 0.2rem;
-  letter-spacing: 0.02em;
+  line-height: 1;
+  margin-bottom: .18rem;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.50);
 }
 .ap-stat-label {
-  font-size: 0.7rem;
+  font-size: .72rem;
+  color: rgba(186, 230, 253, 0.90);
   font-weight: 500;
-  color: rgba(186, 230, 253, 0.88);
-  line-height: 1.25;
 }
 
-/* Feature list — icon tiles + white text */
-.ap-page .ap-features {
-  gap: 0.55rem !important;
-  margin-bottom: 1.5rem !important;
-  max-width: 440px;
+/* Feature list — teal icons + compact for admin */
+.ap-features {
+  gap: .45rem !important;
+  margin-bottom: .9rem !important;
 }
-.ap-page .ap-features li {
-  font-size: 0.92rem !important;
-  font-weight: 500 !important;
-  color: rgba(255, 255, 255, 0.94) !important;
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7) !important;
+.ap-features li {
+  font-size: .90rem !important;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.70) !important;
 }
-.ap-feature-icon {
-  width: 30px;
-  height: 30px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  border-radius: 8px;
-  background: rgba(14, 165, 233, 0.15);
-  border: 1px solid rgba(56, 189, 248, 0.38);
-  color: #7dd3fc;
+.ap-features li i {
+  width: 28px !important;
+  height: 28px !important;
+  font-size: .85rem !important;
+  background: rgba(14, 165, 233, 0.18) !important;
+  border-color: rgba(56, 189, 248, 0.35) !important;
+  color: #7dd3fc !important;
 }
-.ap-page .up-features li {
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7) !important;
-}
-
-@media (max-width: 520px) {
-  .ap-stat-row {
-    grid-template-columns: 1fr;
-    max-width: 100%;
-  }
-  .ap-stat-chip {
-    min-height: auto;
-    flex-direction: row;
-    justify-content: flex-start;
-    gap: 0.65rem;
-    text-align: left;
-    padding: 0.65rem 0.85rem;
-  }
-  .ap-stat-icon {
-    margin-bottom: 0;
-  }
+.up-features li {
+  text-shadow: 0 1px 8px rgba(0,0,0,0.70) !important;
 }
 
 /* Footer status dot — cyan */
-.ap-page .ap-footer {
-  font-size: 0.8rem !important;
+.ap-footer {
+  font-size: .80rem !important;
   font-weight: 500 !important;
-  margin-top: 0.25rem !important;
-  color: rgba(226, 240, 255, 0.9) !important;
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7) !important;
-  gap: 0.5rem !important;
+  margin-top: .75rem !important;
+  color: rgba(226, 240, 255, 0.92) !important;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.70) !important;
 }
 .ap-status-dot {
   width: 8px;
@@ -1576,15 +1570,6 @@ html.dark .ap-card .lf-input::placeholder { color: rgba(14, 165, 233, 0.3); }
 html.dark .ap-card .lf-icon { color: #4d7fa8; }
 html.dark .ap-card .lf-eye  { color: #4d7fa8; }
 html.dark .ap-card .field-label { color: #bae6fd; }
-html.dark .ap-card .remember-label { color: #bae6fd; }
-html.dark .ap-card .remember-box {
-  border-color: rgba(14, 165, 233, 0.4);
-  background: #0f2744;
-}
-html.dark .ap-card .remember-check:checked + .remember-box {
-  background: #0e7490;
-  border-color: #38bdf8;
-}
 html.dark .ap-card .extra-row .form-check-label { color: #7099bb; }
 html.dark .ap-card .forgot-link { color: #38bdf8 !important; }
 html.dark .ap-card .err-alert {
@@ -1674,6 +1659,7 @@ html.dark .up-tab--active { background: #2a2458; color: #c4b5fd; }
 html.dark .up-card-title { color: #e2d9f3; }
 html.dark .up-card-sub { color: #9b8fc0; }
 html.dark .up-register-line { color: #9b8fc0; }
+html.dark .up-register-line a { color: #a78bfa; }
 html.dark .up-card .remember-label,
 html.dark .remember-label {
   color: #e2d9f3;
@@ -1688,93 +1674,6 @@ html.dark .remember-check:checked + .remember-box {
   background: #7c3aed;
   border-color: #a78bfa;
 }
-html.dark .up-register-line a { color: #a78bfa; }
-
-/* ── Admin login: demo credentials & portal link ── */
-.ap-demo-box {
-  margin-bottom: 1rem;
-  padding: 0.75rem 0.9rem;
-  border-radius: 12px;
-  background: rgba(14, 165, 233, 0.08);
-  border: 1px solid rgba(14, 165, 233, 0.28);
-}
-.ap-demo-label {
-  margin: 0 0 0.35rem;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #0369a1;
-}
-.ap-demo-creds {
-  margin: 0 0 0.55rem;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem 0.5rem;
-  font-size: 0.78rem;
-  color: #0c4a6e;
-  font-family: ui-monospace, monospace;
-}
-.ap-demo-sep {
-  opacity: 0.45;
-}
-.ap-demo-btn {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.35rem 0.75rem;
-  border-radius: 8px;
-  border: 1px solid rgba(14, 165, 233, 0.45);
-  background: rgba(255, 255, 255, 0.85);
-  color: #0369a1;
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-}
-.ap-demo-btn:hover {
-  background: #fff;
-  border-color: #0ea5e9;
-}
-.ap-forgot-muted {
-  font-size: 0.85rem;
-  cursor: default;
-  opacity: 0.55;
-  color: #64748b !important;
-}
-.ap-portal-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: #0369a1;
-  cursor: pointer;
-  transition: color 0.15s;
-}
-.ap-portal-link:hover {
-  color: #0ea5e9;
-  text-decoration: underline;
-}
-html.dark .ap-demo-box {
-  background: rgba(14, 165, 233, 0.1);
-  border-color: rgba(56, 189, 248, 0.25);
-}
-html.dark .ap-demo-label { color: #7dd3fc; }
-html.dark .ap-demo-creds { color: #bae6fd; }
-html.dark .ap-demo-btn {
-  background: rgba(15, 39, 68, 0.8);
-  color: #7dd3fc;
-  border-color: rgba(56, 189, 248, 0.35);
-}
-html.dark .ap-portal-link { color: #38bdf8; }
-
-html.dark .up-card-sub { color: #9b8fc0; }
-html.dark .up-register-line { color: #9b8fc0; }
-html.dark .up-register-line a { color: #a78bfa; }
 
 /* Auth pages — quick light/dark toggle (navbar uses full menu after login) */
 .auth-theme-toggle {

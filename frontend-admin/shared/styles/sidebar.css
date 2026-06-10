@@ -210,12 +210,14 @@
 .camtraffic-logo-img {
   display: block;
   flex-shrink: 0;
+  box-sizing: border-box;
   object-fit: contain;
+  object-position: center;
   border-radius: 50%;
-  background: #fff;
+  background: #ffffff;
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.15),
-    0 2px 10px rgba(15, 23, 42, 0.2);
+    0 0 0 1px rgba(15, 23, 42, 0.08),
+    0 2px 10px rgba(15, 23, 42, 0.14);
 }
 
 .camtraffic-brand--sm .sidebar-brand__title {
@@ -232,7 +234,7 @@
 
 .camtraffic-brand--sm .sidebar-brand__mark,
 .camtraffic-brand--md .sidebar-brand__mark {
-  filter: drop-shadow(0 2px 8px var(--sb-brand-shadow, rgba(124, 58, 237, 0.4)));
+  filter: none;
 }
 
 .camtraffic-brand__tagline--nav {
@@ -467,7 +469,7 @@
 
 .sidebar-brand__mark {
   flex-shrink: 0;
-  filter: drop-shadow(0 4px 12px var(--sb-brand-shadow, rgba(124, 58, 237, 0.45)));
+  filter: none;
 }
 
 .app-sidebar--user { --sb-brand-shadow: var(--sb-user-glow); }

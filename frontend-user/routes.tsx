@@ -10,6 +10,7 @@ import { AIDetectionPage } from '@shared/pages/AIDetectionPage';
 import { ReportsPage } from '@shared/pages/ReportsPage';
 import { AILogsPage } from '@shared/pages/AILogsPage';
 import { FineManagement } from '@shared/pages/FineManagement';
+import { ViolationsPage } from '@shared/pages/ViolationsPage';
 import { TrafficSignsPage } from '@shared/pages/TrafficSignsPage';
 import { VehiclesPage } from '@shared/pages/VehiclesPage';
 import { ProfilePage } from '@shared/pages/ProfilePage';
@@ -30,6 +31,7 @@ export const router = createBrowserRouter([
       { path: 'ai-detection', Component: AIDetectionPage },
       { path: 'ai-logs', Component: AILogsPage },
       { path: 'fines', Component: FineManagement },
+      { path: 'violations', Component: ViolationsPage },
       { path: 'signs', Component: TrafficSignsPage },
       { path: 'vehicles', Component: VehiclesPage },
       { path: 'reports', Component: ReportsPage },

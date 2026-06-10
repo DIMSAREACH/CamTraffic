@@ -7,8 +7,9 @@ interface CamTrafficLogoProps {
   alt?: string;
 }
 
-/** Official CamTraffic / Cambodia traffic emblem */
-export function CamTrafficLogo({ size = 40, className, alt = 'CamTraffic' }: CamTrafficLogoProps) {
+/** Norton University seal — used as the app brand mark */
+export function CamTrafficLogo({ size = 40, className, alt = 'Norton University' }: CamTrafficLogoProps) {
+  const pad = Math.max(3, Math.round(size * 0.1));
   return (
     <img
       src={camtrafficEmblem}
@@ -17,8 +18,15 @@ export function CamTrafficLogo({ size = 40, className, alt = 'CamTraffic' }: Cam
       height={size}
       draggable={false}
       decoding="async"
+      fetchPriority="high"
       className={cn('camtraffic-logo-img', className)}
-      style={{ width: size, height: size, minWidth: size, minHeight: size }}
+      style={{
+        width: size,
+        height: size,
+        minWidth: size,
+        minHeight: size,
+        padding: pad,
+      }}
     />
   );
 }

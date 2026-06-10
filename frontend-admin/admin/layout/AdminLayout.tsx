@@ -6,6 +6,7 @@ import { Navbar } from '@shared/layout/Navbar';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { useSidebarState } from '@shared/hooks/useSidebarState';
+import { useLiveData } from '@shared/hooks/useLiveData';
 import { getUserDevUrl } from '@shared/utils/portal';
 import { notificationsAPI } from '@shared/services/api';
 import { cn } from '@shared/components/ui/utils';
@@ -34,6 +35,13 @@ export function AdminLayout() {
       setUnreadCount(ns.filter((n) => !n.is_read).length),
     );
   }, [user]);
+
+  useLiveData(() => {
+    if (!user) return;
+    notificationsAPI.getByUser(user.id).then((ns) =>
+      setUnreadCount(ns.filter((n) => !n.is_read).length),
+    );
+  }, 30_000, Boolean(user));
 
   useEffect(() => {
     closeMobile();
@@ -75,6 +83,9 @@ export function AdminLayout() {
   }
 
   if (!user || user.role !== 'admin') return null;
+
+  const isCamerasPage = location.pathname.includes('/cameras');
+  const isProfilePage = location.pathname.includes('/profile');
 
   return (
     <div
@@ -119,8 +130,14 @@ export function AdminLayout() {
           onSidebarToggle={toggleCollapsed}
           onMobileMenuOpen={openMobile}
         />
-        <main className="flex-1 overflow-y-auto">
-          <div className="app-dashboard app-dashboard--admin relative p-5 lg:p-6">
+        <main className={cn('flex-1 min-h-0', isCamerasPage ? 'overflow-hidden' : 'overflow-y-auto')}>
+          <div
+            className={cn(
+              'app-dashboard app-dashboard--admin relative',
+              isCamerasPage ? 'app-dashboard--cameras-route h-full' : '',
+              isProfilePage ? 'app-dashboard--profile-route' : 'p-5 lg:p-6',
+            )}
+          >
             <Outlet key={locale} />
           </div>
         </main>

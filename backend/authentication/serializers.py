@@ -74,6 +74,11 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         if not self.user.is_active:
             raise serializers.ValidationError(LOGIN_ACCOUNT_DEACTIVATED)
         self._portal_role_checks()
+        from authentication.profile_views import finalize_successful_login
+
+        request = self.context.get('request')
+        if request is not None:
+            finalize_successful_login(self.user, request)
         data['user'] = UserSerializer(self.user, context=self.context).data
         return data
 
@@ -95,7 +100,20 @@ class RegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'password_confirm': 'Passwords do not match.'})
         return attrs
 
+    def validate_license_no(self, value):
+        from users.profile_services import ProfileValidationError, validate_unique_license_no
+
+        license_no = (value or '').strip()
+        if license_no:
+            try:
+                validate_unique_license_no(license_no)
+            except ProfileValidationError as exc:
+                raise serializers.ValidationError(exc.message) from exc
+        return license_no
+
     def create(self, validated_data):
+        from users.profile_services import provision_user_account
+
         user = User(
             email=validated_data['email'].strip().lower(),
             full_name=validated_data['full_name'],
@@ -106,6 +124,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         )
         user.set_password(validated_data['password'])
         user.save()
+        provision_user_account(user, license_no=user.license_no)
         return user
 
 

@@ -1,128 +1,660 @@
-import { useState, useEffect } from 'react';
-import { useLanguage } from '@shared/context/LanguageContext';
-import { Activity, Search, CheckCircle, Camera, Users, BarChart2 } from 'lucide-react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import {
+  Activity, Search, Eye, Camera, Users, BarChart2, CheckCircle, ImageIcon, Sparkles,
+  Info, ExternalLink, Car, AlertCircle, Hash,
+} from 'lucide-react';
+import { Button } from '@shared/components/ui/button';
+import { Dialog, DialogContent } from '@shared/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@shared/components/ui/table';
+import { useLanguage } from '@shared/context/LanguageContext';
+import { useLiveData } from '@shared/hooks/useLiveData';
 import { aiAPI } from '@shared/services/api';
+import { toast } from 'sonner';
+import { SpeakButton } from '@shared/components/SpeakButton';
+import { useSpeech } from '@shared/hooks/useSpeech';
+import { heroSpeechText, heroTitleSpeech, logDisplay, logDisplayColor } from '@shared/utils/detectionDisplay';
+import { getProfileImageSrc } from '@shared/utils/profileImage';
 import type { AIDetectionLog } from '@shared/types';
 
-export function AILogsPage() {
-  const { t } = useLanguage();
-  const [logs, setLogs] = useState<AIDetectionLog[]>([]);
-  const [filtered, setFiltered] = useState<AIDetectionLog[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+function effectiveConfidence(log: AIDetectionLog, locale: 'km' | 'en') {
+  return logDisplay(log, locale).confidence;
+}
 
-  useEffect(() => {
-    aiAPI.getLogs().then(data => { setLogs(data); setFiltered(data); setLoading(false); });
-  }, []);
+const CONFIDENCE_TABS = ['all', 'high', 'medium', 'low'] as const;
+type ConfidenceTab = typeof CONFIDENCE_TABS[number];
 
-  useEffect(() => {
-    if (!search) { setFiltered(logs); return; }
-    const q = search.toLowerCase();
-    setFiltered(logs.filter(l => l.detected_sign.toLowerCase().includes(q) || l.user_name.toLowerCase().includes(q)));
-  }, [search, logs]);
+const CONFIDENCE_STYLE = {
+  high: { bg: 'rgba(16,185,129,0.12)', color: '#059669', gradient: 'linear-gradient(135deg, #10B981, #059669)' },
+  medium: { bg: 'rgba(245,158,11,0.12)', color: '#D97706', gradient: 'linear-gradient(135deg, #F59E0B, #D97706)' },
+  low: { bg: 'rgba(239,68,68,0.1)', color: '#DC2626', gradient: 'linear-gradient(135deg, #EF4444, #DC2626)' },
+} as const;
 
-  const avgConfidence = logs.length ? (logs.reduce((s, l) => s + l.confidence, 0) / logs.length).toFixed(1) : '—';
-  const uniqueUsers = new Set(logs.map(l => l.user_id)).size;
+const STAT_CARDS = [
+  { key: 'total', labelKey: 'aiLogs.statTotal', icon: Camera, variant: 'violet' },
+  { key: 'confidence', labelKey: 'aiLogs.statAvgConfidence', icon: BarChart2, variant: 'blue' },
+  { key: 'users', labelKey: 'aiLogs.statUniqueUsers', icon: Users, variant: 'teal' },
+] as const;
+
+function normalizeConfidence(value: number) {
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  return value <= 1 ? value * 100 : value;
+}
+
+function formatConfidence(value: number) {
+  return `${normalizeConfidence(value).toFixed(1)}%`;
+}
+
+function initials(name: string) {
+  return name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'AI';
+}
+
+function UserAvatar({
+  name,
+  profileImage,
+  size = 'sm',
+}: {
+  name: string;
+  profileImage?: string | null;
+  size?: 'sm' | 'md';
+}) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const src = imgFailed ? null : getProfileImageSrc(profileImage);
+  const sizeClass = size === 'md' ? ' enforcement-page__avatar--md' : '';
+
+  if (src) {
+    return (
+      <div className={`enforcement-page__avatar enforcement-page__avatar--ai enforcement-page__avatar--photo${sizeClass}`}>
+        <img
+          src={src}
+          alt={name}
+          className="enforcement-page__avatar-img"
+          loading="lazy"
+          decoding="async"
+          onError={() => setImgFailed(true)}
+        />
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-5">
-      {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-2xl p-5" style={{ background: 'linear-gradient(135deg, #0F172A, #162035)', border: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="absolute top-0 right-0 w-56 h-56 rounded-full -translate-y-16 translate-x-16"
-          style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.18) 0%, transparent 70%)' }} />
-        <div className="relative">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.2)' }}>
-              <Activity size={14} style={{ color: '#C4B5FD' }} />
+    <div className={`enforcement-page__avatar enforcement-page__avatar--ai${sizeClass}`}>
+      {initials(name)}
+    </div>
+  );
+}
+
+function confidenceTier(value: number): keyof typeof CONFIDENCE_STYLE {
+  const normalized = normalizeConfidence(value);
+  if (normalized >= 80) return 'high';
+  if (normalized >= 50) return 'medium';
+  return 'low';
+}
+
+function matchesConfidenceTab(log: AIDetectionLog, tab: ConfidenceTab, locale: 'km' | 'en') {
+  if (tab === 'all') return true;
+  const tier = confidenceTier(effectiveConfidence(log, locale));
+  return tier === tab;
+}
+
+function modeIcon(mode: string) {
+  if (mode === 'vehicle') return Car;
+  if (mode === 'plate') return Hash;
+  if (mode === 'no_sign') return AlertCircle;
+  return CheckCircle;
+}
+
+function modeLabel(mode: string, t: (key: string) => string) {
+  if (mode === 'vehicle') return t('aiLogs.modeVehicle');
+  if (mode === 'plate') return t('aiLogs.modePlate');
+  if (mode === 'no_sign') return t('aiLogs.modeNoSign');
+  return t('aiLogs.modeSign');
+}
+
+function AILogDetailDialog({
+  log,
+  open,
+  onClose,
+  t,
+  dateLocale,
+  locale,
+}: {
+  log: AIDetectionLog | null;
+  open: boolean;
+  onClose: () => void;
+  t: (key: string, params?: Record<string, string | number>) => string;
+  dateLocale: string;
+  locale: 'km' | 'en';
+}) {
+  const { speak, speakingId } = useSpeech(locale);
+
+  if (!log) return null;
+
+  const hero = logDisplay(log, locale);
+  const fullSpeech = heroSpeechText(log, locale);
+  const titleSpeech = heroTitleSpeech(log, locale);
+  const tier = confidenceTier(hero.confidence);
+  const tierMeta = CONFIDENCE_STYLE[tier];
+  const normalizedConfidence = normalizeConfidence(hero.confidence);
+  const ModeIcon = modeIcon(hero.mode);
+  const confidenceTierLabel = (value: keyof typeof CONFIDENCE_STYLE) => t(`aiLogs.confidence.${value}`);
+  const formattedDate = new Date(log.created_at).toLocaleString(dateLocale);
+
+  return (
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="ai-log-dialog max-w-2xl p-0 gap-0 overflow-hidden rounded-2xl border-0">
+        <div className="ai-log-dialog__shell">
+          <div className="ai-log-dialog__header">
+            <div className="ai-log-dialog__header-icon">
+              <Activity size={18} />
             </div>
-            <span className="dashboard-welcome__eyebrow" style={{ color: 'rgba(196,181,253,0.9)' }}>{t('pages.aiLogs.eyebrow')}</span>
+            <div className="ai-log-dialog__header-copy">
+              <h2 className="ai-log-dialog__header-title">{t('aiLogs.detailTitle')}</h2>
+              <p className="ai-log-dialog__header-meta">
+                {t('aiLogs.detailLogId')} #{log.id}
+                <span aria-hidden>·</span>
+                {formattedDate}
+              </p>
+            </div>
           </div>
-          <h1 className="dashboard-welcome__title text-white">{t('pages.aiLogs.title')}</h1>
-          <p className="dashboard-welcome__meta mt-1" style={{ color: 'rgba(148,163,184,0.7)' }}>{t('pages.aiLogs.heroSubtitle')}</p>
+
+          <div className="ai-log-dialog__preview">
+            {log.uploaded_image ? (
+              <img
+                src={log.uploaded_image}
+                alt={hero.title}
+                className="ai-log-dialog__preview-img"
+              />
+            ) : (
+              <div className="ai-log-dialog__preview-empty">
+                <ImageIcon size={28} strokeWidth={1.5} />
+                <span>{t('aiLogs.noImage')}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="ai-log-dialog__summary">
+            <div className="ai-log-dialog__summary-main">
+              <p className="ai-log-dialog__summary-label">{t('aiLogs.colDetected')}</p>
+              <div className="flex items-start gap-2">
+                <h3 className="ai-log-dialog__summary-title flex-1">{hero.title}</h3>
+                <SpeakButton
+                  size="md"
+                  label={t('aiLogs.listenFull')}
+                  isActive={speakingId === 'log-full'}
+                  onClick={() => speak(fullSpeech, 'log-full')}
+                />
+              </div>
+              <div className="flex items-center gap-2 mt-1">
+                <p className="ai-log-dialog__summary-mode">{modeLabel(hero.mode, t)}</p>
+                <SpeakButton
+                  size="sm"
+                  label={t('aiDetection.listenResult')}
+                  isActive={speakingId === 'log-title'}
+                  onClick={() => speak(titleSpeech, 'log-title')}
+                />
+              </div>
+            </div>
+            <span
+              className="ai-log-dialog__tier-badge"
+              style={{ background: tierMeta.bg, color: tierMeta.color, border: `1px solid ${tierMeta.color}30` }}
+            >
+              <ModeIcon size={12} />
+              {confidenceTierLabel(tier)}
+            </span>
+          </div>
+
+          <div className="ai-log-dialog__cards">
+            <div
+              className="ai-log-dialog__card ai-log-dialog__card--confidence"
+              style={{
+                background: tierMeta.bg,
+                borderColor: `${tierMeta.color}28`,
+              }}
+            >
+              <div className="ai-log-dialog__card-head">
+                <span className="ai-log-dialog__card-label">{t('aiLogs.detailConfidence')}</span>
+                <strong className="ai-log-dialog__card-value" style={{ color: tierMeta.color }}>
+                  {formatConfidence(hero.confidence)}
+                </strong>
+              </div>
+              <div className="ai-log-dialog__confidence-track">
+                <div
+                  className="ai-log-dialog__confidence-fill"
+                  style={{
+                    width: `${Math.max(Math.min(normalizedConfidence, 100), normalizedConfidence > 0 ? 4 : 0)}%`,
+                    background: tierMeta.gradient,
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="ai-log-dialog__card ai-log-dialog__card--user">
+              <UserAvatar name={log.user_name} profileImage={log.user_profile_image} size="md" />
+              <div className="min-w-0">
+                <p className="ai-log-dialog__user-name">{log.user_name}</p>
+                <p className="ai-log-dialog__user-label">{t('aiLogs.colUser')}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="ai-log-dialog__scroll">
+            <section className="ai-log-dialog__section">
+              <div className="ai-log-dialog__section-head">
+                <div className="ai-log-dialog__section-icon ai-log-dialog__section-icon--info">
+                  <Info size={15} />
+                </div>
+                <p className="ai-log-dialog__section-label">{t('aiLogs.detailDescription')}</p>
+                <SpeakButton
+                  label={t('aiLogs.listenDescription')}
+                  isActive={speakingId === 'log-desc'}
+                  onClick={() => speak(hero.description, 'log-desc')}
+                />
+              </div>
+              <div className="ai-log-dialog__section-box ai-log-dialog__section-box--info">
+                <p className="ai-log-dialog__section-text">{hero.description || '—'}</p>
+              </div>
+            </section>
+
+            {(log.detected_vehicles?.length ?? 0) > 0 && (
+              <section className="ai-log-dialog__section">
+                <div className="ai-log-dialog__section-head">
+                  <div className="ai-log-dialog__section-icon ai-log-dialog__section-icon--info">
+                    <Car size={15} />
+                  </div>
+                  <p className="ai-log-dialog__section-label">{t('aiLogs.vehiclesSection')}</p>
+                </div>
+                <div className="ai-log-dialog__section-box ai-log-dialog__section-box--info space-y-2">
+                  {(log.detected_vehicles ?? []).map((v, i) => (
+                    <div key={`${v.vehicle_type}-${i}`} className="flex items-center justify-between gap-3">
+                      <span className="ai-log-dialog__section-text">{v.label}</span>
+                      <span className="font-bold" style={{ color: CONFIDENCE_STYLE.high.color }}>
+                        {v.confidence.toFixed(1)}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {log.detected_plate && hero.mode !== 'plate' && (
+              <section className="ai-log-dialog__section">
+                <div className="ai-log-dialog__section-head">
+                  <div className="ai-log-dialog__section-icon ai-log-dialog__section-icon--info">
+                    <Hash size={15} />
+                  </div>
+                  <p className="ai-log-dialog__section-label">{t('aiLogs.plateSection')}</p>
+                  <SpeakButton
+                    label={t('aiLogs.listenPlate')}
+                    isActive={speakingId === 'log-plate'}
+                    onClick={() => speak(
+                      locale === 'en'
+                        ? `License plate ${log.detected_plate}, ${(log.plate_confidence ?? 0).toFixed(1)} percent confidence`
+                        : `ផ្លាកលេខ ${log.detected_plate} ភាពជឿជាក់ ${(log.plate_confidence ?? 0).toFixed(1)} ភាគរយ`,
+                      'log-plate',
+                    )}
+                  />
+                </div>
+                <div className="ai-log-dialog__section-box ai-log-dialog__section-box--info space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="ai-log-dialog__section-text font-bold tracking-wide">{log.detected_plate}</span>
+                    <span className="font-bold" style={{ color: CONFIDENCE_STYLE.high.color }}>
+                      {(log.plate_confidence ?? 0).toFixed(1)}%
+                    </span>
+                  </div>
+                  {log.plate_type && (
+                    <p className="ai-log-dialog__section-text text-sm capitalize opacity-80">{log.plate_type}</p>
+                  )}
+                  {log.matched_vehicle && (
+                    <p className="ai-log-dialog__section-text text-sm">
+                      {t('aiLogs.plateLinked')}: <strong>{log.matched_vehicle.owner_name}</strong>
+                    </p>
+                  )}
+                </div>
+              </section>
+            )}
+
+            <section className="ai-log-dialog__section">
+              <div className="ai-log-dialog__section-head">
+                <div className="ai-log-dialog__section-icon ai-log-dialog__section-icon--guide">
+                  <Sparkles size={15} />
+                </div>
+                <p className="ai-log-dialog__section-label">{t('aiLogs.detailGuidance')}</p>
+                <SpeakButton
+                  label={t('aiLogs.listenGuidance')}
+                  isActive={speakingId === 'log-guide'}
+                  onClick={() => speak(hero.guidance, 'log-guide')}
+                />
+              </div>
+              <div className="ai-log-dialog__section-box ai-log-dialog__section-box--guide">
+                <p className="ai-log-dialog__section-text">{hero.guidance || '—'}</p>
+              </div>
+            </section>
+          </div>
+
+          <div className="ai-log-dialog__footer">
+            {log.uploaded_image ? (
+              <a
+                href={log.uploaded_image}
+                target="_blank"
+                rel="noreferrer"
+                className="ai-log-dialog__open-link"
+              >
+                <ExternalLink size={14} />
+                {t('aiLogs.openFullImage')}
+              </a>
+            ) : (
+              <span />
+            )}
+            <Button variant="outline" className="ai-log-dialog__close-btn" onClick={onClose}>
+              {t('common.cancel')}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function AILogsPage() {
+  const { t, locale } = useLanguage();
+  const dateLocale = locale === 'km' ? 'km-KH' : 'en-US';
+  const [logs, setLogs] = useState<AIDetectionLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [confidenceFilter, setConfidenceFilter] = useState<ConfidenceTab>('all');
+  const [selected, setSelected] = useState<AIDetectionLog | null>(null);
+
+  const loadLogs = useCallback((silent = false) => {
+    if (!silent) setLoading(true);
+    aiAPI.getLogs()
+      .then((data) => setLogs(data))
+      .catch(() => { if (!silent) toast.error(t('aiLogs.loadFail')); })
+      .finally(() => { if (!silent) setLoading(false); });
+  }, [t]);
+
+  useEffect(() => {
+    loadLogs();
+  }, [loadLogs]);
+
+  useLiveData(() => loadLogs(true), 30_000, true);
+
+  const speechLocale = locale === 'en' ? 'en' : 'km';
+
+  const filtered = useMemo(() => {
+    let rows = logs.filter((log) => matchesConfidenceTab(log, confidenceFilter, speechLocale));
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      rows = rows.filter((log) => {
+        const hero = logDisplay(log, speechLocale);
+        const vehicleText = (log.detected_vehicles ?? []).map((v) => `${v.label} ${v.vehicle_type}`).join(' ');
+        return hero.title.toLowerCase().includes(q)
+          || log.detected_sign.toLowerCase().includes(q)
+          || log.user_name.toLowerCase().includes(q)
+          || hero.description.toLowerCase().includes(q)
+          || vehicleText.toLowerCase().includes(q);
+      });
+    }
+    return rows;
+  }, [logs, search, confidenceFilter, speechLocale]);
+
+  const counts = useMemo(() => ({
+    all: logs.length,
+    high: logs.filter((l) => confidenceTier(effectiveConfidence(l, speechLocale)) === 'high').length,
+    medium: logs.filter((l) => confidenceTier(effectiveConfidence(l, speechLocale)) === 'medium').length,
+    low: logs.filter((l) => confidenceTier(effectiveConfidence(l, speechLocale)) === 'low').length,
+  }), [logs, speechLocale]);
+
+  const avgConfidence = logs.length
+    ? logs.reduce((sum, log) => sum + normalizeConfidence(effectiveConfidence(log, speechLocale)), 0) / logs.length
+    : null;
+  const uniqueUsers = new Set(logs.map((log) => log.user_id)).size;
+
+  const confidenceFilterLabel = (tab: ConfidenceTab) => t(`aiLogs.confidence.${tab}`);
+
+  const tableColumns = [
+    { key: 'image', label: t('aiLogs.colImage'), colClass: 'ai-log-table__col ai-log-table__col--image' },
+    { key: 'user', label: t('aiLogs.colUser'), colClass: 'ai-log-table__col ai-log-table__col--user' },
+    { key: 'sign', label: t('aiLogs.colDetected'), colClass: 'ai-log-table__col ai-log-table__col--sign' },
+    { key: 'confidence', label: t('aiLogs.colConfidence'), colClass: 'ai-log-table__col ai-log-table__col--confidence' },
+    { key: 'description', label: t('aiLogs.colDescription'), colClass: 'ai-log-table__col ai-log-table__col--description' },
+    { key: 'date', label: t('aiLogs.colDate'), colClass: 'ai-log-table__col ai-log-table__col--date' },
+    { key: 'actions', label: t('aiLogs.colActions'), colClass: 'ai-log-table__col ai-log-table__col--actions' },
+  ] as const;
+
+  return (
+    <div className="enforcement-page enforcement-page--ai-logs dashboard-page--ai-logs">
+      <div className="enforcement-page__hero">
+        <div className="enforcement-page__hero-glow--primary" aria-hidden />
+        <div className="enforcement-page__hero-glow--secondary" aria-hidden />
+        <div className="enforcement-page__hero-inner">
+          <div>
+            <div className="enforcement-page__eyebrow">
+              <span className="enforcement-page__eyebrow-icon">
+                <Activity size={14} />
+              </span>
+              {t('pages.aiLogs.eyebrow')}
+            </div>
+            <h1 className="enforcement-page__title">{t('pages.aiLogs.title')}</h1>
+            <p className="enforcement-page__subtitle">{t('pages.aiLogs.heroSubtitle')}</p>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        {[
-          { label: 'Total Detections', value: logs.length, icon: <Camera size={18} />, gradient: 'linear-gradient(135deg, #8B5CF6, #7C3AED)' },
-          { label: 'Avg Confidence', value: avgConfidence === '—' ? '—' : `${avgConfidence}%`, icon: <BarChart2 size={18} />, gradient: 'linear-gradient(135deg, #2563EB, #1D4ED8)' },
-          { label: 'Unique Users', value: uniqueUsers, icon: <Users size={18} />, gradient: 'linear-gradient(135deg, #06B6D4, #0891B2)' },
-        ].map(s => (
-          <div key={s.label} className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg" style={{ background: s.gradient }}>
-            <div className="absolute top-0 right-0 w-20 h-20 rounded-full -translate-y-5 translate-x-5" style={{ background: 'rgba(255,255,255,0.08)' }} />
-            <div className="relative flex items-start justify-between">
-              <div>
-                <p className="text-white/65 text-[11px] font-semibold uppercase tracking-widest">{s.label}</p>
-                <p className="text-3xl font-black mt-1.5 leading-none" style={{ letterSpacing: '-0.02em' }}>{s.value}</p>
+      <div className="enforcement-page__stat-grid enforcement-page__stat-grid--three">
+        {STAT_CARDS.map((card) => {
+          const Icon = card.icon;
+          const value = card.key === 'total'
+            ? logs.length
+            : card.key === 'confidence'
+              ? (avgConfidence == null ? '—' : `${avgConfidence.toFixed(1)}%`)
+              : uniqueUsers;
+          return (
+            <div
+              key={card.key}
+              className={`enforcement-page__stat-card enforcement-page__stat-card--${card.variant}`}
+            >
+              <div className={`enforcement-page__stat-icon enforcement-page__stat-icon--${card.variant}`}>
+                <Icon size={18} />
               </div>
-              <div className="w-10 h-10 bg-white/15 rounded-xl flex items-center justify-center">{s.icon}</div>
+              <div className="enforcement-page__stat-copy">
+                <p className="enforcement-page__stat-value">{value}</p>
+                <p className={`enforcement-page__stat-label enforcement-page__stat-label--${card.variant}`}>
+                  {t(card.labelKey)}
+                </p>
+              </div>
             </div>
+          );
+        })}
+      </div>
+
+      <div className="enforcement-page__toolbar">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+          <div className="enforcement-page__filters">
+            {CONFIDENCE_TABS.map((tab) => {
+              const active = confidenceFilter === tab;
+              const meta = tab !== 'all' ? CONFIDENCE_STYLE[tab] : null;
+              return (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setConfidenceFilter(tab)}
+                  className={`enforcement-page__filter-btn${active ? ' enforcement-page__filter-btn--active' : ''}`}
+                  style={active ? { background: meta?.gradient ?? 'linear-gradient(135deg, #0F172A, #1E293B)' } : undefined}
+                >
+                  {confidenceFilterLabel(tab)}
+                  <span className={`enforcement-page__filter-count${active ? ' enforcement-page__filter-count--active' : ''}`}>
+                    {counts[tab]}
+                  </span>
+                </button>
+              );
+            })}
           </div>
-        ))}
+          <div className="enforcement-page__search-wrap">
+            <Search size={14} className="enforcement-page__search-icon" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t('aiLogs.searchPlaceholder')}
+              className="enforcement-page__search"
+            />
+          </div>
+        </div>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input
-          value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="Search by sign or user..."
-          className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white text-sm text-slate-700 outline-none"
-          style={{ border: '1px solid rgba(37,99,235,0.1)' }}
-        />
-      </div>
-
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden" style={{ border: '1px solid rgba(37,99,235,0.07)' }}>
+      <div className="enforcement-page__panel enforcement-page__panel--ai-logs">
         <div className="overflow-x-auto">
-          <Table>
+          <Table className="enforcement-page__table enforcement-page__table--ai-logs">
             <TableHeader>
-              <TableRow style={{ background: '#F8FAFC', borderBottom: '1px solid rgba(37,99,235,0.07)' }}>
-                {['User', 'Detected Sign', 'Confidence', 'Description', 'Date'].map(h => (
-                  <TableHead key={h} className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{h}</TableHead>
+              <TableRow className="enforcement-page__table-head">
+                {tableColumns.map((col) => (
+                  <TableHead key={col.key} className={`enforcement-page__th text-center ${col.colClass}`}>
+                    {col.label}
+                  </TableHead>
                 ))}
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading ? [...Array(4)].map((_, i) => (
-                <TableRow key={i}>{[...Array(5)].map((_, j) => <TableCell key={j}><div className="h-4 rounded-lg animate-pulse" style={{ background: 'rgba(37,99,235,0.05)' }} /></TableCell>)}</TableRow>
-              )) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-12 text-slate-400">No detection logs found.</TableCell></TableRow>
-              ) : filtered.map(log => (
-                <TableRow key={log.id}
-                  style={{ borderBottom: '1px solid rgba(37,99,235,0.04)' }}
-                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#FAFBFF'}
-                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ''}>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0"
-                        style={{ background: 'linear-gradient(135deg, #8B5CF6, #7C3AED)' }}>
-                        {log.user_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+              {loading ? (
+                [...Array(5)].map((_, i) => (
+                  <TableRow key={i} className="ai-log-table__row">
+                    {tableColumns.map((col) => (
+                      <TableCell key={col.key} className={`py-3.5 ${col.colClass}`}>
+                        <div className="enforcement-page__skeleton ai-log-table__skeleton" />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={tableColumns.length} className="text-center py-16">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="enforcement-page__empty-icon enforcement-page__empty-icon--violet">
+                        <Activity size={28} />
                       </div>
-                      <span className="text-sm font-semibold text-slate-700">{log.user_name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1.5">
-                      <CheckCircle size={13} className="text-emerald-500 flex-shrink-0" />
-                      <span className="text-sm font-semibold text-slate-800">{log.detected_sign}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(139,92,246,0.15)' }}>
-                        <div className="h-full rounded-full" style={{ width: `${log.confidence}%`, background: 'linear-gradient(90deg, #8B5CF6, #2563EB)' }} />
+                      <div>
+                        <p className="enforcement-page__empty-title">{t('aiLogs.empty')}</p>
+                        <p className="enforcement-page__empty-subtitle">{t('aiLogs.emptyHint')}</p>
                       </div>
-                      <span className="text-sm font-bold" style={{ color: '#7C3AED' }}>{log.confidence.toFixed(1)}%</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-xs text-slate-500 max-w-[220px] truncate">{log.description}</TableCell>
-                  <TableCell className="text-sm text-slate-400">{new Date(log.created_at).toLocaleDateString()}</TableCell>
                 </TableRow>
-              ))}
+              ) : filtered.map((log) => {
+                const hero = logDisplay(log, speechLocale);
+                const tier = confidenceTier(hero.confidence);
+                const tierMeta = CONFIDENCE_STYLE[tier];
+                const createdAt = new Date(log.created_at);
+                const ModeIcon = modeIcon(hero.mode);
+                const accent = logDisplayColor(hero.mode);
+                return (
+                  <TableRow key={log.id} className="enforcement-page__table-row ai-log-table__row">
+                    <TableCell className={`py-3.5 ${tableColumns[0].colClass} ai-log-table__col--center`}>
+                      {log.uploaded_image ? (
+                        <button
+                          type="button"
+                          className="enforcement-page__log-thumb"
+                          onClick={() => setSelected(log)}
+                        >
+                          <img src={log.uploaded_image} alt="" className="enforcement-page__log-thumb-img" />
+                        </button>
+                      ) : (
+                        <div className="enforcement-page__log-thumb enforcement-page__log-thumb--empty">
+                          <ImageIcon size={16} />
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className={`py-3.5 ${tableColumns[1].colClass}`}>
+                      <div className="ai-log-table__user">
+                        <UserAvatar name={log.user_name} profileImage={log.user_profile_image} />
+                        <span className="enforcement-page__cell-primary ai-log-table__truncate" title={log.user_name}>
+                          {log.user_name}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className={`py-3.5 ${tableColumns[2].colClass}`}>
+                      <div className="ai-log-table__sign">
+                        <ModeIcon size={13} className="enforcement-page__sign-icon" style={{ color: accent }} />
+                        <div className="min-w-0">
+                          <span className="enforcement-page__cell-primary ai-log-table__truncate block" title={hero.title}>
+                            {hero.title}
+                          </span>
+                          <span className="enforcement-page__cell-secondary text-[10px]">{modeLabel(hero.mode, t)}</span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className={`py-3.5 ${tableColumns[3].colClass}`}>
+                      <div className="ai-log-table__confidence">
+                        <div className="ai-log-table__confidence-meta">
+                          <span className="enforcement-page__badge" style={{ background: tierMeta.bg, color: tierMeta.color }}>
+                            {formatConfidence(hero.confidence)}
+                          </span>
+                          <span className="ai-log-table__confidence-tier" style={{ color: tierMeta.color }}>
+                            {t(`aiLogs.confidence.${tier}`)}
+                          </span>
+                        </div>
+                        <div className="ai-log-table__confidence-bar" aria-hidden>
+                          <div
+                            className="enforcement-page__confidence-fill"
+                            style={{
+                              width: `${Math.max(Math.min(normalizeConfidence(hero.confidence), 100), normalizeConfidence(hero.confidence) > 0 ? 4 : 0)}%`,
+                              background: tierMeta.gradient,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className={`py-3.5 ${tableColumns[4].colClass}`}>
+                      <p className="enforcement-page__cell-body ai-log-table__desc" title={hero.description}>
+                        {hero.description || '—'}
+                      </p>
+                    </TableCell>
+                    <TableCell className={`py-3.5 ${tableColumns[5].colClass}`}>
+                      <div className="ai-log-table__date">
+                        <span className="enforcement-page__cell-primary ai-log-table__truncate">
+                          {createdAt.toLocaleDateString(dateLocale)}
+                        </span>
+                        <span className="enforcement-page__cell-secondary ai-log-table__truncate">
+                          {createdAt.toLocaleTimeString(dateLocale)}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className={`py-3.5 ${tableColumns[6].colClass} ai-log-table__col--center`}>
+                      <button
+                        type="button"
+                        className="enforcement-page__action-btn enforcement-page__action-btn--violet"
+                        onClick={() => setSelected(log)}
+                      >
+                        <Eye size={13} /> {t('aiLogs.view')}
+                      </button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
+
+        {filtered.length > 0 && (
+          <div className="enforcement-page__footer">
+            <p className="enforcement-page__footer-text">
+              {t('aiLogs.showing', { shown: filtered.length, total: logs.length })}
+            </p>
+            {avgConfidence != null && (
+              <p className="enforcement-page__footer-text enforcement-page__footer-text--emphasis">
+                {t('aiLogs.avgConfidenceFooter', { value: avgConfidence.toFixed(1) })}
+              </p>
+            )}
+          </div>
+        )}
       </div>
+
+      <AILogDetailDialog
+        log={selected}
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        t={t}
+        dateLocale={dateLocale}
+        locale={speechLocale}
+      />
     </div>
   );
 }

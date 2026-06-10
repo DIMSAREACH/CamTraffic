@@ -1,6 +1,12 @@
 from django.urls import path
 
 from .oauth_views import OAuthAuthorizeView, OAuthCompleteView, OAuthStatusView
+from .profile_views import (
+    DeactivateAccountView,
+    LogoutOtherSessionsView,
+    ProfileOverviewView,
+    ProfilePreferencesView,
+)
 from .views import (
     ChangePasswordView,
     LoginView,
@@ -21,6 +27,10 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(), name='logout'),
     path('refresh/', RefreshView.as_view(), name='token-refresh'),
     path('profile/', ProfileView.as_view(), name='profile'),
+    path('profile/overview/', ProfileOverviewView.as_view(), name='profile-overview'),
+    path('profile/preferences/', ProfilePreferencesView.as_view(), name='profile-preferences'),
+    path('profile/deactivate/', DeactivateAccountView.as_view(), name='profile-deactivate'),
+    path('profile/logout-others/', LogoutOtherSessionsView.as_view(), name='profile-logout-others'),
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),
     path('password-reset/', PasswordResetRequestView.as_view(), name='password-reset'),
     path('password-reset/confirm/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'),

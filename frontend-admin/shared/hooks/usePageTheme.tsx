@@ -4,6 +4,7 @@ import {
   BarChart3,
   Bell,
   Camera,
+  Cctv,
   Car,
   FileText,
   Shield,
@@ -42,6 +43,13 @@ const THEME_MAP: Record<
     color: '#7c3aed',
     gradient: 'linear-gradient(90deg,#6d28d9,#7c3aed,#a78bfa,transparent)',
   },
+  '/dashboard/cameras': {
+    crumbKeys: ['pageTheme.crumbInfrastructure', 'pageTheme.crumbCameras'],
+    labelKey: 'pageTheme.cameras',
+    icon: <Cctv size={13} className="text-blue-500" />,
+    color: '#2563eb',
+    gradient: 'linear-gradient(90deg,#1d4ed8,#3b82f6,#60a5fa,transparent)',
+  },
   '/dashboard/ai-logs': {
     crumbKeys: ['pageTheme.crumbAiSystem', 'pageTheme.crumbDetectionLogs'],
     labelKey: 'pageTheme.aiLogs',
@@ -55,6 +63,13 @@ const THEME_MAP: Record<
     icon: <FileText size={13} className="text-red-500" />,
     color: '#dc2626',
     gradient: 'linear-gradient(90deg,#dc2626,#ef4444,#f87171,transparent)',
+  },
+  '/dashboard/violations': {
+    crumbKeys: ['pageTheme.crumbEnforcement', 'pageTheme.crumbViolationManagement'],
+    labelKey: 'pageTheme.violations',
+    icon: <Shield size={13} className="text-red-600" />,
+    color: '#b91c1c',
+    gradient: 'linear-gradient(90deg,#991b1b,#dc2626,#f87171,transparent)',
   },
   '/dashboard/signs': {
     crumbKeys: ['pageTheme.crumbReference', 'pageTheme.crumbTrafficSigns'],

@@ -30,10 +30,13 @@ INSTALLED_APPS = [
     'core',
     'authentication',
     'users',
+    'rbac',
+    'infrastructure',
     'vehicles',
     'traffic_signs',
+    'violations',
     'fines',
-    'ai_detection',
+    'ai_detection.apps.AiDetectionConfig',
     'notifications',
     'dashboard',
 ]
@@ -162,8 +165,39 @@ SIMPLE_JWT = {
 
 # AI module
 AI_MODEL_PATH = os.getenv('AI_MODEL_PATH', str(BASE_DIR.parent / 'ai' / 'weights' / 'best.pt'))
-AI_USE_MOCK = os.getenv('AI_USE_MOCK', 'True').lower() == 'true'
-AI_CONFIDENCE_THRESHOLD = float(os.getenv('AI_CONFIDENCE_THRESHOLD', '0.5'))
+AI_USE_MOCK = os.getenv('AI_USE_MOCK', 'False').lower() == 'true'
+AI_CONFIDENCE_THRESHOLD = float(os.getenv('AI_CONFIDENCE_THRESHOLD', '0.35'))
+AI_MIN_RESULT_CONFIDENCE = float(os.getenv('AI_MIN_RESULT_CONFIDENCE', '35'))
+AI_ABSOLUTE_YOLO_FLOOR = float(os.getenv('AI_ABSOLUTE_YOLO_FLOOR', '18'))
+AI_LIVE_YOLO_FLOOR = float(os.getenv('AI_LIVE_YOLO_FLOOR', '10'))
+AI_UPLOAD_YOLO_FLOOR = float(os.getenv('AI_UPLOAD_YOLO_FLOOR', '5'))
+AI_HYBRID_CONFIDENCE_THRESHOLD = float(os.getenv('AI_HYBRID_CONFIDENCE_THRESHOLD', '70'))
+AI_WARMUP_MODELS = os.getenv('AI_WARMUP_MODELS', 'True').lower() == 'true'
+
+# Vehicle detection (YOLOv8 COCO pretrained — separate from sign model)
+AI_VEHICLE_ENABLED = os.getenv('AI_VEHICLE_ENABLED', 'True').lower() == 'true'
+AI_VEHICLE_MODEL = os.getenv('AI_VEHICLE_MODEL', 'yolov8n.pt')
+AI_VEHICLE_CONFIDENCE_THRESHOLD = float(os.getenv('AI_VEHICLE_CONFIDENCE_THRESHOLD', '0.35'))
+
+# License plate OCR (EasyOCR — Latin/Khmer-style Cambodia plates)
+AI_PLATE_OCR_ENABLED = os.getenv('AI_PLATE_OCR_ENABLED', 'True').lower() == 'true'
+AI_PLATE_OCR_MIN_CONFIDENCE = float(os.getenv('AI_PLATE_OCR_MIN_CONFIDENCE', '0.45'))
+AI_PLATE_OCR_LANGUAGES = [
+    lang.strip()
+    for lang in os.getenv('AI_PLATE_OCR_LANGUAGES', 'en').split(',')
+    if lang.strip()
+]
+
+# Full pipeline: auto-evaluate violations on detect (defense demo)
+AI_PIPELINE_DEMO_VIOLATION = os.getenv('AI_PIPELINE_DEMO_VIOLATION', 'True').lower() == 'true'
+AI_PIPELINE_AUTO_CREATE_VIOLATION = os.getenv('AI_PIPELINE_AUTO_CREATE_VIOLATION', 'True').lower() == 'true'
+
+# Gemini Vision fallback (when YOLO confidence is below hybrid threshold)
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
+GEMINI_ENABLED = os.getenv('GEMINI_ENABLED', 'True').lower() == 'true'
+GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-2.5-flash')
+GEMINI_REQUEST_TIMEOUT = int(os.getenv('GEMINI_REQUEST_TIMEOUT', '30'))
+GEMINI_BACKOFF_SECONDS = int(os.getenv('GEMINI_BACKOFF_SECONDS', '60'))
 
 # Khmer TTS (edge-tts — works without Windows Khmer voice; needs internet)
 TTS_ENABLED = os.getenv('TTS_ENABLED', 'True').lower() == 'true'

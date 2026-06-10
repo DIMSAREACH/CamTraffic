@@ -64,10 +64,14 @@ apiClient.interceptors.response.use(
       }
     }
     if (!message) {
-      message =
-        (error.message === 'Network Error'
-          ? 'Cannot reach the API. Start the backend (port 8000) and restart the dev server.'
-          : error.message) || 'Request failed';
+      const status = error.response?.status;
+      if (status === 503) {
+        message = 'Backend unavailable. Start Django: cd backend && python manage.py runserver';
+      } else if (error.message === 'Network Error') {
+        message = 'Cannot reach the API. Start the backend (port 8000) and refresh the page.';
+      } else {
+        message = error.message || 'Request failed';
+      }
     }
     return Promise.reject(new Error(message));
   },

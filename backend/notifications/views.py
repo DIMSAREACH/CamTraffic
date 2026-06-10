@@ -25,3 +25,11 @@ class MarkReadView(APIView):
         else:
             Notification.objects.filter(user=request.user).update(is_read=True)
         return success_response(message='Marked as read')
+
+
+class ClearReadNotificationsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request):
+        deleted, _ = Notification.objects.filter(user=request.user, is_read=True).delete()
+        return success_response({'deleted': deleted}, message='Cleared read notifications')

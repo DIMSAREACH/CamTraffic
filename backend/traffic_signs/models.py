@@ -10,9 +10,13 @@ class TrafficSign(models.Model):
     ]
 
     sign_name = models.CharField(max_length=150)
+    sign_name_km = models.CharField(max_length=200, blank=True)
+    sign_name_en = models.CharField(max_length=200, blank=True)
     sign_code = models.CharField(max_length=20, unique=True, blank=True)
     description = models.TextField()
+    description_en = models.TextField(blank=True)
     guidance = models.TextField(blank=True, help_text='Traffic rule guidance for drivers')
+    guidance_en = models.TextField(blank=True)
     image = models.ImageField(upload_to='signs/', blank=True, null=True)
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='warning')
     penalty = models.CharField(max_length=255, blank=True)

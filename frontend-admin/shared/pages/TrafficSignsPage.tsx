@@ -4,6 +4,7 @@ import { Search, BookOpen, AlertTriangle, Shield, Info, ChevronRight, LayoutGrid
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@shared/components/ui/dialog';
 import { Button } from '@shared/components/ui/button';
 import { SignFormDialog } from '@shared/components/signs/SignFormDialog';
+import { SignDetailIntro } from '@shared/components/signs/SignDetailIntro';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@shared/components/ui/table';
 import { getProfileImageUrl } from '@shared/utils/profileImage';
 import {
@@ -18,6 +19,7 @@ import {
   signHasResolvableImage,
 } from '@shared/utils/signImage';
 import { signsAPI } from '@shared/services/api';
+import { signDisplayNames } from '@shared/utils/signDisplayNames';
 import { toast } from 'sonner';
 import type { TrafficSign, SignCategory } from '@shared/types';
 
@@ -48,6 +50,13 @@ const CAT: Record<SignCategory, {
     bg: 'rgba(16,185,129,0.07)', color: '#059669', border: 'rgba(16,185,129,0.18)',
     signBg: '#059669', signBorder: '#047857', signText: '#fff',
   },
+};
+
+const CAT_ICONS: Record<SignCategory, typeof Shield> = {
+  prohibitory: Shield,
+  warning: AlertTriangle,
+  mandatory: BookOpen,
+  informative: Info,
 };
 
 function categoryBadgeStyle(category: SignCategory, variant: 'solid' | 'soft' = 'solid') {
@@ -344,6 +353,7 @@ function SignCardItem({
 }) {
   const { t } = useLanguage();
   const c = CAT[sign.category];
+  const { km, en } = signDisplayNames(sign);
   const mediaSrc = signMediaSrc(sign);
   const [photoInvalid, setPhotoInvalid] = useState(() =>
     mediaSrc ? isSignMediaKnownInvalid(mediaSrc) : false,
@@ -410,18 +420,22 @@ function SignCardItem({
           borderTop: `1px solid ${c.border}`,
         }}
       >
-        <p
-          className="signs-card__name dashboard-card__title leading-snug line-clamp-2 m-0"
-          style={{ color: 'var(--foreground)' }}
-        >
-          {sign.sign_name}
-        </p>
-        <p
-          className="signs-card__code dashboard-text__caption font-mono mt-1.5 m-0"
-          style={{ color: c.color, fontWeight: 600 }}
-        >
-          {sign.sign_code}
-        </p>
+        {km ? (
+          <p
+            className="signs-card__name dashboard-card__title leading-snug line-clamp-2 m-0"
+            style={{ color: 'var(--foreground)' }}
+          >
+            {km}
+          </p>
+        ) : null}
+        {en ? (
+          <p
+            className="signs-card__name-en dashboard-text__caption mt-1 line-clamp-2 m-0"
+            style={{ color: 'var(--muted-foreground)', fontWeight: 500 }}
+          >
+            {en}
+          </p>
+        ) : null}
         <div className="flex items-center justify-between gap-2 mt-3">
           <CategoryBadge category={sign.category} className="signs-card__badge px-3 py-1">
             {categoryLabel}
@@ -485,7 +499,6 @@ function SignsTable({
   labels: {
     image: string;
     sign: string;
-    code: string;
     category: string;
     description: string;
     action: string;
@@ -517,7 +530,6 @@ function SignsTable({
           >
             <TableHead className={`${thClass} w-[88px]`} style={thStyle}>{labels.image}</TableHead>
             <TableHead className={thClass} style={thStyle}>{labels.sign}</TableHead>
-            <TableHead className={`${thClass} w-[120px]`} style={thStyle}>{labels.code}</TableHead>
             <TableHead className={`${thClass} w-[130px] hidden lg:table-cell`} style={thStyle}>{labels.category}</TableHead>
             <TableHead className={`${thClass} hidden md:table-cell`} style={thStyle}>{labels.description}</TableHead>
             <TableHead className={`${thClass} w-[1%] text-right whitespace-nowrap`} style={thStyle}>{labels.action}</TableHead>
@@ -556,7 +568,6 @@ function SignTableRow({
   labels: {
     image: string;
     sign: string;
-    code: string;
     category: string;
     description: string;
     action: string;
@@ -570,6 +581,7 @@ function SignTableRow({
   onDelete?: (sign: TrafficSign) => void;
 }) {
   const c = CAT[sign.category];
+  const { km, en } = signDisplayNames(sign);
   const categoryLabel = catLabel(sign.category);
   const mediaSrc = signMediaSrc(sign);
   const [photoInvalid, setPhotoInvalid] = useState(() =>
@@ -595,14 +607,16 @@ function SignTableRow({
                     <SignImage sign={sign} size={44} hideFallback={!canManage} onUnavailable={hideCard} />
                   </div>
                 </TableCell>
-                <TableCell className="py-3 px-3 align-middle min-w-[140px]">
-                  <p className="dashboard-card__title leading-snug">{sign.sign_name}</p>
+                <TableCell className="py-3 px-3 align-middle min-w-[160px]">
+                  {km ? <p className="dashboard-card__title leading-snug">{km}</p> : null}
+                  {en ? (
+                    <p className="dashboard-text__caption mt-0.5" style={{ color: 'var(--muted-foreground)' }}>
+                      {en}
+                    </p>
+                  ) : null}
                   <CategoryBadge category={sign.category} className="mt-1.5 lg:hidden px-2.5 py-0.5">
                     {categoryLabel}
                   </CategoryBadge>
-                </TableCell>
-                <TableCell className="py-3 px-3 align-middle">
-                  <span className="dashboard-text__caption font-mono">{sign.sign_code}</span>
                 </TableCell>
                 <TableCell className="py-3 px-3 align-middle hidden lg:table-cell">
                   <CategoryBadge category={sign.category} className="px-2.5 py-1">
@@ -687,7 +701,7 @@ function SignsTableSkeleton({ rows = 8 }: { rows?: number }) {
    Main page
 ═══════════════════════════════════════════════════════ */
 export function TrafficSignsPage() {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const canManage = CAN_MANAGE_SIGNS;
   const [signs, setSigns] = useState<TrafficSign[]>([]);
   const [filtered, setFiltered] = useState<TrafficSign[]>([]);
@@ -711,7 +725,7 @@ export function TrafficSignsPage() {
   const loadSigns = async (opts?: { silent?: boolean; keep?: TrafficSign[] }) => {
     if (!opts?.silent) setLoading(true);
     try {
-      const data = await signsAPI.getAll();
+      const data = await signsAPI.getAll({ trainedOnly: true });
       const server = data.map(normalizeTrafficSign);
       setSigns(mergeCatalogSigns(server, opts?.keep ?? [], canManage));
     } catch {
@@ -780,11 +794,17 @@ export function TrafficSignsPage() {
     if (category !== 'all') result = result.filter(s => s.category === category);
     if (search) {
       const q = search.toLowerCase();
-      result = result.filter(s =>
-        s.sign_name.toLowerCase().includes(q) ||
-        s.description.toLowerCase().includes(q) ||
-        s.sign_code.toLowerCase().includes(q),
-      );
+      result = result.filter(s => {
+        const { km, en } = signDisplayNames(s);
+        return (
+          km.toLowerCase().includes(q) ||
+          en.toLowerCase().includes(q) ||
+          s.sign_name.toLowerCase().includes(q) ||
+          s.description.toLowerCase().includes(q) ||
+          (s.description_en || '').toLowerCase().includes(q) ||
+          s.sign_code.toLowerCase().includes(q)
+        );
+      });
     }
     setFiltered(result);
   }, [signs, search, category]);
@@ -902,40 +922,38 @@ export function TrafficSignsPage() {
       </div>
 
       {/* ── CATEGORY FILTER CARDS ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {CAT_KEYS.map(cat => {
-          const c = CAT[cat];
-          const active = cat === category;
-          return (
-            <button
-              key={cat}
-              type="button"
-              onClick={() => setCategory(cat === category ? 'all' : cat)}
-              className="rounded-2xl p-4 text-left transition-all"
-              style={active
-                ? { background: c.gradient, boxShadow: `0 8px 24px ${c.glow}`, transform: 'translateY(-2px)' }
-                : { background: 'var(--card)', border: `1px solid ${c.border}`, boxShadow: '0 1px 4px rgba(15,23,42,0.04)' }
-              }
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-                  style={{ background: active ? 'rgba(255,255,255,0.2)' : c.bg }}>
-                  <div className="w-3 h-3 rounded-full" style={{ background: active ? '#fff' : c.signBg }} />
+      <div className="signs-category-tray">
+        <div className="signs-category-grid">
+          {CAT_KEYS.map(cat => {
+            const c = CAT[cat];
+            const Icon = CAT_ICONS[cat];
+            const active = cat === category;
+            return (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setCategory(cat === category ? 'all' : cat)}
+                className={`signs-category-stat-card signs-category-stat-card--${cat}${active ? ' signs-category-stat-card--active' : ''}`}
+                style={active ? { background: c.gradient, boxShadow: `0 8px 22px ${c.glow}` } : undefined}
+              >
+                <div
+                  className="signs-category-stat-card__icon"
+                  style={active ? { background: 'rgba(255,255,255,0.22)', color: '#ffffff' } : undefined}
+                >
+                  <Icon size={20} strokeWidth={2.15} />
                 </div>
-                <ChevronRight size={14} style={{ color: active ? 'rgba(255,255,255,0.6)' : c.color, opacity: active ? 1 : 0.5 }} />
-              </div>
-              <p className="dashboard-kpi__label mb-1" style={{ color: active ? 'rgba(255,255,255,0.75)' : 'var(--muted-foreground)' }}>
-                {catLabel(cat)}
-              </p>
-              <p className="dashboard-kpi__value" style={{ color: active ? '#fff' : 'var(--foreground)' }}>
-                {counts[cat]}
-              </p>
-              <p className="dashboard-text__caption mt-0.5" style={{ color: active ? 'rgba(255,255,255,0.55)' : 'var(--muted-foreground)' }}>
-                {t('pages.signs.signsUnit')}
-              </p>
-            </button>
-          );
-        })}
+                <div className="signs-category-stat-card__copy">
+                  <p className="signs-category-stat-card__meta">
+                    <span className="signs-category-stat-card__value">{counts[cat]}</span>
+                    <span className="signs-category-stat-card__unit">{t('pages.signs.signsUnit')}</span>
+                  </p>
+                  <p className="signs-category-stat-card__label">{catLabel(cat)}</p>
+                </div>
+                <ChevronRight size={18} className="signs-category-stat-card__chev" />
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* ── MAIN PAGE: catalog + toolbar + content ── */}
@@ -1065,7 +1083,6 @@ export function TrafficSignsPage() {
               labels={{
                 image: t('pages.signs.listColImage'),
                 sign: t('pages.signs.listColSign'),
-                code: t('pages.signs.listColCode'),
                 category: t('pages.signs.listColCategory'),
                 description: t('pages.signs.listColDescription'),
                 action: t('pages.signs.listColAction'),
@@ -1108,61 +1125,19 @@ export function TrafficSignsPage() {
                     borderTop: showDialogHero ? undefined : `3px solid ${c.color}`,
                   }}
                 >
-                  <div
-                    className="signs-dialog-intro flex-shrink-0"
-                    style={{ borderBottom: `1px solid ${c.border}` }}
-                  >
-                    <div className="signs-dialog-meta flex flex-wrap items-center gap-x-2 gap-y-1.5">
-                      <CategoryBadge category={selected.category} className="signs-dialog-meta__badge px-3 py-1">
-                        {catLabel(selected.category)}
-                      </CategoryBadge>
-                      <span className="signs-dialog-meta__dot" style={{ color: c.color }} aria-hidden>
-                        ·
-                      </span>
-                      <span className="signs-dialog-kingdom">{t('pages.signs.kingdom')}</span>
-                    </div>
-                    <h2 className="signs-dialog-title m-0">{selected.sign_name}</h2>
-                    <div
-                      className="signs-dialog-code inline-flex items-center gap-2 px-3.5 py-2 rounded-xl font-mono"
-                      style={{
-                        background: c.bg,
-                        border: `1px solid ${c.border}`,
-                        color: c.color,
-                      }}
-                    >
-                      <span className="signs-dialog-code__label">{t('pages.signs.signCode')}</span>
-                      <span className="signs-dialog-code__value">{selected.sign_code}</span>
-                    </div>
-                    {canManage && (
-                      <div className="flex flex-wrap gap-2 mt-4">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="gap-1.5 cursor-pointer"
-                          onClick={() => openEdit(selected)}
-                        >
-                          <Pencil size={14} />
-                          {t('pages.signs.editSign')}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="gap-1.5 text-red-600 border-red-200 hover:bg-red-50 cursor-pointer"
-                          onClick={() => {
-                            setDeleteTarget(selected);
-                            setSelected(null);
-                          }}
-                        >
-                          <Trash2 size={14} />
-                          {t('pages.signs.deleteSign')}
-                        </Button>
-                      </div>
-                    )}
-                  </div>
+                  <SignDetailIntro
+                    sign={selected}
+                    categoryLabel={catLabel(selected.category)}
+                    catStyle={c}
+                    canManage={canManage}
+                    onEdit={() => openEdit(selected)}
+                    onDelete={() => {
+                      setDeleteTarget(selected);
+                      setSelected(null);
+                    }}
+                  />
 
-                  <div className="signs-dialog-card flex flex-col flex-1 min-h-0 overflow-hidden">
+                  <div className="signs-dialog-card flex flex-col flex-1 min-h-0 overflow-y-auto">
                     {/* Description */}
                     <section className="signs-dialog-section flex-shrink-0">
                       <div className="signs-dialog-section__head">
@@ -1178,9 +1153,37 @@ export function TrafficSignsPage() {
                         className="signs-dialog-desc-box rounded-2xl"
                         style={{ background: c.bg, border: `1px solid ${c.border}` }}
                       >
-                        <p className="signs-dialog-desc-text m-0 line-clamp-4">{selected.description}</p>
+                        <p className="signs-dialog-desc-text m-0">
+                          {locale === 'en' && selected.description_en
+                            ? selected.description_en
+                            : selected.description}
+                        </p>
                       </div>
                     </section>
+
+                    {(selected.guidance || selected.guidance_en) && (
+                      <section className="signs-dialog-section flex-shrink-0">
+                        <div className="signs-dialog-section__head">
+                          <div
+                            className="signs-dialog-section__icon"
+                            style={{ background: c.bg, border: `1px solid ${c.border}` }}
+                          >
+                            <Shield size={16} style={{ color: c.color }} />
+                          </div>
+                          <p className="signs-dialog-section__label m-0">{t('pages.signs.guidanceLabel')}</p>
+                        </div>
+                        <div
+                          className="signs-dialog-desc-box rounded-2xl"
+                          style={{ background: c.bg, border: `1px solid ${c.border}` }}
+                        >
+                          <p className="signs-dialog-desc-text m-0">
+                            {locale === 'en' && selected.guidance_en
+                              ? selected.guidance_en
+                              : selected.guidance}
+                          </p>
+                        </div>
+                      </section>
+                    )}
 
                     {/* Traffic rules */}
                     {selected.rules && selected.rules.length > 0 && (
