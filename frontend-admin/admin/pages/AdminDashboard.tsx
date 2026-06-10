@@ -152,33 +152,51 @@ function ChartEmpty({ message }: { message: string }) {
   );
 }
 
+const DASH_CACHE_KEY = 'camtraffic_admin_dashboard_v1';
+
+function loadCached(): DashboardStats | null {
+  try {
+    const raw = localStorage.getItem(DASH_CACHE_KEY);
+    if (raw) return normalizeAdminStats(JSON.parse(raw));
+  } catch { /* ignore */ }
+  return null;
+}
+
 export function AdminDashboard() {
   const { user } = useAuth();
   const { t, locale } = useLanguage();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cached = loadCached();
+  const [stats, setStats] = useState<DashboardStats | null>(cached);
+  const [loading, setLoading] = useState(!cached);
   const [loadError, setLoadError] = useState(false);
   const now = new Date();
   const chartYear = now.getFullYear();
 
-  const loadStats = () => {
-    setLoading(true);
-    setLoadError(false);
+  const loadStats = (silent = false) => {
+    if (!silent) {
+      setLoading(true);
+      setLoadError(false);
+    }
     dashboardAPI
       .getAdminStats()
       .then((s) => {
-        setStats(normalizeAdminStats(s));
+        const normalized = normalizeAdminStats(s);
+        setStats(normalized);
+        try { localStorage.setItem(DASH_CACHE_KEY, JSON.stringify(normalized)); } catch { /* ignore */ }
       })
       .catch(() => {
-        setStats(null);
-        setLoadError(true);
-        toast.error('Could not load dashboard. Check that the backend is running.');
+        if (!silent) {
+          setStats(null);
+          setLoadError(true);
+          toast.error('Could not load dashboard. Check that the backend is running.');
+        }
       })
-      .finally(() => setLoading(false));
+      .finally(() => { if (!silent) setLoading(false); });
   };
 
   useEffect(() => {
-    loadStats();
+    // If we have cached data, refresh silently in background
+    loadStats(Boolean(cached));
   }, []);
 
   if (loading) {

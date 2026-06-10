@@ -78,6 +78,9 @@ if USE_SQLITE:
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / 'db.sqlite3',
+            # timeout=30 makes readers wait up to 30 s for a write lock instead
+            # of failing immediately with "database is locked".
+            'OPTIONS': {'timeout': 30},
         }
     }
 else:

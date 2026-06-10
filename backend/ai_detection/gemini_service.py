@@ -55,7 +55,7 @@ def _gemini_backoff_seconds() -> int:
 
 
 def _gemini_request_timeout() -> int:
-    return int(getattr(settings, 'GEMINI_REQUEST_TIMEOUT', 30))
+    return int(getattr(settings, 'GEMINI_REQUEST_TIMEOUT', 8))
 
 
 def _mark_gemini_backoff(seconds: int | None = None) -> None:
@@ -241,6 +241,9 @@ def _gemini_generate(path: Path, prompt: str) -> dict | None:
         except requests.RequestException as exc:
             last_exc = exc
             logger.warning('Gemini API request failed: %s', exc)
+            exc_str = str(exc).lower()
+            if 'ssl' in exc_str or 'certificate' in exc_str or 'verify failed' in exc_str:
+                _mark_gemini_backoff(300)
             break
     if last_exc:
         logger.warning('Gemini unavailable for this request: %s', last_exc)

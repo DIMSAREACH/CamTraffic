@@ -1,45 +1,210 @@
 scenario,image,upload_name,expected_sign_code,predicted_sign_code,predicted_name,confidence,correct,processing_time_sec
-held_out_val_generic_filename,AXLE_WEIGHT_LIMIT_WEIGHT LIMIT ON ONE AXLE_06.jpg,IMG_AXLE_WEIGHT_.jpg,PW03-R1-08,PW03-R1-08,Weight Limit on One Axle,45.9,True,3.356
-held_out_val_generic_filename,NO_ENTRY_BICYCLE_NO ENTRY FOR BICYCLE_01.jpg,IMG_NO_ENTRY_BIC.jpg,PW03-R2-04,PW03-R1-04,No Entry,88.0,False,0.093
-held_out_val_generic_filename,NO_ENTRY_BICYCLE_NO ENTRY FOR BICYCLE_06.jpg,IMG_NO_ENTRY_BIC.jpg,PW03-R2-04,PW03-R1-04,No Entry,88.0,False,0.099
-held_out_val_generic_filename,NO_ENTRY_FOR_MOTORCYCLE_NO ENTRY FOR MOTORCYCLE_05.jpg,IMG_NO_ENTRY_FOR.jpg,PW03-R2-11,PW03-R1-04,No Entry,88.0,False,0.094
-held_out_val_generic_filename,NO_ENTRY_LARGE_BUS_No entry for larged-sized bus_04.jpg,IMG_NO_ENTRY_LAR.jpg,PW03-R2-05,PW03-R1-04,No Entry,88.0,False,0.093
-held_out_val_generic_filename,NO_ENTRY_LARGE_TRUCK_NO ENTRY FOR LARGED-SIZED TRUCK_07.jpg,IMG_NO_ENTRY_LAR.jpg,PW03-R2-06,PW03-R1-04,No Entry,82.0,False,0.124
-held_out_val_generic_filename,NO_ENTRY_MOTOR_EXCEPT_MOTORCYCLE_No entry  for motor vehicles except motorcycles without side carts_00.jpg,IMG_NO_ENTRY_MOT.jpg,PW03-R1-14,PW03-R1-04,No Entry,88.0,False,0.082
-held_out_val_generic_filename,NO_ENTRY_MOTOR_EXCEPT_MOTORCYCLE_No entry  for motor vehicles except motorcycles without side carts_04.jpg,IMG_NO_ENTRY_MOT.jpg,PW03-R1-14,PW03-R1-04,No Entry,88.0,False,0.084
-held_out_val_generic_filename,NO_ENTRY_MOTOR_VEHICLES_No entry for motor vehicles_03.jpg,IMG_NO_ENTRY_MOT.jpg,PW03-R2-07,PW03-R1-04,No Entry,88.0,False,0.088
-held_out_val_generic_filename,NO_ENTRY_MOTOR_VEHICLES_No entry for motor vehicles_06.jpg,IMG_NO_ENTRY_MOT.jpg,PW03-R2-07,PW03-R1-04,No Entry,88.0,False,0.088
-held_out_val_generic_filename,NO_ENTRY_NO ENTRY_00.jpg,IMG_NO_ENTRY_NO .jpg,PW03-R1-04,PW03-R1-04,No Entry,82.0,True,0.118
-held_out_val_generic_filename,NO_PARKING_NO PARKING_00.jpg,IMG_NO_PARKING_N.jpg,PW03-R2-10,PW03-R2-10,No Parking,84.9,True,0.163
-held_out_val_generic_filename,NO_PARKING_NO PARKING_02.jpg,IMG_NO_PARKING_N.jpg,PW03-R2-10,,Unknown sign,0.0,False,0.086
-held_out_val_generic_filename,NO_PARKING_NO PARKING_03.jpg,IMG_NO_PARKING_N.jpg,PW03-R2-10,PW03-R2-10,No Parking,75.1,True,0.084
-held_out_val_generic_filename,NO_RIGHT_TURN_No Right Turn_05.jpg,IMG_NO_RIGHT_TUR.jpg,PW03-R1-02,PW03-R1-02,No Right Turn,90.4,True,0.08
-held_out_val_generic_filename,NO_RIGHT_TURN_No Right Turn_06.jpg,IMG_NO_RIGHT_TUR.jpg,PW03-R1-02,PW03-R1-02,No Right Turn,89.6,True,0.081
-held_out_val_generic_filename,NO_STOPPING_No stopping_02.jpg,IMG_NO_STOPPING_.jpg,PW03-R2-09,PW03-R2-09,No Stopping,92.2,True,0.088
-held_out_val_generic_filename,NO_STOPPING_No stopping_03.jpg,IMG_NO_STOPPING_.jpg,PW03-R2-09,PW03-R2-09,No Stopping,85.7,True,0.085
-held_out_val_generic_filename,NO_U_TURN_NO U TURN_07.jpg,IMG_NO_U_TURN_NO.jpg,PW03-R1-03,PW03-R1-03,No U-Turn,88.0,True,0.086
-held_out_val_generic_filename,ROAD_CLOSED_ALL_USERS_CLOSE FOR ALL ROAD USERS_00.jpg,IMG_ROAD_CLOSED_.jpg,PW03-R1-06,PW03-R1-06,Closed for All Road Users,76.3,True,0.087
-held_out_val_generic_filename,ROAD_CLOSED_ALL_USERS_CLOSE FOR ALL ROAD USERS_04.jpg,IMG_ROAD_CLOSED_.jpg,PW03-R1-06,PW03-R1-06,Closed for All Road Users,77.6,True,0.125
-held_out_val_generic_filename,ROAD_CLOSED_ALL_USERS_CLOSE FOR ALL ROAD USERS_05.jpg,IMG_ROAD_CLOSED_.jpg,PW03-R1-06,PW03-R1-06,Closed for All Road Users,90.2,True,0.09
-held_out_val_generic_filename,ROAD_CLOSED_ALL_VEHICLES_CLOSE FOR ALL VEHICLES_07.jpg,IMG_ROAD_CLOSED_.jpg,PW03-R1-05,PW03-R1-05,Closed for All Vehicles,95.7,True,0.076
-held_out_val_generic_filename,TOTAL_WEIGHT_LIMIT_TOTAL WEIGHT LIMIT_06.jpg,IMG_TOTAL_WEIGHT.jpg,PW03-R1-07,PW03-R1-07,Total Weight Limit,99.7,True,0.085
-reference_upload_original_filename,CLOSE FOR ALL ROAD USERS.jpg,CLOSE FOR ALL ROAD USERS.jpg,PW03-R1-06,PW03-R1-06,Closed for All Road Users,95.0,True,0.0
-reference_upload_original_filename,CLOSE FOR ALL VEHICLES.jpg,CLOSE FOR ALL VEHICLES.jpg,PW03-R1-05,PW03-R1-05,Closed for All Vehicles,95.0,True,0.001
-reference_upload_original_filename,HEIGHT LIMIT.webp,HEIGHT LIMIT.webp,PW03-R1-09,PW03-R1-09,Height Limit,95.0,True,0.0
-reference_upload_original_filename,NO ENTRY.png,NO ENTRY.png,PW03-R1-04,PW03-R1-04,No Entry,95.0,True,0.001
-reference_upload_original_filename,No Left Turn.jpg,No Left Turn.jpg,PW03-R1-01,PW03-R1-01,No Left Turn,95.0,True,0.001
-reference_upload_original_filename,No Right Turn.jpg,No Right Turn.jpg,PW03-R1-02,PW03-R1-02,No Right Turn,95.0,True,0.001
-reference_upload_original_filename,NO U TURN.jpg,NO U TURN.jpg,PW03-R1-03,PW03-R1-03,No U-Turn,95.0,True,0.0
-reference_upload_original_filename,TOTAL WEIGHT LIMIT.jpg,TOTAL WEIGHT LIMIT.jpg,PW03-R1-07,PW03-R1-07,Total Weight Limit,95.0,True,0.001
-reference_upload_original_filename,WEIGHT LIMIT ON ONE AXLE.jpg,WEIGHT LIMIT ON ONE AXLE.jpg,PW03-R1-08,PW03-R1-08,Weight Limit on One Axle,95.0,True,0.001
-reference_upload_original_filename,WIDTH LIMIT.webp,WIDTH LIMIT.webp,PW03-R1-10,PW03-R1-10,Width Limit,95.0,True,0.0
-reference_upload_original_filename,Lenght Limit.png,Lenght Limit.png,PW03-R2-01,PW03-R2-01,Length Limit,95.0,True,0.001
-reference_upload_original_filename,No entry  for motor vehicles except motorcycles without side carts.jpeg,No entry  for motor vehicles except motorcycles without side carts.jpeg,PW03-R1-14,PW03-R1-14,No Entry Except Motorcycles,95.0,True,0.0
-reference_upload_original_filename,"NO ENTRY FOR BICYCLE, MOTORCYCLE AND TRICYCLE.jpeg","NO ENTRY FOR BICYCLE, MOTORCYCLE AND TRICYCLE.jpeg",PW03-R2-03,PW03-R2-03,"No Entry for Bicycle, Motorcycle and Tricycle",95.0,True,0.0
-reference_upload_original_filename,NO ENTRY FOR BICYCLE.png,NO ENTRY FOR BICYCLE.png,PW03-R2-04,PW03-R2-04,No Entry for Bicycle,95.0,True,0.001
-reference_upload_original_filename,No entry for larged-sized bus.png,No entry for larged-sized bus.png,PW03-R2-05,PW03-R2-05,No Entry for Large-Sized Bus,95.0,True,0.0
-reference_upload_original_filename,NO ENTRY FOR LARGED-SIZED TRUCK.png,NO ENTRY FOR LARGED-SIZED TRUCK.png,PW03-R2-06,PW03-R2-06,No Entry for Large-Sized Truck,95.0,True,0.001
-reference_upload_original_filename,No entry for motor vehicles.jpeg,No entry for motor vehicles.jpeg,PW03-R2-07,PW03-R2-07,No Entry for Motor Vehicles,95.0,True,0.0
-reference_upload_original_filename,NO ENTRY FOR MOTORCYCLE.jpeg,NO ENTRY FOR MOTORCYCLE.jpeg,PW03-R2-11,PW03-R2-11,No Entry for Motorcycle,95.0,True,0.001
-reference_upload_original_filename,NO PARKING.jpg,NO PARKING.jpg,PW03-R2-10,PW03-R2-10,No Parking,95.0,True,0.0
-reference_upload_original_filename,No stopping.jpeg,No stopping.jpeg,PW03-R2-09,PW03-R2-09,No Stopping,95.0,True,0.0
+held_out_val_generic_filename,HEIGHT_LIMIT_Height limit_00.jpg,IMG_HEIGHT_LIMIT.jpg,PW03-R1-09,P-030,Speed limit 50 km-h,25.0,False,4.375
+held_out_val_generic_filename,I_ABREAST_TRAVELLING_PERMITTED_FOR_BICYCLE_Abreast travelling permitted for bicycles_00.jpg,IMG_I_ABREAST_TR.jpg,I-038,I-036,3 lanes merge to 2 lanes from the left,15.7,False,0.463
+held_out_val_generic_filename,I_AIRPORTS_Airports_03.jpg,IMG_I_AIRPORTS_A.jpg,I-039,I-042,Camping area,47.9,False,0.406
+held_out_val_generic_filename,I_ANIMAL_DRAWN_CARTS_Animal drawn carts_02.jpg,IMG_I_ANIMAL_DRA.jpg,I-001,W-022,Divided roads begins,5.1,False,0.465
+held_out_val_generic_filename,I_ASIAN_HIGHWAY_ROUTE_1_Asian Highway route 1_05.jpg,IMG_I_ASIAN_HIGH.jpg,I-096,I-003,Beware of trains,27.7,False,0.456
+held_out_val_generic_filename,I_BACKWARD_Backward_00.jpg,IMG_I_BACKWARD_B.jpg,I-002,I-002,Backward,96.7,True,0.049
+held_out_val_generic_filename,I_BEWARE_OF_TRAINS_Beware of trains_05.jpg,IMG_I_BEWARE_OF_.jpg,I-003,I-003,Beware of trains,32.3,True,0.427
+held_out_val_generic_filename,I_BICYCLES_Bicycles_00.jpg,IMG_I_BICYCLES_B.jpg,I-004,I-059,Gas station,22.6,False,0.432
+held_out_val_generic_filename,I_BICYCLES_Bicycles_04.jpg,IMG_I_BICYCLES_B.jpg,I-004,I-059,Gas station,24.6,False,0.465
+held_out_val_generic_filename,I_BOATS_RAMP_Boats ramp_05.jpg,IMG_I_BOATS_RAMP.jpg,I-041,I-042,Camping area,18.6,False,0.448
+held_out_val_generic_filename,I_BUILT_UP_AREA_BEGINS_Built-up area begins_02.jpg,IMG_I_BUILT_UP_A.jpg,I-025,W-002,Detour to the right,60.1,False,0.388
+held_out_val_generic_filename,I_BUSES_Buses_00.jpg,IMG_I_BUSES_Buse.jpg,I-005,I-003,Beware of trains,19.6,False,0.464
+held_out_val_generic_filename,I_BUSES_Buses_02.jpg,IMG_I_BUSES_Buse.jpg,I-005,W-064,Two-way traffic,16.8,False,0.475
+held_out_val_generic_filename,I_BUSES_Buses_03.jpg,IMG_I_BUSES_Buse.jpg,I-005,I-003,Beware of trains,11.1,False,0.456
+held_out_val_generic_filename,I_CARAVANS_PARK_AND_CAMPING_AREA_Caravans park and camping area_01.jpg,IMG_I_CARAVANS_P.jpg,I-043,I-042,Camping area,45.9,False,0.408
+held_out_val_generic_filename,I_CARAVANS_PARK_AND_CAMPING_AREA_Caravans park and camping area_02.jpg,IMG_I_CARAVANS_P.jpg,I-043,I-036,3 lanes merge to 2 lanes from the left,7.2,False,0.443
+held_out_val_generic_filename,I_CARAVANS_PARK_OR_SITE_Caravans park or site_00.jpg,IMG_I_CARAVANS_P.jpg,I-044,P-006,Maximum speed limit,7.5,False,0.449
+held_out_val_generic_filename,I_CARAVANS_PARK_OR_SITE_Caravans park or site_01.jpg,IMG_I_CARAVANS_P.jpg,I-044,W-053,Side road junction on the left,40.8,False,0.407
+held_out_val_generic_filename,I_CHEVRON_MARKER_TO_THE_LEFT_Chevron marker (to the left)_01.jpg,IMG_I_CHEVRON_MA.jpg,I-088,I-001,Animal drawn carts,41.4,False,0.376
+held_out_val_generic_filename,I_CHEVRON_MARKER_TO_THE_LEFT_Chevron marker (to the left)_02.jpg,IMG_I_CHEVRON_MA.jpg,I-088,I-056,Forest fire warning signs,21.4,False,0.459
+held_out_val_generic_filename,I_CHEVRON_MARKER_TO_THE_RIGHT_Chevron marker (to the right)_00.jpg,IMG_I_CHEVRON_MA.jpg,I-089,I-001,Animal drawn carts,20.9,False,0.431
+held_out_val_generic_filename,I_CHEVRON_MARKER_TO_THE_RIGHT_Chevron marker (to the right)_01.jpg,IMG_I_CHEVRON_MA.jpg,I-089,M-033,Yield (at roundabout),43.4,False,0.404
+held_out_val_generic_filename,I_CLINIC_Clinic_05.jpg,IMG_I_CLINIC_Cli.jpg,I-045,I-036,3 lanes merge to 2 lanes from the left,26.6,False,0.444
+held_out_val_generic_filename,I_DEAD_END_Dead end_00.jpg,IMG_I_DEAD_END_D.jpg,I-049,I-093,Object marker (on the left),49.5,False,0.396
+held_out_val_generic_filename,I_DEAD_END_ROAD_ON_THE_LEFT_Dead end road on the left_01.jpg,IMG_I_DEAD_END_R.jpg,I-048,I-072,Taxis station,66.3,False,0.384
+held_out_val_generic_filename,I_DEAD_END_ROAD_ON_THE_LEFT_Dead end road on the left_02.jpg,IMG_I_DEAD_END_R.jpg,I-048,M-028,Priority over all traffic from the opposite direction,9.2,False,0.437
+held_out_val_generic_filename,I_DELINEATOR_POST_Delineator post_02.jpg,IMG_I_DELINEATOR.jpg,I-090,I-034,Guide sign to other places,21.2,False,0.431
+held_out_val_generic_filename,I_DETOUR_FOR_THE_VEHICLE_HAVING_OVERALL_HE_Detour for the vehicle having overall height exceeding specified height_02.jpg,IMG_I_DETOUR_FOR.jpg,I-051,I-050,Detour for the turning left,19.2,False,0.459
+held_out_val_generic_filename,I_DIRECTION_OF_PRIORITY_ROAD_Direction of priority road_01.jpg,IMG_I_DIRECTION_.jpg,I-007,I-097,Asian Highway route 11,32.4,False,0.447
+held_out_val_generic_filename,I_DIRECTION_OF_PRIORITY_ROAD_Direction of priority road_03.jpg,IMG_I_DIRECTION_.jpg,I-007,I-015,Time identification marker,15.2,False,0.435
+held_out_val_generic_filename,I_DIRECTION_SIGN_TO_CITIES_OR_PROVINCES_AT_2_Direction sign to cities or provinces (at junction)_05.jpg,IMG_I_DIRECTION_.jpg,I-030,M-015,Minimum speed limit,13.9,False,0.412
+held_out_val_generic_filename,I_DIRECTION_SIGN_TO_CITIES_OR_PROVINCES_AT_Direction sign to cities or provinces (at detour)_00.jpg,IMG_I_DIRECTION_.jpg,I-029,I-097,Asian Highway route 11,10.4,False,0.423
+held_out_val_generic_filename,I_DIRECTION_SIGN_TO_CITIES_OR_PROVINCES_AT_Direction sign to cities or provinces (at detour)_02.jpg,IMG_I_DIRECTION_.jpg,I-029,I-042,Camping area,28.6,False,0.442
+held_out_val_generic_filename,I_DIRECTION_SIGN_TO_CITIES_OR_PROVINCES_AT_Direction sign to cities or provinces (at detour)_03.jpg,IMG_I_DIRECTION_.jpg,I-029,I-042,Camping area,29.4,False,0.435
+held_out_val_generic_filename,I_DIRECTION_SIGN_TO_OTHER_AREAS_AT_DETOUR_Direction sign to other areas (at detour)_04.jpg,IMG_I_DIRECTION_.jpg,I-031,I-054,Expressway ends,5.0,False,0.44
+held_out_val_generic_filename,I_DIRECTION_SIGN_TO_OTHER_AREAS_AT_DETOUR_Direction sign to other areas (at detour)_05.jpg,IMG_I_DIRECTION_.jpg,I-031,M-028,Priority over all traffic from the opposite direction,15.5,False,0.44
+held_out_val_generic_filename,I_DIRECTION_SIGN_TO_OTHER_AREAS_AT_JUNCTIO_Direction sign to other areas (at junction)_04.jpg,IMG_I_DIRECTION_.jpg,I-032,I-020,Trucks,16.0,False,0.44
+held_out_val_generic_filename,I_DIRECTIONS_TO_CITY_OR_PROVINCE_Directions to city or province_00.jpg,IMG_I_DIRECTIONS.jpg,I-033,I-058,Gas station and repair,10.5,False,0.451
+held_out_val_generic_filename,I_DISTANCE_IDENTIFICATION_MARKER_Distance identification marker_05.jpg,IMG_I_DISTANCE_I.jpg,I-008,I-022,Vehicles having over all length width exceeding the specified width,7.6,False,0.443
+held_out_val_generic_filename,I_DRINKING_WATERS_Drinking waters_01.jpg,IMG_I_DRINKING_W.jpg,I-052,I-042,Camping area,22.6,False,0.464
+held_out_val_generic_filename,I_EXPRESSWAY_BEGINS_Expressway begins_02.jpg,IMG_I_EXPRESSWAY.jpg,I-053,I-072,Taxis station,13.2,False,0.487
+held_out_val_generic_filename,I_EXPRESSWAY_ENDS_Expressway ends_03.jpg,IMG_I_EXPRESSWAY.jpg,I-054,M-015,Minimum speed limit,16.2,False,0.461
+held_out_val_generic_filename,I_FACTORY_GATE_Factory gate_02.jpg,IMG_I_FACTORY_GA.jpg,I-009,I-009,Factory gate,7.4,True,0.448
+held_out_val_generic_filename,I_FACTORY_GATE_Factory gate_03.jpg,IMG_I_FACTORY_GA.jpg,I-009,W-022,Divided roads begins,40.2,False,0.396
+held_out_val_generic_filename,I_FERRY_Ferry_01.jpg,IMG_I_FERRY_Ferr.jpg,I-055,I-072,Taxis station,20.6,False,0.431
+held_out_val_generic_filename,I_FERRY_Ferry_02.jpg,IMG_I_FERRY_Ferr.jpg,I-055,I-072,Taxis station,22.1,False,0.451
+held_out_val_generic_filename,I_FERRY_Ferry_03.jpg,IMG_I_FERRY_Ferr.jpg,I-055,I-072,Taxis station,8.1,False,0.422
+held_out_val_generic_filename,I_FOREST_FIRE_WARNING_SIGNS_Forest fire warning signs_03.jpg,IMG_I_FOREST_FIR.jpg,I-056,I-069,Recycle bin,42.9,False,0.407
+held_out_val_generic_filename,I_FORWARD_Forward_03.jpg,IMG_I_FORWARD_Fo.jpg,I-011,I-011,Forward,87.5,True,0.044
+held_out_val_generic_filename,I_GARAGE_STATION_Garage station_03.jpg,IMG_I_GARAGE_STA.jpg,I-057,I-063,Official tourist information,21.2,False,0.445
+held_out_val_generic_filename,I_GAS_STATION_AND_REPAIR_Gas station and repair_05.jpg,IMG_I_GAS_STATIO.jpg,I-058,I-059,Gas station,19.7,False,0.449
+held_out_val_generic_filename,I_GUIDE_POST_AT_DANGEROUS_CURVE_Guide post (at dangerous curve)_00.jpg,IMG_I_GUIDE_POST.jpg,I-091,I-090,Delineator post,41.9,False,0.378
+held_out_val_generic_filename,I_GUIDE_SIGN_TO_OTHER_PLACES_Guide sign to other places_01.jpg,IMG_I_GUIDE_SIGN.jpg,I-034,I-027,"Provincial, district or commune boundary begins",11.1,False,0.423
+held_out_val_generic_filename,I_GUIDE_SIGN_TO_OTHER_PLACES_Guide sign to other places_03.jpg,IMG_I_GUIDE_SIGN.jpg,I-034,I-023,Vehicles having overall length weight limit on one axle exceeding the specified weight limit on one axle,6.4,False,0.451
+held_out_val_generic_filename,I_GUIDE_SIGN_TO_OTHER_PLACES_Guide sign to other places_04.jpg,IMG_I_GUIDE_SIGN.jpg,I-034,I-035,Weigh station,38.5,False,0.392
+held_out_val_generic_filename,I_HOSPITAL_Hospital_03.jpg,IMG_I_HOSPITAL_H.jpg,I-060,I-036,3 lanes merge to 2 lanes from the left,16.5,False,0.446
+held_out_val_generic_filename,I_HOTEL_OR_MOTEL_Hotel or motel_01.jpg,IMG_I_HOTEL_OR_M.jpg,I-061,I-042,Camping area,13.4,False,0.439
+held_out_val_generic_filename,I_HOTEL_OR_MOTEL_Hotel or motel_02.jpg,IMG_I_HOTEL_OR_M.jpg,I-061,I-002,Backward,6.3,False,0.428
+held_out_val_generic_filename,I_HOTEL_OR_MOTEL_Hotel or motel_03.jpg,IMG_I_HOTEL_OR_M.jpg,I-061,I-058,Gas station and repair,13.0,False,0.443
+held_out_val_generic_filename,I_HOTEL_OR_MOTEL_Hotel or motel_05.jpg,IMG_I_HOTEL_OR_M.jpg,I-061,M-028,Priority over all traffic from the opposite direction,17.6,False,0.45
+held_out_val_generic_filename,I_KRAMUON_SAR_AVENUE_Kramuon Sar Avenue_03.jpg,IMG_I_KRAMUON_SA.jpg,I-099,I-035,Weigh station,11.6,False,0.433
+held_out_val_generic_filename,I_KRAMUON_SAR_AVENUE_Kramuon Sar Avenue_05.jpg,IMG_I_KRAMUON_SA.jpg,I-099,I-027,"Provincial, district or commune boundary begins",40.4,False,0.394
+held_out_val_generic_filename,I_LARGE_SIZE_TRUCKS_HAVING_OVERALL_LENGTH_Large-size trucks having overall length exceeding the specified length_04.jpg,IMG_I_LARGE_SIZE.jpg,I-012,I-059,Gas station,15.3,False,0.439
+held_out_val_generic_filename,I_LARGE_SIZE_TRUCKS_HAVING_OVERALL_LENGTH_Large-size trucks having overall length exceeding the specified length_05.jpg,IMG_I_LARGE_SIZE.jpg,I-012,I-097,Asian Highway route 11,7.9,False,0.457
+held_out_val_generic_filename,I_MOTORCYCLE_DRAWN_CARTS_Motorcycle-drawn carts_03.jpg,IMG_I_MOTORCYCLE.jpg,I-013,I-094,Object marker (on the right),15.4,False,0.449
+held_out_val_generic_filename,I_MOTORCYCLE_DRAWN_CARTS_Motorcycle-drawn carts_04.jpg,IMG_I_MOTORCYCLE.jpg,I-013,I-092,Object marker (on the curve),25.8,False,0.45
+held_out_val_generic_filename,I_NATIONAL_ROAD_NUMBER_National road number_02.jpg,IMG_I_NATIONAL_R.jpg,I-100,M-009,End of pedestrians only,16.2,False,0.455
+held_out_val_generic_filename,I_NATIONAL_ROAD_NUMBER_National road number_04.jpg,IMG_I_NATIONAL_R.jpg,I-100,M-022,Turn right ahead,5.1,False,0.45
+held_out_val_generic_filename,I_OBJECT_MARKER_ON_THE_CURVE_Object marker (on the curve)_00.jpg,IMG_I_OBJECT_MAR.jpg,I-092,I-021,Vehicles having over all length height exceeding the specified height,65.6,False,0.378
+held_out_val_generic_filename,I_OBJECT_MARKER_ON_THE_CURVE_Object marker (on the curve)_02.jpg,IMG_I_OBJECT_MAR.jpg,I-092,W-065,Uneven road,54.1,False,0.409
+held_out_val_generic_filename,I_OBJECT_MARKER_ON_THE_RIGHT_Object marker (on the right)_03.jpg,IMG_I_OBJECT_MAR.jpg,I-094,I-094,Object marker (on the right),99.3,True,0.048
+held_out_val_generic_filename,I_PARKING_LOT_Parking lot_04.jpg,IMG_I_PARKING_LO.jpg,I-065,I-040,Arrow direction exclusive lane,37.1,False,0.437
+held_out_val_generic_filename,I_PAY_PARKING_LOT_Pay parking lot_00.jpg,IMG_I_PAY_PARKIN.jpg,I-066,I-066,Pay parking lot,18.3,True,0.446
+held_out_val_generic_filename,I_PREAH_NORODOM_BOULEVARD_Preah Norodom Boulevard_01.jpg,IMG_I_PREAH_NORO.jpg,I-101,W-030,Handicapped crossing,16.5,False,0.451
+held_out_val_generic_filename,I_RECYCLE_BIN_Recycle bin_01.jpg,IMG_I_RECYCLE_BI.jpg,I-069,I-066,Pay parking lot,11.4,False,0.454
+held_out_val_generic_filename,I_REFRESHMENTS_SHOP_Refreshments shop_03.jpg,IMG_I_REFRESHMEN.jpg,I-070,I-072,Taxis station,14.4,False,0.447
+held_out_val_generic_filename,I_REFRESHMENTS_SHOP_Refreshments shop_05.jpg,IMG_I_REFRESHMEN.jpg,I-070,I-072,Taxis station,20.4,False,0.447
+held_out_val_generic_filename,I_RESTAURANTS_SHOP_Restaurants shop_00.jpg,IMG_I_RESTAURANT.jpg,I-071,I-042,Camping area,7.0,False,0.459
+held_out_val_generic_filename,I_STREET_NO_113_Street No.113_00.jpg,IMG_I_STREET_NO_.jpg,I-103,W-002,Detour to the right,5.5,False,0.433
+held_out_val_generic_filename,I_TO_THE_LEFT_HAND_SIDE_To the left hand side_04.jpg,IMG_I_TO_THE_LEF.jpg,I-016,W-040,Pedestrian crossing,19.0,False,0.453
+held_out_val_generic_filename,I_TO_THE_LEFT_HAND_SIDE_To the left hand side_05.jpg,IMG_I_TO_THE_LEF.jpg,I-016,I-018,To the right hand side,28.6,False,0.448
+held_out_val_generic_filename,I_TOILETS_Toilets_01.jpg,IMG_I_TOILETS_To.jpg,I-074,W-030,Handicapped crossing,37.7,False,0.414
+held_out_val_generic_filename,I_TOILETS_Toilets_04.jpg,IMG_I_TOILETS_To.jpg,I-074,I-036,3 lanes merge to 2 lanes from the left,10.7,False,0.45
+held_out_val_generic_filename,I_VEHICLES_HAVING_OVER_ALL_LENGTH_HEIGHT_E_Vehicles having over all length height exceeding the specified height_04.jpg,IMG_I_VEHICLES_H.jpg,I-021,W-030,Handicapped crossing,9.9,False,0.456
+held_out_val_generic_filename,I_VEHICLES_HAVING_OVERALL_LENGTH_WEIGHT_LI_Vehicles having overall length weight limit on one axle exceeding the specified weight limit on one axle_04.jpg,IMG_I_VEHICLES_H.jpg,I-023,W-030,Handicapped crossing,18.9,False,0.459
+held_out_val_generic_filename,I_WEIGH_STATION_Weigh station_01.jpg,IMG_I_WEIGH_STAT.jpg,I-035,I-035,Weigh station,9.8,True,0.435
+held_out_val_generic_filename,LENGTH_LIMIT_Length limit_00.jpg,IMG_LENGTH_LIMIT.jpg,PW03-R2-01,P-033,Stop at the police station,8.4,False,0.431
+held_out_val_generic_filename,M_ANIMAL_DRAWN_CARTS_OF_ALL_FORM_ONLY_Animal drawn carts of all form only_02.jpg,IMG_M_ANIMAL_DRA.jpg,M-001,W-030,Handicapped crossing,6.3,False,0.449
+held_out_val_generic_filename,M_ANIMAL_DRAWN_CARTS_OF_ALL_FORM_ONLY_Animal drawn carts of all form only_05.jpg,IMG_M_ANIMAL_DRA.jpg,M-001,P-006,Maximum speed limit,6.7,False,0.538
+held_out_val_generic_filename,M_BUSES_LANE_Buses lane_03.jpg,IMG_M_BUSES_LANE.jpg,M-003,,Unknown sign,0.0,False,0.649
+held_out_val_generic_filename,M_CARS_ONLY_Cars only_03.jpg,IMG_M_CARS_ONLY_.jpg,M-004,,Unknown sign,0.0,False,0.634
+held_out_val_generic_filename,M_DOUBLE_TRIPLE_RAILWAY_CROSSING_Double triple railway crossing_05.jpg,IMG_M_DOUBLE_TRI.jpg,M-024,I-096,Asian Highway route 1,22.3,False,0.441
+held_out_val_generic_filename,M_END_OF_BICYCLES_ONLY_End of bicycles only_02.jpg,IMG_M_END_OF_BIC.jpg,M-005,P-002,End of maximum speed limit,12.4,False,0.462
+held_out_val_generic_filename,M_END_OF_BUSES_LANE_End of buses lane_02.jpg,IMG_M_END_OF_BUS.jpg,M-006,P-013,No cars,7.9,False,0.44
+held_out_val_generic_filename,M_END_OF_MINIMUM_SPEED_LIMIT_End of minimum speed limit_01.jpg,IMG_M_END_OF_MIN.jpg,M-007,PW03-R1-05,Closed for All Vehicles,8.4,False,0.535
+held_out_val_generic_filename,M_END_OF_MINIMUM_SPEED_LIMIT_End of minimum speed limit_05.jpg,IMG_M_END_OF_MIN.jpg,M-007,P-002,End of maximum speed limit,7.3,False,0.466
+held_out_val_generic_filename,M_GO_STRAIGHT_OR_TURN_LEFT_Go straight or turn left_00.jpg,IMG_M_GO_STRAIGH.jpg,M-010,M-009,End of pedestrians only,10.4,False,0.446
+held_out_val_generic_filename,M_GO_STRAIGHT_OR_TURN_RIGHT_Go straight or turn right._04.jpg,IMG_M_GO_STRAIGH.jpg,M-011,M-002,Bicycles only,11.3,False,0.477
+held_out_val_generic_filename,M_KEEP_LEFT_Keep left_02.jpg,IMG_M_KEEP_LEFT_.jpg,M-013,W-027,Double sharp curve first to the right,12.2,False,0.47
+held_out_val_generic_filename,M_KEEP_LEFT_Keep left_04.jpg,IMG_M_KEEP_LEFT_.jpg,M-013,P-019,No overtaking for trucks,10.2,False,0.441
+held_out_val_generic_filename,M_KEEP_RIGHT_Keep right_04.jpg,IMG_M_KEEP_RIGHT.jpg,M-014,M-021,Turn left,6.0,False,0.447
+held_out_val_generic_filename,M_PEDESTRIANS_AND_BICYCLES_ONLY_Pedestrians and bicycles only_02.jpg,IMG_M_PEDESTRIAN.jpg,M-016,P-028,No vehicles loading inflammable goods,5.3,False,0.447
+held_out_val_generic_filename,M_PEDESTRIANS_ONLY_Pedestrians only_05.jpg,IMG_M_PEDESTRIAN.jpg,M-017,M-022,Turn right ahead,6.7,False,0.448
+held_out_val_generic_filename,M_PRIORITY_INTERSECTION_Priority intersection_00.jpg,IMG_M_PRIORITY_I.jpg,M-027,W-015,Crossroad on the left (different road classes),7.1,False,0.464
+held_out_val_generic_filename,M_PRIORITY_INTERSECTION_Priority intersection_05.jpg,IMG_M_PRIORITY_I.jpg,M-027,W-031,Hump,5.1,False,0.467
+held_out_val_generic_filename,M_SINGLE_TRACK_RAILWAY_CROSSING_Single track railway crossing_03.jpg,IMG_M_SINGLE_TRA.jpg,M-030,I-096,Asian Highway route 1,83.7,False,0.044
+held_out_val_generic_filename,M_SLOW_DOWN_Slow down_01.jpg,IMG_M_SLOW_DOWN_.jpg,M-018,I-047,Dead end on the right,13.4,False,0.465
+held_out_val_generic_filename,M_SLOW_DOWN_Slow down_05.jpg,IMG_M_SLOW_DOWN_.jpg,M-018,W-043,Railway crossing with barrier or gates,10.5,False,0.449
+held_out_val_generic_filename,M_STOP_KHMER_AND_ENGLISH_LANGUAGES_Stop (Khmer and English languages)_04.jpg,IMG_M_STOP_KHMER.jpg,M-031,PW03-R1-01,No Left Turn,12.3,False,0.646
+held_out_val_generic_filename,M_TURN_LEFT_AHEAD_Turn left ahead_01.jpg,IMG_M_TURN_LEFT_.jpg,M-019,M-022,Turn right ahead,14.6,False,0.454
+held_out_val_generic_filename,M_TURN_LEFT_AHEAD_Turn left ahead_04.jpg,IMG_M_TURN_LEFT_.jpg,M-019,M-022,Turn right ahead,12.8,False,0.441
+held_out_val_generic_filename,M_TURN_LEFT_AHEAD_Turn left ahead_05.jpg,IMG_M_TURN_LEFT_.jpg,M-019,M-022,Turn right ahead,10.9,False,0.504
+held_out_val_generic_filename,M_TURN_RIGHT_AHEAD_Turn right ahead_03.jpg,IMG_M_TURN_RIGHT.jpg,M-022,M-022,Turn right ahead,9.8,True,0.457
+held_out_val_generic_filename,M_TURN_RIGHT_Turn right_00.jpg,IMG_M_TURN_RIGHT.jpg,M-023,P-002,End of maximum speed limit,10.9,False,0.455
+held_out_val_generic_filename,M_YIELD_AT_ROUNDABOUT_Yield (at roundabout)_01.jpg,IMG_M_YIELD_AT_R.jpg,M-033,M-033,Yield (at roundabout),15.9,True,0.443
+held_out_val_generic_filename,M_YIELD_GIVE_WAY_Yield (Give way)_01.jpg,IMG_M_YIELD_GIVE.jpg,M-034,P-029,Speed limit 20 km-h,22.5,False,0.502
+held_out_val_generic_filename,M_YIELD_GIVE_WAY_Yield (Give way)_04.jpg,IMG_M_YIELD_GIVE.jpg,M-034,M-015,Minimum speed limit,14.5,False,0.474
+held_out_val_generic_filename,NO_LEFT_TURN_No left turn_03.jpg,IMG_NO_LEFT_TURN.jpg,PW03-R1-01,PW03-R1-01,No Left Turn,88.0,True,0.097
+held_out_val_generic_filename,NO_PARKING_No parking_01.jpg,IMG_NO_PARKING_N.jpg,PW03-R2-10,M-023,Turn right,8.2,False,0.447
+held_out_val_generic_filename,NO_RIGHT_TURN_No right turn_02.jpg,IMG_NO_RIGHT_TUR.jpg,PW03-R1-02,P-013,No cars,11.7,False,0.456
+held_out_val_generic_filename,NO_RIGHT_TURN_No right turn_03.jpg,IMG_NO_RIGHT_TUR.jpg,PW03-R1-02,W-060,Steep descent,7.2,False,0.428
+held_out_val_generic_filename,NO_U_TURN_No U-turn_00.jpg,IMG_NO_U_TURN_No.jpg,PW03-R1-03,PW03-R1-03,No U-Turn,88.0,True,0.199
+held_out_val_generic_filename,NO_U_TURN_No U-turn_04.jpg,IMG_NO_U_TURN_No.jpg,PW03-R1-03,PW03-R1-03,No U-Turn,88.0,True,0.094
+held_out_val_generic_filename,P_END_OF_HONKING_PROHIBITION_End of honking prohibition_00.jpg,IMG_P_END_OF_HON.jpg,P-001,W-031,Hump,5.7,False,0.46
+held_out_val_generic_filename,P_END_OF_HONKING_PROHIBITION_End of honking prohibition_01.jpg,IMG_P_END_OF_HON.jpg,P-001,W-051,Sharp curve to the right,6.0,False,0.44
+held_out_val_generic_filename,P_END_OF_HONKING_PROHIBITION_End of honking prohibition_05.jpg,IMG_P_END_OF_HON.jpg,P-001,I-071,Restaurants shop,6.6,False,0.708
+held_out_val_generic_filename,P_END_OF_MAXIMUM_SPEED_LIMIT_End of maximum speed limit_05.jpg,IMG_P_END_OF_MAX.jpg,P-002,I-072,Taxis station,11.5,False,0.48
+held_out_val_generic_filename,P_MAXIMUM_SPEED_LIMIT_Maximum speed limit_02.jpg,IMG_P_MAXIMUM_SP.jpg,P-006,W-054,Side road junction on the right (different road classes),6.5,False,0.455
+held_out_val_generic_filename,P_MINIMUM_SEPARATION_DISTANCE_FOR_CARS_Minimum separation distance for cars_01.jpg,IMG_P_MINIMUM_SE.jpg,P-007,P-030,Speed limit 50 km-h,6.3,False,0.483
+held_out_val_generic_filename,P_MINIMUM_SEPARATION_DISTANCE_FOR_CARS_Minimum separation distance for cars_02.jpg,IMG_P_MINIMUM_SE.jpg,P-007,PW03-R1-10,Width Limit,7.3,False,0.448
+held_out_val_generic_filename,P_MINIMUM_SEPARATION_DISTANCE_FOR_TRUCKS_Minimum separation distance for trucks_05.jpg,IMG_P_MINIMUM_SE.jpg,P-008,PW03-R1-10,Width Limit,14.8,False,0.465
+held_out_val_generic_filename,P_NO_ANIMAL_DRAWN_CARTS_No animal-drawn carts_03.jpg,IMG_P_NO_ANIMAL_.jpg,P-009,PW03-R1-05,Closed for All Vehicles,8.0,False,0.444
+held_out_val_generic_filename,P_NO_ANIMAL_DRAWN_CARTS_No animal-drawn carts_04.jpg,IMG_P_NO_ANIMAL_.jpg,P-009,P-033,Stop at the police station,12.0,False,0.438
+held_out_val_generic_filename,P_NO_ANIMAL_DRAWN_CARTS_No animal-drawn carts_05.jpg,IMG_P_NO_ANIMAL_.jpg,P-009,M-015,Minimum speed limit,6.3,False,0.456
+held_out_val_generic_filename,"P_NO_BICYCLES_MOTORCYCLES_AND_TRICYCLES_No bicycles, motorcycles and tricycles_02.jpg",IMG_P_NO_BICYCLE.jpg,P-010,P-030,Speed limit 50 km-h,12.5,False,0.453
+held_out_val_generic_filename,"P_NO_BICYCLES_MOTORCYCLES_AND_TRICYCLES_No bicycles, motorcycles and tricycles_03.jpg",IMG_P_NO_BICYCLE.jpg,P-010,PW03-R1-08,Weight Limit on One Axle,6.8,False,0.425
+held_out_val_generic_filename,P_NO_BICYCLES_No bicycles_04.jpg,IMG_P_NO_BICYCLE.jpg,P-011,P-033,Stop at the police station,15.9,False,0.456
+held_out_val_generic_filename,P_NO_BUSES_No buses_02.jpg,IMG_P_NO_BUSES_N.jpg,P-012,P-033,Stop at the police station,32.5,False,0.484
+held_out_val_generic_filename,P_NO_BUSES_No buses_05.jpg,IMG_P_NO_BUSES_N.jpg,P-012,M-015,Minimum speed limit,5.7,False,0.509
+held_out_val_generic_filename,P_NO_CARTS_No carts_04.jpg,IMG_P_NO_CARTS_N.jpg,P-014,PW03-R1-01,No Left Turn,14.6,False,0.675
+held_out_val_generic_filename,P_NO_HONKING_No honking_01.jpg,IMG_P_NO_HONKING.jpg,P-015,PW03-R1-07,Total Weight Limit,19.5,False,0.456
+held_out_val_generic_filename,P_NO_MOTORCYCLES_No motorcycles_02.jpg,IMG_P_NO_MOTORCY.jpg,P-018,P-033,Stop at the police station,11.5,False,0.46
+held_out_val_generic_filename,P_NO_OVERTAKING_FOR_TRUCKS_No overtaking for trucks_05.jpg,IMG_P_NO_OVERTAK.jpg,P-019,PW03-R1-08,Weight Limit on One Axle,6.6,False,0.454
+held_out_val_generic_filename,P_NO_OVERTAKING_No overtaking_00.jpg,IMG_P_NO_OVERTAK.jpg,P-020,P-030,Speed limit 50 km-h,7.5,False,0.46
+held_out_val_generic_filename,P_NO_OVERTAKING_No overtaking_02.jpg,IMG_P_NO_OVERTAK.jpg,P-020,P-028,No vehicles loading inflammable goods,6.1,False,0.471
+held_out_val_generic_filename,P_NO_PARKING_FROM_1ST_TO_15TH_DAY_OF_THE_M_No parking from 1st to 15th day of the month_05.jpg,IMG_P_NO_PARKING.jpg,P-022,PW03-R1-10,Width Limit,9.0,False,0.452
+held_out_val_generic_filename,P_NO_PARKING_ON_ODD_DAYS_No parking on odd days_05.jpg,IMG_P_NO_PARKING.jpg,P-024,M-002,Bicycles only,5.8,False,0.446
+held_out_val_generic_filename,P_NO_TOWED_TRAILERS_No towed trailers_01.jpg,IMG_P_NO_TOWED_T.jpg,P-025,W-053,Side road junction on the left,17.0,False,0.469
+held_out_val_generic_filename,P_NO_TRACTORS_No tractors_04.jpg,IMG_P_NO_TRACTOR.jpg,P-026,P-033,Stop at the police station,5.2,False,0.464
+held_out_val_generic_filename,P_NO_TRUCKS_No trucks_00.jpg,IMG_P_NO_TRUCKS_.jpg,P-027,P-033,Stop at the police station,9.5,False,0.416
+held_out_val_generic_filename,P_NO_TRUCKS_No trucks_01.jpg,IMG_P_NO_TRUCKS_.jpg,P-027,P-030,Speed limit 50 km-h,8.4,False,0.443
+held_out_val_generic_filename,P_NO_TRUCKS_No trucks_03.jpg,IMG_P_NO_TRUCKS_.jpg,P-027,PW03-R1-08,Weight Limit on One Axle,8.9,False,0.442
+held_out_val_generic_filename,P_NO_TRUCKS_No trucks_04.jpg,IMG_P_NO_TRUCKS_.jpg,P-027,M-025,End of priority road,12.5,False,0.458
+held_out_val_generic_filename,P_SPEED_LIMIT_20_KM_H_Speed limit 20 km-h_03.jpg,IMG_P_SPEED_LIMI.jpg,P-029,M-011,Go straight or turn right.,5.3,False,0.664
+held_out_val_generic_filename,P_SPEED_LIMIT_50_KM_H_Speed limit 50 km-h_01.jpg,IMG_P_SPEED_LIMI.jpg,P-030,P-013,No cars,32.6,False,0.485
+held_out_val_generic_filename,P_SPEED_LIMIT_50_KM_H_Speed limit 50 km-h_03.jpg,IMG_P_SPEED_LIMI.jpg,P-030,P-013,No cars,17.8,False,0.444
+held_out_val_generic_filename,P_STOP_AT_THE_CUSTOMS_STATION_Stop at the customs station_01.jpg,IMG_P_STOP_AT_TH.jpg,P-031,W-053,Side road junction on the left,11.1,False,0.467
+held_out_val_generic_filename,P_STOP_AT_THE_CUSTOMS_STATION_Stop at the customs station_05.jpg,IMG_P_STOP_AT_TH.jpg,P-031,M-015,Minimum speed limit,21.1,False,0.449
+held_out_val_generic_filename,P_STOP_AT_THE_MILITARY_POLICE_STATION_Stop at the military police station_03.jpg,IMG_P_STOP_AT_TH.jpg,P-032,P-028,No vehicles loading inflammable goods,21.3,False,0.451
+held_out_val_generic_filename,P_STOP_AT_THE_POLICE_STATION_Stop at the police station_02.jpg,IMG_P_STOP_AT_TH.jpg,P-033,P-023,No parking on even days,20.9,False,0.556
+held_out_val_generic_filename,ROAD_CLOSED_ALL_USERS_Closed for all road users_04.jpg,IMG_ROAD_CLOSED_.jpg,PW03-R1-06,P-033,Stop at the police station,14.9,False,0.447
+held_out_val_generic_filename,ROAD_CLOSED_ALL_VEHICLES_Closed for all vehicles_02.jpg,IMG_ROAD_CLOSED_.jpg,PW03-R1-05,P-018,No motorcycles,21.4,False,0.461
+held_out_val_generic_filename,ROAD_CLOSED_ALL_VEHICLES_Closed for all vehicles_03.jpg,IMG_ROAD_CLOSED_.jpg,PW03-R1-05,P-023,No parking on even days,38.6,False,0.502
+held_out_val_generic_filename,TOTAL_WEIGHT_LIMIT_Total weight limit_01.jpg,IMG_TOTAL_WEIGHT.jpg,PW03-R1-07,P-030,Speed limit 50 km-h,21.5,False,0.468
+held_out_val_generic_filename,W_CATTLE_OR_DOMESTIC_ANIMALS_Cattle or domestic animals_02.jpg,IMG_W_CATTLE_OR_.jpg,W-012,PW03-R1-04,No Entry,13.6,False,0.435
+held_out_val_generic_filename,W_CATTLE_OR_DOMESTIC_ANIMALS_Cattle or domestic animals_05.jpg,IMG_W_CATTLE_OR_.jpg,W-012,W-015,Crossroad on the left (different road classes),12.7,False,0.574
+held_out_val_generic_filename,W_CROSSROAD_Crossroad_01.jpg,IMG_W_CROSSROAD_.jpg,W-017,W-031,Hump,8.2,False,0.447
+held_out_val_generic_filename,W_CROSSROAD_ON_THE_LEFT_DIFFERENT_ROAD_CLA_Crossroad on the left (different road classes)_04.jpg,IMG_W_CROSSROAD_.jpg,W-015,W-031,Hump,6.5,False,0.46
+held_out_val_generic_filename,W_CROSSROAD_ON_THE_RIGHT_DIFFERENT_ROAD_CL_Crossroad on the right (different road classes)_01.jpg,IMG_W_CROSSROAD_.jpg,W-016,I-103,Street No.113,6.1,False,0.455
+held_out_val_generic_filename,W_CROSSROAD_ON_THE_RIGHT_DIFFERENT_ROAD_CL_Crossroad on the right (different road classes)_04.jpg,IMG_W_CROSSROAD_.jpg,W-016,P-006,Maximum speed limit,7.4,False,0.446
+held_out_val_generic_filename,W_CROSSWINDS_Crosswinds_04.jpg,IMG_W_CROSSWINDS.jpg,W-018,W-020,Curve to the right,7.2,False,0.554
+held_out_val_generic_filename,W_CURVE_TO_THE_RIGHT_Curve to the right_01.jpg,IMG_W_CURVE_TO_T.jpg,W-020,W-031,Hump,8.2,False,0.463
+held_out_val_generic_filename,W_DEER_OR_WILD_ANIMALS_Deer or wild animals_01.jpg,IMG_W_DEER_OR_WI.jpg,W-021,W-031,Hump,6.7,False,0.458
+held_out_val_generic_filename,W_DETOUR_TO_THE_RIGHT_Detour to the right_04.jpg,IMG_W_DETOUR_TO_.jpg,W-002,I-027,"Provincial, district or commune boundary begins",36.9,False,0.387
+held_out_val_generic_filename,W_DIVIDED_ROADS_ENDS_Divided roads ends_01.jpg,IMG_W_DIVIDED_RO.jpg,W-023,W-015,Crossroad on the left (different road classes),25.2,False,0.436
+held_out_val_generic_filename,W_DIVIDED_ROADS_ENDS_Divided roads ends_03.jpg,IMG_W_DIVIDED_RO.jpg,W-023,W-015,Crossroad on the left (different road classes),16.6,False,0.552
+held_out_val_generic_filename,W_DOUBLE_CURVE_FIRST_TO_THE_RIGHT_Double curve first to the right_05.jpg,IMG_W_DOUBLE_CUR.jpg,W-025,P-017,No motorcycle-drawn carts,8.4,False,0.56
+held_out_val_generic_filename,W_DOUBLE_SHARP_CURVE_FIRST_TO_THE_LEFT_Double sharp curve first to the left_04.jpg,IMG_W_DOUBLE_SHA.jpg,W-026,W-031,Hump,17.3,False,0.462
+held_out_val_generic_filename,W_END_ROAD_WORKS_End road works_00.jpg,IMG_W_END_ROAD_W.jpg,W-004,I-027,"Provincial, district or commune boundary begins",88.7,False,0.049
+held_out_val_generic_filename,W_LOOSE_ROAD_SURFACE_2_Loose road surface_01.jpg,IMG_W_LOOSE_ROAD.jpg,W-034,I-053,Expressway begins,13.1,False,0.444
+held_out_val_generic_filename,W_LOOSE_ROAD_SURFACE_2_Loose road surface_04.jpg,IMG_W_LOOSE_ROAD.jpg,W-034,I-042,Camping area,9.6,False,0.477
+held_out_val_generic_filename,W_LOOSE_ROAD_SURFACE_2_Loose road surface_05.jpg,IMG_W_LOOSE_ROAD.jpg,W-034,I-059,Gas station,29.5,False,0.434
+held_out_val_generic_filename,W_LOW_FLYING_AIR_CRAFT_Low flying air craft_04.jpg,IMG_W_LOW_FLYING.jpg,W-035,W-033,Junction on a double curve (different road classes),22.3,False,0.457
+held_out_val_generic_filename,"W_OFFSET_ROAD_JUNCTION_RIGHT_AND_LEFT_Offset road junction, right and left_00.jpg",IMG_W_OFFSET_ROA.jpg,W-038,W-031,Hump,12.9,False,0.462
+held_out_val_generic_filename,W_PEDESTRIAN_CROSSING_Pedestrian crossing_03.jpg,IMG_W_PEDESTRIAN.jpg,W-040,W-031,Hump,6.2,False,0.459
+held_out_val_generic_filename,W_PEDESTRIAN_CROSSING_Pedestrian crossing_05.jpg,IMG_W_PEDESTRIAN.jpg,W-040,M-033,Yield (at roundabout),17.8,False,0.459
+held_out_val_generic_filename,W_RAILWAY_CROSSING_ON_THE_RIGHT_ROAD_Railway crossing on the right road_05.jpg,IMG_W_RAILWAY_CR.jpg,W-042,W-065,Uneven road,10.1,False,0.475
+held_out_val_generic_filename,W_RAILWAY_CROSSING_WITH_BARRIER_OR_GATES_Railway crossing with barrier or gates_00.jpg,IMG_W_RAILWAY_CR.jpg,W-043,W-058,Slippery road,7.1,False,0.466
+held_out_val_generic_filename,W_RAILWAY_CROSSING_WITHOUT_BARRIER_OR_GATE_Railway crossing without barrier or gates_00.jpg,IMG_W_RAILWAY_CR.jpg,W-044,W-064,Two-way traffic,5.1,False,0.493
+held_out_val_generic_filename,W_RED_FLAG_Red-flag_03.jpg,IMG_W_RED_FLAG_R.jpg,W-006,I-001,Animal drawn carts,8.6,False,0.548
+held_out_val_generic_filename,W_ROUNDABOUT_AHEAD_Roundabout ahead_02.jpg,IMG_W_ROUNDABOUT.jpg,W-048,W-015,Crossroad on the left (different road classes),8.7,False,0.447
+held_out_val_generic_filename,W_ROUNDABOUT_AHEAD_Roundabout ahead_03.jpg,IMG_W_ROUNDABOUT.jpg,W-048,W-064,Two-way traffic,7.3,False,0.454
+held_out_val_generic_filename,W_SCHOOL_AHEAD_ONLY_APPLIES_TO_PUBLIC_SCHO_School ahead (only applies to public schools)_02.jpg,IMG_W_SCHOOL_AHE.jpg,W-049,W-032,Junction on a curve (different road classes),7.2,False,0.488
+held_out_val_generic_filename,W_SHARP_CURVE_TO_THE_LEFT_Sharp curve to the left_00.jpg,IMG_W_SHARP_CURV.jpg,W-050,W-015,Crossroad on the left (different road classes),9.3,False,0.461
+held_out_val_generic_filename,W_SIDE_ROAD_JUNCTION_ON_THE_LEFT_Side road junction on the left_04.jpg,IMG_W_SIDE_ROAD_.jpg,W-053,W-056,Skewed side road junction on the left,5.2,False,0.481
+held_out_val_generic_filename,W_SIDE_ROAD_JUNCTION_ON_THE_RIGHT_Side road junction on the right_01.jpg,IMG_W_SIDE_ROAD_.jpg,W-055,W-031,Hump,6.3,False,0.479
+held_out_val_generic_filename,W_SLIPPERY_ROAD_Slippery road_02.jpg,IMG_W_SLIPPERY_R.jpg,W-058,W-033,Junction on a double curve (different road classes),10.6,False,0.518
+held_out_val_generic_filename,W_SLIPPERY_ROAD_Slippery road_03.jpg,IMG_W_SLIPPERY_R.jpg,W-058,M-015,Minimum speed limit,8.2,False,0.481
+held_out_val_generic_filename,W_STEEP_CLIMB_Steep climb_02.jpg,IMG_W_STEEP_CLIM.jpg,W-059,W-015,Crossroad on the left (different road classes),6.2,False,0.454
+held_out_val_generic_filename,W_STEEP_DESCENT_Steep descent_02.jpg,IMG_W_STEEP_DESC.jpg,W-060,P-021,No parking from 16th to 31st day of the month,6.0,False,0.478
+held_out_val_generic_filename,W_STOP_SIGNS_AHEAD_Stop signs ahead_00.jpg,IMG_W_STOP_SIGNS.jpg,W-061,W-015,Crossroad on the left (different road classes),17.4,False,0.454
+held_out_val_generic_filename,W_STOP_SIGNS_AHEAD_Stop signs ahead_04.jpg,IMG_W_STOP_SIGNS.jpg,W-061,W-001,Detour to the left,5.3,False,0.706
+held_out_val_generic_filename,W_TEMPORARY_STOP_SIGNS_KHMER_AND_ENGLISH_L_Temporary stop signs (Khmer and English languages)_01.jpg,IMG_W_TEMPORARY_.jpg,W-007,PW03-R1-04,No Entry,8.5,False,0.595
+held_out_val_generic_filename,W_TRAFFIC_CONE_Traffic cone_03.jpg,IMG_W_TRAFFIC_CO.jpg,W-008,I-047,Dead end on the right,11.2,False,0.441
+held_out_val_generic_filename,W_TRAFFIC_LIGHTS_AHEAD_Traffic lights ahead_00.jpg,IMG_W_TRAFFIC_LI.jpg,W-063,,Unknown sign,0.0,False,0.657
+held_out_val_generic_filename,W_UNPROTECTED_QUAYSIDE_OR_RIVERBANK_AHEAD_Unprotected quayside or riverbank ahead_02.jpg,IMG_W_UNPROTECTE.jpg,W-066,W-015,Crossroad on the left (different road classes),17.8,False,0.442
+held_out_val_generic_filename,W_WORKERS_AHEAD_Workers ahead_00.jpg,IMG_W_WORKERS_AH.jpg,W-009,M-029,Priority road,6.4,False,0.448
+held_out_val_generic_filename,W_WORKERS_AHEAD_Workers ahead_05.jpg,IMG_W_WORKERS_AH.jpg,W-009,W-015,Crossroad on the left (different road classes),6.3,False,0.472
+held_out_val_generic_filename,W_WORKERS_Workers_02.jpg,IMG_W_WORKERS_Wo.jpg,W-010,P-006,Maximum speed limit,5.9,False,0.46

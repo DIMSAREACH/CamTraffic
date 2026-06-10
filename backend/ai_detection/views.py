@@ -184,10 +184,14 @@ class DetectionLogListView(APIView):
     def get(self, request):
         user = request.user
         if user.role == 'admin':
-            logs = AIDetectionLog.objects.select_related('user').all()
+            logs = AIDetectionLog.objects.select_related('user').order_by('-created_at')
         else:
-            logs = AIDetectionLog.objects.select_related('user').filter(user=user)
-        serializer = AIDetectionLogSerializer(logs[:100], many=True, context={'request': request})
+            logs = AIDetectionLog.objects.select_related('user').filter(user=user).order_by('-created_at')
+        try:
+            page_size = max(1, min(int(request.query_params.get('page_size', 50)), 200))
+        except (ValueError, TypeError):
+            page_size = 50
+        serializer = AIDetectionLogSerializer(logs[:page_size], many=True, context={'request': request})
         return success_response(serializer.data)
 
 

@@ -685,6 +685,13 @@ def _get_sign_model():
     return _SIGN_MODEL
 
 
+def _infer_imgsz(fast_live: bool = False) -> int:
+    """Return inference image size: smaller = faster on CPU."""
+    if fast_live:
+        return int(getattr(settings, 'AI_LIVE_IMGSZ', 320))
+    return int(getattr(settings, 'AI_IMGSZ', 320))
+
+
 def _yolo_infer_once(
     model,
     infer_path: str,
@@ -693,12 +700,11 @@ def _yolo_infer_once(
     allow_low_conf: bool = False,
     fast_live: bool = False,
 ):
-    infer_conf = 0.05 if (allow_low_conf and fast_live) else threshold
-    results = model(infer_path, conf=infer_conf, verbose=False)
+    # Always use low conf on first pass — avoids second model() call on same image
+    infer_conf = 0.05 if allow_low_conf else threshold
+    imgsz = _infer_imgsz(fast_live=fast_live)
+    results = model(infer_path, conf=infer_conf, imgsz=imgsz, verbose=False)
     cls_idx, conf, bbox = _pick_best_yolo_box(results, min_conf=infer_conf)
-    if cls_idx is None and allow_low_conf and not fast_live:
-        results = model(infer_path, conf=0.05, verbose=False)
-        cls_idx, conf, bbox = _pick_best_yolo_box(results, min_conf=0.05)
     if cls_idx is None:
         return None
     names = results[0].names or {}
@@ -750,10 +756,8 @@ def _yolo_raw_detect(image_path, hint_source: str | None = None):
             return result
 
         if live_capture:
-            for enhancer in (_extract_red_sign_crop,):
-                enhanced = enhancer(image_path)
-                if not enhanced:
-                    continue
+            enhanced = _extract_red_sign_crop(image_path)
+            if enhanced:
                 enh_path, enh_tmp = enhanced
                 if enh_tmp:
                     temp_paths.append(enh_tmp)
@@ -762,25 +766,12 @@ def _yolo_raw_detect(image_path, hint_source: str | None = None):
                     return result
             return None
 
-        for fraction in (0.72, 0.55):
-            crop_path, crop_tmp = _center_crop_image_path(image_path, fraction=fraction)
-            if crop_tmp:
-                temp_paths.append(crop_tmp)
-            result = _try_path(crop_path)
-            if result:
-                return result
-
-        for enhancer in (_extract_red_sign_crop,):
-            enhanced = enhancer(image_path)
-            if not enhanced:
-                continue
-            enh_path, enh_tmp = enhanced
-            if enh_tmp:
-                temp_paths.append(enh_tmp)
-            result = _try_path(enh_path)
-            if result:
-                return result
-        return None
+        # Upload: one center-crop fallback only (keeps latency low on CPU)
+        crop_path, crop_tmp = _center_crop_image_path(image_path, fraction=0.72)
+        if crop_tmp:
+            temp_paths.append(crop_tmp)
+        result = _try_path(crop_path)
+        return result
     finally:
         for tmp_path in temp_paths:
             try:

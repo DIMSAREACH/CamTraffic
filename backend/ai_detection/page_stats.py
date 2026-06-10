@@ -113,7 +113,7 @@ def get_ai_detection_page_stats(user, request=None):
         })
 
     sample_signs = []
-    for sign in signs.order_by('-image', 'sign_code'):
+    for sign in signs.order_by('-image', 'sign_code')[:20]:
         meta = CATEGORY_UI.get(sign.category, CATEGORY_UI['warning'])
         image_url = ''
         if sign.image:

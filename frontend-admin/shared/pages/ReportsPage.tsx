@@ -87,11 +87,22 @@ function MiniStat({
   );
 }
 
+const REPORTS_CACHE_KEY = 'camtraffic_reports_v1';
+
+function loadReportsCache(): DashboardStats | null {
+  try {
+    const raw = localStorage.getItem(REPORTS_CACHE_KEY);
+    if (raw) return JSON.parse(raw) as DashboardStats;
+  } catch { /* ignore */ }
+  return null;
+}
+
 export function ReportsPage() {
   const { t } = useLanguage();
   const { user } = useAuth();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cachedReport = loadReportsCache();
+  const [stats, setStats] = useState<DashboardStats | null>(cachedReport);
+  const [loading, setLoading] = useState(!cachedReport);
   const [loadError, setLoadError] = useState(false);
   const [tab, setTab] = useState<ReportTab>('overview');
   const reportYear = new Date().getFullYear();
@@ -109,7 +120,10 @@ export function ReportsPage() {
         : dashboardAPI.getPoliceReportStats();
 
     request
-      .then((s) => setStats(s))
+      .then((s) => {
+        setStats(s);
+        try { localStorage.setItem(REPORTS_CACHE_KEY, JSON.stringify(s)); } catch { /* ignore */ }
+      })
       .catch(() => {
         setStats(null);
         setLoadError(true);
@@ -121,7 +135,7 @@ export function ReportsPage() {
   }, [t, user]);
 
   useEffect(() => {
-    loadStats();
+    loadStats(Boolean(cachedReport));
   }, [loadStats]);
 
   useLiveData(() => loadStats(true), 60_000, Boolean(user));

@@ -2,12 +2,12 @@
 
 | # | Image | Expected | Predicted | Confidence | Correct |
 | - | ----- | -------- | --------- | ---------- | ------- |
-| 1 | `AXLE_WEIGHT_LIMIT_WEIGHT LIMIT ON ONE AXLE_06.jpg` | PW03-R1-08 | PW03-R1-08 | 45.9% | Yes |
-| 2 | `NO_ENTRY_BICYCLE_NO ENTRY FOR BICYCLE_01.jpg` | PW03-R2-04 | PW03-R1-04 | 88.0% | No |
-| 3 | `NO_ENTRY_BICYCLE_NO ENTRY FOR BICYCLE_06.jpg` | PW03-R2-04 | PW03-R1-04 | 88.0% | No |
-| 4 | `NO_ENTRY_FOR_MOTORCYCLE_NO ENTRY FOR MOTORCYCLE_05.jpg` | PW03-R2-11 | PW03-R1-04 | 88.0% | No |
-| 5 | `NO_ENTRY_LARGE_BUS_No entry for larged-sized bus_04.jpg` | PW03-R2-05 | PW03-R1-04 | 88.0% | No |
+| 1 | `HEIGHT_LIMIT_Height limit_00.jpg` | PW03-R1-09 | P-030 | 25.0% | No |
+| 2 | `I_ABREAST_TRAVELLING_PERMITTED_FOR_BICYCLE_Abreast travelling permitted for bicycles_00.jpg` | I-038 | I-036 | 15.7% | No |
+| 3 | `I_AIRPORTS_Airports_03.jpg` | I-039 | I-042 | 47.9% | No |
+| 4 | `I_ANIMAL_DRAWN_CARTS_Animal drawn carts_02.jpg` | I-001 | W-022 | 5.1% | No |
+| 5 | `I_ASIAN_HIGHWAY_ROUTE_1_Asian Highway route 1_05.jpg` | I-096 | I-003 | 27.7% | No |
 
-**Held-out val accuracy (generic camera filenames):** 14/24 (58.3%)
+**Held-out val accuracy (generic camera filenames):** 12/209 (5.7%)
 
-**Reference upload accuracy (original filenames):** 20/20 (100.0%)
+**Reference upload accuracy (original filenames):** 0/0 (0.0%)

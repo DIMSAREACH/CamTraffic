@@ -56,6 +56,8 @@ Generated: 2026-06-05 09:45 UTC
 - `training/val_batch0_pred.jpg`
 - `training/val_batch1_labels.jpg`
 - `training/val_batch1_pred.jpg`
+- `training/val_batch2_labels.jpg`
+- `training/val_batch2_pred.jpg`
 
 ### Sample predictions (`predictions/`)
 

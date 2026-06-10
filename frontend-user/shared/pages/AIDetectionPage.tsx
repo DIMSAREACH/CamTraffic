@@ -203,7 +203,7 @@ function AwaitingCard({
                 {t('aiDetection.exampleSigns')}
               </p>
               <div className="flex flex-1 flex-wrap justify-center items-center gap-2 content-center">
-                {pageStats.sample_signs.map(s => (
+                {pageStats.sample_signs.slice(0, 10).map(s => (
                   <button
                     key={s.id}
                     type="button"
