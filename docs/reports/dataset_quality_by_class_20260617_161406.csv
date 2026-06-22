@@ -1,0 +1,11 @@
+Class Name,Class ID,Image Count,Label Count,Train Images,Val Images,Possible Errors,Recommended Fixes
+I_ONE_WAY_TRAFFIC,9,12,12,11,1,—,—
+M_STOP,5,12,12,11,1,—,—
+NO_ENTRY,0,12,12,11,1,—,—
+NO_LEFT_TURN,1,12,12,9,3,train/NO_LEFT_TURN_No left turn_01.jpg: overexposed (mean=220.8); 1 duplicate/near-duplicate group(s),"Review duplicate pairs; keep one canonical image per augmentation; Replace with sharper, well-lit reference captures"
+NO_PARKING,4,12,12,9,3,—,—
+NO_RIGHT_TURN,2,12,12,11,1,—,—
+NO_U_TURN,3,12,12,9,3,—,—
+P_SPEED_LIMIT_20_KM_H,6,12,12,12,0,no validation images,Move or add 15–20% of images to val split
+P_SPEED_LIMIT_50_KM_H,7,12,12,8,4,val/P_SPEED_LIMIT_50_KM_H_Speed limit 50 km-h_11.jpg: overexposed (mean=221.6),"Replace with sharper, well-lit reference captures"
+W_PEDESTRIAN_CROSSING,8,15,15,12,3,—,—

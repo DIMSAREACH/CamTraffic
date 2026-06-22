@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router';
 import {
   LayoutDashboard, Car, FileText, Camera,
   BookOpen, BarChart3, Bell, User, LogOut,
-  Activity, Zap, X, AlertTriangle,
+  Activity, Zap, X, AlertTriangle, Archive,
 } from 'lucide-react';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
@@ -39,6 +39,7 @@ const NAV_ITEMS: NavItem[] = [
   { labelKey: 'sidebar.nav.violationManagement', path: '/dashboard/violations', icon: <AlertTriangle size={18} strokeWidth={1.75} />, roles: ['police', 'driver'], section: 'manage' },
   { labelKey: 'sidebar.nav.myVehicles', path: '/dashboard/vehicles', icon: <Car size={18} strokeWidth={1.75} />, roles: ['driver'], section: 'manage' },
   { labelKey: 'sidebar.nav.detectionLogs', path: '/dashboard/ai-logs', icon: <Activity size={18} strokeWidth={1.75} />, roles: ['police'], section: 'manage' },
+  { labelKey: 'sidebar.nav.evidenceArchive', path: '/dashboard/evidence', icon: <Archive size={18} strokeWidth={1.75} />, roles: ['police', 'admin'], section: 'manage' },
   { labelKey: 'sidebar.nav.reports', path: '/dashboard/reports', icon: <BarChart3 size={18} strokeWidth={1.75} />, roles: ['police'], section: 'manage' },
   { labelKey: 'sidebar.nav.notifications', path: '/dashboard/notifications', icon: <Bell size={18} strokeWidth={1.75} />, roles: ['police', 'driver'], section: 'account' },
   { labelKey: 'sidebar.nav.myProfile', path: '/dashboard/profile', icon: <User size={18} strokeWidth={1.75} />, roles: ['police', 'driver'], section: 'account' },
@@ -121,7 +122,9 @@ export function UserSidebar({ collapsed, onToggle, unreadCount = 0, isMobile = f
         isMobile && 'app-sidebar--mobile',
       )}
     >
-      <div className="app-sidebar__accent-bar" aria-hidden />
+      <div className="app-sidebar__accent-bar app-sidebar__accent-bar--spectrum" aria-hidden>
+        <span style={{ background: 'linear-gradient(90deg, #8B5CF6, #3B82F6, #06B6D4, #10B981, #F59E0B, #F43F5E, #6366F1)' }} />
+      </div>
 
       <div className={cn('app-sidebar__header', !expanded && !isMobile && 'app-sidebar__header--collapsed')}>
         <SidebarBrandToggle collapsed={!expanded} variant="user" onToggle={onToggle} isMobile={isMobile} />

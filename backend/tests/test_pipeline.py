@@ -45,9 +45,12 @@ class PipelineTest(SimpleTestCase):
             plate_result=out['plate_result'],
             vehicle_summary=out['vehicle_summary'],
             log_id=42,
+            sign_name_en='No Left Turn',
+            sign_name_km='ហាមបត់ឆ្វេង',
+            sign_confidence=91.5,
         )
         self.assertEqual([s['id'] for s in steps], [
-            'upload', 'vehicle_detect', 'plate_detect', 'plate_ocr',
+            'upload', 'sign_detect', 'vehicle_detect', 'plate_detect', 'plate_ocr',
             'show_vehicle', 'show_plate', 'violation_check', 'evidence_capture', 'save_record',
         ])
         self.assertEqual(steps[-1]['status'], 'complete')

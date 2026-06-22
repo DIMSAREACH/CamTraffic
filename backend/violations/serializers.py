@@ -41,6 +41,7 @@ class TrafficViolationSerializer(serializers.ModelSerializer):
     driver_id = serializers.IntegerField(source='driver.id', read_only=True)
     driver_name = serializers.CharField(source='driver.user.full_name', read_only=True)
     driver_license = serializers.CharField(source='driver.license_no', read_only=True)
+    driver_user_id = serializers.IntegerField(source='driver.user.id', read_only=True)
     officer_name = serializers.CharField(source='officer.user.full_name', read_only=True, allow_null=True)
     vehicle_plate = serializers.CharField(source='vehicle.plate_number', read_only=True, allow_null=True)
     evidence_image = serializers.SerializerMethodField()
@@ -51,7 +52,7 @@ class TrafficViolationSerializer(serializers.ModelSerializer):
     class Meta:
         model = TrafficViolation
         fields = (
-            'id', 'driver_id', 'driver_name', 'driver_license',
+            'id', 'driver_id', 'driver_user_id', 'driver_name', 'driver_license',
             'officer_name', 'vehicle_plate', 'violation_type', 'observed_action',
             'detected_sign_code', 'detected_class_key', 'violation_date', 'location',
             'description', 'evidence_image', 'vehicle_evidence_image', 'plate_evidence_image',

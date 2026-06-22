@@ -125,7 +125,7 @@ export function UserLayout() {
           onMobileMenuOpen={openMobile}
         />
         <main className="flex-1 overflow-y-auto">
-          <div className={cn('app-dashboard relative', isProfilePage ? 'app-dashboard--profile-route' : 'p-5 lg:p-6')}>
+          <div className={cn('app-dashboard relative app-dashboard--user', isProfilePage ? 'app-dashboard--profile-route' : 'p-5 lg:p-6')}>
             <Outlet key={locale} />
           </div>
         </main>

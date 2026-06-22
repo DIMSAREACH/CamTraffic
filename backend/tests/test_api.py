@@ -82,6 +82,30 @@ class AuthAPITest(TestCase):
         })
         self.assertEqual(res.status_code, 400)
 
+    def test_register_rejects_duplicate_email(self):
+        res = self.client.post('/api/auth/register/', {
+            'full_name': 'Dup Email',
+            'email': self.user.email,
+            'password': 'Strong@99',
+            'password_confirm': 'Strong@99',
+        })
+        self.assertEqual(res.status_code, 400)
+        self.assertIn('already exists', res.data['message'].lower())
+        self.assertIn('email', res.data['errors'])
+
+    def test_register_without_license_no(self):
+        res = self.client.post('/api/auth/register/', {
+            'full_name': 'No License',
+            'email': 'nolic@camtraffic.kh',
+            'password': 'Strong@99',
+            'password_confirm': 'Strong@99',
+            'address': 'Phnom Penh',
+        })
+        self.assertEqual(res.status_code, 201)
+        user = User.objects.get(email='nolic@camtraffic.kh')
+        self.assertTrue(Driver.objects.filter(user=user).exists())
+        self.assertTrue(user.license_no)
+
     def test_user_portal_rejects_driver_on_police_tab(self):
         res = self.client.post('/api/auth/login/', {
             'email': 'test@camtraffic.kh',
@@ -148,6 +172,34 @@ class AuthAPITest(TestCase):
         res = self.client.patch('/api/auth/profile/', {'phone': '+85512345678'}, format='json')
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.data['data']['phone'], '+85512345678')
+
+
+class UserManagementAPITest(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = User.objects.create(
+            email='admin-delete@test.kh',
+            full_name='Delete Admin',
+            role='admin',
+            is_active=True,
+        )
+        self.admin.set_password('Admin@12345')
+        self.admin.save()
+        self.target = User.objects.create(
+            email='target-delete@test.kh',
+            full_name='Delete Target',
+            role='driver',
+            is_active=True,
+        )
+        self.target.set_password('Test@12345')
+        self.target.save()
+        self.client.force_authenticate(user=self.admin)
+
+    def test_admin_can_delete_user_by_uuid(self):
+        res = self.client.delete(f'/api/users/{self.target.pk}/')
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.data.get('success'))
+        self.assertFalse(User.objects.filter(pk=self.target.pk).exists())
 
 
 class InfrastructureAPITest(TestCase):

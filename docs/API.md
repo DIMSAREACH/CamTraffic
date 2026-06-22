@@ -106,5 +106,7 @@ Authentication: `Authorization: Bearer <access_token>`
 | Method | Endpoint | Role |
 |--------|----------|------|
 | GET | `/dashboard/admin/` | Admin analytics |
+| GET | `/dashboard/admin/report/pdf/` | Admin analytics PDF export |
 | GET | `/dashboard/police/` | Police stats |
-| GET | `/dashboard/driver/` | Driver stats |
+| GET | `/dashboard/police/reports/pdf/` | Police/officer analytics PDF export |
+| GET | `/dashboard/evidence/` | Unified evidence archive search (`?plate=&type=`) |

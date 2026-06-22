@@ -5,7 +5,6 @@ VEHICLE_LABELS_KM = {
     'motorcycle': 'ម៉ូតូ',
     'bus': 'ឡានក្រុង',
     'truck': 'ឡានដឹកទំនិញ',
-    'tuktuk': 'តូរតូខ',
 }
 
 
@@ -27,6 +26,10 @@ def _apply_plate_fields(payload: dict, plate_result: dict | None) -> None:
     payload['plate_confidence'] = float(plate_result.get('plate_confidence') or 0)
     payload['plate_type'] = plate_result.get('plate_type') or 'unknown'
     payload['plate_ocr_details'] = plate_result.get('raw_reads') or []
+    if plate_result.get('plate_province_en'):
+        payload['plate_province_code'] = plate_result.get('plate_province_code', '')
+        payload['plate_province_en'] = plate_result['plate_province_en']
+        payload['plate_province_km'] = plate_result.get('plate_province_km', '')
     if plate_result.get('matched_vehicle'):
         payload['matched_vehicle'] = plate_result['matched_vehicle']
 
@@ -38,6 +41,12 @@ def _append_plate_description(payload: dict, plate_result: dict | None) -> None:
     conf = float(plate_result.get('plate_confidence') or 0)
     plate_line_km = f' ផ្លាកលេខ {plate} ({conf:.1f}% ភាពជឿជាក់)។'
     plate_line_en = f' License plate {plate} ({conf:.1f}% confidence).'
+    province_km = plate_result.get('plate_province_km')
+    province_en = plate_result.get('plate_province_en')
+    if province_km:
+        plate_line_km += f' ខេត្ត/រាជធានី៖ {province_km}។'
+    if province_en:
+        plate_line_en += f' Province: {province_en}.'
     payload['description'] = (payload.get('description') or '') + plate_line_km
     payload['description_en'] = (payload.get('description_en') or payload.get('description') or '') + plate_line_en
     if plate_result.get('matched_vehicle'):
@@ -56,6 +65,12 @@ def _compose_plate_mode(payload: dict, plate_result: dict) -> None:
     payload['display_confidence'] = conf
     payload['description'] = f'រកឃើញផ្លាកលេខ {plate} ({conf:.1f}% ភាពជឿជាក់)។'
     payload['description_en'] = f'License plate detected: {plate} ({conf:.1f}% confidence).'
+    province_km = plate_result.get('plate_province_km')
+    province_en = plate_result.get('plate_province_en')
+    if province_km:
+        payload['description'] += f' ខេត្ត/រាជធានី៖ {province_km}។'
+    if province_en:
+        payload['description_en'] += f' Province: {province_en}.'
     if plate_result.get('matched_vehicle'):
         owner = plate_result['matched_vehicle'].get('owner_name', '')
         payload['description'] += f' ភ្ជាប់ជាមួយរថយន្តក្នុងប្រព័ន្ធ៖ {owner}។'
@@ -97,6 +112,19 @@ def compose_detection_payload(
         'vehicles': vehicles,
         'vehicle_count': len(vehicles),
     }
+    if sign_result.get('sign_present') is not None:
+        payload['sign_present'] = bool(sign_result.get('sign_present'))
+    if sign_result.get('detection_mode') == 'no_sign':
+        payload['detection_mode'] = 'no_sign'
+        payload['display_title'] = sign_result.get('sign_name_km') or 'មិនមានស្លាក'
+        payload['display_title_en'] = sign_result.get('sign_name_en') or 'No sign detected'
+        payload['display_title_km'] = sign_result.get('sign_name_km') or 'មិនមានស្លាក'
+        payload['display_confidence'] = 0.0
+        if sign_result.get('description_en'):
+            payload['description_en'] = sign_result['description_en']
+        if sign_result.get('guidance_en'):
+            payload['guidance_en'] = sign_result['guidance_en']
+        return payload
     for key in (
         'sign_name_km', 'sign_name_en', 'sign_code', 'category',
         'description_en', 'guidance_en', 'class_key', 'sign_bbox',
@@ -153,13 +181,13 @@ def compose_detection_payload(
         if engine == 'none':
             payload['description_en'] = (
                 'A traffic sign may be in this image, but it was not matched to the '
-                'Cambodia sign catalog. YOLO confidence was too low and Gemini Vision '
-                'could not identify it. Check GEMINI_API_KEY or use a clearer Cambodia sign photo.'
+                'Cambodia sign catalog. Try a clearer photo, center the sign, or train '
+                'YOLO on this sign class (see ai/README.md).'
             )
             payload['description'] = (
                 'រូបនេះប្រហែលមានស្លាកចរាចរណ៍ ប៉ុន្តែមិនត្រូវបានផ្គូផ្គងនឹងបញ្ជីស្លាកកម្ពុជា។ '
-                'YOLO មិនគ្រប់គ្រាន់ ហើយ Gemini Vision មិនអាចរកឃើញបាន។ '
-                'សូមពិនិត្យ GEMINI_API_KEY ឬប្រើរូបស្លាកកម្ពុជាច្បាស់ជាងនេះ។'
+                'សូមប្រើរូបច្បាស់ជាងនេះ រឺបណ្តោងស្លាកកណ្តាល រឺ train YOLO '
+                'លើប្រភេទស្លាកនេះ (មើល ai/README.md)។'
             )
         return payload
 

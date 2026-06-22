@@ -39,6 +39,11 @@ INSTALLED_APPS = [
     'ai_detection.apps.AiDetectionConfig',
     'notifications',
     'dashboard',
+    # Foundation apps (PRD schema — models only; no API views yet)
+    'appeals',
+    'audit',
+    'unknown_vehicles',
+    'ai_models',
 ]
 
 MIDDLEWARE = [
@@ -92,8 +97,42 @@ else:
             'PASSWORD': os.getenv('DB_PASSWORD', 'postgres'),
             'HOST': os.getenv('DB_HOST', 'localhost'),
             'PORT': os.getenv('DB_PORT', '5432'),
+            'CONN_MAX_AGE': int(os.getenv('DB_CONN_MAX_AGE', '60')),
         }
     }
+
+# ── Redis (cache + Celery broker) ─────────────────────────────────────────────
+REDIS_URL = os.getenv('REDIS_URL', 'redis://127.0.0.1:6379/0')
+USE_REDIS = os.getenv('USE_REDIS', 'False').lower() == 'true'
+
+if USE_REDIS:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': REDIS_URL,
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            },
+            'KEY_PREFIX': 'camtraffic',
+        }
+    }
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'camtraffic-local',
+        }
+    }
+
+# ── Celery (background workers — foundation config only) ────────────────────
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://127.0.0.1:6379/1')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', CELERY_BROKER_URL)
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Asia/Phnom_Penh'
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_DEFAULT_QUEUE = 'default'
 
 AUTH_USER_MODEL = 'users.User'
 
@@ -117,6 +156,7 @@ STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+BACKUP_ROOT = BASE_DIR / 'backups'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -166,21 +206,44 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-# AI module
+# AI module — Option 1 (defense): local = OpenCV + YOLO + catalog/OCR only (offline).
+# Set AI_DETECTION_MODE=hybrid to allow optional Gemini Vision fallback.
+AI_DETECTION_MODE = os.getenv('AI_DETECTION_MODE', 'local').strip().lower()
 AI_MODEL_PATH = os.getenv('AI_MODEL_PATH', str(BASE_DIR.parent / 'ai' / 'weights' / 'best.pt'))
 AI_USE_MOCK = os.getenv('AI_USE_MOCK', 'False').lower() == 'true'
 AI_CONFIDENCE_THRESHOLD = float(os.getenv('AI_CONFIDENCE_THRESHOLD', '0.35'))
 AI_MIN_RESULT_CONFIDENCE = float(os.getenv('AI_MIN_RESULT_CONFIDENCE', '35'))
 AI_ABSOLUTE_YOLO_FLOOR = float(os.getenv('AI_ABSOLUTE_YOLO_FLOOR', '18'))
 AI_LIVE_YOLO_FLOOR = float(os.getenv('AI_LIVE_YOLO_FLOOR', '10'))
-AI_UPLOAD_YOLO_FLOOR = float(os.getenv('AI_UPLOAD_YOLO_FLOOR', '5'))
+AI_LIVE_YOLO_INFER_CONF = float(os.getenv('AI_LIVE_YOLO_INFER_CONF', '0.50'))
+AI_LIVE_YOLO_TRUST = float(os.getenv('AI_LIVE_YOLO_TRUST', '50'))
+AI_LIVE_YOLO_CATALOG_MIN = float(os.getenv('AI_LIVE_YOLO_CATALOG_MIN', '45'))
+AI_LIVE_IMGSZ = int(os.getenv('AI_LIVE_IMGSZ', '640'))
+AI_LIVE_TRY_ENHANCE = os.getenv('AI_LIVE_TRY_ENHANCE', 'True').lower() == 'true'
+AI_CATALOG_VISUAL_MATCH_ENABLED = os.getenv('AI_CATALOG_VISUAL_MATCH_ENABLED', 'True').lower() == 'true'
+AI_CATALOG_VISUAL_MIN_SCORE = float(os.getenv('AI_CATALOG_VISUAL_MIN_SCORE', '0.58'))
+AI_CATALOG_VISUAL_LIVE_MIN_SCORE = float(os.getenv('AI_CATALOG_VISUAL_LIVE_MIN_SCORE', '0.62'))
+AI_CATALOG_VISUAL_MIN_MARGIN = float(os.getenv('AI_CATALOG_VISUAL_MIN_MARGIN', '0.06'))
+AI_LIVE_SIGN_COLOR_MIN = float(os.getenv('AI_LIVE_SIGN_COLOR_MIN', '0.05'))
+AI_LIVE_SIGN_BLOB_MIN = float(os.getenv('AI_LIVE_SIGN_BLOB_MIN', '0.025'))
+AI_LIVE_SKIN_MAX = float(os.getenv('AI_LIVE_SKIN_MAX', '0.38'))
+AI_LIVE_EDGE_MIN = float(os.getenv('AI_LIVE_EDGE_MIN', '0.008'))
+AI_IMGSZ = int(os.getenv('AI_IMGSZ', '640'))
+AI_UPLOAD_YOLO_FLOOR = float(os.getenv('AI_UPLOAD_YOLO_FLOOR', '35'))
 AI_HYBRID_CONFIDENCE_THRESHOLD = float(os.getenv('AI_HYBRID_CONFIDENCE_THRESHOLD', '70'))
+AI_GEMINI_UPLOAD_FALLBACK = os.getenv('AI_GEMINI_UPLOAD_FALLBACK', 'False').lower() == 'true'
+AI_GEMINI_LIVE_FALLBACK = os.getenv('AI_GEMINI_LIVE_FALLBACK', 'False').lower() == 'true'
+AI_GEMINI_LIVE_MIN_INTERVAL = float(os.getenv('AI_GEMINI_LIVE_MIN_INTERVAL', '0.8'))
+AI_UPLOAD_MAX_EDGE = int(os.getenv('AI_UPLOAD_MAX_EDGE', '1280'))
 AI_WARMUP_MODELS = os.getenv('AI_WARMUP_MODELS', 'True').lower() == 'true'
 
 # Vehicle detection (YOLOv8 COCO pretrained — separate from sign model)
 AI_VEHICLE_ENABLED = os.getenv('AI_VEHICLE_ENABLED', 'True').lower() == 'true'
 AI_VEHICLE_MODEL = os.getenv('AI_VEHICLE_MODEL', 'yolov8n.pt')
 AI_VEHICLE_CONFIDENCE_THRESHOLD = float(os.getenv('AI_VEHICLE_CONFIDENCE_THRESHOLD', '0.35'))
+AI_VEHICLE_TRACKING_ENABLED = os.getenv('AI_VEHICLE_TRACKING_ENABLED', 'True').lower() == 'true'
+AI_VEHICLE_TRACK_SESSION_TTL = int(os.getenv('AI_VEHICLE_TRACK_SESSION_TTL', '300'))
+AI_VEHICLE_TRACK_MAX_SESSIONS = int(os.getenv('AI_VEHICLE_TRACK_MAX_SESSIONS', '12'))
 
 # License plate OCR (EasyOCR — Latin/Khmer-style Cambodia plates)
 AI_PLATE_OCR_ENABLED = os.getenv('AI_PLATE_OCR_ENABLED', 'True').lower() == 'true'
@@ -195,16 +258,18 @@ AI_PLATE_OCR_LANGUAGES = [
 AI_PIPELINE_DEMO_VIOLATION = os.getenv('AI_PIPELINE_DEMO_VIOLATION', 'True').lower() == 'true'
 AI_PIPELINE_AUTO_CREATE_VIOLATION = os.getenv('AI_PIPELINE_AUTO_CREATE_VIOLATION', 'True').lower() == 'true'
 
-# Gemini Vision fallback (when YOLO confidence is below hybrid threshold)
+# Gemini Vision — optional backup only (AI_DETECTION_MODE=hybrid + flags below)
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
-GEMINI_ENABLED = os.getenv('GEMINI_ENABLED', 'True').lower() == 'true'
+GEMINI_ENABLED = os.getenv('GEMINI_ENABLED', 'False').lower() == 'true'
 GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-2.5-flash')
 GEMINI_REQUEST_TIMEOUT = int(os.getenv('GEMINI_REQUEST_TIMEOUT', '30'))
 GEMINI_BACKOFF_SECONDS = int(os.getenv('GEMINI_BACKOFF_SECONDS', '60'))
 
-# Khmer TTS (edge-tts — works without Windows Khmer voice; needs internet)
+# Neural TTS (edge-tts — Khmer + English; needs internet)
 TTS_ENABLED = os.getenv('TTS_ENABLED', 'True').lower() == 'true'
 TTS_VOICE = os.getenv('TTS_VOICE', 'km-KH-SreymomNeural')
+TTS_VOICE_EN = os.getenv('TTS_VOICE_EN', 'en-US-JennyNeural')
+TTS_RATE = os.getenv('TTS_RATE', '-5%')
 
 # Password reset (user portal)
 FRONTEND_PASSWORD_RESET_URL = os.getenv(

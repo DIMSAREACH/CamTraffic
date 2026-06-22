@@ -3,16 +3,16 @@ import type {
 } from '../types';
 
 export const MOCK_CREDENTIALS = [
-  { email: 'admin@traffic.kh', password: 'Admin@123', userId: 1 },
-  { email: 'dara.chan@police.gov.kh', password: 'Police@123', userId: 2 },
-  { email: 'srey.neang@police.gov.kh', password: 'Police@123', userId: 3 },
-  { email: 'kosal.pich@gmail.com', password: 'Driver@123', userId: 4 },
-  { email: 'vanna.sok@gmail.com', password: 'Driver@123', userId: 5 },
+  { email: 'admin@traffic.kh', password: 'Admin@123', userId: '1' },
+  { email: 'dara.chan@police.gov.kh', password: 'Police@123', userId: '2' },
+  { email: 'srey.neang@police.gov.kh', password: 'Police@123', userId: '3' },
+  { email: 'kosal.pich@gmail.com', password: 'Driver@123', userId: '4' },
+  { email: 'vanna.sok@gmail.com', password: 'Driver@123', userId: '5' },
 ];
 
 export const mockUsers: User[] = [
   {
-    id: 1,
+    id: '1',
     full_name: 'Admin System',
     email: 'admin@traffic.kh',
     role: 'admin',
@@ -22,7 +22,7 @@ export const mockUsers: User[] = [
     is_active: true,
   },
   {
-    id: 2,
+    id: '2',
     full_name: 'Dara Chan',
     email: 'dara.chan@police.gov.kh',
     role: 'police',
@@ -32,7 +32,7 @@ export const mockUsers: User[] = [
     is_active: true,
   },
   {
-    id: 3,
+    id: '3',
     full_name: 'Srey Neang',
     email: 'srey.neang@police.gov.kh',
     role: 'police',
@@ -42,7 +42,7 @@ export const mockUsers: User[] = [
     is_active: true,
   },
   {
-    id: 4,
+    id: '4',
     full_name: 'Kosal Pich',
     email: 'kosal.pich@gmail.com',
     role: 'driver',
@@ -53,7 +53,7 @@ export const mockUsers: User[] = [
     is_active: true,
   },
   {
-    id: 5,
+    id: '5',
     full_name: 'Vanna Sok',
     email: 'vanna.sok@gmail.com',
     role: 'driver',
@@ -64,7 +64,7 @@ export const mockUsers: User[] = [
     is_active: true,
   },
   {
-    id: 6,
+    id: '6',
     full_name: 'Pisey Mao',
     email: 'pisey.mao@gmail.com',
     role: 'driver',
@@ -75,7 +75,7 @@ export const mockUsers: User[] = [
     is_active: true,
   },
   {
-    id: 7,
+    id: '7',
     full_name: 'Ratana Heng',
     email: 'ratana.heng@gmail.com',
     role: 'driver',
@@ -86,7 +86,7 @@ export const mockUsers: User[] = [
     is_active: true,
   },
   {
-    id: 8,
+    id: '8',
     full_name: 'Sokha Lim',
     email: 'sokha.lim@gmail.com',
     role: 'driver',
@@ -97,7 +97,7 @@ export const mockUsers: User[] = [
     is_active: false,
   },
   {
-    id: 9,
+    id: '9',
     full_name: 'Bora Keo',
     email: 'bora.keo@police.gov.kh',
     role: 'police',
@@ -107,7 +107,7 @@ export const mockUsers: User[] = [
     is_active: true,
   },
   {
-    id: 10,
+    id: '10',
     full_name: 'Chenda Ros',
     email: 'chenda.ros@gmail.com',
     role: 'driver',
@@ -116,6 +116,80 @@ export const mockUsers: User[] = [
     license_no: 'DL-KH-2024-006789',
     created_at: '2024-03-20T08:00:00Z',
     is_active: true,
+  },
+  {
+    id: '11',
+    full_name: 'Chhay Vuthy',
+    email: 'chhay.vuthy@police.gov.kh',
+    role: 'police',
+    phone: '+855 15 888 999',
+    address: 'Russian Blvd, Phnom Penh',
+    created_at: '2024-04-02T08:00:00Z',
+    is_active: true,
+  },
+  {
+    id: '12',
+    full_name: 'Malis Prom',
+    email: 'malis.prom@gmail.com',
+    role: 'driver',
+    phone: '+855 92 111 222',
+    address: 'Chroy Changvar, Phnom Penh',
+    license_no: 'DL-KH-2024-007890',
+    created_at: '2024-04-08T08:00:00Z',
+    is_active: true,
+  },
+  {
+    id: '13',
+    full_name: 'Heng Sopheap',
+    email: 'sopheap.heng@gmail.com',
+    role: 'driver',
+    phone: '+855 88 333 444',
+    address: 'Toul Kork, Phnom Penh',
+    license_no: 'DL-KH-2024-008901',
+    created_at: '2024-04-15T08:00:00Z',
+    is_active: true,
+  },
+  {
+    id: '14',
+    full_name: 'Narith Lim',
+    email: 'narith.lim@traffic.kh',
+    role: 'admin',
+    phone: '+855 12 900 100',
+    address: 'Ministry of Interior, Phnom Penh',
+    created_at: '2024-05-01T08:00:00Z',
+    is_active: false,
+  },
+  {
+    id: '15',
+    full_name: 'Rithy Chhorn',
+    email: 'rithy.chhorn@police.gov.kh',
+    role: 'police',
+    phone: '+855 97 555 666',
+    address: 'Monivong Blvd, Phnom Penh',
+    created_at: '2024-05-12T08:00:00Z',
+    is_active: true,
+  },
+  {
+    id: '16',
+    full_name: 'Sreymom Keo',
+    email: 'sreymom.keo@gmail.com',
+    role: 'driver',
+    phone: '+855 70 777 888',
+    address: 'Sen Sok, Phnom Penh',
+    license_no: 'DL-KH-2024-009012',
+    created_at: '2024-05-20T08:00:00Z',
+    is_active: true,
+  },
+  {
+    id: '17',
+    full_name: 'Visal Ouk',
+    email: 'visal.ouk@gmail.com',
+    role: 'driver',
+    phone: '+855 69 999 000',
+    address: 'Mean Chey, Phnom Penh',
+    license_no: 'DL-KH-2024-010123',
+    created_at: '2024-06-01T08:00:00Z',
+    is_active: false,
   },
 ];
 
@@ -127,6 +201,9 @@ export const mockVehicles: Vehicle[] = [
   { id: 5, owner_id: 7, owner_name: 'Ratana Heng', plate_number: '2EE 7890', vehicle_type: 'motorcycle', model: 'Yamaha Exciter 155', color: 'Red', year: 2023, created_at: '2024-03-05T08:00:00Z' },
   { id: 6, owner_id: 10, owner_name: 'Chenda Ros', plate_number: '3FF 2345', vehicle_type: 'car', model: 'Hyundai Tucson 2021', color: 'Dark Grey', year: 2021, created_at: '2024-03-25T08:00:00Z' },
   { id: 7, owner_id: 5, owner_name: 'Vanna Sok', plate_number: '5GG 6789', vehicle_type: 'motorcycle', model: 'Kawasaki Z400', color: 'Green', year: 2022, created_at: '2024-04-01T08:00:00Z' },
+  { id: 8, owner_id: 4, owner_name: 'Kosal Pich', plate_number: '2AK 7788', vehicle_type: 'car', model: 'Toyota Hilux 2023', color: 'White', year: 2023, created_at: '2025-11-12T08:00:00Z' },
+  { id: 9, owner_id: 4, owner_name: 'Kosal Pich', plate_number: '1PP 4455', vehicle_type: 'motorcycle', model: 'Honda PCX 160', color: 'Grey', year: 2024, created_at: '2026-01-08T08:00:00Z' },
+  { id: 10, owner_id: 6, owner_name: 'Pisey Mao', plate_number: '6HH 1122', vehicle_type: 'car', model: 'Mazda CX-5 2022', color: 'Red', year: 2022, created_at: '2025-08-20T08:00:00Z' },
 ];
 
 export const mockTrafficSigns: TrafficSign[] = [
@@ -240,6 +317,14 @@ export const mockFines: Fine[] = [
   { id: 8, driver_id: 8, driver_name: 'Sokha Lim', driver_license: 'DL-KH-2024-005678', police_id: 2, police_name: 'Dara Chan', amount: 30, reason: 'Speeding in School Zone', status: 'overdue', location: 'Near Preah Sisowath HS, Phnom Penh', vehicle_plate: 'Unknown', created_at: '2024-03-05T08:30:00Z' },
   { id: 9, driver_id: 4, driver_name: 'Kosal Pich', driver_license: 'DL-KH-2024-001234', police_id: 2, police_name: 'Dara Chan', amount: 100, reason: 'Speeding (100km/h in 60km/h zone)', status: 'pending', location: 'Phnom Penh–Sihanoukville Highway', vehicle_plate: '2AA 1234', created_at: '2024-04-10T09:00:00Z' },
   { id: 10, driver_id: 7, driver_name: 'Ratana Heng', driver_license: 'DL-KH-2024-004567', police_id: 3, police_name: 'Srey Neang', amount: 25, reason: 'Failure to Stop at Stop Sign', status: 'pending', location: 'Confederation de la Russie Blvd, Phnom Penh', vehicle_plate: '2EE 7890', created_at: '2024-04-12T11:00:00Z' },
+  { id: 11, driver_id: 4, driver_name: 'Kosal Pich', driver_license: 'DL-KH-2024-001234', police_id: 9, police_name: 'Bora Keo', amount: 10, reason: 'No Helmet (Motorcycle)', status: 'overdue', location: 'Street 271, Sen Sok, Phnom Penh', vehicle_plate: '3BB 5678', created_at: '2026-05-28T16:45:00Z' },
+  { id: 12, driver_id: 4, driver_name: 'Kosal Pich', driver_license: 'DL-KH-2024-001234', police_id: 3, police_name: 'Srey Neang', amount: 25, reason: 'No Seatbelt', status: 'paid', location: 'Norodom Blvd, Phnom Penh', vehicle_plate: '2AA 1234', created_at: '2026-05-20T09:15:00Z', paid_at: '2026-05-21T10:00:00Z' },
+  { id: 13, driver_id: 4, driver_name: 'Kosal Pich', driver_license: 'DL-KH-2024-001234', police_id: 2, police_name: 'Dara Chan', amount: 30, reason: 'No U-Turn at R1-03', status: 'pending', location: 'Sihanouk Blvd, Phnom Penh', vehicle_plate: '2AA 1234', created_at: '2026-06-10T08:30:00Z' },
+  { id: 14, driver_id: 5, driver_name: 'Vanna Sok', driver_license: 'DL-KH-2024-002345', police_id: 3, police_name: 'Srey Neang', amount: 20, reason: 'Speed Limit 20 km/h Exceeded', status: 'pending', location: 'Chroy Changvar, Phnom Penh', vehicle_plate: '1CC 9012', created_at: '2026-06-12T07:45:00Z' },
+  { id: 15, driver_id: 6, driver_name: 'Pisey Mao', driver_license: 'DL-KH-2024-003456', police_id: 2, police_name: 'Dara Chan', amount: 50, reason: 'No Entry at R1-04', status: 'overdue', location: 'Street 51, Daun Penh', vehicle_plate: '4DD 3456', created_at: '2026-06-01T11:00:00Z' },
+  { id: 16, driver_id: 7, driver_name: 'Ratana Heng', driver_license: 'DL-KH-2024-004567', police_id: 9, police_name: 'Bora Keo', amount: 15, reason: 'No Parking at R2-10', status: 'paid', location: 'Central Market, Phnom Penh', vehicle_plate: '2EE 7890', created_at: '2026-05-15T13:00:00Z', paid_at: '2026-05-16T09:00:00Z' },
+  { id: 17, driver_id: 10, driver_name: 'Chenda Ros', driver_license: 'DL-KH-2024-006789', police_id: 3, police_name: 'Srey Neang', amount: 40, reason: 'Pedestrian Crossing Violation', status: 'pending', location: 'Russian Blvd, Phnom Penh', vehicle_plate: '3FF 2345', created_at: '2026-06-14T16:20:00Z' },
+  { id: 18, driver_id: 4, driver_name: 'Kosal Pich', driver_license: 'DL-KH-2024-001234', police_id: 2, police_name: 'Dara Chan', amount: 50, reason: 'Using Mobile Phone While Driving', status: 'dismissed', location: 'Airport Road, Phnom Penh', vehicle_plate: '2AA 1234', created_at: '2026-04-08T15:45:00Z' },
 ];
 
 export const mockAILogs: AIDetectionLog[] = [
@@ -249,6 +334,14 @@ export const mockAILogs: AIDetectionLog[] = [
   { id: 4, user_id: 7, user_name: 'Ratana Heng', uploaded_image: 'sign_004.jpg', detected_sign: 'Pedestrian Crossing', confidence: 94.7, description: 'Triangular yellow warning sign with walking figure.', guidance: 'Slow down and watch for pedestrians crossing ahead.', created_at: '2024-04-11T14:20:00Z' },
   { id: 5, user_id: 10, user_name: 'Chenda Ros', uploaded_image: 'sign_005.jpg', detected_sign: 'No Parking', confidence: 97.8, description: 'Round blue sign with red P crossed out.', guidance: 'Parking is not allowed here. Move to a designated zone.', created_at: '2024-04-12T16:00:00Z' },
   { id: 6, user_id: 5, user_name: 'Vanna Sok', uploaded_image: 'sign_006.jpg', detected_sign: 'School Zone', confidence: 93.9, description: 'Yellow warning sign with children crossing symbol.', guidance: 'Reduce speed to 30 km/h and watch for children.', created_at: '2024-04-13T08:30:00Z' },
+  { id: 7, user_id: 4, user_name: 'Kosal Pich', uploaded_image: 'sign_007.jpg', detected_sign: 'No Left Turn (R1-01)', confidence: 95.8, description: 'Circular prohibitory sign with left-turn arrow crossed out.', guidance: 'Do not turn left. Continue straight or turn right.', created_at: '2026-06-16T09:10:00Z' },
+  { id: 8, user_id: 4, user_name: 'Kosal Pich', uploaded_image: 'sign_008.jpg', detected_sign: 'One Way Traffic (I-064)', confidence: 97.2, description: 'Blue rectangular sign with white directional arrow.', guidance: 'Follow the one-way direction indicated by the arrow.', created_at: '2026-06-15T11:40:00Z' },
+  { id: 9, user_id: 4, user_name: 'Kosal Pich', uploaded_image: 'sign_009.jpg', detected_sign: 'Speed Limit 50 km/h (P-030)', confidence: 98.6, description: 'Round white sign with red border showing 50.', guidance: 'Do not exceed 50 km/h on this road.', created_at: '2026-06-14T08:05:00Z' },
+  { id: 10, user_id: 4, user_name: 'Kosal Pich', uploaded_image: 'sign_010.jpg', detected_sign: 'No U-Turn (R1-03)', confidence: 96.4, description: 'Prohibitory sign with U-turn arrow crossed by red slash.', guidance: 'U-turns are not allowed at this location.', created_at: '2026-06-12T15:25:00Z' },
+  { id: 11, user_id: 4, user_name: 'Kosal Pich', uploaded_image: 'sign_011.jpg', detected_sign: 'No Parking (R2-10)', confidence: 97.1, description: 'Blue circle with red border and crossed-out P symbol.', guidance: 'Parking is prohibited here.', created_at: '2026-06-11T10:50:00Z' },
+  { id: 12, user_id: 4, user_name: 'Kosal Pich', uploaded_image: 'sign_012.jpg', detected_sign: 'Speed Limit 20 km/h (P-029)', confidence: 99.3, description: 'Mandatory speed limit sign for low-speed zones.', guidance: 'Reduce speed to 20 km/h immediately.', created_at: '2026-06-09T07:30:00Z' },
+  { id: 13, user_id: 5, user_name: 'Vanna Sok', uploaded_image: 'sign_013.jpg', detected_sign: 'Stop Sign (M-032)', confidence: 98.9, description: 'Octagonal red STOP sign with white lettering.', guidance: 'Come to a complete stop before proceeding.', created_at: '2026-06-17T12:00:00Z' },
+  { id: 14, user_id: 7, user_name: 'Ratana Heng', uploaded_image: 'sign_014.jpg', detected_sign: 'No Right Turn (R1-02)', confidence: 94.2, description: 'Prohibitory no right turn sign at intersection.', guidance: 'Right turns are not permitted.', created_at: '2026-06-13T14:15:00Z' },
 ];
 
 export const mockNotifications: Notification[] = [
@@ -261,6 +354,13 @@ export const mockNotifications: Notification[] = [
   { id: 7, user_id: 2, title: 'Monthly Report Ready', message: 'Monthly fine report for March 2024 is available. Total: 8 fines, $355 USD collected.', is_read: false, type: 'alert', created_at: '2024-04-01T08:00:00Z' },
   { id: 8, user_id: 1, title: 'AI Model Updated', message: 'AI model detection accuracy has improved to 97.2% after the latest update.', is_read: false, type: 'system', created_at: '2024-04-12T07:00:00Z' },
   { id: 9, user_id: 1, title: 'System Alert', message: 'New driver registration spike detected: 24 new accounts in the last 24 hours.', is_read: false, type: 'alert', created_at: '2024-04-13T06:30:00Z' },
+  { id: 10, user_id: 4, title: 'Fine Payment Reminder', message: 'You have $110 USD in outstanding fines. Pay before the due date to avoid penalties.', is_read: false, type: 'fine', created_at: '2026-06-18T08:00:00Z' },
+  { id: 11, user_id: 4, title: 'Vehicle Registration Verified', message: 'Your Toyota Hilux (2AK 7788) registration has been verified.', is_read: true, type: 'system', created_at: '2026-06-10T09:30:00Z' },
+  { id: 12, user_id: 4, title: 'AI Detection Complete', message: 'Stop Sign (M-032) detected with 98.9% confidence near Monivong Blvd.', is_read: false, type: 'detection', created_at: '2026-06-17T12:05:00Z' },
+  { id: 13, user_id: 4, title: 'New Fine Issued', message: 'A fine of $30 USD has been issued for No U-Turn at R1-03.', is_read: false, type: 'fine', created_at: '2026-06-10T08:35:00Z' },
+  { id: 14, user_id: 5, title: 'Speed Limit Alert', message: 'AI detected Speed Limit 50 km/h sign on your recent route.', is_read: false, type: 'detection', created_at: '2026-06-14T08:10:00Z' },
+  { id: 15, user_id: 2, title: 'Driver Lookup Used', message: 'License DL-KH-2024-001234 was searched in the enforcement portal.', is_read: true, type: 'alert', created_at: '2026-06-19T10:00:00Z' },
+  { id: 16, user_id: 4, title: 'Welcome to CamTraffic', message: 'Your driver account is active. Explore AI sign detection and pay fines online.', is_read: true, type: 'system', created_at: '2026-06-01T08:00:00Z' },
 ];
 
 export const mockDashboardStats: DashboardStats = {
@@ -301,6 +401,8 @@ export const mockDashboardStats: DashboardStats = {
   monthly_violations: [
     { month: 'Jan', count: 8 }, { month: 'Feb', count: 11 }, { month: 'Mar', count: 9 },
     { month: 'Apr', count: 14 }, { month: 'May', count: 12 }, { month: 'Jun', count: 10 },
+    { month: 'Jul', count: 13 }, { month: 'Aug', count: 15 }, { month: 'Sep', count: 11 },
+    { month: 'Oct', count: 16 }, { month: 'Nov', count: 12 }, { month: 'Dec', count: 9 },
   ],
   violation_by_type: [
     { violation_type: 'ILLEGAL_LEFT_TURN', count: 18 },
@@ -319,6 +421,40 @@ export const mockDashboardStats: DashboardStats = {
     { role: 'Drivers', count: 198 },
     { role: 'Police', count: 45 },
     { role: 'Admin', count: 5 },
+  ],
+  detection_by_sign: [
+    { sign: 'No Entry (R1-04)', count: 412 },
+    { sign: 'Stop (M-032)', count: 385 },
+    { sign: 'Speed Limit 50 (P-030)', count: 356 },
+    { sign: 'No Parking (R2-10)', count: 298 },
+    { sign: 'Pedestrian Crossing (W-040)', count: 267 },
+    { sign: 'No Left Turn (R1-01)', count: 241 },
+    { sign: 'No U-Turn (R1-03)', count: 218 },
+    { sign: 'One Way (I-064)', count: 189 },
+  ],
+  top_locations: [
+    { name: 'Monivong Blvd & St 214', fines: 89, detections: 234 },
+    { name: 'Russian Blvd, Sen Sok', fines: 76, detections: 198 },
+    { name: 'Norodom Blvd, Daun Penh', fines: 68, detections: 176 },
+    { name: 'Confederation de la Russie', fines: 54, detections: 152 },
+    { name: 'Sihanouk Blvd, Chamkar Mon', fines: 47, detections: 141 },
+    { name: 'NR6 Highway, Kandal', fines: 39, detections: 118 },
+  ],
+  peak_hours: [
+    { hour: '06:00', count: 98 },
+    { hour: '07:00', count: 142 },
+    { hour: '08:00', count: 186 },
+    { hour: '09:00', count: 154 },
+    { hour: '12:00', count: 128 },
+    { hour: '17:00', count: 198 },
+    { hour: '18:00', count: 224 },
+    { hour: '19:00', count: 167 },
+  ],
+  monthly_registrations: [
+    { month: 'Jan', count: 18 }, { month: 'Feb', count: 22 }, { month: 'Mar', count: 26 },
+    { month: 'Apr', count: 19 }, { month: 'May', count: 31 }, { month: 'Jun', count: 28 },
+    { month: 'Jul', count: 24 }, { month: 'Aug', count: 29 }, { month: 'Sep', count: 21 },
+    { month: 'Oct', count: 27 }, { month: 'Nov', count: 23 }, { month: 'Dec', count: 16 },
   ],
 };
 
@@ -388,7 +524,7 @@ export const mockCameras: Camera[] = [
     latitude: 11.5564,
     longitude: 104.9282,
     status: 'active',
-    frame_source_url: 'https://picsum.photos/seed/camtraffic1/960/540',
+    frame_source_url: '/demo-cameras/monivong-intersection.jpg',
     created_at: '2025-01-10T08:00:00Z',
     updated_at: '2025-06-01T10:00:00Z',
   },
@@ -404,7 +540,7 @@ export const mockCameras: Camera[] = [
     latitude: 11.5568,
     longitude: 104.9288,
     status: 'maintenance',
-    frame_source_url: 'https://picsum.photos/seed/camtraffic2/960/540',
+    frame_source_url: '/demo-cameras/monivong-ptz.jpg',
     created_at: '2025-01-10T08:00:00Z',
     updated_at: '2025-06-01T10:00:00Z',
   },
@@ -420,7 +556,7 @@ export const mockCameras: Camera[] = [
     latitude: 11.3833,
     longitude: 104.9667,
     status: 'active',
-    frame_source_url: 'https://picsum.photos/seed/camtraffic3/960/540',
+    frame_source_url: '/demo-cameras/nr6-highway.jpg',
     created_at: '2025-02-15T08:00:00Z',
     updated_at: '2025-06-01T10:00:00Z',
   },

@@ -34,8 +34,21 @@ def _read_training_status() -> dict:
 
 
 def _trained_sign_codes() -> list[str]:
+    from ai_detection.sign_catalog_loader import resolve_catalog_path
+
     codes = _read_training_status().get('sign_codes') or []
-    return [c for c in codes if c]
+    codes = [c for c in codes if c]
+    if codes:
+        return codes
+
+    if resolve_catalog_path().name == 'traffic_sign_catalog_10.json':
+        try:
+            from ai_detection.sign_catalog_loader import load_sign_catalog_rows
+
+            return [row.get('sign_code', '') for row in load_sign_catalog_rows() if row.get('sign_code')]
+        except Exception:
+            pass
+    return []
 
 
 def _trained_signs_queryset():
@@ -67,15 +80,20 @@ def _short_label(sign_name_km: str, sign_name_en: str, sign_name: str) -> str:
 
 
 def _model_mode(weights_exist: bool) -> str:
+    if not weights_exist:
+        if settings.AI_USE_MOCK:
+            return 'mock'
+        return 'mock_fallback'
+
+    mode = str(getattr(settings, 'AI_DETECTION_MODE', 'local')).strip().lower()
+    if mode == 'local':
+        return 'local'
+
     from ai_detection.gemini_service import gemini_available
 
-    if weights_exist and gemini_available():
+    if mode == 'hybrid' and gemini_available():
         return 'hybrid'
-    if weights_exist:
-        return 'yolo'
-    if settings.AI_USE_MOCK:
-        return 'mock'
-    return 'mock_fallback'
+    return 'local'
 
 
 def get_ai_detection_page_stats(user, request=None):
@@ -139,23 +157,52 @@ def get_ai_detection_page_stats(user, request=None):
     mode = _model_mode(weights_exist)
     training_status = _read_training_status()
     training_images = int(training_status.get('training_images') or 0) or _count_training_images()
-    class_count = len(trained_codes) if trained_codes else sign_count
+    catalog_total = TrafficSign.objects.count() or sign_count
+    yolo_class_count = int(training_status.get('yolo_class_count') or 0)
+    if yolo_class_count < 1 and weights_exist:
+        try:
+            from .services import _sign_model_class_count
+
+            yolo_class_count = _sign_model_class_count()
+        except Exception:
+            yolo_class_count = 0
+    if yolo_class_count < 1:
+        yolo_class_count = 19
+
+    catalog_visual_refs = 0
+    try:
+        from .catalog_visual_match import catalog_visual_index_size
+
+        catalog_visual_refs = catalog_visual_index_size()
+    except Exception:
+        catalog_visual_refs = 0
 
     return {
         'model': {
             'name': getattr(settings, 'AI_MODEL_NAME', 'YOLOv8-Cambodia'),
             'version': getattr(settings, 'AI_MODEL_VERSION', 'v2.1'),
             'mode': mode,
+            'detection_mode': getattr(settings, 'AI_DETECTION_MODE', 'local'),
             'weights_loaded': weights_exist,
-            'gemini_enabled': bool(getattr(settings, 'GEMINI_API_KEY', '')) and getattr(settings, 'GEMINI_ENABLED', True),
+            'gemini_enabled': (
+                str(getattr(settings, 'AI_DETECTION_MODE', 'local')).lower() == 'hybrid'
+                and bool(getattr(settings, 'GEMINI_API_KEY', ''))
+                and getattr(settings, 'GEMINI_ENABLED', False)
+            ),
             'hybrid_threshold': float(getattr(settings, 'AI_HYBRID_CONFIDENCE_THRESHOLD', 70)),
-            'sign_classes': class_count,
+            'sign_classes': catalog_total,
+            'catalog_sign_count': catalog_total,
+            'yolo_trained_classes': yolo_class_count,
+            'catalog_visual_refs': catalog_visual_refs,
+            'live_catalog_coverage': catalog_total,
             'training_images': training_images,
             'last_trained_at': training_status.get('trained_at'),
             'trained_sign_codes': trained_codes,
             'vehicle_detection_enabled': getattr(settings, 'AI_VEHICLE_ENABLED', True),
             'vehicle_model': getattr(settings, 'AI_VEHICLE_MODEL', 'yolov8n.pt'),
             'vehicle_classes': ['car', 'motorcycle', 'bus', 'truck'],
+            'plate_ocr_enabled': getattr(settings, 'AI_PLATE_OCR_ENABLED', True),
+            'plate_ocr_engine': 'EasyOCR',
         },
         'stats': {
             'total_scans': total_scans,

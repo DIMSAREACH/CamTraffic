@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router';
 import {
   LayoutDashboard, Car, Users, FileText, Camera,
   BookOpen, BarChart3, Bell, User, LogOut, Shield,
-  Activity, Zap, X, Cctv, AlertTriangle,
+  Activity, Zap, X, Cctv, AlertTriangle, Archive,
 } from 'lucide-react';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
@@ -34,6 +34,7 @@ const ADMIN_NAV: NavItem[] = [
   { labelKey: 'sidebar.nav.violationManagement', path: '/admin/violations', icon: <AlertTriangle size={18} strokeWidth={1.75} />, section: 'manage' },
   { labelKey: 'sidebar.nav.allVehicles', path: '/admin/vehicles', icon: <Car size={18} strokeWidth={1.75} />, section: 'manage' },
   { labelKey: 'sidebar.nav.detectionLogs', path: '/admin/ai-logs', icon: <Activity size={18} strokeWidth={1.75} />, section: 'manage' },
+  { labelKey: 'sidebar.nav.evidenceArchive', path: '/admin/evidence', icon: <Archive size={18} strokeWidth={1.75} />, section: 'manage' },
   { labelKey: 'sidebar.nav.userManagement', path: '/admin/users', icon: <Users size={18} strokeWidth={1.75} />, section: 'manage' },
   { labelKey: 'sidebar.nav.reports', path: '/admin/reports', icon: <BarChart3 size={18} strokeWidth={1.75} />, section: 'manage' },
   { labelKey: 'sidebar.nav.notifications', path: '/admin/notifications', icon: <Bell size={18} strokeWidth={1.75} />, section: 'account' },

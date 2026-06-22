@@ -5,7 +5,7 @@ from .result_compose import compose_detection_payload
 
 
 class AIDetectionLogSerializer(serializers.ModelSerializer):
-    user_id = serializers.IntegerField(source='user.id', read_only=True)
+    user_id = serializers.UUIDField(source='user.id', read_only=True)
     user_name = serializers.CharField(source='user.full_name', read_only=True)
     user_profile_image = serializers.SerializerMethodField()
     uploaded_image = serializers.SerializerMethodField()
@@ -39,8 +39,24 @@ class AIDetectionLogSerializer(serializers.ModelSerializer):
             setattr(self, '_compose_cache', cache)
         if obj.pk not in cache:
             sign_en = ''
+            sign_km = obj.detected_sign
+            sign_code = ''
+            class_key = ''
             if obj.detected_sign == 'ស្លាកមិនស្គាល់':
                 sign_en = 'Unknown sign'
+            else:
+                from traffic_signs.models import TrafficSign
+
+                sign = (
+                    TrafficSign.objects.filter(sign_name_km=obj.detected_sign).first()
+                    or TrafficSign.objects.filter(sign_name=obj.detected_sign).first()
+                    or TrafficSign.objects.filter(sign_name_en__iexact=obj.detected_sign).first()
+                )
+                if sign:
+                    sign_km = sign.sign_name_km or sign.sign_name or sign_km
+                    sign_en = sign.sign_name_en or sign_en
+                    sign_code = sign.sign_code or ''
+                    class_key = (sign.sign_code or '').lower().replace('-', '_')
             plate_result = None
             if obj.detected_plate:
                 plate_result = {
@@ -50,29 +66,24 @@ class AIDetectionLogSerializer(serializers.ModelSerializer):
                     'raw_reads': obj.plate_ocr_details or [],
                 }
                 if obj.matched_vehicle_id:
-                    from vehicles.models import Vehicle
-
-                    vehicle = (
-                        Vehicle.objects.filter(pk=obj.matched_vehicle_id)
-                        .select_related('owner')
-                        .first()
-                    )
+                    vehicle = obj.matched_vehicle
                     if vehicle:
                         plate_result['matched_vehicle'] = {
-                            'id': vehicle.id,
+                            'id': str(vehicle.id),
                             'plate_number': vehicle.plate_number,
                             'owner_name': vehicle.owner.full_name,
                             'vehicle_type': vehicle.vehicle_type,
                         }
             cache[obj.pk] = compose_detection_payload(
                 {
-                    'sign_name': obj.detected_sign,
+                    'sign_name': sign_km,
                     'sign_name_en': sign_en,
-                    'sign_name_km': obj.detected_sign,
+                    'sign_name_km': sign_km,
+                    'sign_code': sign_code,
+                    'class_key': class_key,
                     'confidence': obj.confidence,
                     'description': obj.description,
                     'guidance': obj.guidance,
-                    'class_key': '',
                 },
                 obj.detected_vehicles or [],
                 plate_result,

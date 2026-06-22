@@ -3,6 +3,7 @@ from django.urls import path
 from .oauth_views import OAuthAuthorizeView, OAuthCompleteView, OAuthStatusView
 from .profile_views import (
     DeactivateAccountView,
+    DeleteAccountView,
     LogoutOtherSessionsView,
     ProfileOverviewView,
     ProfilePreferencesView,
@@ -30,6 +31,7 @@ urlpatterns = [
     path('profile/overview/', ProfileOverviewView.as_view(), name='profile-overview'),
     path('profile/preferences/', ProfilePreferencesView.as_view(), name='profile-preferences'),
     path('profile/deactivate/', DeactivateAccountView.as_view(), name='profile-deactivate'),
+    path('profile/delete/', DeleteAccountView.as_view(), name='profile-delete'),
     path('profile/logout-others/', LogoutOtherSessionsView.as_view(), name='profile-logout-others'),
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),
     path('password-reset/', PasswordResetRequestView.as_view(), name='password-reset'),

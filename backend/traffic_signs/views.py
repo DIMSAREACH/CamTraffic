@@ -2,7 +2,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
-from ai_detection.page_stats import _read_training_status
+from ai_detection.page_stats import _trained_sign_codes
 from core.permissions import IsAdmin
 from core.responses import success_response
 
@@ -22,10 +22,12 @@ class TrafficSignListCreateView(generics.ListCreateAPIView):
         return [IsAuthenticated(), IsAdmin()]
 
     def get_queryset(self):
+        from ai_detection.page_stats import _trained_sign_codes
+
         qs = TrafficSign.objects.all().order_by('sign_code')
         flag = self.request.query_params.get('trained_only', '').lower()
         if flag in ('1', 'true', 'yes'):
-            codes = _read_training_status().get('sign_codes') or []
+            codes = _trained_sign_codes()
             if codes:
                 qs = qs.filter(sign_code__in=codes)
         return qs

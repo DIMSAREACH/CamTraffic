@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
+import { usePagination } from '@shared/hooks/usePagination';
+import { TablePagination } from '@shared/components/ui/TablePagination';
 import {
   Search, Plus, Eye, CheckCircle, XCircle, Clock, AlertTriangle,
-  MapPin, FileText, DollarSign, TrendingUp,
+  MapPin, FileText,
 } from 'lucide-react';
+import { RielIcon } from '@shared/components/RielIcon';
 import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
 import { Label } from '@shared/components/ui/label';
@@ -11,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@shared/components/ui/table';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
+import { formatAppCurrency, khrToUsd } from '@shared/i18n/localeFormat';
 import { useLiveData } from '@shared/hooks/useLiveData';
 import { finesAPI } from '@shared/services/api';
 import { toast } from 'sonner';
@@ -74,7 +78,7 @@ const STAT_CARDS = [
   { key: 'all', labelKey: 'fines.statTotal', icon: FileText, variant: 'blue', filterable: true },
   { key: 'pending', labelKey: 'fines.statPending', icon: Clock, variant: 'amber', filterable: true },
   { key: 'paid', labelKey: 'fines.statPaid', icon: CheckCircle, variant: 'emerald', filterable: true },
-  { key: 'revenue', labelKey: 'fines.statRevenue', icon: DollarSign, variant: 'violet', filterable: false },
+  { key: 'revenue', labelKey: 'fines.statRevenue', icon: RielIcon, variant: 'violet', filterable: false },
 ] as const;
 
 function initials(name: string) {
@@ -148,6 +152,8 @@ export function FineManagement() {
     return rows;
   }, [fines, search, statusFilter]);
 
+  const pagination = usePagination(filtered);
+
   const counts = useMemo(() => ({
     all: fines.length,
     pending: fines.filter((f) => f.status === 'pending').length,
@@ -195,7 +201,7 @@ export function FineManagement() {
         police_id: user.id,
         vehicle_plate: fineForm.vehicle_plate,
         reason: fineForm.reason,
-        amount: parseFloat(fineForm.amount),
+        amount: khrToUsd(parseFloat(fineForm.amount)),
         location: fineForm.location,
       });
       toast.success(t('fines.toastIssued'));
@@ -242,7 +248,7 @@ export function FineManagement() {
         {STAT_CARDS.map((card) => {
           const Icon = card.icon;
           const value = card.key === 'revenue'
-            ? `$${totalRevenue.toLocaleString()}`
+            ? formatAppCurrency(locale, totalRevenue)
             : counts[card.key as keyof typeof counts];
           const active = card.filterable && statusFilter === card.key;
           const inner = (
@@ -330,7 +336,7 @@ export function FineManagement() {
                   t('fines.colStatus'),
                   t('fines.colActions'),
                 ].map((h) => (
-                  <TableHead key={h} className="enforcement-page__th text-center">{h}</TableHead>
+                  <TableHead key={h} className="enforcement-page__th text-left">{h}</TableHead>
                 ))}
               </TableRow>
             </TableHeader>
@@ -359,7 +365,7 @@ export function FineManagement() {
                     </div>
                   </TableCell>
                 </TableRow>
-              ) : filtered.map((row) => {
+              ) : pagination.pageItems.map((row) => {
                 const st = getStatusMeta(row.status);
                 return (
                   <TableRow key={row.id} className="enforcement-page__table-row">
@@ -384,7 +390,7 @@ export function FineManagement() {
                       </p>
                     </TableCell>
                     <TableCell>
-                      <span className="enforcement-page__amount">${row.amount.toLocaleString()}</span>
+                      <span className="enforcement-page__amount">{formatAppCurrency(locale, row.amount)}</span>
                     </TableCell>
                     <TableCell>
                       <span className="enforcement-page__cell-secondary">
@@ -419,17 +425,7 @@ export function FineManagement() {
           </Table>
         </div>
 
-        {filtered.length > 0 && (
-          <div className="enforcement-page__footer">
-            <p className="enforcement-page__footer-text">
-              {t('fines.showing', { shown: filtered.length, total: fines.length })}
-            </p>
-            <p className="enforcement-page__revenue">
-              <TrendingUp size={13} className="enforcement-page__revenue-icon" />
-              {t('fines.revenueCollected', { amount: `$${totalRevenue.toLocaleString()}` })}
-            </p>
-          </div>
-        )}
+        <TablePagination pagination={pagination} label="fines" />
       </div>
 
       {/* Detail dialog */}
@@ -443,7 +439,7 @@ export function FineManagement() {
               { label: t('fines.vehiclePlate'), value: selected.vehicle_plate },
               { label: t('fines.issuedBy'), value: selected.police_name },
               { label: t('fines.colViolation'), value: formatFineReason(selected.reason) },
-              { label: t('fines.colAmount'), value: `$${selected.amount} USD` },
+              { label: t('fines.colAmount'), value: formatAppCurrency(locale, selected.amount) },
               { label: t('fines.location'), value: selected.location },
               { label: t('fines.dateIssued'), value: new Date(selected.created_at).toLocaleString(dateLocale) },
               ...(selected.paid_at
@@ -556,7 +552,8 @@ export function FineManagement() {
                 <Input
                   className="mt-1"
                   type="number"
-                  min="5"
+                  min="0"
+                  step="100"
                   placeholder={t('fines.amountPlaceholder')}
                   value={fineForm.amount}
                   onChange={(e) => setFineForm((f) => ({ ...f, amount: e.target.value }))}

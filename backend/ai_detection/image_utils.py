@@ -4,7 +4,28 @@ import os
 import tempfile
 from pathlib import Path
 
+from django.conf import settings
+
 logger = logging.getLogger(__name__)
+
+
+def _upload_max_edge() -> int:
+    return int(getattr(settings, 'AI_UPLOAD_MAX_EDGE', 1280))
+
+
+def _downscale_for_inference(img):
+    """Shrink very large uploads so YOLO / OCR run faster."""
+    from PIL import Image
+
+    max_edge = _upload_max_edge()
+    w, h = img.size
+    longest = max(w, h)
+    if longest <= max_edge:
+        return img
+    scale = max_edge / longest
+    nw = max(1, round(w * scale))
+    nh = max(1, round(h * scale))
+    return img.resize((nw, nh), Image.Resampling.LANCZOS)
 
 ALLOWED_UPLOAD_EXTENSIONS = {
     '.jpg', '.jpeg', '.png', '.webp', '.bmp', '.avif', '.gif', '.tif', '.tiff', '.heic', '.heif',
@@ -20,11 +41,16 @@ def prepare_detection_image(source_path: str) -> tuple[str, str | None, list[str
     ext = path.suffix.lower()
     cleanup: list[str] = []
 
-    if ext in ('.jpg', '.jpeg'):
-        return str(path), None, cleanup
-
     try:
         from PIL import Image
+
+        with Image.open(path) as probe:
+            if getattr(probe, 'n_frames', 1) > 1:
+                probe.seek(0)
+            needs_downscale = max(probe.size) > _upload_max_edge()
+
+        if ext in ('.jpg', '.jpeg') and not needs_downscale:
+            return str(path), None, cleanup
 
         img = Image.open(path)
         if getattr(img, 'n_frames', 1) > 1:
@@ -33,10 +59,11 @@ def prepare_detection_image(source_path: str) -> tuple[str, str | None, list[str
             img = img.convert('RGB')
         elif img.mode == 'L':
             img = img.convert('RGB')
+        img = _downscale_for_inference(img)
 
         tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.jpg')
         tmp.close()
-        img.save(tmp.name, 'JPEG', quality=92)
+        img.save(tmp.name, 'JPEG', quality=90)
         cleanup.append(tmp.name)
         return tmp.name, tmp.name, cleanup
     except Exception:

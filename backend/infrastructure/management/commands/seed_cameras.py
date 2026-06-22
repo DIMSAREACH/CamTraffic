@@ -54,7 +54,7 @@ class Command(BaseCommand):
                 model='Hikvision DS-2CD2T47G2',
                 camera_type='fixed',
                 status='active',
-                frame_source_url='https://picsum.photos/seed/camtraffic1/960/540',
+                frame_source_url='/demo-cameras/monivong-intersection.jpg',
             ),
             Camera(
                 road=road1,
@@ -63,7 +63,7 @@ class Command(BaseCommand):
                 model='Dahua IPC-HFW2831S',
                 camera_type='ptz',
                 status='maintenance',
-                frame_source_url='https://picsum.photos/seed/camtraffic2/960/540',
+                frame_source_url='/demo-cameras/monivong-ptz.jpg',
             ),
             Camera(
                 road=road2,
@@ -72,7 +72,7 @@ class Command(BaseCommand):
                 model='Axis Q1656',
                 camera_type='speed',
                 status='active',
-                frame_source_url='https://picsum.photos/seed/camtraffic3/960/540',
+                frame_source_url='/demo-cameras/nr6-highway.jpg',
             ),
             Camera(
                 road=road2,

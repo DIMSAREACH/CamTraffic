@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
+import { usePagination } from '@shared/hooks/usePagination';
+import { TablePagination } from '@shared/components/ui/TablePagination';
 import {
   Activity, Search, Eye, Camera, Users, BarChart2, CheckCircle, ImageIcon, Sparkles,
-  Info, ExternalLink, Car, AlertCircle, Hash,
+  Info, ExternalLink, Car, AlertCircle, Hash, Download,
 } from 'lucide-react';
 import { Button } from '@shared/components/ui/button';
 import { Dialog, DialogContent } from '@shared/components/ui/dialog';
@@ -363,6 +365,25 @@ export function AILogsPage() {
   const [search, setSearch] = useState('');
   const [confidenceFilter, setConfidenceFilter] = useState<ConfidenceTab>('all');
   const [selected, setSelected] = useState<AIDetectionLog | null>(null);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportCsv = async () => {
+    setExporting(true);
+    try {
+      const blob = await aiAPI.exportLogsCsv();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `ai-detection-logs-${new Date().toISOString().slice(0, 10)}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success(t('aiLogs.exportCsvSuccess'));
+    } catch {
+      toast.error(t('aiLogs.exportCsvFail'));
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const loadLogs = useCallback((silent = false) => {
     if (!silent) setLoading(true);
@@ -396,6 +417,8 @@ export function AILogsPage() {
     }
     return rows;
   }, [logs, search, confidenceFilter, speechLocale]);
+
+  const pagination = usePagination(filtered);
 
   const counts = useMemo(() => ({
     all: logs.length,
@@ -437,6 +460,15 @@ export function AILogsPage() {
             <h1 className="enforcement-page__title">{t('pages.aiLogs.title')}</h1>
             <p className="enforcement-page__subtitle">{t('pages.aiLogs.heroSubtitle')}</p>
           </div>
+          <button
+            type="button"
+            className="enforcement-page__hero-btn"
+            disabled={exporting || loading}
+            onClick={() => void handleExportCsv()}
+          >
+            <Download size={16} />
+            {exporting ? t('common.saving') : t('aiLogs.exportCsv')}
+          </button>
         </div>
       </div>
 
@@ -507,7 +539,7 @@ export function AILogsPage() {
             <TableHeader>
               <TableRow className="enforcement-page__table-head">
                 {tableColumns.map((col) => (
-                  <TableHead key={col.key} className={`enforcement-page__th text-center ${col.colClass}`}>
+                  <TableHead key={col.key} className={`enforcement-page__th text-left ${col.colClass}`}>
                     {col.label}
                   </TableHead>
                 ))}
@@ -538,7 +570,7 @@ export function AILogsPage() {
                     </div>
                   </TableCell>
                 </TableRow>
-              ) : filtered.map((log) => {
+              ) : pagination.pageItems.map((log) => {
                 const hero = logDisplay(log, speechLocale);
                 const tier = confidenceTier(hero.confidence);
                 const tierMeta = CONFIDENCE_STYLE[tier];
@@ -633,18 +665,7 @@ export function AILogsPage() {
           </Table>
         </div>
 
-        {filtered.length > 0 && (
-          <div className="enforcement-page__footer">
-            <p className="enforcement-page__footer-text">
-              {t('aiLogs.showing', { shown: filtered.length, total: logs.length })}
-            </p>
-            {avgConfidence != null && (
-              <p className="enforcement-page__footer-text enforcement-page__footer-text--emphasis">
-                {t('aiLogs.avgConfidenceFooter', { value: avgConfidence.toFixed(1) })}
-              </p>
-            )}
-          </div>
-        )}
+        <TablePagination pagination={pagination} label="logs" />
       </div>
 
       <AILogDetailDialog

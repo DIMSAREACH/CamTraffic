@@ -115,8 +115,13 @@ export function loadAuthSession(portal: AuthPortal = getAuthPortal()): {
 
   const fallback = primary === localStorage ? sessionStorage : localStorage;
   session = readFromStorage(fallback, portal);
-  if (session && primary === sessionStorage) {
-    clearStorageKeys(localStorage, portal);
+  if (session) {
+    writeToStorage(primary, {
+      access: session.token,
+      refresh: session.refresh ?? '',
+      user: session.user,
+    }, portal);
+    clearStorageKeys(fallback, portal);
   }
   return session;
 }
@@ -140,12 +145,26 @@ export function saveAuthUser(user: User, portal: AuthPortal = getAuthPortal()): 
   getSessionStorage(portal).setItem(storageKeys(portal).user, JSON.stringify(user));
 }
 
+function readTokenFromStorages(portal: AuthPortal, key: 'token' | 'refresh'): string | null {
+  const k = storageKeys(portal);
+  const storageKey = key === 'token' ? k.token : k.refresh;
+  const primary = getSessionStorage(portal);
+  const fromPrimary = primary.getItem(storageKey);
+  if (fromPrimary) return fromPrimary;
+  const fallback = primary === localStorage ? sessionStorage : localStorage;
+  return fallback.getItem(storageKey);
+}
+
 export function getAccessToken(portal: AuthPortal = getAuthPortal()): string | null {
-  return getSessionStorage(portal).getItem(storageKeys(portal).token);
+  return readTokenFromStorages(portal, 'token');
+}
+
+export function isAuthenticated(portal: AuthPortal = getAuthPortal()): boolean {
+  return Boolean(getAccessToken(portal));
 }
 
 export function getRefreshToken(portal: AuthPortal = getAuthPortal()): string | null {
-  return getSessionStorage(portal).getItem(storageKeys(portal).refresh);
+  return readTokenFromStorages(portal, 'refresh');
 }
 
 export function setAccessToken(token: string, portal: AuthPortal = getAuthPortal()): void {

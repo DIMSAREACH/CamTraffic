@@ -10,6 +10,7 @@ from .plate_ocr import plate_ocr_enabled, recognize_plate
 from .result_compose import VEHICLE_LABELS_KM, compose_detection_payload
 from .services import _is_live_capture_filename, detect_traffic_sign
 from .vehicle_detection import detect_vehicles, vehicle_detection_enabled
+from .vehicle_tracking import track_vehicles, vehicle_tracking_enabled
 
 PIPELINE_STEP_IDS = (
     'upload',
@@ -78,6 +79,9 @@ def build_pipeline_steps(
     violation_evaluation: dict | None = None,
     violation_id: int | None = None,
     evidence_saved: bool = False,
+    sign_name_en: str = '',
+    sign_name_km: str = '',
+    sign_confidence: float | None = None,
 ) -> list[dict]:
     plate_text = (plate_result or {}).get('plate_text') or ''
     plate_conf = float((plate_result or {}).get('plate_confidence') or 0)
@@ -88,14 +92,36 @@ def build_pipeline_steps(
         _step('upload', status='complete', detail_en='Image received', detail_km='បានទទួលរូបភាព'),
     ]
 
+    sign_label_en = (sign_name_en or sign_name_km or '').strip()
+    sign_label_km = (sign_name_km or sign_name_en or '').strip()
+    sign_conf = float(sign_confidence or 0)
+    if sign_label_en:
+        steps.append(_step(
+            'sign_detect',
+            status='complete',
+            detail_en=f'{sign_label_en} ({sign_conf:.1f}%)' if sign_conf else sign_label_en,
+            detail_km=f'{sign_label_km} ({sign_conf:.1f}%)' if sign_conf else sign_label_km,
+            confidence=sign_conf or None,
+        ))
+    else:
+        steps.append(_step(
+            'sign_detect',
+            status='empty',
+            detail_en='No traffic sign detected',
+            detail_km='រកមិនឃើញស្លាកចរាចរណ៍',
+        ))
+
     if vehicles:
         top = vehicles[0]
+        track_id = top.get('track_id')
+        track_suffix_en = f' · Track #{track_id}' if track_id is not None else ''
+        track_suffix_km = f' · ល.រ #{track_id}' if track_id is not None else ''
         steps.append(_step(
             'vehicle_detect',
             status='complete',
-            detail_en=f"{top.get('label', 'Vehicle')} ({float(top.get('confidence') or 0):.1f}%)",
+            detail_en=f"{top.get('label', 'Vehicle')} ({float(top.get('confidence') or 0):.1f}%){track_suffix_en}",
             detail_km=f"{VEHICLE_LABELS_KM.get(top.get('vehicle_type', ''), top.get('label', 'រថយន្ត'))} "
-                       f"({float(top.get('confidence') or 0):.1f}%)",
+                       f"({float(top.get('confidence') or 0):.1f}%){track_suffix_km}",
             confidence=float(top.get('confidence') or 0),
         ))
     elif vehicle_detection_enabled():
@@ -260,28 +286,57 @@ def _empty_plate_result() -> dict:
     }
 
 
-def run_detection_pipeline(detect_path: str, *, original_filename: str = '') -> dict:
+def run_detection_pipeline(
+    detect_path: str,
+    *,
+    original_filename: str = '',
+    sign_only: bool = False,
+    catalog_sign_code: str = '',
+    track_session: str = '',
+    live_fast: bool = False,
+    unified_prep: bool = False,
+) -> dict:
     """
     Execute pipeline in order: vehicle → plate region → OCR → sign (parallel metadata).
     Returns sign_result, vehicles, plate_result, payload (without log_id / pipeline steps).
     """
     started = time.perf_counter()
     live_capture = _is_live_capture_filename(original_filename or detect_path)
+    track_session = (track_session or '').strip()
 
     vehicles: list[dict] = []
     plate_result = _empty_plate_result()
-    if not live_capture:
-        if vehicle_detection_enabled():
-            vehicles = detect_vehicles(detect_path)
-        plate_result = recognize_plate(detect_path, vehicles)
+    if not sign_only:
+        if live_capture and track_session and vehicle_tracking_enabled():
+            vehicles = track_vehicles(detect_path, track_session)
+        elif live_capture:
+            # Confirmed webcam save (sign_only=false) — run vehicle + OCR on saved frame.
+            if vehicle_detection_enabled():
+                vehicles = detect_vehicles(detect_path)
+            plate_result = recognize_plate(detect_path, vehicles)
+        else:
+            if vehicle_detection_enabled():
+                vehicles = detect_vehicles(detect_path)
+            plate_result = recognize_plate(detect_path, vehicles)
+    elif live_capture and track_session and vehicle_tracking_enabled():
+        vehicles = track_vehicles(detect_path, track_session)
 
-    sign_result = detect_traffic_sign(detect_path, original_filename=original_filename)
+    sign_result = detect_traffic_sign(
+        detect_path,
+        original_filename=original_filename,
+        catalog_sign_code=catalog_sign_code or None,
+        live_fast=live_fast,
+        unified_prep=unified_prep,
+    )
     sign_result['processing_time'] = round(time.perf_counter() - started, 3)
 
     payload = compose_detection_payload(sign_result, vehicles, plate_result)
     vehicle_summary = _vehicle_summary(vehicles, plate_result)
     if vehicle_summary:
         payload['pipeline_vehicle'] = vehicle_summary
+    if track_session:
+        payload['track_session'] = track_session
+        payload['vehicle_tracking_enabled'] = vehicle_tracking_enabled()
 
     return {
         'sign_result': sign_result,
@@ -289,4 +344,5 @@ def run_detection_pipeline(detect_path: str, *, original_filename: str = '') -> 
         'plate_result': plate_result,
         'vehicle_summary': vehicle_summary,
         'payload': payload,
+        'track_session': track_session,
     }

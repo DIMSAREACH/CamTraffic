@@ -152,7 +152,12 @@ export function RegisterPage() {
             {errMsg && (
               <div className={`err-alert mb-3 ${shake ? 'shake' : ''}`}>
                 <AlertCircle size={16} style={{ flexShrink: 0 }} />
-                <span>{errMsg}</span>
+                <span>
+                  {errMsg}
+                  {errMsg.toLowerCase().includes('already exists') && (
+                    <> <Link to="/">Sign in</Link></>
+                  )}
+                </span>
               </div>
             )}
 

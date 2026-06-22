@@ -32,8 +32,22 @@ class FineSerializer(serializers.ModelSerializer):
 
 
 class FineCreateSerializer(serializers.ModelSerializer):
-    driver_id = serializers.IntegerField()
+    driver_id = serializers.IntegerField(required=False)
+    violation_id = serializers.IntegerField(required=False, allow_null=True)
 
     class Meta:
         model = Fine
-        fields = ('driver_id', 'amount', 'reason', 'location', 'vehicle_plate', 'evidence_image')
+        fields = (
+            'driver_id', 'violation_id', 'amount', 'reason', 'location',
+            'vehicle_plate', 'evidence_image',
+        )
+
+    def validate(self, attrs):
+        if not attrs.get('driver_id') and not attrs.get('violation_id'):
+            raise serializers.ValidationError('driver_id or violation_id is required')
+        if not attrs.get('violation_id'):
+            if attrs.get('amount') is None:
+                raise serializers.ValidationError({'amount': 'This field is required.'})
+            if not str(attrs.get('reason') or '').strip():
+                raise serializers.ValidationError({'reason': 'This field is required.'})
+        return attrs

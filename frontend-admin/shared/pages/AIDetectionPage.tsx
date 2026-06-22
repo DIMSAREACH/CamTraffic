@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { motion } from 'motion/react';
 import { useNavigate, useLocation } from 'react-router';
 import {
   Upload, Camera, CheckCircle, AlertCircle, Clock, RefreshCw, Zap,
@@ -7,18 +8,48 @@ import {
   Image as ImageIcon, Package, Check, Signpost, Car, Hash,
 } from 'lucide-react';
 import { SpeakButton } from '@shared/components/SpeakButton';
+import { SignNameLabels } from '@shared/components/signs/SignNameLabels';
 import { LiveWebcamPanel } from '@shared/components/ai/LiveWebcamPanel';
-import type { VehicleDetectionItem, WebcamDetectionResult } from '@shared/hooks/useWebcamDetection';
-import { useAIDetectionCopy } from '@shared/hooks/useAIDetectionCopy';
+import { DemoObservedActionSelect } from '@shared/components/ai/DemoObservedActionSelect';
+import type { DetectPipelineOptions } from '@shared/constants/observedActions';
+import { signDisplayNames } from '@shared/utils/signDisplayNames';
+import {
+  isDisplayableSignResult,
+  isManualScanResult,
+  isUsefulSignResult,
+  type VehicleDetectionItem,
+  type WebcamDetectionResult,
+} from '@shared/hooks/useWebcamDetection';
+import { useAIDetectionCopy, modelStatusLabel } from '@shared/hooks/useAIDetectionCopy';
 import { detectionDisplayText, useSpeech } from '@shared/hooks/useSpeech';
 import { useAuth } from '@shared/context/AuthContext';
+import { isAuthenticated } from '@shared/utils/authStorage';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { aiAPI } from '@shared/services/api';
 import { convertImageToJpeg } from '@shared/utils/convertImageToJpeg';
-import { detectionHero, heroSpeechText, heroTitleSpeech, logDisplay, logDisplayColor } from '@shared/utils/detectionDisplay';
+import { DetectionDisplayImage } from '@shared/components/ai/DetectionDisplayImage';
+import { PipelineInputPanel } from '@shared/components/ai/PipelineInputPanel';
+import { PIPELINE_ANIM } from '@shared/components/ai/DetectionPipelineFlow';
+import { DetectionPanelHeader, DetectionPanelBody } from '@shared/components/ai/DetectionPanelHeader';
+import { DETECTION_HEADER_GRADIENTS } from '@shared/components/ai/detectionHeaderGradients';
+import { PipelineStepProcessingPanel } from '@shared/components/ai/PipelineStepProcessingPanel';
+import { STEP_META } from '@shared/components/ai/DetectionPipelineFlow';
+import { stepProgressWithinActive } from '@shared/utils/detectionPipelineFlow';
+import type { FlowStepView } from '@shared/utils/detectionPipelineFlow';
+import {
+  buildLoadingFlowSteps,
+  animatePipelineToComplete,
+  resolveFlowStepsFromResult,
+} from '@shared/utils/detectionPipelineFlow';
+import { detectionHero, heroSpeechText, heroTitleSpeech, logDisplay, logDisplayColor, isUsefulDetectionResult, normalizeDetectionSign } from '@shared/utils/detectionDisplay';
 import { resolvePipelineVehicle } from '@shared/utils/pipelineVehicle';
 import { getProfileImageUrl } from '@shared/utils/profileImage';
 import { toast } from 'sonner';
+import {
+  DEFAULT_PAGE_STATS,
+  mergePageStatsWithDefaults,
+  resolveSampleSignImage,
+} from '@shared/constants/defaultPageStats';
 import type { AIDetectionLog, AIDetectionPageStats, AIDetectionSampleSign, TrafficViolation } from '@shared/types';
 
 interface DetectionResult {
@@ -40,6 +71,9 @@ interface DetectionResult {
   detected_plate?: string;
   plate_confidence?: number;
   plate_type?: string;
+  plate_province_code?: string;
+  plate_province_en?: string;
+  plate_province_km?: string;
   matched_vehicle?: {
     id: number;
     plate_number: string;
@@ -72,6 +106,13 @@ interface DetectionResult {
   violation_error?: string;
   vehicle_snapshot?: string;
   plate_snapshot?: string;
+  pipeline?: Array<{
+    id: string;
+    status: string;
+    detail_en?: string;
+    detail_km?: string;
+    confidence?: number;
+  }>;
 }
 
 const SIGN_COLORS: Record<string, string> = {
@@ -89,11 +130,22 @@ const confGrad  = (c: number) =>
   c >= 80 ? 'linear-gradient(90deg,#F59E0B,#F97316)' :
             'linear-gradient(90deg,#EF4444,#EC4899)';
 
+function plateProvinceLabel(
+  result: { plate_province_en?: string; plate_province_km?: string },
+  locale: string,
+): string | null {
+  if (locale === 'km') {
+    return result.plate_province_km || result.plate_province_en || null;
+  }
+  return result.plate_province_en || result.plate_province_km || null;
+}
+
 function sampleSignLabel(s: AIDetectionSampleSign) {
-  return s.sign_name_km || s.sign_name;
+  const { km, en } = signDisplayNames(s);
+  return km || en;
 }
 function sampleSignSubtitle(s: AIDetectionSampleSign) {
-  return s.sign_name_en || s.sign_name;
+  return signDisplayNames(s).en;
 }
 
 function formatPct(n: number) {
@@ -111,9 +163,15 @@ function formatScans(n: number) {
 ───────────────────────────────────────────────────────── */
 function CardWrap({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`bg-card rounded-2xl shadow-sm border border-border ${className}`}>
+    <div className={`bg-card rounded-2xl shadow-sm border border-border overflow-hidden ${className}`}>
       {children}
     </div>
+  );
+}
+
+function CardBody({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return (
+    <DetectionPanelBody floating className={className}>{children}</DetectionPanelBody>
   );
 }
 
@@ -141,31 +199,17 @@ function AwaitingCard({
   ];
 
   return (
-    <CardWrap className="overflow-hidden flex flex-col min-h-[420px] h-full">
-      <div className="dashboard-panel-header relative px-5 pt-5 pb-10 flex-shrink-0"
-        style={{ background: 'linear-gradient(135deg,#0F766E 0%,#06B6D4 100%)' }}>
-        <div className="absolute -top-5 -right-5 w-24 h-24 rounded-full pointer-events-none"
-          style={{ background: 'rgba(255,255,255,0.08)' }} />
-        <div className="relative flex items-center gap-3">
-          <div className="relative flex-shrink-0">
-            <div className="absolute inset-0 rounded-2xl animate-ping opacity-20"
-              style={{ background: 'rgba(255,255,255,0.4)', animationDuration: '2.2s' }} />
-            <div className="relative w-11 h-11 rounded-2xl flex items-center justify-center"
-              style={{ background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.25)' }}>
-              <Eye size={22} color="white" />
-            </div>
-          </div>
-          <div className="min-w-0">
-            <p className="dashboard-card__title text-white leading-tight">{t('aiDetection.awaitingTitle')}</p>
-            <p className="dashboard-panel__subtitle mt-1 leading-snug">{t('aiDetection.awaitingDesc')}</p>
-          </div>
-        </div>
-      </div>
+    <CardWrap className="overflow-hidden flex flex-col h-full ai-detection-awaiting-card">
+      <DetectionPanelHeader
+        gradient={DETECTION_HEADER_GRADIENTS.awaiting}
+        icon={Eye}
+        title={t('aiDetection.awaitingTitle')}
+        subtitle={t('aiDetection.awaitingDesc')}
+      />
 
-      <div className="relative -mt-5 mx-4 mb-4 flex-1 flex flex-col min-h-0">
-        <div className="rounded-2xl bg-background border border-border/60 shadow-sm flex flex-col flex-1 min-h-0 overflow-hidden">
-          <div className="p-4 flex flex-col gap-4 flex-1 min-h-0">
-            <div className="space-y-2.5 flex-shrink-0">
+      <CardBody className="flex-1 min-h-0 flex flex-col">
+        <div className="p-4 sm:px-5 sm:pb-5 flex flex-col gap-4 flex-1 min-h-0 ai-detection-awaiting-card__body">
+            <div className="space-y-2.5">
               {AWAIT_STEPS.map((s, i) => (
                 <div key={s.label}
                   className="flex items-center gap-3 p-3.5 rounded-xl border border-border/70 transition-colors hover:bg-muted/40"
@@ -186,7 +230,7 @@ function AwaitingCard({
               ))}
             </div>
 
-            <div className="grid grid-cols-2 gap-2 flex-shrink-0">
+            <div className="grid grid-cols-2 gap-2">
               {awaitStats.map(s => (
                 <div key={s.l}
                   className="rounded-xl px-3 py-2.5 border border-border/60"
@@ -198,11 +242,11 @@ function AwaitingCard({
               ))}
             </div>
 
-            <div className="flex-1 flex flex-col justify-between min-h-[100px] border-t border-border/60 pt-4">
-              <p className="dashboard-kpi__label text-muted-foreground mb-3 flex-shrink-0">
+            <div className="border-t border-border/60 pt-4 mt-auto">
+              <p className="dashboard-kpi__label text-muted-foreground mb-3">
                 {t('aiDetection.exampleSigns')}
               </p>
-              <div className="flex flex-1 flex-wrap justify-center items-center gap-2 content-center">
+              <div className="flex flex-wrap justify-center items-center gap-2 min-h-[4.5rem]">
                 {pageStats.sample_signs.slice(0, 10).map(s => (
                   <button
                     key={s.id}
@@ -215,8 +259,12 @@ function AwaitingCard({
                       border: `1.5px solid ${s.color}35`,
                       color: s.color,
                     }}>
-                    {s.image ? (
-                      <img src={s.image} alt={sampleSignSubtitle(s)} className="w-full h-full object-cover" />
+                    {resolveSampleSignImage(s.image, s.sign_code) ? (
+                      <img
+                        src={resolveSampleSignImage(s.image, s.sign_code)}
+                        alt={sampleSignSubtitle(s)}
+                        className="w-full h-full object-cover"
+                      />
                     ) : (
                       s.label
                     )}
@@ -224,9 +272,8 @@ function AwaitingCard({
                 ))}
               </div>
             </div>
-          </div>
         </div>
-      </div>
+      </CardBody>
     </CardWrap>
   );
 }
@@ -286,34 +333,23 @@ function ResultCard({
   const dash = (hero.confidence / 100) * CIRC;
 
   return (
-    <CardWrap className="overflow-hidden flex flex-col h-full min-h-[420px]">
-      <div className="dashboard-panel-header relative px-5 pt-5 pb-10 flex-shrink-0"
-        style={{ background: 'linear-gradient(135deg,#047857 0%,#10B981 100%)' }}>
-        <div className="absolute -top-5 -right-5 w-24 h-24 rounded-full pointer-events-none"
-          style={{ background: 'rgba(255,255,255,0.08)' }} />
-        <div className="relative flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.25)' }}>
-              <CheckCircle size={18} color="white" />
-            </div>
-            <p className="dashboard-card__title text-white leading-tight">{t('aiDetection.resultTitle')}</p>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <span className="text-[11px] text-white/80 flex items-center gap-1">
+    <CardWrap className="overflow-hidden flex flex-col h-full ai-detection-result-card">
+      <DetectionPanelHeader
+        gradient={DETECTION_HEADER_GRADIENTS.result}
+        icon={CheckCircle}
+        title={t('aiDetection.resultTitle')}
+        end={
+          <>
+            <span className="ai-detection-header-chip text-muted-foreground">
               <Clock size={10} />{result.processing_time}s
             </span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-              style={{ background: 'rgba(255,255,255,0.18)', color: 'white', border: '1px solid rgba(255,255,255,0.25)' }}>
-              {t('aiDetection.aiVerified')}
-            </span>
-          </div>
-        </div>
-      </div>
+            <span className="ai-detection-header-chip is-accent">{t('aiDetection.aiVerified')}</span>
+          </>
+        }
+      />
 
-      <div className="relative -mt-5 mx-4 mb-4 flex-1 flex flex-col min-h-0">
-        <div className="rounded-2xl bg-background border border-border/60 shadow-sm flex flex-col flex-1 min-h-0 overflow-hidden">
-          <div className="p-4 flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto">
+      <CardBody className="flex flex-col flex-1 min-h-0">
+        <div className="p-4 sm:px-5 sm:pb-5 flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto">
 
         {/* ── Analyzed image (full width) ── */}
         {imageSrc && (
@@ -326,14 +362,11 @@ function ResultCard({
                 <span className="text-[10px] text-muted-foreground">{t('aiDetection.logNum').replace('{id}', String(result.log_id))}</span>
               )}
             </div>
-            <div
-              className="relative flex items-center justify-center w-full"
-              style={{ minHeight: 200, maxHeight: 280, background: 'linear-gradient(180deg, rgba(15,23,42,0.04) 0%, transparent 100%)' }}
-            >
-              <img
+            <div className="ai-detect-result-stage relative flex items-center justify-center w-full">
+              <DetectionDisplayImage
                 src={imageSrc}
                 alt={`Detected: ${displayName}`}
-                className="max-h-[260px] max-w-full w-auto object-contain p-4"
+                variant="result"
               />
               <div
                 className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2 px-3 py-2 rounded-xl backdrop-blur-md"
@@ -369,6 +402,11 @@ function ResultCard({
               <p className="text-[16px] font-extrabold mt-2 tracking-wide">
                 {result.detected_plate || t('aiDetection.pipeline.plateUnknown')}
               </p>
+              {plateProvinceLabel(result, locale) && (
+                <p className="text-[11px] font-semibold text-violet-600 mt-1">
+                  {t('aiDetection.plateProvince')}: {plateProvinceLabel(result, locale)}
+                </p>
+              )}
               {(result.plate_confidence ?? 0) > 0 && (
                 <p className="text-[11px] font-semibold text-sky-600 mt-1">
                   {(result.plate_confidence ?? 0).toFixed(1)}%
@@ -475,7 +513,7 @@ function ResultCard({
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <Sparkles size={12} style={{ color: sc }} />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
                   {hero.mode === 'vehicle'
                     ? t('aiDetection.identifiedVehicle')
                     : hero.mode === 'plate'
@@ -488,10 +526,16 @@ function ResultCard({
                 </span>
               </div>
               <div className="flex items-start justify-between gap-2 mb-1">
-                <p className="dashboard-stat__value leading-snug flex-1"
-                  style={{ letterSpacing: '-0.02em' }}>
-                  {displayName}
-                </p>
+                {hero.mode === 'sign' ? (
+                  <div className="flex-1 min-w-0">
+                    <SignNameLabels sign={result} size="hero" />
+                  </div>
+                ) : (
+                  <p className="dashboard-stat__value leading-snug flex-1"
+                    style={{ letterSpacing: '-0.02em' }}>
+                    {displayName}
+                  </p>
+                )}
                 <SpeakButton
                   size="md"
                   label={
@@ -507,9 +551,6 @@ function ResultCard({
                   onClick={() => speakLine(titleSpeech, 'sign-name')}
                 />
               </div>
-              {hero.mode === 'sign' && result.sign_name_en && result.sign_name_en !== displayName && (
-                <p className="dashboard-text__caption mb-2">{result.sign_name_en}</p>
-              )}
               {hero.mode === 'vehicle' && result.display_title_en && speechLocale === 'km' && (
                 <p className="dashboard-text__caption mb-2">{result.display_title_en}</p>
               )}
@@ -536,6 +577,12 @@ function ResultCard({
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full capitalize"
                     style={{ background: 'rgba(14,165,233,0.12)', color: '#0284C7', border: '1px solid rgba(14,165,233,0.28)' }}>
                     {result.plate_type}
+                  </span>
+                )}
+                {result.detected_plate && plateProvinceLabel(result, locale) && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                    style={{ background: 'rgba(139,92,246,0.12)', color: '#7C3AED', border: '1px solid rgba(139,92,246,0.28)' }}>
+                    {plateProvinceLabel(result, locale)}
                   </span>
                 )}
                 {hero.mode === 'sign' && result.sign_code && (
@@ -578,7 +625,14 @@ function ResultCard({
               )}
             </div>
             <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl bg-background border border-border/60">
-              <p className="text-[15px] font-extrabold tracking-wide">{result.detected_plate}</p>
+              <div className="min-w-0">
+                <p className="text-[15px] font-extrabold tracking-wide">{result.detected_plate}</p>
+                {plateProvinceLabel(result, locale) && (
+                  <p className="text-[11px] text-violet-600 font-semibold mt-0.5">
+                    {t('aiDetection.plateProvince')}: {plateProvinceLabel(result, locale)}
+                  </p>
+                )}
+              </div>
               <span className="text-[12px] font-bold flex-shrink-0" style={{ color: confColor(result.plate_confidence ?? 0) }}>
                 {(result.plate_confidence ?? 0).toFixed(1)}%
               </span>
@@ -725,9 +779,8 @@ function ResultCard({
           className="w-full py-2.5 rounded-xl text-[13px] font-semibold border border-border text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center gap-2 cursor-pointer">
           <RefreshCw size={13} /> {t('aiDetection.detectAnother')}
         </button>
-          </div>
         </div>
-      </div>
+      </CardBody>
     </CardWrap>
   );
 }
@@ -788,7 +841,7 @@ function RecentDetectionsCard({
   const { t, locale } = useLanguage();
   const speechLocale = locale === 'en' ? 'en' : 'km';
   const isSidebar = layout === 'sidebar';
-  const itemLimit = isSidebar ? 7 : 5;
+  const itemLimit = 5;
   const items = logs.slice(0, itemLimit);
   const listClass = isSidebar ? 'flex-1 min-h-0 flex flex-col gap-2' : 'space-y-2';
   const rowClass = isSidebar
@@ -796,34 +849,21 @@ function RecentDetectionsCard({
     : 'flex items-center gap-3 p-3 rounded-xl border border-border/70 bg-muted/30 hover:bg-muted/60 transition-colors';
 
   return (
-    <CardWrap className={`overflow-hidden flex flex-col ${isSidebar ? 'flex-1 min-h-0' : ''}`}>
-      <div className="dashboard-panel-header relative px-5 pt-4 pb-8 flex-shrink-0"
-        style={{ background: 'linear-gradient(135deg,#047857 0%,#10B981 100%)' }}>
-        <div className="absolute -top-4 -right-4 w-20 h-20 rounded-full pointer-events-none"
-          style={{ background: 'rgba(255,255,255,0.08)' }} />
-        <div className="relative flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{ background: 'rgba(255,255,255,0.18)' }}>
-              <BarChart2 size={14} color="white" />
-            </div>
-            <div className="min-w-0">
-              <p className="dashboard-card__title text-white leading-tight">{t('aiDetection.recentTitle')}</p>
-              <p className="dashboard-panel__subtitle mt-0.5 truncate">{t('aiDetection.recentSubtitle')}</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-lg flex-shrink-0 cursor-pointer transition-colors"
-            style={{ background: 'rgba(255,255,255,0.16)', color: 'white', border: '1px solid rgba(255,255,255,0.22)' }}
-            onClick={onViewAll}>
+    <CardWrap className={`overflow-hidden flex flex-col h-full ${isSidebar ? 'flex-1 min-h-0 ai-detection-recent-sidebar' : ''}`}>
+      <DetectionPanelHeader
+        gradient={DETECTION_HEADER_GRADIENTS.recent}
+        icon={BarChart2}
+        title={t('aiDetection.recentTitle')}
+        subtitle={t('aiDetection.recentSubtitle')}
+        end={
+          <button type="button" className="ai-detection-header-action" onClick={onViewAll}>
             {t('aiDetection.viewAll')} <ChevronRight size={11} />
           </button>
-        </div>
-      </div>
+        }
+      />
 
-      <div className={`relative -mt-4 mx-4 mb-4 ${isSidebar ? 'flex-1 min-h-0 flex flex-col' : ''}`}>
-        <div className={`rounded-2xl bg-background border border-border/60 shadow-sm p-4 ${isSidebar ? 'flex-1 min-h-0 flex flex-col overflow-hidden' : ''}`}>
+      <CardBody className={isSidebar ? 'flex-1 min-h-0 flex flex-col' : ''}>
+        <div className={`p-4 sm:px-5 sm:pb-5 ${isSidebar ? 'flex-1 min-h-0 flex flex-col overflow-hidden' : ''}`}>
           {loading ? (
             <div className={listClass}>
               {[...Array(itemLimit)].map((_, i) => (
@@ -871,7 +911,155 @@ function RecentDetectionsCard({
             </div>
           )}
         </div>
-      </div>
+      </CardBody>
+    </CardWrap>
+  );
+}
+
+function ProcessingStageCard({ progress }: { progress: number }) {
+  const { t } = useLanguage();
+  const { activeIndex, overallPct } = stepProgressWithinActive(progress);
+  const meta = STEP_META[activeIndex];
+  if (!meta) return null;
+  const StepIcon = meta.icon;
+
+  return (
+    <CardWrap className="overflow-hidden flex flex-col h-full min-h-0 flex-1 ai-detection-processing-card">
+      <DetectionPanelHeader
+        gradient={meta.grad}
+        icon={StepIcon}
+        eyebrow={t('aiDetection.flow.stepOf')
+          .replace('{current}', String(activeIndex + 1))
+          .replace('{total}', String(STEP_META.length))}
+        title={t(meta.labelKey)}
+        subtitle={t(meta.descKey)}
+        end={
+          <>
+            <span className="ai-detection-status-pill is-live">
+              <span className="w-1.5 h-1.5 rounded-full animate-pulse bg-current" />
+              {t('aiDetection.analysingShort')}
+            </span>
+            <span className="ai-detection-header-chip is-accent">{overallPct}%</span>
+          </>
+        }
+      />
+      <CardBody floating className="flex flex-col flex-1 min-h-0 ai-detection-processing-body">
+        <PipelineStepProcessingPanel progress={progress} />
+      </CardBody>
+    </CardWrap>
+  );
+}
+
+function ModelInfoCard({ pageStats }: { pageStats: AIDetectionPageStats }) {
+  const { t } = useAIDetectionCopy();
+  const status = modelStatusLabel(pageStats.model.mode, t);
+  const rows = [
+    { label: t('aiDetection.model'), value: pageStats.model.name },
+    { label: t('aiDetection.signCatalog'), value: String(pageStats.model.sign_classes) },
+    {
+      label: t('aiDetection.datasetImages'),
+      value: pageStats.model.training_images > 0 ? formatScans(pageStats.model.training_images) : '—',
+    },
+  ];
+
+  return (
+    <CardWrap>
+      <DetectionPanelHeader
+        gradient={DETECTION_HEADER_GRADIENTS.model}
+        icon={Cpu}
+        eyebrow={t('aiDetection.model')}
+        highlight={pageStats.model.name}
+        subtitle={
+          <>
+            {pageStats.model.version} · <span style={{ color: status.color }}>{status.text}</span>
+          </>
+        }
+      />
+      <CardBody>
+        <div className="divide-y divide-border px-4 sm:px-5 pb-1">
+          {rows.map((r) => (
+            <div key={r.label} className="flex items-center justify-between px-4 py-3">
+              <span className="text-xs text-muted-foreground">{r.label}</span>
+              <span className="text-xs font-bold text-foreground">{r.value}</span>
+            </div>
+          ))}
+        </div>
+      </CardBody>
+    </CardWrap>
+  );
+}
+
+function CategoryStatsCard({ categories }: { categories: AIDetectionPageStats['categories'] }) {
+  const { t } = useAIDetectionCopy();
+  const total = categories.reduce((a, c) => a + c.count, 0);
+  const max = Math.max(...categories.map((c) => c.count), 1);
+
+  return (
+    <CardWrap>
+      <DetectionPanelHeader
+        gradient={DETECTION_HEADER_GRADIENTS.catalog}
+        icon={Shield}
+        eyebrow={t('aiDetection.signCatalog')}
+        highlight={String(total)}
+        subtitle={t('aiDetection.detected')}
+      />
+      <CardBody>
+        <div className="p-4 sm:px-5 sm:pb-5 space-y-4">
+          {categories.slice(0, 4).map((v) => (
+            <div key={v.key}>
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ background: v.color }} />
+                  <span className="text-xs font-semibold text-foreground">{v.name}</span>
+                </div>
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full"
+                  style={{ background: `${v.color}20`, color: v.color }}>{v.count}</span>
+              </div>
+              <div className="h-2 rounded-full overflow-hidden bg-muted">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${(v.count / max) * 100}%` }}
+                  transition={{ duration: 0.8 }}
+                  className="h-full rounded-full"
+                  style={{ background: v.color }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardBody>
+    </CardWrap>
+  );
+}
+
+function HowItWorksCard() {
+  const { STEPS, t } = useAIDetectionCopy();
+
+  return (
+    <CardWrap>
+      <DetectionPanelHeader
+        gradient={DETECTION_HEADER_GRADIENTS.flow}
+        icon={Zap}
+        eyebrow={t('aiDetection.flow.title')}
+        highlight={`${STEPS.length} Stages`}
+        subtitle={t('aiDetection.heroSubtitle')}
+      />
+      <CardBody>
+        <div className="divide-y divide-border px-4 sm:px-5 pb-1">
+          {STEPS.slice(0, 5).map((s) => (
+            <div key={s.n} className="flex items-center gap-3 px-4 py-3">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: `${s.color}18`, border: `1.5px solid ${s.color}35` }}>
+                <span style={{ fontSize: 11, fontWeight: 800, color: s.color }}>{s.n}</span>
+              </div>
+              <div>
+                <p className="text-xs font-semibold leading-tight text-foreground">{s.title}</p>
+                <p className="text-[10px] mt-0.5 text-muted-foreground">{s.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardBody>
     </CardWrap>
   );
 }
@@ -880,7 +1068,7 @@ function RecentDetectionsCard({
    Main page
 ═══════════════════════════════════════════════════════ */
 export function AIDetectionPage() {
-  const { t, STEPS, formatTraining, modelStatus, categoryName } = useAIDetectionCopy();
+  const { t, modelStatus } = useAIDetectionCopy();
   const { locale } = useLanguage();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -888,6 +1076,7 @@ export function AIDetectionPage() {
   const aiLogsPath = location.pathname.startsWith('/admin') ? '/admin/ai-logs' : '/dashboard/ai-logs';
 
   const [inputMode, setInputMode] = useState<'upload' | 'webcam'>('upload');
+  const [demoObservedAction, setDemoObservedAction] = useState('');
   const [file, setFile]           = useState<File | null>(null);
   const [preview, setPreview]     = useState<string | null>(null);
   const [detecting, setDetecting] = useState(false);
@@ -896,27 +1085,72 @@ export function AIDetectionPage() {
   const [dragging, setDragging]   = useState(false);
   const [recentLogs, setRecentLogs]   = useState<AIDetectionLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(true);
-  const [pageStats, setPageStats] = useState<AIDetectionPageStats | null>(null);
+  const [pageStats, setPageStats] = useState<AIDetectionPageStats>(DEFAULT_PAGE_STATS);
   const [loadingStats, setLoadingStats] = useState(true);
+  const [statsError, setStatsError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const lastTrainedAtRef = useRef<number | null>(null);
+  const lastWebcamToastRef = useRef('');
+  const lastRefreshAtRef = useRef(0);
+  const detectRunRef = useRef(0);
+  const progressIvRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const progressRef = useRef(0);
 
-  const refreshPageData = useCallback(async () => {
-    const [logs, stats] = await Promise.all([
-      aiAPI.getLogs(),
-      aiAPI.getPageStats(),
-    ]);
-    setRecentLogs(logs.slice(0, 7));
-    setPageStats(stats);
-    setLoadingLogs(false);
-    setLoadingStats(false);
+  const stopProgressAnimation = useCallback(() => {
+    if (progressIvRef.current) {
+      clearInterval(progressIvRef.current);
+      progressIvRef.current = null;
+    }
   }, []);
 
+  const startProgressAnimation = useCallback(() => {
+    stopProgressAnimation();
+    setProgress(0);
+    progressIvRef.current = setInterval(() => {
+      setProgress((p) => (p >= 16 ? 16 : p + 0.4 + Math.random() * 0.8));
+    }, 550);
+  }, [stopProgressAnimation]);
+
+  useEffect(() => () => stopProgressAnimation(), [stopProgressAnimation]);
+
   useEffect(() => {
-    refreshPageData().catch(() => {
+    progressRef.current = progress;
+  }, [progress]);
+
+  const refreshPageData = useCallback(async () => {
+    try {
+      const [logs, stats] = await Promise.all([
+        aiAPI.getLogs(),
+        aiAPI.getPageStats(),
+      ]);
+      setRecentLogs(logs.slice(0, 7));
+      setPageStats(mergePageStatsWithDefaults(stats));
+      setStatsError(null);
+    } catch (err) {
+      setRecentLogs([]);
+      setPageStats(DEFAULT_PAGE_STATS);
+      const msg = err instanceof Error ? err.message : 'Backend unavailable';
+      setStatsError(msg);
+      toast.error(t('aiDetection.toast.statsUnavailable') || 'Cannot load AI stats — is the backend running on port 8000?');
+    } finally {
       setLoadingLogs(false);
       setLoadingStats(false);
-    });
+    }
+  }, [t]);
+
+  const refreshPageDataDebounced = useCallback(async (force = false) => {
+    const now = Date.now();
+    if (!force && now - lastRefreshAtRef.current < 5000) return;
+    lastRefreshAtRef.current = now;
+    try {
+      await refreshPageData();
+    } catch {
+      /* avoid breaking webcam loop when stats/logs are temporarily unavailable */
+    }
+  }, [refreshPageData]);
+
+  useEffect(() => {
+    refreshPageData();
   }, [refreshPageData]);
 
   useEffect(() => {
@@ -932,42 +1166,79 @@ export function AIDetectionPage() {
           toast.success('AI model updated — new trained signs are ready.');
         }
         if (trainedAt) lastTrainedAtRef.current = trainedAt;
-        setPageStats(stats);
+        setPageStats(mergePageStatsWithDefaults(stats));
         setLoadingStats(false);
       } catch {
         /* ignore polling errors */
       }
     };
-    const intervalId = window.setInterval(poll, 12000);
+    const pollMs = inputMode === 'webcam' ? 30000 : 12000;
+    const intervalId = window.setInterval(poll, pollMs);
     window.addEventListener('focus', poll);
     return () => {
       window.clearInterval(intervalId);
       window.removeEventListener('focus', poll);
     };
-  }, []);
+  }, [inputMode]);
 
-  const runDetection = useCallback(async (targetFile?: File) => {
+  const detectPipelineOptions = useCallback((): DetectPipelineOptions => ({
+    observedAction: demoObservedAction || undefined,
+    demoViolation: !demoObservedAction,
+  }), [demoObservedAction]);
+
+  const runDetection = useCallback(async (targetFile?: File, catalogSignCode?: string) => {
     const f = targetFile ?? file;
     if (!f) {
       toast.error(t('aiDetection.toast.uploadFirst'));
       inputRef.current?.click();
       return;
     }
-    setDetecting(true); setProgress(0); setResult(null);
-    const iv = setInterval(() =>
-      setProgress(p => p >= 88 ? (clearInterval(iv), 88) : p + Math.random() * 14), 200);
+    if (!user || !isAuthenticated()) {
+      toast.error(t('aiDetection.toast.loginRequired'));
+      return;
+    }
+
+    const runId = detectRunRef.current + 1;
+    detectRunRef.current = runId;
+    setDetecting(true);
+    setResult(null);
+    startProgressAnimation();
+
     try {
       const uploadFile = await convertImageToJpeg(f);
-      const enforceDemo = user?.role === 'admin' || user?.role === 'police';
-      const res = await aiAPI.detect(uploadFile, enforceDemo ? {
-        demo_violation: true,
-        auto_create_violation: true,
-      } : undefined);
-      clearInterval(iv);
-      setProgress(100); setResult(res);
+      if (runId !== detectRunRef.current) return;
+
+      const pipelineOpts = detectPipelineOptions();
+      const res = await aiAPI.detect(uploadFile, {
+        sign_only: false,
+        catalog_sign_code: catalogSignCode,
+        observed_action: pipelineOpts.observedAction,
+        demo_violation: pipelineOpts.demoViolation ? true : undefined,
+      });
+      if (runId !== detectRunRef.current) return;
+
+      stopProgressAnimation();
+      await animatePipelineToComplete(
+        setProgress,
+        progressRef.current,
+        PIPELINE_ANIM.stepFinishDwell,
+        () => runId !== detectRunRef.current,
+      );
+      if (runId !== detectRunRef.current) return;
+
+      setDetecting(false);
+      setProgress(100);
+      setResult(normalizeDetectionSign(res));
+
       const heroToast = detectionHero(res, locale === 'en' ? 'en' : 'km');
       if (res.violation?.id) {
         toast.success(t('aiDetection.toast.violationSaved').replace('{id}', String(res.violation.id)));
+      } else if (!isUsefulDetectionResult(res)) {
+        toast.info(
+          heroToast.mode === 'no_sign'
+            ? t('aiDetection.toast.noSignInFrame')
+            : t('aiDetection.toast.detectFailed'),
+        );
       } else {
         toast.success(
           t('aiDetection.toast.detected')
@@ -975,19 +1246,30 @@ export function AIDetectionPage() {
             .replace('{confidence}', heroToast.confidence.toFixed(1)),
         );
       }
-      await refreshPageData();
+      void refreshPageDataDebounced(true);
     } catch (err) {
-      clearInterval(iv);
+      if (runId !== detectRunRef.current) return;
+      stopProgressAnimation();
+      setProgress(0);
+      setDetecting(false);
       const msg = err instanceof Error ? err.message : t('aiDetection.toast.detectFailed');
       toast.error(msg || t('aiDetection.toast.detectFailed'));
-    } finally { setDetecting(false); }
-  }, [file, locale, refreshPageData, t, user?.role]);
+    } finally {
+      if (runId === detectRunRef.current) {
+        stopProgressAnimation();
+      }
+    }
+  }, [demoObservedAction, detectPipelineOptions, file, locale, refreshPageDataDebounced, startProgressAnimation, stopProgressAnimation, t, user]);
 
-  const handleFile = useCallback(async (f: File, autoDetect = true) => {
+  const handleFile = useCallback(async (f: File, autoDetect = false) => {
     if (!f.type.startsWith('image/')) { toast.error(t('aiDetection.toast.imageOnly')); return; }
     if (f.size > 10 * 1024 * 1024) { toast.error(t('aiDetection.toast.imageTooBig')); return; }
     if (preview?.startsWith('blob:')) URL.revokeObjectURL(preview);
-    setFile(f); setResult(null); setPreview(URL.createObjectURL(f));
+    setFile(f);
+    setResult(null);
+    setProgress(0);
+    setDetecting(false);
+    setPreview(URL.createObjectURL(f));
     if (autoDetect) await runDetection(f);
   }, [preview, runDetection, t]);
 
@@ -998,9 +1280,13 @@ export function AIDetectionPage() {
   }, [handleFile]);
 
   const handleSampleSign = async (sample: AIDetectionSampleSign) => {
-    if (sample.image) {
+    const imgUrl = resolveSampleSignImage(sample.image, sample.sign_code);
+    if (imgUrl) {
       try {
-        const res = await fetch(sample.image);
+        const fetchUrl = imgUrl.includes('?')
+          ? `${imgUrl}&_=${Date.now()}`
+          : `${imgUrl}?_=${Date.now()}`;
+        const res = await fetch(fetchUrl, { cache: 'no-store' });
         const blob = await res.blob();
         const ext = blob.type.includes('png') ? 'png' : 'jpg';
         const signFile = new File(
@@ -1008,7 +1294,12 @@ export function AIDetectionPage() {
           `${sample.sign_code || 'sign'}.${ext}`,
           { type: blob.type || 'image/jpeg' },
         );
-        handleFile(signFile);
+        if (preview?.startsWith('blob:')) URL.revokeObjectURL(preview);
+        setFile(signFile);
+        setPreview(URL.createObjectURL(signFile));
+        setResult(null);
+        setProgress(0);
+        setDetecting(false);
         toast.success(t('aiDetection.toast.sampleLoaded').replace('{name}', sampleSignLabel(sample)));
       } catch {
         toast.error(t('aiDetection.toast.loadImageFail'));
@@ -1023,538 +1314,251 @@ export function AIDetectionPage() {
   const handleDetect = () => runDetection();
 
   const reset = () => {
+    detectRunRef.current += 1;
+    stopProgressAnimation();
+    setDetecting(false);
     if (preview?.startsWith('blob:')) URL.revokeObjectURL(preview);
     setFile(null); setPreview(null); setResult(null); setProgress(0);
     if (inputRef.current) inputRef.current.value = '';
   };
 
-  const handleWebcamResult = useCallback((res: WebcamDetectionResult) => {
-    setResult(res);
+  const handleWebcamResult = useCallback((res: WebcamDetectionResult, opts?: { quiet?: boolean }) => {
+    if (!isManualScanResult(res) && !isDisplayableSignResult(res)) {
+      if (!opts?.quiet) {
+        toast.info(t('aiDetection.toast.noSignInFrame'));
+      }
+      return;
+    }
+
+    const heroToast = detectionHero(res, locale === 'en' ? 'en' : 'km');
+    const toastKey = `${heroToast.title}-${heroToast.confidence.toFixed(0)}`;
+    const skipToast = opts?.quiet || toastKey === lastWebcamToastRef.current;
+
+    setResult(normalizeDetectionSign(res));
     if (res.uploaded_image) {
+      if (preview?.startsWith('blob:') && preview !== res.uploaded_image) {
+        URL.revokeObjectURL(preview);
+      }
       setPreview(res.uploaded_image);
     }
-    const heroToast = detectionHero(res, locale === 'en' ? 'en' : 'km');
+    if (skipToast) return;
+
+    lastWebcamToastRef.current = toastKey;
     toast.success(
       t('aiDetection.toast.detected')
         .replace('{name}', heroToast.title)
         .replace('{confidence}', heroToast.confidence.toFixed(1)),
     );
-    void refreshPageData();
-  }, [locale, refreshPageData, t]);
+    void refreshPageDataDebounced(true);
+  }, [locale, preview, refreshPageDataDebounced, t]);
 
-  const status = pageStats ? modelStatus(pageStats.model.mode) : null;
+  const speechLocale = locale === 'en' ? 'en' : 'km';
+  const flowSteps = detecting
+    ? buildLoadingFlowSteps(progress)
+    : result
+      ? resolveFlowStepsFromResult(result, speechLocale)
+      : buildLoadingFlowSteps(0);
+  const pipelineDone = !!result && !detecting;
+  const displayStats = mergePageStatsWithDefaults(pageStats);
 
-  const maxCategoryCount = pageStats
-    ? Math.max(...pageStats.categories.map(c => c.count), 1)
-    : 1;
+  const pipelineInputPanel = (
+    <PipelineInputPanel
+      fillHeight={!pipelineDone}
+      inputMode={inputMode}
+      onInputModeChange={(mode) => {
+        if (mode === inputMode) return;
+        lastWebcamToastRef.current = '';
+        if (mode === 'webcam') {
+          if (preview?.startsWith('blob:')) URL.revokeObjectURL(preview);
+          setFile(null);
+          setPreview(null);
+          setResult(null);
+          setProgress(0);
+        }
+        setInputMode(mode);
+      }}
+      demoObservedAction={demoObservedAction}
+      onDemoObservedActionChange={setDemoObservedAction}
+      detecting={detecting}
+      progress={progress}
+      file={file}
+      preview={preview}
+      dragging={dragging}
+      onDraggingChange={setDragging}
+      onDrop={handleDrop}
+      onPickClick={() => inputRef.current?.click()}
+      onFileInputChange={(e) => {
+        const picked = e.target.files?.[0];
+        if (picked) handleFile(picked);
+        e.target.value = '';
+      }}
+      onDetect={handleDetect}
+      onResetFile={reset}
+      onWebcamResult={handleWebcamResult}
+      onSampleSign={handleSampleSign}
+      pageStats={displayStats}
+      loadingStats={loadingStats}
+      pipelineOptions={detectPipelineOptions()}
+      disabled={!user || !isAuthenticated()}
+      inputRef={inputRef}
+    />
+  );
+
+  const kpiCards = [
+        {
+          label: t('aiDetection.accuracy'),
+          value: formatPct(displayStats.stats.accuracy_avg),
+          sub: t('aiDetection.scans').replace('{count}', formatScans(displayStats.stats.total_scans)),
+          Icon: Target,
+          grad: 'linear-gradient(135deg,#134E4A 0%,#0D9488 100%)',
+        },
+        {
+          label: t('aiDetection.scansLabel'),
+          value: formatScans(displayStats.stats.total_scans),
+          sub: t('aiDetection.avgConfidence').replace('Avg ', '') + ` ${formatPct(displayStats.stats.accuracy_avg)}`,
+          Icon: Activity,
+          grad: 'linear-gradient(135deg,#881337 0%,#F43F5E 100%)',
+        },
+        {
+          label: t('aiDetection.signCatalog'),
+          value: String(displayStats.model.sign_classes),
+          sub: `${displayStats.model.name} · ${displayStats.model.version}`,
+          Icon: Layers,
+          grad: 'linear-gradient(135deg,#2D1B69 0%,#7C3AED 100%)',
+        },
+        {
+          label: t('aiDetection.avgSpeed'),
+          value: formatSpeed(displayStats.stats.avg_speed_sec),
+          sub: t('aiDetection.perDetection'),
+          Icon: Cpu,
+          grad: 'linear-gradient(135deg,#92400E 0%,#F59E0B 100%)',
+        },
+      ];
 
   return (
-    <div className="dashboard-home dashboard-page--ai space-y-5">
-
-      {/* ── HERO BANNER ── */}
-      <div className="dashboard-welcome--hero relative overflow-hidden rounded-2xl pt-3 pb-5 px-6"
-        style={{ background: 'linear-gradient(135deg, #0F172A 0%, #1E1B4B 50%, #0F172A 100%)', border: '1px solid rgba(255,255,255,0.06)' }}>
-        {/* glow orbs */}
-        <div className="absolute top-0 right-0 w-80 h-80 rounded-full -translate-y-24 translate-x-24 pointer-events-none"
-          style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.22) 0%, transparent 70%)' }} />
-        <div className="absolute bottom-0 left-1/3 w-56 h-56 rounded-full translate-y-20 pointer-events-none"
-          style={{ background: 'radial-gradient(circle, rgba(6,182,212,0.14) 0%, transparent 70%)' }} />
-        <div className="absolute top-0 left-0 w-40 h-40 rounded-full -translate-y-16 -translate-x-16 pointer-events-none"
-          style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)' }} />
-
-        <div className="relative">
-          {/* Top row: eyebrow + badge */}
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-lg flex items-center justify-center"
-                style={{ background: 'rgba(139,92,246,0.25)' }}>
-                <Camera size={13} color="#C4B5FD" />
-              </div>
-              <span className="dashboard-welcome__eyebrow" style={{ color: 'rgba(196,181,253,0.85)' }}>
-                {t('aiDetection.heroEyebrow')}
-              </span>
-            </div>
-            {status && (
-              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] font-bold"
-                style={{ background: status.bg, border: `1px solid ${status.border}`, color: status.color }}>
-                <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: status.color }} />
-                {status.text}
-              </span>
-            )}
-          </div>
-
-          {/* Title + subtitle */}
-          <h1 className="dashboard-welcome__title text-white mb-1">
-            {t('aiDetection.heroTitle')}
-          </h1>
-          <p className="dashboard-welcome__meta" style={{ color: 'rgba(148,163,184,0.7)' }}>
-            {t('aiDetection.heroSubtitle')}
-          </p>
-        </div>
-      </div>
-
-      {/* ── TOP STAT CARDS ── */}
-      {loadingStats ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-28 rounded-2xl bg-muted animate-pulse" />
-          ))}
-        </div>
-      ) : pageStats && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            {
-              label: t('aiDetection.accuracy'),
-              value: formatPct(pageStats.stats.accuracy_avg),
-              sub: t('aiDetection.scans').replace('{count}', formatScans(pageStats.stats.total_scans)),
-              Icon: Target,
-              grad: 'linear-gradient(135deg,#134E4A 0%,#0D9488 100%)',
-            },
-            {
-              label: t('aiDetection.scansLabel'),
-              value: formatScans(pageStats.stats.total_scans),
-              sub: t('aiDetection.avgConfidenceShort'),
-              Icon: Activity,
-              grad: 'linear-gradient(135deg,#881337 0%,#F43F5E 100%)',
-            },
-            {
-              label: t('aiDetection.categories'),
-              value: String(pageStats.model.sign_classes),
-              sub: `${pageStats.model.name} ${pageStats.model.version}`,
-              Icon: Layers,
-              grad: 'linear-gradient(135deg,#2D1B69 0%,#7C3AED 100%)',
-            },
-            {
-              label: t('aiDetection.avgSpeedShort'),
-              value: formatSpeed(pageStats.stats.avg_speed_sec),
-              sub: t('aiDetection.perDetection'),
-              Icon: Cpu,
-              grad: 'linear-gradient(135deg,#92400E 0%,#F59E0B 100%)',
-            },
-          ].map(s => (
-            <div key={s.label} className="dashboard-panel-header relative overflow-hidden rounded-2xl p-5 flex flex-col justify-between"
-              style={{ background: s.grad, minHeight: 108 }}>
-              <div className="absolute -bottom-6 -right-6 w-28 h-28 rounded-full pointer-events-none"
-                style={{ background: 'rgba(255,255,255,0.07)' }} />
-              <div className="flex items-center justify-between relative">
-                <p className="dashboard-kpi__label text-white/70">{s.label}</p>
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'rgba(255,255,255,0.18)' }}>
-                  <s.Icon size={16} color="white" />
-                </div>
-              </div>
-              <div className="relative">
-                <p className="dashboard-kpi__value text-white mt-2">{s.value}</p>
-                <p className="dashboard-kpi__sub text-white/55 mt-1">{s.sub}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* ── MAIN ── */}
-      <div className="space-y-5">
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-stretch">
-          <div className={`flex flex-col gap-5 w-full min-h-0 ${result ? 'h-full' : ''}`}>
-            <CardWrap className={`overflow-hidden flex flex-col ${result ? 'flex-shrink-0' : 'min-h-[420px] h-full flex-1'}`}>
-              <div className="dashboard-panel-header relative px-5 pt-5 pb-10 flex-shrink-0"
-                style={{ background: 'linear-gradient(135deg,#6D28D9 0%,#7C3AED 50%,#8B5CF6 100%)' }}>
-                <div className="absolute -top-5 -right-5 w-24 h-24 rounded-full pointer-events-none"
-                  style={{ background: 'rgba(255,255,255,0.08)' }} />
-                <div className="relative flex items-center justify-between gap-3 flex-wrap">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                        style={{ background: 'rgba(255,255,255,0.18)' }}>
-                        {inputMode === 'upload' ? <Upload size={15} color="white" /> : <Camera size={15} color="white" />}
-                      </div>
-                      <p className="dashboard-card__title text-white leading-tight">
-                        {inputMode === 'upload' ? t('aiDetection.uploadTitle') : t('aiDetection.webcam.title')}
-                      </p>
-                    </div>
-                    <p className="dashboard-panel__subtitle pl-10">
-                      {inputMode === 'upload' ? t('aiDetection.uploadSubtitle') : t('aiDetection.webcam.subtitle')}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1 p-1 rounded-xl flex-shrink-0"
-                    style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.15)' }}>
-                    {(['upload', 'webcam'] as const).map((mode) => (
-                      <button
-                        key={mode}
-                        type="button"
-                        onClick={() => setInputMode(mode)}
-                        className="px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors cursor-pointer"
-                        style={{
-                          background: inputMode === mode ? 'rgba(255,255,255,0.2)' : 'transparent',
-                          color: inputMode === mode ? '#fff' : 'rgba(255,255,255,0.7)',
-                        }}
-                      >
-                        {mode === 'upload' ? t('aiDetection.webcam.tabUpload') : t('aiDetection.webcam.tabLive')}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="relative -mt-5 mx-4 mb-4 flex-1 flex flex-col min-h-0">
-                <div className="rounded-2xl bg-background border border-border/60 shadow-sm p-4 flex flex-col flex-1 min-h-0 gap-3">
-              {inputMode === 'webcam' ? (
-                <LiveWebcamPanel
-                  onResult={handleWebcamResult}
-                  disabled={detecting}
-                />
-              ) : (
-              <>
-              <div
-                onDragOver={e => { if (!detecting) { e.preventDefault(); setDragging(true); } }}
-                onDragLeave={() => setDragging(false)}
-                onDrop={e => { if (!detecting) handleDrop(e); }}
-                onClick={() => { if (!detecting) inputRef.current?.click(); }}
-                className={`relative border-2 border-dashed rounded-2xl transition-all overflow-hidden flex flex-col ${!result ? 'flex-1' : ''} ${detecting ? 'cursor-wait' : 'cursor-pointer'}`}
-                style={{
-                  borderColor: dragging ? '#8B5CF6' : 'rgba(139,92,246,0.28)',
-                  background: dragging ? 'rgba(139,92,246,0.06)' : 'rgba(139,92,246,0.02)',
-                  minHeight: !result && !preview ? 260 : undefined,
-                }}
-                onMouseEnter={e => { if (!dragging && !detecting) (e.currentTarget as HTMLElement).style.borderColor = 'rgba(139,92,246,0.52)'; }}
-                onMouseLeave={e => { if (!dragging && !detecting) (e.currentTarget as HTMLElement).style.borderColor = 'rgba(139,92,246,0.28)'; }}
-              >
-                {preview ? (
-                  <div className="relative">
-                    <img src={preview} alt="Preview"
-                      className="w-full max-h-52 rounded-xl object-contain mx-auto p-2" />
-                    {!detecting && (
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity rounded-xl"
-                        style={{ background: 'rgba(0,0,0,0.45)' }}>
-                        <div className="text-center text-white">
-                          <Camera size={20} className="mx-auto mb-1" />
-                          <p className="text-[12px] font-semibold">{t('aiDetection.clickToChange')}</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
-                    <div className="relative mb-4">
-                      <div className="w-16 h-16 rounded-2xl flex items-center justify-center"
-                        style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.15), rgba(6,182,212,0.1))' }}>
-                        <Upload size={26} color="#8B5CF6" />
-                      </div>
-                      <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center"
-                        style={{ background: 'linear-gradient(135deg,#8B5CF6,#06B6D4)' }}>
-                        <span className="text-white text-[10px] font-black">+</span>
-                      </div>
-                    </div>
-                    <p className="text-[15px] font-bold text-foreground">{t('aiDetection.dropTitle')}</p>
-                    <p className="text-[12px] text-muted-foreground mt-1">{t('aiDetection.dropHint')}</p>
-                    <div className="flex items-center gap-3 mt-4">
-                      {[
-                        { Icon: ImageIcon, text: t('aiDetection.dropFormats') },
-                        { Icon: Package, text: t('aiDetection.dropMaxSize') },
-                      ].map(b => (
-                        <span key={b.text} className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground px-2.5 py-1 rounded-lg bg-muted">
-                          <b.Icon size={13} className="flex-shrink-0 opacity-80" />
-                          {b.text}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-              <input ref={inputRef} type="file" accept="image/*" className="hidden"
-                onChange={e => {
-                  const picked = e.target.files?.[0];
-                  if (picked) handleFile(picked);
-                  e.target.value = '';
-                }} />
-
-              {file && (
-                <div className="flex items-center justify-between px-3 py-2.5 rounded-xl"
-                  style={{ background: 'rgba(139,92,246,0.07)', border: '1px solid rgba(139,92,246,0.18)' }}>
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                      style={{ background: 'rgba(139,92,246,0.15)' }}>
-                      <Camera size={13} color="#8B5CF6" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="dashboard-text__title truncate max-w-[180px]">{file.name}</p>
-                      <p className="dashboard-text__caption">
-                        {(file.size / 1024).toFixed(1)} KB ·{' '}
-                        {detecting
-                          ? t('aiDetection.analysingShort')
-                          : result
-                            ? `${result.confidence.toFixed(1)}% ${t('aiDetection.detected').toLowerCase()}`
-                            : t('aiDetection.readyToDetect')}
-                      </p>
-                    </div>
-                  </div>
-                  {!detecting && (
-                    <button onClick={e => { e.stopPropagation(); reset(); }}
-                      className="w-6 h-6 rounded-lg flex items-center justify-center text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 ml-2 transition-colors text-sm cursor-pointer">✕</button>
-                  )}
-                </div>
-              )}
-
-              {detecting && (
-                <div className="rounded-xl p-3" style={{ background: 'rgba(139,92,246,0.05)', border: '1px solid rgba(139,92,246,0.15)' }}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[12px] font-semibold text-muted-foreground flex items-center gap-1.5">
-                      <span className="w-3 h-3 rounded-full animate-ping inline-block" style={{ background: '#8B5CF6', opacity: 0.6 }} />
-                      {t('aiDetection.analysing')}
-                    </span>
-                    <span className="text-[12px] font-black" style={{ color: '#8B5CF6' }}>{Math.round(progress)}%</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-muted overflow-hidden">
-                    <div className="h-full rounded-full transition-all duration-300"
-                      style={{ width: `${progress}%`, background: 'linear-gradient(90deg,#8B5CF6,#06B6D4)' }} />
-                  </div>
-                </div>
-              )}
-
-              <div className="flex gap-2">
-                <button onClick={handleDetect} disabled={detecting || !file}
-                  className="flex-1 py-3 rounded-xl text-white text-[13.5px] font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer disabled:opacity-70 disabled:cursor-wait"
-                  style={{
-                    background: 'linear-gradient(135deg,#7C3AED,#2563EB)',
-                    boxShadow: !detecting && file ? '0 4px 20px rgba(124,58,237,0.4)' : 'none',
-                  }}>
-                  {detecting
-                    ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />{t('aiDetection.analysingShort')}</>
-                    : <><Zap size={15} />{t('aiDetection.runPipeline')}</>}
-                </button>
-                {file && (
-                  <button onClick={reset} disabled={detecting}
-                    className="w-12 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-red-500 hover:border-red-300 transition-colors cursor-pointer disabled:opacity-50">
-                    <RefreshCw size={15} />
-                  </button>
-                )}
-              </div>
-
-              <div className="border-t border-border pt-4 flex-shrink-0 mt-auto">
-                <p className="dashboard-kpi__label text-muted-foreground mb-3">
-                  {t('aiDetection.catalogTap')}
+    <div className="dashboard-home dashboard-page--ai w-full min-h-full space-y-5">
+        {statsError && (
+          <div className="flex items-center justify-between gap-3 p-4 rounded-2xl border border-amber-300 bg-amber-50 text-amber-900">
+            <div className="flex items-center gap-3 min-w-0">
+              <AlertCircle size={20} className="flex-shrink-0 text-amber-600" />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">Backend not connected</p>
+                <p className="text-xs mt-0.5 text-amber-800/80 truncate">
+                  Start Docker (<code className="text-[11px]">docker compose --env-file .env.docker up -d</code>) or run{' '}
+                  <code className="text-[11px]">python manage.py runserver</code> in <code className="text-[11px]">backend/</code>.
                 </p>
-                {loadingStats ? (
-                  <div className="grid grid-cols-4 gap-2">
-                    {[...Array(4)].map((_, i) => (
-                      <div key={i} className="h-16 rounded-xl bg-muted animate-pulse" />
-                    ))}
-                  </div>
-                ) : pageStats && pageStats.sample_signs.length > 0 ? (
-                  <div className="grid grid-cols-4 gap-2">
-                    {pageStats.sample_signs.slice(0, 4).map(s => (
-                      <button
-                        key={s.id}
-                        type="button"
-                        onClick={() => handleSampleSign(s)}
-                        disabled={detecting}
-                        className="flex flex-col items-center gap-1.5 cursor-pointer group disabled:opacity-50 disabled:cursor-wait"
-                      >
-                        <div className="w-12 h-12 rounded-xl flex items-center justify-center text-[11px] font-black overflow-hidden transition-all group-hover:scale-110 group-hover:shadow-md"
-                          style={{
-                            background: `${s.color}15`,
-                            border: `1.5px solid ${s.color}35`,
-                            color: s.color,
-                          }}>
-                          {s.image ? (
-                            <img src={s.image} alt={sampleSignLabel(s)} className="w-full h-full object-cover" />
-                          ) : (
-                            s.label
-                          )}
-                        </div>
-                        <p className="text-[10.5px] text-muted-foreground text-center leading-tight line-clamp-2">
-                          {sampleSignLabel(s)}
-                        </p>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-[12px] text-muted-foreground">{t('aiDetection.catalogEmpty')}</p>
-                )}
               </div>
-              </>
-              )}
-                </div>
-              </div>
-            </CardWrap>
-            {result && (
-              <RecentDetectionsCard
-                logs={recentLogs}
-                loading={loadingLogs}
-                layout="sidebar"
-                onViewAll={() => navigate(aiLogsPath)}
-              />
-            )}
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setLoadingStats(true);
+                refreshPageData();
+              }}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold border border-amber-400 bg-white hover:bg-amber-100 flex-shrink-0 cursor-pointer"
+            >
+              <RefreshCw size={14} /> Retry
+            </button>
           </div>
-
-          <div className="flex flex-col h-full min-h-[420px]">
-            {result ? (
-              <ResultCard result={result} preview={preview} onReset={reset} />
-            ) : pageStats ? (
-              <AwaitingCard pageStats={pageStats} onSampleClick={handleSampleSign} />
-            ) : (
-              <CardWrap className="min-h-[420px] h-full flex items-center justify-center">
-                <div className="h-8 w-8 border-2 border-muted border-t-primary rounded-full animate-spin" />
-              </CardWrap>
-            )}
-          </div>
+        )}
+        {/* Hero */}
+        <div className="ai-detection-page-hero rounded-2xl border shadow-lg overflow-hidden">
+          <DetectionPanelHeader
+            gradient={DETECTION_HEADER_GRADIENTS.hero}
+            size="hero"
+            icon={Camera}
+            eyebrow={t('aiDetection.heroEyebrow')}
+            title={t('aiDetection.heroTitle')}
+            subtitle={t('aiDetection.heroSubtitle')}
+            end={
+              displayStats ? (
+                <span
+                  className={`ai-detection-status-pill${detecting ? ' is-live' : pipelineDone ? ' is-complete' : ''}`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full animate-pulse bg-current" />
+                  {detecting
+                    ? t('aiDetection.analysingShort')
+                    : pipelineDone
+                      ? t('aiDetection.flow.pipelineComplete')
+                      : modelStatus(displayStats.model.mode).text}
+                </span>
+              ) : null
+            }
+          />
         </div>
 
-        {!result && (
-          <RecentDetectionsCard
-            logs={recentLogs}
-            loading={loadingLogs}
-            layout="full"
-            onViewAll={() => navigate(aiLogsPath)}
-          />
-        )}
-      </div>
-
-      {/* ── BOTTOM INFO ROW ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {pageStats && (
-          <CardWrap className="overflow-hidden">
-            <div className="dashboard-panel-header relative px-5 pt-5 pb-10"
-              style={{ background: 'linear-gradient(135deg,#4F46E5 0%,#7C3AED 100%)' }}>
-              <div className="absolute -top-5 -right-5 w-24 h-24 rounded-full pointer-events-none"
-                style={{ background: 'rgba(255,255,255,0.08)' }} />
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-                    style={{ background: 'rgba(255,255,255,0.18)' }}>
-                    <Cpu size={15} color="white" />
+        {/* KPI cards */}
+        {loadingStats ? (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="rounded-2xl h-[108px] animate-pulse bg-muted" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {kpiCards.map((s) => (
+              <div
+                key={s.label}
+                className="relative overflow-hidden rounded-2xl p-5 flex flex-col justify-between shadow-sm"
+                style={{ background: s.grad, minHeight: 108 }}
+              >
+                <div className="absolute -bottom-6 -right-6 w-28 h-28 rounded-full pointer-events-none"
+                  style={{ background: 'rgba(255,255,255,0.07)' }} />
+                <div className="flex items-center justify-between relative">
+                  <p className="text-xs font-bold text-white/70">{s.label}</p>
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.18)' }}>
+                    <s.Icon size={16} color="white" />
                   </div>
-                  <p className="dashboard-kpi__label text-white/80">
-                    {t('aiDetection.modelInfo')}
-                  </p>
                 </div>
-                {status && (
-                  <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] font-bold"
-                    style={{ background: status.bg, border: `1px solid ${status.border}`, color: status.color }}>
-                    {status.dot && (
-                      <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: status.dot }} />
-                    )}
-                    {status.text}
-                  </span>
-                )}
-              </div>
-              <p className="dashboard-stat__value text-white mt-3 leading-tight">
-                {pageStats.model.name}
-              </p>
-              <p className="dashboard-panel__subtitle mt-0.5">{pageStats.model.version}</p>
-            </div>
-            <div className="relative -mt-5 mx-4 mb-4 rounded-2xl bg-background border border-border/60 shadow-sm divide-y divide-border/60">
-              <div className="flex items-center justify-between px-4 py-3">
-                <span className="text-[11.5px] text-muted-foreground">{t('aiDetection.datasetImages')}</span>
-                <span className="text-[12.5px] font-bold text-foreground">
-                  {formatTraining(pageStats.model.training_images)
-                    ?? t('aiDetection.signsInCatalog').replace('{count}', String(pageStats.model.sign_classes))}
-                </span>
-              </div>
-              <div className="flex items-center justify-between px-4 py-3">
-                <span className="text-[11.5px] text-muted-foreground">{t('aiDetection.modelStatus')}</span>
-                <span className="text-[12.5px] font-bold text-foreground">
-                  {pageStats.model.mode === 'yolo'
-                    ? t('aiDetection.liveYolo')
-                    : pageStats.model.mode === 'mock_fallback'
-                      ? t('aiDetection.trainModel')
-                      : t('aiDetection.demoUntilTrained')}
-                </span>
-              </div>
-              <div className="flex items-center justify-between px-4 py-3">
-                <span className="text-[11.5px] text-muted-foreground">{t('aiDetection.categories')}</span>
-                <span className="text-[12.5px] font-bold text-foreground">{pageStats.model.sign_classes}</span>
-              </div>
-            </div>
-          </CardWrap>
-        )}
-
-        <CardWrap className="overflow-hidden">
-          <div className="dashboard-panel-header relative px-5 pt-5 pb-10"
-            style={{ background: 'linear-gradient(135deg,#1D4ED8 0%,#3B82F6 100%)' }}>
-            <div className="absolute -top-5 -right-5 w-24 h-24 rounded-full pointer-events-none"
-              style={{ background: 'rgba(255,255,255,0.08)' }} />
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-                style={{ background: 'rgba(255,255,255,0.18)' }}>
-                <Shield size={15} color="white" />
-              </div>
-              <p className="dashboard-kpi__label text-white/80">
-                {t('aiDetection.signTypes')}
-              </p>
-            </div>
-            <p className="dashboard-kpi__value text-white mt-3 leading-none">
-              {pageStats ? pageStats.categories.reduce((s, c) => s + c.count, 0) : '—'}
-            </p>
-            <p className="dashboard-panel__subtitle mt-0.5">{t('aiDetection.signCatalog')}</p>
-          </div>
-          <div className="relative -mt-5 mx-4 mb-4 rounded-2xl bg-background border border-border/60 shadow-sm p-4">
-            {loadingStats || !pageStats ? (
-              <div className="space-y-3">
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className="h-8 rounded-xl bg-muted animate-pulse" />
-                ))}
-              </div>
-            ) : pageStats.categories.length === 0 ? (
-              <p className="text-[12px] text-muted-foreground">{t('aiDetection.noCatalog')}</p>
-            ) : (
-              <div className="space-y-4">
-                {pageStats.categories.map(c => (
-                  <div key={c.key}>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: c.color }} />
-                        <span className="dashboard-text__title">{categoryName(c.key, c.name)}</span>
-                      </div>
-                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full"
-                        style={{ background: `${c.color}18`, color: c.color }}>{c.count}</span>
-                    </div>
-                    <div className="h-2 rounded-full bg-muted overflow-hidden">
-                      <div className="h-full rounded-full transition-all duration-700"
-                        style={{ width: `${(c.count / maxCategoryCount) * 100}%`, background: c.color }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </CardWrap>
-
-        <CardWrap className="overflow-hidden">
-          <div className="dashboard-panel-header relative px-5 pt-5 pb-10"
-            style={{ background: 'linear-gradient(135deg,#0E7490 0%,#06B6D4 100%)' }}>
-            <div className="absolute -top-5 -right-5 w-24 h-24 rounded-full pointer-events-none"
-              style={{ background: 'rgba(255,255,255,0.08)' }} />
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-                style={{ background: 'rgba(255,255,255,0.18)' }}>
-                <Zap size={15} color="white" />
-              </div>
-              <p className="dashboard-kpi__label text-white/80">
-                {t('aiDetection.howItWorks')}
-              </p>
-            </div>
-            <p className="dashboard-kpi__value text-white mt-3 leading-none">
-              {STEPS.length}
-            </p>
-            <p className="dashboard-panel__subtitle mt-0.5">{t('aiDetection.howItWorks')}</p>
-          </div>
-          <div className="relative -mt-5 mx-4 mb-4 rounded-2xl bg-background border border-border/60 shadow-sm divide-y divide-border/60">
-            {STEPS.map(s => (
-              <div key={s.n} className="flex items-center gap-3 px-4 py-3">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: `${s.color}18`, border: `1.5px solid ${s.color}35` }}>
-                  <span style={{ fontSize: 11, fontWeight: 800, color: s.color }}>{s.n}</span>
-                </div>
-                <div className="min-w-0">
-                  <p className="dashboard-text__title leading-tight">{s.title}</p>
-                  <p className="dashboard-text__caption">{s.desc}</p>
+                <div className="relative">
+                  <p className="text-2xl font-black text-white mt-2">{s.value}</p>
+                  <p className="text-xs text-white/55 mt-1">{s.sub}</p>
                 </div>
               </div>
             ))}
           </div>
-        </CardWrap>
-      </div>
+        )}
+
+        {pipelineDone ? (
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-stretch ai-detection-result-pair">
+            <div className="flex flex-col gap-5 min-h-0 h-full ai-detection-result-left-col">
+              {pipelineInputPanel}
+              <RecentDetectionsCard
+                logs={recentLogs}
+                loading={loadingLogs}
+                onViewAll={() => navigate(aiLogsPath)}
+                layout="sidebar"
+              />
+            </div>
+            <ResultCard result={result!} preview={preview} onReset={reset} />
+          </div>
+        ) : (
+          <>
+            <div className={`grid grid-cols-1 xl:grid-cols-2 gap-5 items-stretch ai-detection-main-grid${detecting ? ' ai-detection-processing-grid' : ''}`}>
+              {pipelineInputPanel}
+              <div className="min-h-0 flex flex-col h-full flex-1">
+                {detecting ? (
+                  <ProcessingStageCard progress={progress} />
+                ) : (
+                  <AwaitingCard pageStats={displayStats} onSampleClick={handleSampleSign} />
+                )}
+              </div>
+            </div>
+
+            <RecentDetectionsCard
+              logs={recentLogs}
+              loading={loadingLogs}
+              onViewAll={() => navigate(aiLogsPath)}
+              layout="full"
+            />
+          </>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            <ModelInfoCard pageStats={displayStats} />
+            <CategoryStatsCard categories={displayStats.categories} />
+            <HowItWorksCard />
+          </div>
     </div>
   );
 }

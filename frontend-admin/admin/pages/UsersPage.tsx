@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import { usePagination } from '@shared/hooks/usePagination';
+import { TablePagination } from '@shared/components/ui/TablePagination';
 import {
   Plus, Search, Edit, Trash2, ToggleLeft, ToggleRight, Users, Shield, Car,
   BadgeCheck, UserPlus, Pencil, AlertCircle, CheckCircle, XCircle, Trash,
@@ -124,6 +126,8 @@ export function UsersPage() {
     driver: users.filter((u) => u.role === 'driver').length,
   }), [users]);
 
+  const pagination = usePagination(filtered);
+
   const roleLabel = (role: UserRole) => t(ROLE_META[role].labelKey);
 
   const openAdd = () => { setEditUser(null); setForm(emptyForm); setModalOpen(true); };
@@ -179,13 +183,14 @@ export function UsersPage() {
 
   const handleDelete = async () => {
     if (!deleteUser) return;
+    const removedId = deleteUser.id;
     try {
-      await usersAPI.delete(deleteUser.id);
+      await usersAPI.delete(removedId);
+      setUsers((prev) => prev.filter((u) => u.id !== removedId));
       toast.success('User deleted');
       setDeleteUser(null);
-      loadUsers();
-    } catch {
-      toast.error('Failed to delete user');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete user');
     }
   };
 
@@ -281,7 +286,7 @@ export function UsersPage() {
                 {[t('users.colUser'), t('users.colRole'), t('users.colPhone'), t('users.colLicense'), t('users.colJoined'), t('users.colStatus'), t('users.colActions')].map((h, index) => (
                   <TableHead
                     key={h}
-                    className={`enforcement-page__th${index === 0 ? ' users-page__col--user text-left' : ' text-center'}`}
+                    className={`enforcement-page__th text-left${index === 0 ? ' users-page__col--user' : ''}`}
                   >
                     {h}
                   </TableHead>
@@ -311,11 +316,11 @@ export function UsersPage() {
                     </div>
                   </TableCell>
                 </TableRow>
-              ) : filtered.map((u) => {
+              ) : pagination.pageItems.map((u) => {
                 const rm = ROLE_META[u.role];
                 return (
                   <TableRow key={u.id} className={`enforcement-page__table-row${!u.is_active ? ' users-page__row--inactive' : ''}`}>
-                    <TableCell className="py-3.5 users-page__col--user">
+                    <TableCell className="py-4 users-page__col--user">
                       <div className="users-page__user-cell">
                         <UserAvatar name={u.full_name} profileImage={u.profile_image} accent={rm.color} />
                         <div className="users-page__user-copy">
@@ -363,16 +368,7 @@ export function UsersPage() {
             </TableBody>
           </Table>
         </div>
-        {filtered.length > 0 && (
-          <div className="enforcement-page__footer">
-            <p className="enforcement-page__footer-text">
-              {t('users.showing', { shown: filtered.length, total: users.length })}
-            </p>
-            <p className="enforcement-page__footer-text enforcement-page__footer-text--emphasis">
-              {t('users.totalCount', { count: counts.all })}
-            </p>
-          </div>
-        )}
+        <TablePagination pagination={pagination} label="users" />
       </div>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>

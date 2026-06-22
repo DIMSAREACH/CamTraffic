@@ -1,5 +1,71 @@
 import type { TrafficSign } from '@shared/types';
 import { getProfileImageUrl } from '@shared/utils/profileImage';
+import catalog from '@shared/data/traffic_sign_catalog_10.json';
+
+/** Static demo images in /public/demo-signs (works without backend media). */
+const DEMO_IMAGE_BY_CLASS: Record<string, string> = {
+  NO_ENTRY: '/demo-signs/no-entry.png',
+  NO_LEFT_TURN: '/demo-signs/no-left-turn.png',
+  NO_RIGHT_TURN: '/demo-signs/no-right-turn.png',
+  NO_U_TURN: '/demo-signs/no-u-turn.png',
+  NO_PARKING: '/demo-signs/no-parking.png',
+  M_STOP: '/demo-signs/stop.png',
+  P_SPEED_LIMIT_20_KM_H: '/demo-signs/speed-limit-20.png',
+  P_SPEED_LIMIT_50_KM_H: '/demo-signs/speed-limit-50.png',
+  W_PEDESTRIAN_CROSSING: '/demo-signs/pedestrian-crossing.png',
+  I_ONE_WAY_TRAFFIC: '/demo-signs/one-way-traffic.png',
+};
+
+const DEMO_IMAGE_BY_SIGN_CODE: Record<string, string> = Object.fromEntries(
+  catalog.signs.map((sign) => [
+    normalizeSignCodeKey(sign.sign_code),
+    DEMO_IMAGE_BY_CLASS[sign.class_key] ?? '',
+  ]),
+);
+
+function normalizeSignCodeKey(code: string): string {
+  return code.toUpperCase().replace(/\s+/g, '').replace(/_/g, '-');
+}
+
+function resolvePublicAssetPath(path: string): string {
+  if (!path) return '';
+  if (path.startsWith('http') || path.startsWith('blob:') || path.startsWith('data:')) return path;
+  if (path.startsWith('/demo-signs/')) {
+    const base = import.meta.env.BASE_URL || '/';
+    const prefix = base.endsWith('/') ? base.slice(0, -1) : base;
+    if (typeof window !== 'undefined') {
+      return `${window.location.origin}${prefix}${path}`;
+    }
+  }
+  return path;
+}
+
+/** Catalog demo art keyed by sign code (R1-04, M-032, …). */
+export function resolveCatalogDemoImage(signCode?: string | null): string | null {
+  if (!signCode?.trim()) return null;
+  const key = normalizeSignCodeKey(signCode);
+  const path = DEMO_IMAGE_BY_SIGN_CODE[key] ?? DEMO_IMAGE_BY_SIGN_CODE[key.replace(/-/g, '')];
+  if (!path) return null;
+  return resolvePublicAssetPath(path);
+}
+
+/** Ordered image URLs: API media first, then bundled demo art. */
+export function trafficSignImageCandidates(
+  sign: Pick<TrafficSign, 'image' | 'sign_code'>,
+): string[] {
+  const urls: string[] = [];
+  const primary = signImageSrc(sign.image);
+  if (primary) urls.push(primary);
+  const demo = resolveCatalogDemoImage(sign.sign_code);
+  if (demo && !urls.includes(demo)) urls.push(demo);
+  return urls;
+}
+
+export function resolveTrafficSignImageUrl(
+  sign: Pick<TrafficSign, 'image' | 'sign_code'>,
+): string | null {
+  return trafficSignImageCandidates(sign)[0] ?? null;
+}
 
 /** Normalize API image field to a stable /media/... path for URLs and probes. */
 export function normalizeTrafficSign(sign: TrafficSign): TrafficSign {
@@ -23,9 +89,7 @@ export function normalizeTrafficSign(sign: TrafficSign): TrafficSign {
 /** User catalog: needs a loadable image. Admin catalog: show every sign from the API. */
 export function catalogIncludesSign(sign: TrafficSign, adminCatalog: boolean): boolean {
   if (adminCatalog) return true;
-  const image = sign.image?.trim();
-  if (!image) return false;
-  return Boolean(signHasResolvableImage(image));
+  return trafficSignImageCandidates(sign).length > 0;
 }
 
 /** Clear cached probe result so a newly uploaded image is not treated as broken. */
@@ -44,6 +108,21 @@ export function resetSignMediaProbeForSign(sign: TrafficSign): void {
     }
   }
   for (const src of candidates) probeCache.delete(src);
+}
+
+function encodeMediaPath(path: string): string {
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  return normalized
+    .split('/')
+    .map((part, index) => {
+      if (index === 0 || !part) return part;
+      try {
+        return encodeURIComponent(decodeURIComponent(part));
+      } catch {
+        return encodeURIComponent(part);
+      }
+    })
+    .join('/');
 }
 
 /** Resolve traffic-sign media paths from the API (relative or absolute). */
@@ -65,15 +144,17 @@ export function resolveSignMediaUrl(image?: string | null): string | null {
     return raw;
   }
 
-  const path = raw.startsWith('/media/')
-    ? raw
-    : raw.startsWith('media/')
-      ? `/${raw}`
-      : raw.startsWith('/')
-        ? raw.startsWith('/signs/')
-          ? `/media${raw}`
-          : raw
-        : `/media/${raw.replace(/^signs\//, 'signs/')}`;
+  const path = encodeMediaPath(
+    raw.startsWith('/media/')
+      ? raw
+      : raw.startsWith('media/')
+        ? `/${raw}`
+        : raw.startsWith('/')
+          ? raw.startsWith('/signs/')
+            ? `/media${raw}`
+            : raw
+          : `/media/${raw.replace(/^signs\//, 'signs/')}`,
+  );
 
   if (typeof window !== 'undefined') {
     return `${window.location.origin}${path}`;
@@ -88,8 +169,23 @@ export function signHasResolvableImage(image?: string | null): string | null {
   return resolveSignMediaUrl(image) ?? getProfileImageUrl(image);
 }
 
+/** Cache-busted URL — filename changes when sign art is re-uploaded. */
+export function signImageSrc(image?: string | null): string | null {
+  const base = signHasResolvableImage(image);
+  if (!base || !image?.trim() || image.startsWith('blob:') || image.startsWith('data:')) {
+    return base;
+  }
+  const sep = base.includes('?') ? '&' : '?';
+  return `${base}${sep}v=${encodeURIComponent(image.trim())}`;
+}
+
 const probeCache = new Map<string, boolean>();
 const probeInflight = new Map<string, Promise<boolean>>();
+
+/** Clear all cached probe results (call on page mount to flush stale state). */
+export function clearSignMediaCache(): void {
+  probeCache.clear();
+}
 
 export function isSignMediaKnownInvalid(src: string): boolean {
   return probeCache.get(src) === false;

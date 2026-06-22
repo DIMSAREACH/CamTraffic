@@ -1,0 +1,237 @@
+Class Name,Class ID,Image Count,Label Count,Train Images,Val Images,Possible Errors,Recommended Fixes
+AXLE_WEIGHT_LIMIT,0,12,12,11,1,—,—
+HEIGHT_LIMIT,1,12,12,12,0,train/HEIGHT_LIMIT_Height limit_11.jpg: overexposed (mean=223.6); no validation images,"Move or add 15–20% of images to val split; Replace with sharper, well-lit reference captures"
+I_3_LANES_MERGE_TO_2_LANES_FROM_THE_LEFT,2,12,12,10,2,—,—
+I_3_LANES_MERGE_TO_2_LANES_FROM_THE_RIGHT,3,12,12,11,1,—,—
+I_ABREAST_TRAVELLING_PERMITTED_FOR_BICYCLE,4,12,12,11,1,—,—
+I_AIRPORTS,5,12,12,10,2,—,—
+I_ANIMAL_DRAWN_CARTS,6,12,12,9,3,—,—
+I_ARROW_DIRECTION_EXCLUSIVE_LANE,7,12,12,11,1,—,—
+I_ASIAN_HIGHWAY_ROUTE_1,8,12,12,9,3,—,—
+I_ASIAN_HIGHWAY_ROUTE_11,9,12,12,8,4,—,—
+I_BACKWARD,10,12,12,10,2,train/I_BACKWARD_Backward_00.jpg: overexposed (mean=221.9); train/I_BACKWARD_Backward_03.jpg: overexposed (mean=222.7),"Replace with sharper, well-lit reference captures"
+I_BEWARE_OF_TRAINS,11,12,12,9,3,—,—
+I_BICYCLES,12,12,12,11,1,train/I_BICYCLES_Bicycles_02.jpg: overexposed (mean=221.9); train/I_BICYCLES_Bicycles_03.jpg: overexposed (mean=229.1); train/I_BICYCLES_Bicycles_05.jpg: overexposed (mean=228.7),"Replace with sharper, well-lit reference captures"
+I_BOATS_RAMP,13,12,12,10,2,—,—
+I_BUILT_UP_AREA_BEGINS,14,12,12,11,1,train/I_BUILT_UP_AREA_BEGINS_Built-up area begins_03.jpg: overexposed (mean=222.3),"Replace with sharper, well-lit reference captures"
+I_BUILT_UP_AREA_ENDS,15,12,12,10,2,train/I_BUILT_UP_AREA_ENDS_Built-up area ends_09.jpg: overexposed (mean=228.5); val/I_BUILT_UP_AREA_ENDS_Built-up area ends_02.jpg: overexposed (mean=221.6),"Replace with sharper, well-lit reference captures"
+I_BUSES,16,12,12,7,5,—,—
+I_CAMPING_AREA,17,12,12,9,3,—,—
+I_CARAVANS_PARK_AND_CAMPING_AREA,18,12,12,10,2,—,—
+I_CARAVANS_PARK_OR_SITE,19,12,12,10,2,—,—
+I_CARS,20,12,12,11,1,—,—
+I_CHEVRON_MARKER_TO_THE_LEFT,21,12,12,7,5,train/I_CHEVRON_MARKER_TO_THE_LEFT_Chevron marker (to the left)_04.jpg: overexposed (mean=220.6),"Replace with sharper, well-lit reference captures"
+I_CHEVRON_MARKER_TO_THE_RIGHT,22,12,12,10,2,—,—
+I_CLINIC,23,12,12,11,1,—,—
+I_COMPULSORY_LANES,24,12,12,11,1,—,—
+I_DEAD_END,25,12,12,8,4,—,—
+I_DEAD_END_ON_THE_RIGHT,26,12,12,7,5,—,—
+I_DEAD_END_ROAD_ON_THE_LEFT,27,12,12,8,4,—,—
+I_DELINEATOR_POST,28,12,12,10,2,—,—
+I_DETOUR_FOR_THE_TURNING_LEFT,29,12,12,8,4,—,—
+I_DETOUR_FOR_THE_VEHICLE_HAVING_OVERALL_HE,30,12,12,11,1,—,—
+I_DIRECTIONS_TO_CITY_OR_PROVINCE,31,12,12,12,0,no validation images,Move or add 15–20% of images to val split
+I_DIRECTION_OF_PRIORITY_ROAD,32,12,12,10,2,—,—
+I_DIRECTION_SIGN_TO_CITIES_OR_PROVINCES_AT,33,12,12,11,1,—,—
+I_DIRECTION_SIGN_TO_CITIES_OR_PROVINCES_AT_2,34,12,12,12,0,no validation images,Move or add 15–20% of images to val split
+I_DIRECTION_SIGN_TO_OTHER_AREAS_AT_DETOUR,35,12,12,12,0,train/I_DIRECTION_SIGN_TO_OTHER_AREAS_AT_DETOUR_Direction sign to other areas (at detour)_10.jpg: overexposed (mean=222.2); no validation images,"Move or add 15–20% of images to val split; Replace with sharper, well-lit reference captures"
+I_DIRECTION_SIGN_TO_OTHER_AREAS_AT_JUNCTIO,36,12,12,9,3,val/I_DIRECTION_SIGN_TO_OTHER_AREAS_AT_JUNCTIO_Direction sign to other areas (at junction)_11.jpg: overexposed (mean=223.9),"Replace with sharper, well-lit reference captures"
+I_DISTANCE_IDENTIFICATION_MARKER,37,12,12,10,2,—,—
+I_DRINKING_WATERS,38,12,12,12,0,no validation images,Move or add 15–20% of images to val split
+I_EXPRESSWAY_BEGINS,39,12,12,10,2,—,—
+I_EXPRESSWAY_ENDS,40,12,12,10,2,—,—
+I_EXPRESSWAY_NUMBER,41,12,12,12,0,train/I_EXPRESSWAY_NUMBER_Expressway number_01.jpg: overexposed (mean=226.0); no validation images,"Move or add 15–20% of images to val split; Replace with sharper, well-lit reference captures"
+I_FACTORY_GATE,42,12,12,12,0,train/I_FACTORY_GATE_Factory gate_03.jpg: overexposed (mean=222.0); train/I_FACTORY_GATE_Factory gate_05.jpg: overexposed (mean=221.4); train/I_FACTORY_GATE_Factory gate_10.jpg: overexposed (mean=226.0); no validation images,"Move or add 15–20% of images to val split; Replace with sharper, well-lit reference captures"
+I_FERRY,43,12,12,10,2,—,—
+I_FOREST_FIRE_WARNING_SIGNS,44,12,12,12,0,no validation images,Move or add 15–20% of images to val split
+I_FORWARD,45,12,12,10,2,train/I_FORWARD_Forward_08.jpg: overexposed (mean=220.9),"Replace with sharper, well-lit reference captures"
+I_FORWARD_AND_BACKWARD,46,12,12,10,2,train/I_FORWARD_AND_BACKWARD_Forward and backward_06.jpg: overexposed (mean=220.6),"Replace with sharper, well-lit reference captures"
+I_GARAGE_STATION,47,12,12,10,2,—,—
+I_GAS_STATION,48,12,12,10,2,—,—
+I_GAS_STATION_AND_REPAIR,49,12,12,9,3,—,—
+I_GUIDE_POST_AT_DANGEROUS_CURVE,50,12,12,12,0,no validation images; 1 duplicate/near-duplicate group(s),Move or add 15–20% of images to val split; Review duplicate pairs; keep one canonical image per augmentation
+I_GUIDE_SIGN_TO_OTHER_PLACES,51,12,12,12,0,train/I_GUIDE_SIGN_TO_OTHER_PLACES_Guide sign to other places_01.jpg: overexposed (mean=220.4); no validation images,"Move or add 15–20% of images to val split; Replace with sharper, well-lit reference captures"
+I_HOSPITAL,52,12,12,11,1,—,—
+I_HOTEL_OR_MOTEL,53,12,12,9,3,—,—
+I_KRAMUON_SAR_AVENUE,54,12,12,11,1,—,—
+I_LARGE_SIZE_TRUCKS_HAVING_OVERALL_LENGTH,55,12,12,10,2,—,—
+I_MOTORCYCLES,56,12,12,10,2,—,—
+I_MOTORCYCLE_DRAWN_CARTS,57,12,12,11,1,—,—
+I_NATIONAL_ROAD_NUMBER,58,12,12,10,2,train/I_NATIONAL_ROAD_NUMBER_National road number_00.jpg: overexposed (mean=221.3),"Replace with sharper, well-lit reference captures"
+I_OBJECT_MARKER_ON_THE_CURVE,59,12,12,11,1,—,—
+I_OBJECT_MARKER_ON_THE_LEFT,60,12,12,9,3,—,—
+I_OBJECT_MARKER_ON_THE_RIGHT,61,12,12,10,2,—,—
+I_OFFICIAL_TOURIST_INFORMATION,62,12,12,9,3,—,—
+I_ONE_WAY_TRAFFIC,63,12,12,11,1,—,—
+I_PARKING_LOT,64,12,12,9,3,—,—
+I_PAY_PARKING_LOT,65,12,12,10,2,—,—
+I_PICNIC_SITE,66,12,12,8,4,—,—
+I_PREAH_NORODOM_BOULEVARD,67,12,12,12,0,no validation images,Move or add 15–20% of images to val split
+I_PREAH_TRASAK_PAEM_STREET,68,12,12,11,1,train/I_PREAH_TRASAK_PAEM_STREET_Preah Trasak Paem Street_02.jpg: overexposed (mean=222.7),"Replace with sharper, well-lit reference captures"
+I_PROVINCIAL_DISTRICT_OR_COMMUNE_BOUNDARY,69,12,12,9,3,—,—
+I_PROVINCIAL_DISTRICT_OR_COMMUNE_BOUNDARY_2,70,12,12,8,4,—,—
+I_RAILWAY_CROSSING_POST,71,12,12,8,4,train/I_RAILWAY_CROSSING_POST_Railway crossing post_01.jpg: overexposed (mean=225.1),"Replace with sharper, well-lit reference captures"
+I_RECYCLE_BIN,72,12,12,11,1,—,—
+I_REFRESHMENTS_SHOP,73,12,12,10,2,—,—
+I_RESTAURANTS_SHOP,74,12,12,12,0,no validation images,Move or add 15–20% of images to val split
+I_STREET_NO_113,75,12,12,9,3,—,—
+I_TAXIS_STATION,76,12,12,11,1,—,—
+I_TELEPHONE,77,12,12,11,1,—,—
+I_TIME_IDENTIFICATION_MARKER,78,12,12,10,2,train/I_TIME_IDENTIFICATION_MARKER_Time identification marker_07.jpg: overexposed (mean=221.2),"Replace with sharper, well-lit reference captures"
+I_TOILETS,79,12,12,8,4,—,—
+I_TO_THE_LEFT_HAND_SIDE,80,12,12,9,3,val/I_TO_THE_LEFT_HAND_SIDE_To the left hand side_07.jpg: overexposed (mean=228.1),"Replace with sharper, well-lit reference captures"
+I_TO_THE_RIGHT_AND_LEFT_HAND_SIDE,81,12,12,9,3,train/I_TO_THE_RIGHT_AND_LEFT_HAND_SIDE_To the right and left hand side_02.jpg: overexposed (mean=222.1); val/I_TO_THE_RIGHT_AND_LEFT_HAND_SIDE_To the right and left hand side_05.jpg: overexposed (mean=223.0),"Replace with sharper, well-lit reference captures"
+I_TO_THE_RIGHT_HAND_SIDE,82,12,12,10,2,train/I_TO_THE_RIGHT_HAND_SIDE_To the right hand side_03.jpg: overexposed (mean=220.1),"Replace with sharper, well-lit reference captures"
+I_TRACTORS,83,12,12,9,3,—,—
+I_TRUCKS,84,12,12,12,0,no validation images,Move or add 15–20% of images to val split
+I_U_TURN,85,12,12,9,3,—,—
+I_VEHICLES_HAVING_OVERALL_LENGTH_WEIGHT_LI,86,12,12,12,0,train/I_VEHICLES_HAVING_OVERALL_LENGTH_WEIGHT_LI_Vehicles having overall length weight limit on one axle exceeding the specified weight limit on one axle_01.jpg: overexposed (mean=227.9); train/I_VEHICLES_HAVING_OVERALL_LENGTH_WEIGHT_LI_Vehicles having overall length weight limit on one axle exceeding the specified weight limit on one axle_10.jpg: overexposed (mean=223.1); no validation images,"Move or add 15–20% of images to val split; Replace with sharper, well-lit reference captures"
+I_VEHICLES_HAVING_OVER_ALL_LENGTH_HEIGHT_E,87,12,12,9,3,train/I_VEHICLES_HAVING_OVER_ALL_LENGTH_HEIGHT_E_Vehicles having over all length height exceeding the specified height_00.jpg: overexposed (mean=221.7); train/I_VEHICLES_HAVING_OVER_ALL_LENGTH_HEIGHT_E_Vehicles having over all length height exceeding the specified height_05.jpg: overexposed (mean=230.7); train/I_VEHICLES_HAVING_OVER_ALL_LENGTH_HEIGHT_E_Vehicles having over all length height exceeding the specified height_09.jpg: overexposed (mean=227.2); val/I_VEHICLES_HAVING_OVER_ALL_LENGTH_HEIGHT_E_Vehicles having over all length height exceeding the specified height_04.jpg: overexposed (mean=223.4),"Replace with sharper, well-lit reference captures"
+I_VEHICLES_HAVING_OVER_ALL_LENGTH_WIDTH_EX,88,12,12,11,1,—,—
+I_VEHICLES_LOADING_INFLAMMABLE_GOODS,89,12,12,10,2,—,—
+I_WEIGH_STATION,90,12,12,11,1,val/I_WEIGH_STATION_Weigh station_10.jpg: overexposed (mean=225.6),"Replace with sharper, well-lit reference captures"
+LENGTH_LIMIT,91,12,12,12,0,no validation images,Move or add 15–20% of images to val split
+M_ANIMAL_DRAWN_CARTS_OF_ALL_FORM_ONLY,92,12,12,10,2,—,—
+M_BICYCLES_ONLY,93,12,12,10,2,—,—
+M_BUSES_LANE,94,12,12,11,1,—,—
+M_CARS_ONLY,95,12,12,12,0,no validation images,Move or add 15–20% of images to val split
+M_DOUBLE_TRIPLE_RAILWAY_CROSSING,96,12,12,12,0,train/M_DOUBLE_TRIPLE_RAILWAY_CROSSING_Double triple railway crossing_02.jpg: overexposed (mean=223.8); train/M_DOUBLE_TRIPLE_RAILWAY_CROSSING_Double triple railway crossing_05.jpg: overexposed (mean=222.2); train/M_DOUBLE_TRIPLE_RAILWAY_CROSSING_Double triple railway crossing_06.jpg: overexposed (mean=221.8); no validation images,"Move or add 15–20% of images to val split; Replace with sharper, well-lit reference captures"
+M_END_OF_BICYCLES_ONLY,97,12,12,12,0,no validation images,Move or add 15–20% of images to val split
+M_END_OF_BUSES_LANE,98,12,12,9,3,—,—
+M_END_OF_MINIMUM_SPEED_LIMIT,99,12,12,11,1,—,—
+M_END_OF_PEDESTRIANS_AND_BICYCLES_ONLY,100,12,12,12,0,no validation images,Move or add 15–20% of images to val split
+M_END_OF_PEDESTRIANS_ONLY,101,12,12,11,1,—,—
+M_END_OF_PRIORITY_ROAD,102,12,12,10,2,—,—
+M_GIVE_WAY_TO_ALL_TRAFFIC_FROM_THE_OPPOSIT,103,12,12,11,1,—,—
+M_GO_STRAIGHT,104,12,12,10,2,1 duplicate/near-duplicate group(s),Review duplicate pairs; keep one canonical image per augmentation
+M_GO_STRAIGHT_OR_TURN_LEFT,105,12,12,11,1,—,—
+M_GO_STRAIGHT_OR_TURN_RIGHT,106,12,12,12,0,no validation images,Move or add 15–20% of images to val split
+M_KEEP_LEFT,107,12,12,9,3,—,—
+M_KEEP_RIGHT,108,12,12,11,1,—,—
+M_MINIMUM_SPEED_LIMIT,109,12,12,11,1,—,—
+M_PEDESTRIANS_AND_BICYCLES_ONLY,110,12,12,11,1,—,—
+M_PEDESTRIANS_ONLY,111,12,12,12,0,no validation images,Move or add 15–20% of images to val split
+M_PRIORITY_INTERSECTION,112,12,12,9,3,—,—
+M_PRIORITY_OVER_ALL_TRAFFIC_FROM_THE_OPPOS,113,12,12,9,3,—,—
+M_PRIORITY_ROAD,114,12,12,10,2,train/M_PRIORITY_ROAD_Priority road_06.jpg: overexposed (mean=230.0); train/M_PRIORITY_ROAD_Priority road_07.jpg: overexposed (mean=227.7),"Replace with sharper, well-lit reference captures"
+M_SINGLE_TRACK_RAILWAY_CROSSING,115,12,12,11,1,train/M_SINGLE_TRACK_RAILWAY_CROSSING_Single track railway crossing_09.jpg: overexposed (mean=226.7); val/M_SINGLE_TRACK_RAILWAY_CROSSING_Single track railway crossing_00.jpg: overexposed (mean=220.3),"Replace with sharper, well-lit reference captures"
+M_SLOW_DOWN,116,12,12,12,0,no validation images,Move or add 15–20% of images to val split
+M_STOP,117,12,12,11,1,—,—
+M_STOP_KHMER_AND_ENGLISH_LANGUAGES,118,12,12,9,3,—,—
+M_TURN_LEFT,119,12,12,12,0,no validation images,Move or add 15–20% of images to val split
+M_TURN_LEFT_AHEAD,120,12,12,12,0,no validation images,Move or add 15–20% of images to val split
+M_TURN_LEFT_OR_RIGHT,121,12,12,9,3,—,—
+M_TURN_RIGHT,122,12,12,8,4,1 duplicate/near-duplicate group(s),Review duplicate pairs; keep one canonical image per augmentation
+M_TURN_RIGHT_AHEAD,123,12,12,12,0,no validation images,Move or add 15–20% of images to val split
+M_YIELD_AT_ROUNDABOUT,124,12,12,8,4,train/M_YIELD_AT_ROUNDABOUT_Yield (at roundabout)_10.jpg: overexposed (mean=220.1),"Replace with sharper, well-lit reference captures"
+M_YIELD_GIVE_WAY,125,12,12,11,1,—,—
+NO_ENTRY,126,12,12,11,1,—,—
+NO_LEFT_TURN,127,12,12,9,3,train/NO_LEFT_TURN_No left turn_01.jpg: overexposed (mean=220.8); 1 duplicate/near-duplicate group(s),"Review duplicate pairs; keep one canonical image per augmentation; Replace with sharper, well-lit reference captures"
+NO_PARKING,128,12,12,9,3,—,—
+NO_RIGHT_TURN,129,12,12,11,1,—,—
+NO_STOPPING,130,12,12,10,2,—,—
+NO_U_TURN,131,12,12,9,3,—,—
+P_END_OF_HONKING_PROHIBITION,132,12,12,10,2,—,—
+P_END_OF_MAXIMUM_SPEED_LIMIT,133,12,12,11,1,—,—
+P_END_OF_OVERTAKING_PROHIBITION,134,12,12,11,1,train/P_END_OF_OVERTAKING_PROHIBITION_End of overtaking prohibition_10.jpg: overexposed (mean=228.9),"Replace with sharper, well-lit reference captures"
+P_END_OF_OVERTAKING_PROHIBITION_FOR_TRUCKS,135,12,12,12,0,no validation images,Move or add 15–20% of images to val split
+P_END_OF_PROHIBITION_OVERTAKING_FOR_TRUCKS,136,12,12,10,2,—,—
+P_MAXIMUM_SPEED_LIMIT,137,12,12,11,1,—,—
+P_MINIMUM_SEPARATION_DISTANCE_FOR_CARS,138,12,12,9,3,—,—
+P_MINIMUM_SEPARATION_DISTANCE_FOR_TRUCKS,139,12,12,11,1,—,—
+P_NO_ANIMAL_DRAWN_CARTS,140,12,12,9,3,—,—
+P_NO_BICYCLES,141,12,12,12,0,no validation images,Move or add 15–20% of images to val split
+P_NO_BICYCLES_MOTORCYCLES_AND_TRICYCLES,142,12,12,11,1,—,—
+P_NO_BUSES,143,12,12,10,2,—,—
+P_NO_CARS,144,12,12,11,1,—,—
+P_NO_CARTS,145,12,12,10,2,—,—
+P_NO_HONKING,146,12,12,11,1,—,—
+P_NO_MOTORCYCLES,147,12,12,10,2,—,—
+P_NO_MOTORCYCLE_DRAWN_CARTS,148,12,12,10,2,—,—
+P_NO_MOTOR_VEHICLES,149,12,12,11,1,—,—
+P_NO_OVERTAKING,150,12,12,10,2,val/P_NO_OVERTAKING_No overtaking_11.jpg: overexposed (mean=222.8),"Replace with sharper, well-lit reference captures"
+P_NO_OVERTAKING_FOR_TRUCKS,151,12,12,8,4,—,—
+P_NO_PARKING_FROM_16TH_TO_31ST_DAY_OF_THE,152,12,12,4,8,—,—
+P_NO_PARKING_FROM_1ST_TO_15TH_DAY_OF_THE_M,153,12,12,8,4,—,—
+P_NO_PARKING_ON_EVEN_DAYS,154,12,12,10,2,—,—
+P_NO_PARKING_ON_ODD_DAYS,155,12,12,11,1,—,—
+P_NO_TOWED_TRAILERS,156,12,12,11,1,—,—
+P_NO_TRACTORS,157,12,12,11,1,—,—
+P_NO_TRUCKS,158,12,12,11,1,—,—
+P_NO_VEHICLES_LOADING_INFLAMMABLE_GOODS,159,12,12,12,0,no validation images,Move or add 15–20% of images to val split
+P_SPEED_LIMIT_20_KM_H,160,12,12,12,0,no validation images,Move or add 15–20% of images to val split
+P_SPEED_LIMIT_50_KM_H,161,12,12,8,4,val/P_SPEED_LIMIT_50_KM_H_Speed limit 50 km-h_11.jpg: overexposed (mean=221.6),"Replace with sharper, well-lit reference captures"
+P_STOP_AT_THE_CUSTOMS_STATION,162,12,12,9,3,—,—
+P_STOP_AT_THE_MILITARY_POLICE_STATION,163,12,12,12,0,no validation images,Move or add 15–20% of images to val split
+P_STOP_AT_THE_POLICE_STATION,164,12,12,10,2,—,—
+ROAD_CLOSED_ALL_USERS,165,12,12,11,1,—,—
+ROAD_CLOSED_ALL_VEHICLES,166,12,12,12,0,no validation images,Move or add 15–20% of images to val split
+TOTAL_WEIGHT_LIMIT,167,12,12,7,5,—,—
+WIDTH_LIMIT,168,12,12,10,2,—,—
+W_BICYCLES_CROSSING,169,12,12,11,1,—,—
+W_CATTLE_OR_DOMESTIC_ANIMALS,170,12,12,8,4,—,—
+W_CROSSROAD,171,12,12,9,3,val/W_CROSSROAD_Crossroad_02.jpg: overexposed (mean=226.4); val/W_CROSSROAD_Crossroad_07.jpg: overexposed (mean=223.4),"Replace with sharper, well-lit reference captures"
+W_CROSSROAD_ON_A_CURVE_DIFFERENT_ROAD_CLAS,172,12,12,10,2,train/W_CROSSROAD_ON_A_CURVE_DIFFERENT_ROAD_CLAS_Crossroad on a curve (different road classes)_10.jpg: overexposed (mean=221.6),"Replace with sharper, well-lit reference captures"
+W_CROSSROAD_ON_A_DOUBLE_CURVE_DIFFERENT_RO,173,12,12,11,1,—,—
+W_CROSSROAD_ON_THE_LEFT_DIFFERENT_ROAD_CLA,174,12,12,10,2,train/W_CROSSROAD_ON_THE_LEFT_DIFFERENT_ROAD_CLA_Crossroad on the left (different road classes)_05.jpg: overexposed (mean=229.2),"Replace with sharper, well-lit reference captures"
+W_CROSSROAD_ON_THE_RIGHT_DIFFERENT_ROAD_CL,175,12,12,11,1,train/W_CROSSROAD_ON_THE_RIGHT_DIFFERENT_ROAD_CL_Crossroad on the right (different road classes)_04.jpg: overexposed (mean=230.6),"Replace with sharper, well-lit reference captures"
+W_CROSSWINDS,176,12,12,12,0,train/W_CROSSWINDS_Crosswinds_04.jpg: overexposed (mean=225.8); no validation images; 1 duplicate/near-duplicate group(s),"Move or add 15–20% of images to val split; Review duplicate pairs; keep one canonical image per augmentation; Replace with sharper, well-lit reference captures"
+W_CURVE_TO_THE_LEFT,177,12,12,10,2,val/W_CURVE_TO_THE_LEFT_Curve to the left_06.jpg: overexposed (mean=228.7),"Replace with sharper, well-lit reference captures"
+W_CURVE_TO_THE_RIGHT,178,12,12,10,2,train/W_CURVE_TO_THE_RIGHT_Curve to the right_07.jpg: overexposed (mean=222.7),"Replace with sharper, well-lit reference captures"
+W_DEER_OR_WILD_ANIMALS,179,12,12,11,1,1 duplicate/near-duplicate group(s),Review duplicate pairs; keep one canonical image per augmentation
+W_DETOUR_TO_THE_LEFT,180,12,12,8,4,train/W_DETOUR_TO_THE_LEFT_Detour to the left_01.jpg: overexposed (mean=220.9),"Replace with sharper, well-lit reference captures"
+W_DETOUR_TO_THE_RIGHT,181,12,12,10,2,val/W_DETOUR_TO_THE_RIGHT_Detour to the right_01.jpg: overexposed (mean=221.8),"Replace with sharper, well-lit reference captures"
+W_DIRECTION_CHEVRON_TO_BE_FOLLOWED,182,12,12,9,3,val/W_DIRECTION_CHEVRON_TO_BE_FOLLOWED_Direction chevron to be followed_05.jpg: overexposed (mean=220.3),"Replace with sharper, well-lit reference captures"
+W_DIVIDED_ROADS_BEGINS,183,12,12,9,3,—,—
+W_DIVIDED_ROADS_ENDS,184,12,12,12,0,train/W_DIVIDED_ROADS_ENDS_Divided roads ends_08.jpg: overexposed (mean=225.5); no validation images,"Move or add 15–20% of images to val split; Replace with sharper, well-lit reference captures"
+W_DOUBLE_CURVE_FIRST_TO_THE_LEFT,185,12,12,12,0,no validation images,Move or add 15–20% of images to val split
+W_DOUBLE_CURVE_FIRST_TO_THE_RIGHT,186,12,12,9,3,train/W_DOUBLE_CURVE_FIRST_TO_THE_RIGHT_Double curve first to the right_10.jpg: overexposed (mean=222.6),"Replace with sharper, well-lit reference captures"
+W_DOUBLE_SHARP_CURVE_FIRST_TO_THE_LEFT,187,12,12,12,0,no validation images,Move or add 15–20% of images to val split
+W_DOUBLE_SHARP_CURVE_FIRST_TO_THE_RIGHT,188,12,12,10,2,—,—
+W_END_ROAD_WORKS,189,12,12,8,4,—,—
+W_FALLING_ROCKS,190,12,12,11,1,train/W_FALLING_ROCKS_Falling rocks_05.jpg: overexposed (mean=222.0),"Replace with sharper, well-lit reference captures"
+W_GIVE_WAY_SIGNS_AHEAD,191,12,12,12,0,train/W_GIVE_WAY_SIGNS_AHEAD_Give way signs ahead_10.jpg: overexposed (mean=223.0); no validation images,"Move or add 15–20% of images to val split; Replace with sharper, well-lit reference captures"
+W_HANDICAPPED_CROSSING,192,12,12,9,3,train/W_HANDICAPPED_CROSSING_Handicapped crossing_08.jpg: overexposed (mean=225.3),"Replace with sharper, well-lit reference captures"
+W_JUNCTION_ON_A_CURVE_DIFFERENT_ROAD_CLASS,194,12,12,10,2,—,—
+W_JUNCTION_ON_A_DOUBLE_CURVE_DIFFERENT_ROA,195,12,12,12,0,no validation images,Move or add 15–20% of images to val split
+W_LOW_FLYING_AIR_CRAFT,197,12,12,11,1,—,—
+W_NARROW_BRIDGE,198,12,12,12,0,train/W_NARROW_BRIDGE_Narrow bridge_07.jpg: overexposed (mean=224.9); train/W_NARROW_BRIDGE_Narrow bridge_10.jpg: overexposed (mean=227.7); no validation images,"Move or add 15–20% of images to val split; Replace with sharper, well-lit reference captures"
+W_OFFSET_ROAD_JUNCTION_LEFT_AND_RIGHT,199,12,12,11,1,"train/W_OFFSET_ROAD_JUNCTION_LEFT_AND_RIGHT_Offset road junction, left and right_04.jpg: overexposed (mean=221.1); train/W_OFFSET_ROAD_JUNCTION_LEFT_AND_RIGHT_Offset road junction, left and right_10.jpg: overexposed (mean=228.3)","Replace with sharper, well-lit reference captures"
+W_OFFSET_ROAD_JUNCTION_RIGHT_AND_LEFT,200,12,12,11,1,"train/W_OFFSET_ROAD_JUNCTION_RIGHT_AND_LEFT_Offset road junction, right and left_10.jpg: overexposed (mean=229.0); 2 duplicate/near-duplicate group(s)","Review duplicate pairs; keep one canonical image per augmentation; Replace with sharper, well-lit reference captures"
+W_OTHER_DANGER,201,12,12,12,0,train/W_OTHER_DANGER_Other danger_07.jpg: overexposed (mean=223.9); train/W_OTHER_DANGER_Other danger_10.jpg: overexposed (mean=220.1); no validation images,"Move or add 15–20% of images to val split; Replace with sharper, well-lit reference captures"
+W_RAILWAY_CROSSING_ON_THE_LEFT_ROAD,203,12,12,12,0,no validation images,Move or add 15–20% of images to val split
+W_RAILWAY_CROSSING_ON_THE_RIGHT_ROAD,204,12,12,6,6,—,—
+W_RAILWAY_CROSSING_WITHOUT_BARRIER_OR_GATE,205,12,12,11,1,—,—
+W_RAILWAY_CROSSING_WITH_BARRIER_OR_GATES,206,12,12,9,3,—,—
+W_RED_FLAG,207,12,12,12,0,train/W_RED_FLAG_Red-flag_00.jpg: low sharpness (Laplacian=62.7); train/W_RED_FLAG_Red-flag_01.jpg: low sharpness (Laplacian=44.5); train/W_RED_FLAG_Red-flag_02.jpg: low sharpness (Laplacian=45.7); train/W_RED_FLAG_Red-flag_06.jpg: low sharpness (Laplacian=40.6); train/W_RED_FLAG_Red-flag_07.jpg: low sharpness (Laplacian=53.0); train/W_RED_FLAG_Red-flag_09.jpg: low sharpness (Laplacian=55.6),"Move or add 15–20% of images to val split; Replace with sharper, well-lit reference captures"
+W_ROAD_NARROWS_ON_THE_BOTH_SIDES,208,12,12,11,1,—,—
+W_ROAD_NARROWS_ON_THE_LEFT,209,12,12,9,3,—,—
+W_ROAD_NARROWS_ON_THE_RIGHT,210,12,12,12,0,no validation images,Move or add 15–20% of images to val split
+W_ROUNDABOUT_AHEAD,211,12,12,10,2,—,—
+W_SCHOOL_AHEAD_ONLY_APPLIES_TO_PUBLIC_SCHO,212,12,12,11,1,—,—
+W_SHARP_CURVE_TO_THE_LEFT,213,12,12,10,2,—,—
+W_SHARP_CURVE_TO_THE_RIGHT,214,12,12,12,0,train/W_SHARP_CURVE_TO_THE_RIGHT_Sharp curve to the right_04.jpg: overexposed (mean=222.2); no validation images,"Move or add 15–20% of images to val split; Replace with sharper, well-lit reference captures"
+W_SIDE_ROAD_JUNCTION_ON_THE_LEFT,215,12,12,8,4,val/W_SIDE_ROAD_JUNCTION_ON_THE_LEFT_Side road junction on the left_11.jpg: overexposed (mean=221.4),"Replace with sharper, well-lit reference captures"
+W_SIDE_ROAD_JUNCTION_ON_THE_LEFT_DIFFERENT,216,12,12,9,3,val/W_SIDE_ROAD_JUNCTION_ON_THE_LEFT_DIFFERENT_Side road junction on the left (different road classes)_02.jpg: overexposed (mean=227.4),"Replace with sharper, well-lit reference captures"
+W_SIDE_ROAD_JUNCTION_ON_THE_RIGHT,217,12,12,12,0,no validation images,Move or add 15–20% of images to val split
+W_SIDE_ROAD_JUNCTION_ON_THE_RIGHT_DIFFEREN,218,12,12,12,0,no validation images,Move or add 15–20% of images to val split
+W_SKEWED_SIDE_ROAD_JUNCTION_ON_THE_LEFT,219,12,12,12,0,no validation images,Move or add 15–20% of images to val split
+W_SKEWED_SIDE_ROAD_JUNCTION_ON_THE_RIGHT,220,12,12,10,2,—,—
+W_SLIPPERY_ROAD,221,12,12,12,0,train/W_SLIPPERY_ROAD_Slippery road_09.jpg: overexposed (mean=220.8); no validation images,"Move or add 15–20% of images to val split; Replace with sharper, well-lit reference captures"
+W_STEEP_CLIMB,222,12,12,10,2,—,—
+W_STEEP_DESCENT,223,12,12,10,2,—,—
+W_STOP_SIGNS_AHEAD,224,12,12,9,3,train/W_STOP_SIGNS_AHEAD_Stop signs ahead_05.jpg: overexposed (mean=227.7),"Replace with sharper, well-lit reference captures"
+W_TEMPORARY_STOP_SIGNS_KHMER_AND_ENGLISH_L,225,12,12,11,1,train/W_TEMPORARY_STOP_SIGNS_KHMER_AND_ENGLISH_L_Temporary stop signs (Khmer and English languages)_00.jpg: overexposed (mean=221.5); val/W_TEMPORARY_STOP_SIGNS_KHMER_AND_ENGLISH_L_Temporary stop signs (Khmer and English languages)_09.jpg: overexposed (mean=220.5),"Replace with sharper, well-lit reference captures"
+W_TRAFFIC_CONE,226,12,12,10,2,train/W_TRAFFIC_CONE_Traffic cone_00.jpg: low sharpness (Laplacian=69.1); train/W_TRAFFIC_CONE_Traffic cone_01.jpg: low sharpness (Laplacian=54.4); train/W_TRAFFIC_CONE_Traffic cone_04.jpg: low sharpness (Laplacian=56.3); train/W_TRAFFIC_CONE_Traffic cone_10.jpg: low sharpness (Laplacian=67.1),"Replace with sharper, well-lit reference captures"
+W_TRAFFIC_LIGHTS_AHEAD,227,12,12,9,3,—,—
+W_TWO_WAY_TRAFFIC,228,12,12,10,2,train/W_TWO_WAY_TRAFFIC_Two-way traffic_09.jpg: overexposed (mean=221.7),"Replace with sharper, well-lit reference captures"
+W_T_JUNCTION_AHEAD,229,12,12,12,0,train/W_T_JUNCTION_AHEAD_T-junction ahead_06.jpg: overexposed (mean=228.8); train/W_T_JUNCTION_AHEAD_T-junction ahead_09.jpg: overexposed (mean=227.1); no validation images,"Move or add 15–20% of images to val split; Replace with sharper, well-lit reference captures"
+W_UNEVEN_ROAD,230,12,12,11,1,—,—
+W_UNPROTECTED_QUAYSIDE_OR_RIVERBANK_AHEAD,231,12,12,11,1,train/W_UNPROTECTED_QUAYSIDE_OR_RIVERBANK_AHEAD_Unprotected quayside or riverbank ahead_04.jpg: overexposed (mean=220.6),"Replace with sharper, well-lit reference captures"
+W_WINDING_ROAD,232,12,12,11,1,train/W_WINDING_ROAD_Winding road_03.jpg: overexposed (mean=221.7),"Replace with sharper, well-lit reference captures"
+W_WORKERS,233,12,12,10,2,—,—
+W_WORKERS_AHEAD,234,12,12,12,0,train/W_WORKERS_AHEAD_Workers ahead_10.jpg: overexposed (mean=222.5); no validation images,"Move or add 15–20% of images to val split; Replace with sharper, well-lit reference captures"
+W_Y_JUNCTION_AHEAD,235,12,12,10,2,—,—
+W_HUMP,193,14,14,12,2,val/W_HUMP_Hump_00.jpg: overexposed (mean=226.5),"Replace with sharper, well-lit reference captures"
+W_LOOSE_ROAD_SURFACE_2,196,15,15,12,3,1 duplicate/near-duplicate group(s),Review duplicate pairs; keep one canonical image per augmentation
+W_PEDESTRIAN_CROSSING,202,15,15,12,3,—,—

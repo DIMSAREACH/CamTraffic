@@ -29,14 +29,50 @@ _SIGN_NAME_ALIASES: dict[str, str] = {
     'do not enter': 'NO_ENTRY',
     'entry prohibited': 'NO_ENTRY',
     'no left turn': 'NO_LEFT_TURN',
+    'no left turn allowed': 'NO_LEFT_TURN',
+    'left turn prohibited': 'NO_LEFT_TURN',
     'no right turn': 'NO_RIGHT_TURN',
     'no u turn': 'NO_U_TURN',
+    'no u-turn': 'NO_U_TURN',
     'no parking': 'NO_PARKING',
     'no stopping': 'NO_STOPPING',
-    'stop': 'STOP',
-    'give way': 'GIVE_WAY',
-    'yield': 'GIVE_WAY',
+    'stop': 'M_STOP',
+    'stop sign': 'M_STOP',
+    'give way': 'M_YIELD_GIVE_WAY',
+    'yield': 'M_YIELD_GIVE_WAY',
+    'yield sign': 'M_YIELD_GIVE_WAY',
+    'pedestrian crossing': 'W_PEDESTRIAN_CROSSING',
+    'school zone': 'W_SCHOOL_ZONE',
+    'speed limit': 'R_SPEED_LIMIT',
+    'roundabout': 'W_ROUNDABOUT_AHEAD',
+    'one way': 'R_ONE_WAY',
 }
+
+# Same YOLO training keys → catalog class_key (keep in sync with services.YOLO_CLASS_ALIASES)
+_CATALOG_CLASS_ALIASES: dict[str, str] = {
+    'close_for_all_road_users': 'road_closed_all_users',
+    'close_for_all_vehicles': 'road_closed_all_vehicles',
+    'weight_limit_on_one_axle': 'axle_weight_limit',
+    'no_entry_bicycle': 'p_no_bicycles',
+    'no_entry_bicycle_motorcycle_tricycle': 'p_no_bicycles_motorcycles_and_tricycles',
+    'no_entry_large_bus': 'p_no_buses',
+    'no_entry_large_truck': 'p_no_trucks',
+    'no_entry_motorcycle_drawn': 'p_no_motorcycle_drawn_carts',
+    'no_entry_motor_except_motorcycle': 'p_no_motor_vehicles',
+    'no_entry_motor_vehicles': 'p_no_motor_vehicles',
+    'stop': 'm_stop',
+    'give_way': 'm_yield_give_way',
+    'yield': 'm_yield_give_way',
+}
+
+
+def _norm_class_token(value: str) -> str:
+    return re.sub(r'[^a-z0-9]+', '_', (value or '').lower()).strip('_')
+
+
+def _canonical_class_key(class_key: str) -> str:
+    key = _norm_class_token(class_key)
+    return _CATALOG_CLASS_ALIASES.get(key, key)
 
 
 def _requests_verify():
@@ -73,28 +109,48 @@ def gemini_available() -> bool:
 
 def _load_catalog() -> list[dict]:
     global _CATALOG_CACHE
-    if _CATALOG_CACHE is not None:
+    from .sign_catalog_loader import load_sign_catalog_rows, resolve_catalog_path
+
+    path = resolve_catalog_path()
+    if _CATALOG_CACHE is not None and getattr(_load_catalog, '_path', None) == path:
         return _CATALOG_CACHE
-    if not CATALOG_PATH.is_file():
-        _CATALOG_CACHE = []
-        return _CATALOG_CACHE
-    try:
-        _CATALOG_CACHE = json.loads(CATALOG_PATH.read_text(encoding='utf-8'))
-    except (json.JSONDecodeError, OSError):
-        logger.warning('Could not read sign catalog at %s', CATALOG_PATH)
-        _CATALOG_CACHE = []
+
+    _CATALOG_CACHE = load_sign_catalog_rows(force_reload=True)
+    _load_catalog._path = path  # type: ignore[attr-defined]
     return _CATALOG_CACHE
 
 
-def _catalog_prompt_lines(max_rows: int = 40) -> str:
-    lines = []
-    for row in _load_catalog()[:max_rows]:
+def _catalog_prompt_lines(max_rows: int | None = None, *, compact: bool = False) -> str:
+    rows = _load_catalog()
+    if max_rows is not None:
+        rows = rows[:max_rows]
+    if compact:
+        lines = []
+        for row in rows:
+            code = row.get('sign_code') or ''
+            key = row.get('class_key') or ''
+            name = (row.get('sign_name_en') or row.get('sign_name') or '').strip()[:36]
+            if code:
+                lines.append(f'{code}|{key}|{name}')
+        return '\n'.join(lines)
+
+    by_category: dict[str, list[str]] = {}
+    for row in rows:
         code = row.get('sign_code') or ''
-        name = row.get('sign_name_en') or row.get('sign_name') or ''
+        name = (row.get('sign_name_en') or row.get('sign_name') or '').strip()
         key = row.get('class_key') or ''
-        if code:
-            lines.append(f'- {code} | {key} | {name}')
-    return '\n'.join(lines)
+        if not code:
+            continue
+        category = (row.get('category') or 'other').lower()
+        line = f'{code} | {key} | {name}'
+        by_category.setdefault(category, []).append(line)
+
+    sections: list[str] = []
+    for category in sorted(by_category.keys()):
+        lines = by_category[category]
+        sections.append(f'### {category.title()} ({len(lines)})')
+        sections.extend(f'- {line}' for line in lines)
+    return '\n'.join(sections)
 
 
 def _guess_mime(path: Path) -> str:
@@ -132,11 +188,11 @@ def _extract_json(text: str) -> dict | None:
 
 
 def _row_by_class_key(class_key: str) -> dict | None:
-    key_norm = re.sub(r'[^a-z0-9]+', '_', (class_key or '').lower()).strip('_')
+    key_norm = _canonical_class_key(class_key)
     if not key_norm:
         return None
     for row in _load_catalog():
-        row_key = re.sub(r'[^a-z0-9]+', '_', (row.get('class_key') or '').lower()).strip('_')
+        row_key = _canonical_class_key(row.get('class_key') or '')
         if row_key == key_norm:
             return row
     return None
@@ -144,13 +200,14 @@ def _row_by_class_key(class_key: str) -> dict | None:
 
 def _match_catalog(sign_code: str = '', class_key: str = '', sign_name_en: str = '') -> dict | None:
     code_norm = (sign_code or '').upper().replace('_', '-')
-    key_norm = re.sub(r'[^a-z0-9]+', '_', (class_key or '').lower()).strip('_')
+    key_norm = _canonical_class_key(class_key)
     name_norm = (sign_name_en or '').strip().lower()
     for row in _load_catalog():
         row_code = (row.get('sign_code') or '').upper()
-        row_key = re.sub(r'[^a-z0-9]+', '_', (row.get('class_key') or '').lower()).strip('_')
+        official = (row.get('official_sign_code') or '').upper()
+        row_key = _canonical_class_key(row.get('class_key') or '')
         row_name = (row.get('sign_name_en') or '').strip().lower()
-        if code_norm and row_code == code_norm:
+        if code_norm and (row_code == code_norm or official == code_norm):
             return row
         if key_norm and row_key == key_norm:
             return row
@@ -159,6 +216,13 @@ def _match_catalog(sign_code: str = '', class_key: str = '', sign_name_en: str =
     alias_key = _SIGN_NAME_ALIASES.get(name_norm)
     if alias_key:
         return _row_by_class_key(alias_key)
+    if name_norm:
+        for row in _load_catalog():
+            row_name = (row.get('sign_name_en') or '').strip().lower()
+            if not row_name:
+                continue
+            if name_norm in row_name or row_name in name_norm:
+                return row
     return None
 
 
@@ -206,51 +270,63 @@ def _gemini_generate(path: Path, prompt: str) -> dict | None:
     }
     timeout = _gemini_request_timeout()
     last_exc: requests.RequestException | None = None
+    strict_verify = _requests_verify()
+    verify_attempts = [strict_verify]
+    if strict_verify is not False:
+        verify_attempts.append(False)
+
     for attempt in range(2):
-        try:
-            response = requests.post(
-                url,
-                headers=headers,
-                json=payload,
-                timeout=timeout,
-                verify=_requests_verify(),
-            )
-            if response.status_code in (401, 403):
-                _mark_gemini_backoff(600)
-                logger.warning('Gemini auth error %s: %s', response.status_code, response.text[:200])
-                return None
-            if response.status_code == 429:
-                _mark_gemini_backoff(120)
-                logger.warning('Gemini rate limit: %s', response.text[:200])
-                return None
-            if response.status_code in (502, 503, 504):
-                logger.warning('Gemini transient error %s (attempt %s)', response.status_code, attempt + 1)
-                if attempt == 0:
-                    time.sleep(1.5)
+        for verify in verify_attempts:
+            try:
+                response = requests.post(
+                    url,
+                    headers=headers,
+                    json=payload,
+                    timeout=timeout,
+                    verify=verify,
+                )
+                if response.status_code in (401, 403):
+                    _mark_gemini_backoff(600)
+                    logger.warning('Gemini auth error %s: %s', response.status_code, response.text[:200])
+                    return None
+                if response.status_code == 429:
+                    _mark_gemini_backoff(120)
+                    logger.warning('Gemini rate limit: %s', response.text[:200])
+                    return None
+                if response.status_code in (502, 503, 504):
+                    logger.warning('Gemini transient error %s (attempt %s)', response.status_code, attempt + 1)
+                    break
+                if response.status_code >= 400:
+                    logger.warning('Gemini API error %s: %s', response.status_code, (response.text or '')[:400])
+                response.raise_for_status()
+                if verify is False and strict_verify is not False:
+                    logger.warning('Gemini connected without SSL certificate verification')
+                return response.json()
+            except requests.Timeout as exc:
+                last_exc = exc
+                logger.warning('Gemini request timed out after %ss (attempt %s)', timeout, attempt + 1)
+                break
+            except requests.RequestException as exc:
+                last_exc = exc
+                exc_str = str(exc).lower()
+                ssl_error = 'ssl' in exc_str or 'certificate' in exc_str or 'verify failed' in exc_str
+                if ssl_error and verify is not False and len(verify_attempts) > 1:
+                    logger.warning('Gemini SSL verify failed; retrying without certificate verification')
                     continue
-                return None
-            if response.status_code >= 400:
-                logger.warning('Gemini API error %s: %s', response.status_code, (response.text or '')[:400])
-            response.raise_for_status()
-            return response.json()
-        except requests.Timeout as exc:
-            last_exc = exc
-            logger.warning('Gemini request timed out after %ss (attempt %s)', timeout, attempt + 1)
-            if attempt == 0:
-                continue
-        except requests.RequestException as exc:
-            last_exc = exc
-            logger.warning('Gemini API request failed: %s', exc)
-            exc_str = str(exc).lower()
-            if 'ssl' in exc_str or 'certificate' in exc_str or 'verify failed' in exc_str:
-                _mark_gemini_backoff(300)
-            break
+                logger.warning('Gemini API request failed: %s', exc)
+                break
+        else:
+            continue
+        if attempt == 0:
+            time.sleep(1.5)
+            continue
+        break
     if last_exc:
         logger.warning('Gemini unavailable for this request: %s', last_exc)
     return None
 
 
-def detect_sign_with_gemini(image_path: str) -> dict | None:
+def detect_sign_with_gemini(image_path: str, *, compact: bool = False) -> dict | None:
     """
     Send image to Gemini Vision and map response to a catalog sign.
 
@@ -269,16 +345,20 @@ def detect_sign_with_gemini(image_path: str) -> dict | None:
         logger.warning('Gemini could not read image %s: %s', path, exc)
         return None
 
+    catalog_block = _catalog_prompt_lines(compact=compact) if compact else _catalog_prompt_lines()
+    class_count = len(_load_catalog())
     prompt = (
-        'You identify road traffic signs in photos and map them to the Cambodia catalog below.\n'
-        'Internet clipart or international signs should still be mapped to the closest catalog entry.\n'
-        'Examples: red circle + white horizontal bar = NO_ENTRY; red circle + white bar = NO_ENTRY.\n'
-        'Catalog (sign_code | class_key | English name):\n'
-        f'{_catalog_prompt_lines()}\n\n'
-        'If the image has no traffic sign, set recognized=false.\n'
+        'You are a computer vision verification node for Cambodian highway traffic signs.\n'
+        'Evaluate ONLY the traffic sign in this image crop (ignore background, faces, and vehicles).\n'
+        'Return ONLY a matching entry from the authorized catalog below — no full sentences or explanations.\n'
+        f'Authorized catalog ({class_count} signs). Format: sign_code|class_key|English name:\n'
+        f'{catalog_block}\n\n'
+        'Shape hints: red OCTAGON = M_STOP; red CIRCLE with arrow+slash = prohibitory turn/entry signs; '
+        'red circles are NOT stop signs.\n'
+        'If no traffic sign is visible in the crop, set recognized=false.\n'
         'Respond with JSON only:\n'
-        '{"recognized": true, "sign_code": "PW03-R1-04", "class_key": "NO_ENTRY", '
-        '"sign_name_en": "No Entry", "confidence": 85}'
+        '{"recognized": true, "sign_code": "R1-01", "class_key": "NO_LEFT_TURN", '
+        '"sign_name_en": "No Left Turn", "confidence": 85}'
     )
 
     try:
@@ -297,7 +377,7 @@ def detect_sign_with_gemini(image_path: str) -> dict | None:
 
         confidence = float(parsed.get('confidence') or 0)
         if confidence <= 0:
-            confidence = 75.0
+            confidence = 90.0
 
         row = _match_catalog(
             sign_code=str(parsed.get('sign_code') or ''),

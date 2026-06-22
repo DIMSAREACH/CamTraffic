@@ -26,3 +26,165 @@
 .profile-avatar-shell--card .profile-avatar-photo {
   object-position: center 15%;
 }
+
+.profile-avatar-shell--card {
+  border: 4px solid #ffffff;
+}
+
+.profile-avatar-shell--size-hero {
+  width: 6.5rem;
+  height: 6.5rem;
+}
+
+.profile-avatar-shell--hero {
+  border: 4px solid #ffffff;
+  box-shadow: none;
+}
+
+.profile-avatar-shell--hero-btn {
+  display: block;
+  padding: 0;
+  background: transparent;
+}
+
+.profile-avatar-rainbow-ring {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: 4px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 200deg,
+    #f58529,
+    #feda77,
+    #dd2a7b,
+    #8134af,
+    #515bd4,
+    #4f5bd5,
+    #f58529
+  );
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 0 28px rgba(221, 42, 123, 0.45);
+}
+
+.profile-avatar-rainbow-ring__gap {
+  padding: 3px;
+  border-radius: 50%;
+  background: rgba(11, 18, 32, 0.98);
+}
+
+.profile-avatar-overlay--hero {
+  background: rgba(0, 0, 0, 0.38);
+  opacity: 0;
+  transition: opacity 0.2s ease, background 0.2s ease;
+}
+
+.profile-avatar-shell--hero-btn:hover .profile-avatar-overlay--hero,
+.profile-avatar-shell--hero-btn:focus-visible .profile-avatar-overlay--hero,
+.profile-avatar-shell--hero-btn--uploading .profile-avatar-overlay--hero {
+  opacity: 1;
+}
+
+.profile-avatar-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.profile-avatar-upload--hero {
+  gap: 0;
+}
+
+/* Profile image crop dialog */
+.profile-crop-dialog__viewport {
+  position: relative;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  background: #0f172a;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.profile-crop-dialog__viewport:active {
+  cursor: grabbing;
+}
+
+.profile-crop-dialog__image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: none;
+  pointer-events: none;
+}
+
+.profile-crop-dialog__mask {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: 50%;
+  box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.55);
+  border: 2px solid rgba(255, 255, 255, 0.85);
+}
+
+.profile-crop-dialog__zoom {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+}
+
+.profile-crop-dialog__zoom-icon {
+  flex-shrink: 0;
+  color: #64748b;
+}
+
+.profile-crop-dialog__hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: #64748b;
+  text-align: center;
+}
+
+.profile-crop-dialog__footer {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.profile-crop-dialog__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.55rem 0.9rem;
+  border-radius: 0.65rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.profile-crop-dialog__btn--ghost {
+  color: #64748b;
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.profile-crop-dialog__btn--primary {
+  color: #fff;
+  background: linear-gradient(135deg, #6366f1, #3b82f6);
+  border: none;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.28);
+}
+
+.profile-crop-dialog__btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+html.dark .profile-crop-dialog__hint {
+  color: #94a3b8;
+}

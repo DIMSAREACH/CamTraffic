@@ -15,6 +15,7 @@ import { TrafficSignsPage } from '@shared/pages/TrafficSignsPage';
 import { VehiclesPage } from '@shared/pages/VehiclesPage';
 import { ProfilePage } from '@shared/pages/ProfilePage';
 import { NotificationsPage } from '@shared/pages/NotificationsPage';
+import { EvidenceArchivePage } from '@shared/pages/EvidenceArchivePage';
 import { RedirectToAdminPortal } from '@shared/components/PortalRedirect';
 
 export const router = createBrowserRouter([
@@ -30,6 +31,7 @@ export const router = createBrowserRouter([
       { index: true, Component: DashboardPage },
       { path: 'ai-detection', Component: AIDetectionPage },
       { path: 'ai-logs', Component: AILogsPage },
+      { path: 'evidence', Component: EvidenceArchivePage },
       { path: 'fines', Component: FineManagement },
       { path: 'violations', Component: ViolationsPage },
       { path: 'signs', Component: TrafficSignsPage },

@@ -65,27 +65,40 @@ export function buildDetectionOverlay(
   if (!result) return [];
   const items: OverlayBox[] = [];
 
-  const signLabel = locale === 'km'
-    ? (result.sign_name_km || result.sign_name || result.sign_code || 'Sign')
-    : (result.sign_name_en || result.sign_name || result.sign_code || 'Sign');
+  const signName = locale === 'km'
+    ? (result.sign_name_km || result.sign_name || result.sign_name_en || 'Sign')
+    : (result.sign_name_en || result.sign_name || result.sign_name_km || 'Sign');
+  const signCode = (result.sign_code || '').trim();
+  const signLabel = signCode ? `${signName} · ${signCode}` : signName;
+  const signConfidence = Number(result.display_confidence ?? result.confidence ?? 0);
 
-  if (validBbox(result.sign_bbox) && (result.confidence ?? 0) > 0) {
+  if (validBbox(result.sign_bbox) && signConfidence > 0) {
     items.push({
       id: 'sign',
       kind: 'sign',
       label: signLabel,
-      confidence: Number(result.confidence ?? 0),
+      confidence: signConfidence,
       bbox: result.sign_bbox,
+      color: SIGN_COLOR,
+    });
+  } else if (signCode && signConfidence > 0) {
+    items.push({
+      id: 'sign',
+      kind: 'sign',
+      label: signLabel,
+      confidence: signConfidence,
+      bbox: { x1: 0.08, y1: 0.08, x2: 0.92, y2: 0.92 },
       color: SIGN_COLOR,
     });
   }
 
   (result.vehicles ?? []).forEach((vehicle, index) => {
     if (!validBbox(vehicle.bbox)) return;
+    const trackLabel = vehicle.track_id != null ? ` #${vehicle.track_id}` : '';
     items.push({
-      id: `vehicle-${index}`,
+      id: vehicle.track_id != null ? `vehicle-${vehicle.track_id}` : `vehicle-${index}`,
       kind: 'vehicle',
-      label: vehicle.label || vehicle.vehicle_type,
+      label: `${vehicle.label || vehicle.vehicle_type}${trackLabel}`,
       confidence: Number(vehicle.confidence ?? 0),
       bbox: vehicle.bbox,
       color: VEHICLE_COLOR,

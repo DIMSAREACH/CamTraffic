@@ -2,15 +2,17 @@
 import json
 import re
 import time
+from io import BytesIO
 from pathlib import Path
 
+import numpy as np
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand
 from PIL import Image
 
 from traffic_signs.models import TrafficSign
-from traffic_signs.sign_image_processing import sign_png_bytes
+from traffic_signs.sign_image_processing import sign_display_png_bytes, sign_png_bytes
 from traffic_signs.management.commands.import_cambodia_signs import find_image_for_code
 
 CATALOG_PATH = Path(settings.BASE_DIR).parent / 'ai' / 'sign_catalog.json'
@@ -24,6 +26,35 @@ TRAINING_STATUS_PATH = Path(settings.BASE_DIR).parent / 'ai' / 'weights' / 'trai
 
 def _normalize_sign_key(value: str) -> str:
     return re.sub(r'[^A-Z0-9]', '', value.upper())
+
+
+def _png_visible_pixels(data: bytes) -> int:
+    try:
+        rgba = np.array(Image.open(BytesIO(data)).convert('RGBA'))
+        return int((rgba[:, :, 3] > 24).sum())
+    except OSError:
+        return 0
+
+
+def _encode_sign_image(raw: Image.Image, *, for_display: bool = True) -> bytes:
+    """Prefer bg-removed PNG; fall back to raw RGBA if processing yields a blank image."""
+    encode = sign_display_png_bytes if for_display else sign_png_bytes
+    processed = encode(raw)
+    if _png_visible_pixels(processed) >= 50:
+        return processed
+    buf = BytesIO()
+    raw.convert('RGBA').save(buf, format='PNG', optimize=True)
+    return buf.getvalue()
+
+
+def _existing_image_visible(sign: TrafficSign) -> bool:
+    if not sign.image:
+        return False
+    try:
+        with sign.image.open('rb') as fh:
+            return _png_visible_pixels(fh.read()) >= 50
+    except OSError:
+        return False
 
 
 def find_custom_image(sign_code: str) -> Path | None:
@@ -195,12 +226,16 @@ class Command(BaseCommand):
                         break
             if img_path and img_path.is_file():
                 with Image.open(img_path) as raw:
+                    png_data = _encode_sign_image(raw)
+                if _png_visible_pixels(png_data) < 50 and _existing_image_visible(sign):
+                    continue
+                if _png_visible_pixels(png_data) >= 50:
                     sign.image.save(
                         f'{code}.png',
-                        ContentFile(sign_png_bytes(raw)),
+                        ContentFile(png_data),
                         save=True,
                     )
-                images += 1
+                    images += 1
 
         model_path = Path(options['model_path'] or DEFAULT_MODEL).resolve()
         if not options['skip_env'] and ENV_PATH.is_file():
@@ -218,6 +253,14 @@ class Command(BaseCommand):
 
         sign_codes = [row['sign_code'] for row in catalog]
         TRAINING_STATUS_PATH.parent.mkdir(parents=True, exist_ok=True)
+        yolo_class_count = 0
+        if model_path.is_file():
+            try:
+                from ultralytics import YOLO
+
+                yolo_class_count = len(YOLO(str(model_path)).names or {})
+            except Exception:
+                yolo_class_count = len(catalog)
         TRAINING_STATUS_PATH.write_text(
             json.dumps(
                 {
@@ -225,6 +268,7 @@ class Command(BaseCommand):
                     'sign_codes': sign_codes,
                     'model_path': str(model_path),
                     'training_images': _count_training_images(),
+                    'yolo_class_count': yolo_class_count or len(catalog),
                 },
                 indent=2,
             ),

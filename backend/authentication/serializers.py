@@ -86,10 +86,30 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
     password_confirm = serializers.CharField(write_only=True)
+    email = serializers.EmailField()
 
     class Meta:
         model = User
         fields = ('full_name', 'email', 'password', 'password_confirm', 'phone', 'address', 'license_no')
+        extra_kwargs = {
+            'email': {'validators': []},
+        }
+
+    def validate_email(self, value):
+        from users.models import Driver
+
+        email = (value or '').strip().lower()
+        existing = User.objects.filter(email__iexact=email).first()
+        if existing:
+            # Recover from a prior failed registration that saved the user but not the driver profile.
+            if existing.role == 'driver' and not Driver.objects.filter(user=existing).exists():
+                existing.delete()
+                return email
+            raise serializers.ValidationError(
+                'An account with this email already exists. '
+                'Please sign in or use a different email.',
+            )
+        return email
 
     def validate_password(self, value):
         validate_strong_password(value)
@@ -112,20 +132,22 @@ class RegisterSerializer(serializers.ModelSerializer):
         return license_no
 
     def create(self, validated_data):
+        from django.db import transaction
         from users.profile_services import provision_user_account
 
-        user = User(
-            email=validated_data['email'].strip().lower(),
-            full_name=validated_data['full_name'],
-            phone=validated_data.get('phone', ''),
-            address=validated_data.get('address', ''),
-            license_no=validated_data.get('license_no', ''),
-            role='driver',
-        )
-        user.set_password(validated_data['password'])
-        user.save()
-        provision_user_account(user, license_no=user.license_no)
-        return user
+        with transaction.atomic():
+            user = User(
+                email=validated_data['email'].strip().lower(),
+                full_name=validated_data['full_name'],
+                phone=validated_data.get('phone', ''),
+                address=validated_data.get('address', ''),
+                license_no=validated_data.get('license_no', ''),
+                role='driver',
+            )
+            user.set_password(validated_data['password'])
+            user.save()
+            provision_user_account(user, license_no=user.license_no or None)
+            return user
 
 
 class PasswordResetRequestSerializer(serializers.Serializer):

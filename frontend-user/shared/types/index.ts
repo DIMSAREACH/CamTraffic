@@ -4,7 +4,7 @@ export type SignCategory = 'warning' | 'prohibitory' | 'mandatory' | 'informativ
 export type NotificationType = 'fine' | 'system' | 'detection' | 'alert';
 
 export interface User {
-  id: number;
+  id: string;
   full_name: string;
   email: string;
   role: UserRole;
@@ -191,9 +191,16 @@ export interface AIDetectionPageStats {
   model: {
     name: string;
     version: string;
-    mode: 'yolo' | 'mock' | 'mock_fallback';
+    mode: 'local' | 'yolo' | 'hybrid' | 'mock' | 'mock_fallback';
+    detection_mode?: string;
+    catalog_sign_count?: number;
+    yolo_trained_classes?: number;
+    catalog_visual_refs?: number;
+    live_catalog_coverage?: number;
     weights_loaded: boolean;
     gemini_enabled?: boolean;
+    plate_ocr_enabled?: boolean;
+    plate_ocr_engine?: string;
     hybrid_threshold?: number;
     sign_classes: number;
     training_images: number;
@@ -237,6 +244,22 @@ export interface ReasonData {
 
 export interface RoleData {
   role: string;
+  count: number;
+}
+
+export interface ReportSignCount {
+  sign: string;
+  count: number;
+}
+
+export interface ReportLocationRow {
+  name: string;
+  fines: number;
+  detections: number;
+}
+
+export interface ReportHourCount {
+  hour: string;
   count: number;
 }
 
@@ -304,8 +327,33 @@ export interface TrafficViolation {
   status: 'draft' | 'pending_review' | 'confirmed' | 'rejected';
   ai_detection_log?: number | null;
   fine_id?: number | null;
+  driver_user_id?: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface ViolationRule {
+  id: number;
+  sign_class_key: string;
+  prohibited_action: string;
+  violation_type: string;
+  title: string;
+  description: string;
+  default_fine_amount: number;
+  is_active: boolean;
+}
+
+export interface EvidenceArchiveItem {
+  id: string;
+  source_type: 'detection' | 'violation' | 'fine';
+  source_id: number;
+  title: string;
+  plate: string;
+  location: string;
+  image_url: string | null;
+  vehicle_image_url: string | null;
+  plate_image_url: string | null;
+  created_at: string;
 }
 
 export interface DashboardStats {
@@ -329,6 +377,10 @@ export interface DashboardStats {
   fine_by_reason: ReasonData[];
   violation_by_type?: Array<{ reason?: string; violation_type?: string; count: number }>;
   user_distribution: RoleData[];
+  detection_by_sign?: ReportSignCount[];
+  top_locations?: ReportLocationRow[];
+  peak_hours?: ReportHourCount[];
+  monthly_registrations?: MonthlyData[];
   trends?: {
     users?: TrendBadge | null;
     fines?: TrendBadge | null;

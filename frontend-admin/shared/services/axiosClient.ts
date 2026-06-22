@@ -1,10 +1,12 @@
 import axios from 'axios';
+import { notifyAuthSessionExpired } from '@shared/utils/authEvents';
 import {
   clearAuthSession,
   getAccessToken,
   getRefreshToken,
   setAccessToken,
 } from '@shared/utils/authStorage';
+import { humanizeApiError, parseApiErrorBody } from '@shared/utils/apiErrors';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -13,12 +15,16 @@ export const apiClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+function invalidateAuthSession(): void {
+  clearAuthSession();
+  notifyAuthSessionExpired();
+}
+
 apiClient.interceptors.request.use((config) => {
   const token = getAccessToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  // Let the browser set multipart boundary (do not force application/json on FormData)
   if (config.data instanceof FormData) {
     delete config.headers['Content-Type'];
   }
@@ -29,7 +35,7 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const original = error.config;
-    if (error.response?.status === 401 && !original._retry) {
+    if (error.response?.status === 401 && original && !original._retry) {
       const refresh = getRefreshToken();
       if (refresh) {
         original._retry = true;
@@ -42,37 +48,38 @@ apiClient.interceptors.response.use(
             return apiClient(original);
           }
         } catch {
-          clearAuthSession();
+          invalidateAuthSession();
         }
+      } else {
+        invalidateAuthSession();
       }
     }
+
     const body = error.response?.data;
-    let message: string | undefined;
-    if (body && typeof body === 'object') {
-      const errors = (body as { errors?: Record<string, unknown> }).errors;
-      if (errors && typeof errors === 'object') {
-        const parts: string[] = [];
-        for (const [field, val] of Object.entries(errors)) {
-          const text = Array.isArray(val) ? val.map(String).join(', ') : String(val);
-          if (text) parts.push(`${field}: ${text}`);
-        }
-        if (parts.length) message = parts.join(' · ');
-      }
-      const envelopeMsg = (body as { message?: string }).message;
-      if (!message && typeof envelopeMsg === 'string' && envelopeMsg.trim()) {
-        message = envelopeMsg;
-      }
-    }
+    let message = parseApiErrorBody(body);
+
     if (!message) {
       const status = error.response?.status;
-      if (status === 503) {
+      if (status === 401) {
+        if (!getAccessToken()) {
+          invalidateAuthSession();
+        }
+        message = 'Session expired. Please log in again.';
+      } else if (status === 503) {
         message = 'Backend unavailable. Start Django: cd backend && python manage.py runserver';
-      } else if (error.message === 'Network Error') {
-        message = 'Cannot reach the API. Start the backend (port 8000) and refresh the page.';
+      } else if (error.message === 'Network Error' || error.code === 'ECONNRESET') {
+        message = 'Cannot reach the API. The server may be busy — wait a moment and try again.';
       } else {
         message = error.message || 'Request failed';
       }
     }
+
+    message = humanizeApiError(message);
+
+    if (error.response?.status === 401 && message === 'Session expired. Please log in again.') {
+      invalidateAuthSession();
+    }
+
     return Promise.reject(new Error(message));
   },
 );

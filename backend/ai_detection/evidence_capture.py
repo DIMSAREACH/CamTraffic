@@ -42,6 +42,9 @@ def _plate_crop(
     *,
     best_region: str = '',
 ) -> tuple[np.ndarray | None, str]:
+    if best_region == 'full_frame':
+        return image, 'full_frame'
+
     regions = _plate_regions(image, vehicles or [])
     if best_region:
         for crop, region in regions:

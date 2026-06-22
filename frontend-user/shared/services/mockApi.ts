@@ -1,6 +1,10 @@
-/** In-memory mock API — used when VITE_USE_MOCK=true */
+import {
+  getSampleEvidenceArchive,
+  SAMPLE_VIOLATION_RULES,
+  SAMPLE_VIOLATIONS,
+} from './sampleDataFallback';
 import type {
-  User, Vehicle, Fine, TrafficSign, TrafficViolation, AIDetectionLog, AIDetectionPageStats, Notification,
+  User, Vehicle, Fine, TrafficSign, TrafficViolation, ViolationRule, AIDetectionLog, AIDetectionPageStats, Notification,
   DashboardStats, AuthResponse, LoginOptions, Road, Camera,
 } from '../types';
 import {
@@ -189,26 +193,26 @@ export const authAPI = {
 
 export const usersAPI = {
   async getAll() { await delay(500); return users.map((u) => ({ ...u })); },
-  async getById(id: number) {
+  async getById(id: string) {
     await delay(300);
     const u = users.find((x) => x.id === id);
     if (!u) throw new Error('User not found');
     return { ...u };
   },
-  async update(id: number, data: Partial<User>) {
+  async update(id: string, data: Partial<User>) {
     const idx = users.findIndex((u) => u.id === id);
     if (idx === -1) throw new Error('User not found');
     users[idx] = { ...users[idx], ...data };
     return { ...users[idx] };
   },
-  async uploadProfileImage(id: number, file: File) {
+  async uploadProfileImage(id: string, file: File) {
     await delay(400);
     const url = URL.createObjectURL(file);
     return usersAPI.update(id, { profile_image: url });
   },
   async create(data: Partial<User> & { password: string }) {
     const newUser: User = {
-      id: users.length + 1,
+      id: String(users.length + 1),
       full_name: data.full_name || '',
       email: data.email || '',
       role: data.role || 'driver',
@@ -221,8 +225,8 @@ export const usersAPI = {
     users.push(newUser);
     return newUser;
   },
-  async delete(id: number) { users = users.filter((u) => u.id !== id); },
-  async toggleActive(id: number) {
+  async delete(id: string) { users = users.filter((u) => u.id !== id); },
+  async toggleActive(id: string) {
     const idx = users.findIndex((u) => u.id === id);
     users[idx].is_active = !users[idx].is_active;
     return { ...users[idx] };
@@ -245,8 +249,25 @@ export const profileAPI = {
   async deactivate() {
     await delay(400);
     const user = getMockUser();
-    await usersAPI.update(user.id, { is_active: false });
+    if (user.role === 'admin') {
+      throw new Error('Administrator accounts cannot be self-deactivated.');
+    }
+    const idx = users.findIndex((u) => u.id === user.id);
+    if (idx !== -1) users[idx] = { ...users[idx], is_active: false };
     return { message: 'Account deactivated' };
+  },
+  async deleteAccount(password: string) {
+    await delay(400);
+    const user = getMockUser();
+    if (user.role === 'admin') {
+      throw new Error('Administrator accounts cannot be self-deleted.');
+    }
+    if (password !== 'password') {
+      throw new Error('Invalid password.');
+    }
+    const idx = users.findIndex((u) => u.id === user.id);
+    if (idx !== -1) users.splice(idx, 1);
+    return { message: 'Account deleted' };
   },
   async logoutOtherSessions(_refresh: string) {
     await delay(400);
@@ -580,7 +601,7 @@ export const camerasAPI = {
 };
 
 export const violationsAPI = {
-  async getAll(): Promise<TrafficViolation[]> { return []; },
+  async getAll(): Promise<TrafficViolation[]> { return [...SAMPLE_VIOLATIONS]; },
   async getById(_id: number): Promise<TrafficViolation> { throw new Error('Not found'); },
   async evaluate(_data: { class_key: string; observed_action: string; sign_code?: string }) {
     return { is_violation: false };
@@ -599,8 +620,17 @@ export const violationsAPI = {
     throw new Error('Mock violations update not implemented');
   },
   async delete(_id: number): Promise<void> {},
+  async getRules(): Promise<ViolationRule[]> {
+    return [...SAMPLE_VIOLATION_RULES];
+  },
   async getStats() {
-    return { total_violations: 0, pending_review: 0, confirmed: 0, rejected: 0, by_type: [] };
+    return {
+      total_violations: SAMPLE_VIOLATIONS.length,
+      pending_review: SAMPLE_VIOLATIONS.filter((v) => v.status === 'pending_review').length,
+      confirmed: SAMPLE_VIOLATIONS.filter((v) => v.status === 'confirmed').length,
+      rejected: 0,
+      by_type: [],
+    };
   },
 };
 
@@ -628,5 +658,9 @@ export const dashboardAPI = {
       recent_detections: aiLogs.filter((l) => l.user_id === driverId).slice(-3),
       recent_fines: df.slice(-3).reverse(),
     };
+  },
+  async searchEvidence() {
+    const results = getSampleEvidenceArchive();
+    return { count: results.length, results };
   },
 };

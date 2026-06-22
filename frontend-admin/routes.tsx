@@ -5,6 +5,7 @@ import { AdminDashboard } from '@admin/pages/AdminDashboard';
 import { UsersPage } from '@admin/pages/UsersPage';
 import { AIDetectionPage } from '@shared/pages/AIDetectionPage';
 import { ReportsPage } from '@shared/pages/ReportsPage';
+import { EvidenceArchivePage } from '@shared/pages/EvidenceArchivePage';
 import { AILogsPage } from '@shared/pages/AILogsPage';
 import { FineManagement } from '@shared/pages/FineManagement';
 import { ViolationsPage } from '@shared/pages/ViolationsPage';
@@ -33,6 +34,7 @@ export const router = createBrowserRouter([
       { path: 'ai-detection', Component: AIDetectionPage },
       { path: 'cameras', Component: CamerasPage },
       { path: 'ai-logs', Component: AILogsPage },
+      { path: 'evidence', Component: EvidenceArchivePage },
       { path: 'fines', Component: FineManagement },
       { path: 'violations', Component: ViolationsPage },
       { path: 'signs', Component: TrafficSignsPage },

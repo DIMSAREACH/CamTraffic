@@ -1,0 +1,946 @@
+{
+  "PW03-R1-08": {
+    "km": "កំណត់ទំងន់ផ្ទុកលើភ្លៅនីមួយៗ",
+    "en": "Weight Limit on One Axle"
+  },
+  "PW03-R1-09": {
+    "km": "កំណត់កំពស់",
+    "en": "Height Limit"
+  },
+  "I-036": {
+    "km": "៣គន្លងរួមគ្នាទៅ២គន្លងពីឆ្វេង",
+    "en": "3 lanes merge to 2 lanes from the left"
+  },
+  "I-037": {
+    "km": "៣គន្លងរួមគ្នាទៅ២គន្លងពីស្តាំ",
+    "en": "3 lanes merge to 2 lanes from the right"
+  },
+  "I-038": {
+    "km": "អនុញ្ញាតឲ្យកង់ជិះទន្ទឹមគ្នា",
+    "en": "Abreast travelling permitted for bicycles"
+  },
+  "I-039": {
+    "km": "អាកាសយានដ្ឋាន",
+    "en": "Airports"
+  },
+  "I-001": {
+    "km": "រទេះសត្វ",
+    "en": "Animal drawn carts"
+  },
+  "I-040": {
+    "km": "គន្លងពិសេសទិសដៅព្រួញ",
+    "en": "Arrow direction exclusive lane"
+  },
+  "I-096": {
+    "km": "ផ្លូវហាយវ៉េអេដួន លេខ ១",
+    "en": "Asian Highway route 1"
+  },
+  "I-097": {
+    "km": "ផ្លូវហាយវ៉េអេដួន លេខ ១១",
+    "en": "Asian Highway route 11"
+  },
+  "I-002": {
+    "km": "ថយក្រោយ",
+    "en": "Backward"
+  },
+  "I-003": {
+    "km": "ប្រយ័ត្នរថភ្លើង",
+    "en": "Beware of trains"
+  },
+  "I-004": {
+    "km": "កង់",
+    "en": "Bicycles"
+  },
+  "I-041": {
+    "km": "ផ្លូវចុះទូក",
+    "en": "Boats ramp"
+  },
+  "I-025": {
+    "km": "ចាប់ផ្ដើមតំបន់ប្រជុំជន",
+    "en": "Built-up area begins"
+  },
+  "I-026": {
+    "km": "ចប់តំបន់ប្រជុំជន",
+    "en": "Built-up area ends"
+  },
+  "I-005": {
+    "km": "ឡានក្រុង",
+    "en": "Buses"
+  },
+  "I-042": {
+    "km": "កន្លែងបោះតង់",
+    "en": "Camping area"
+  },
+  "I-043": {
+    "km": "កន្លែងចតរថយន្តផ្ទះ និងបោះតង់",
+    "en": "Caravans park and camping area"
+  },
+  "I-044": {
+    "km": "កន្លែងចតរថយន្តផ្ទះ",
+    "en": "Caravans park or site"
+  },
+  "I-006": {
+    "km": "រថយន្ត",
+    "en": "Cars"
+  },
+  "I-088": {
+    "km": "សញ្ញាព្រួញបត់ឆ្វេង",
+    "en": "Chevron marker (to the left)"
+  },
+  "I-089": {
+    "km": "សញ្ញាព្រួញបត់ស្តាំ",
+    "en": "Chevron marker (to the right)"
+  },
+  "I-045": {
+    "km": "គ្លីនិក",
+    "en": "Clinic"
+  },
+  "I-046": {
+    "km": "គន្លងផ្លូវចាំបាច់",
+    "en": "Compulsory lanes"
+  },
+  "I-049": {
+    "km": "ផ្លូវទាល់",
+    "en": "Dead end"
+  },
+  "I-047": {
+    "km": "ផ្លូវទាល់ខាងស្តាំ",
+    "en": "Dead end on the right"
+  },
+  "I-048": {
+    "km": "ផ្លូវទាល់ខាងឆ្វេង",
+    "en": "Dead end road on the left"
+  },
+  "I-090": {
+    "km": "បង្គោលកំណត់ផ្លូវ",
+    "en": "Delineator post"
+  },
+  "I-050": {
+    "km": "ផ្លូវវៀចសម្រាប់បត់ឆ្វេង",
+    "en": "Detour for the turning left"
+  },
+  "I-051": {
+    "km": "ផ្លូវវៀចសម្រាប់យានជំនិះលើសកំពស់",
+    "en": "Detour for the vehicle having overall height exceeding specified height"
+  },
+  "I-033": {
+    "km": "ទិសដៅទៅទីក្រុង/ខេត្ត",
+    "en": "Directions to city or province"
+  },
+  "I-007": {
+    "km": "ទិសផ្លូវមានអាទិភាព",
+    "en": "Direction of priority road"
+  },
+  "I-029": {
+    "km": "ផ្លាកសញ្ញាបង្ហាញទិសទៅទីក្រុង ឬខេត្ត (ផ្លូវវាង)",
+    "en": "Direction sign to cities or provinces (at detour)"
+  },
+  "I-030": {
+    "km": "ផ្លាកសញ្ញាបង្ហាញទិសទៅទីក្រុង ឬខេត្ត (ផ្លូវបំបែក)",
+    "en": "Direction sign to cities or provinces (at junction)"
+  },
+  "I-031": {
+    "km": "ផ្លាកសញ្ញាបង្ហាញទិសទៅតំបន់ផ្សេងៗ (ផ្លូវវាង)",
+    "en": "Direction sign to other areas (at detour)"
+  },
+  "I-032": {
+    "km": "ផ្លាកសញ្ញាបង្ហាញទិសទៅតំបន់ផ្សេងៗ (ផ្លូវបំបែក)",
+    "en": "Direction sign to other areas (at junction)"
+  },
+  "I-008": {
+    "km": "សញ្ញាសម្គាល់ចម្ងាយ",
+    "en": "Distance identification marker"
+  },
+  "I-052": {
+    "km": "ទឹកផឹក",
+    "en": "Drinking waters"
+  },
+  "I-053": {
+    "km": "ចាប់ផ្ដើមផ្លូវរហ័ស",
+    "en": "Expressway begins"
+  },
+  "I-054": {
+    "km": "បញ្ចប់ផ្លូវរហ័ស",
+    "en": "Expressway ends"
+  },
+  "I-098": {
+    "km": "លេខផ្លូវរហ័ស",
+    "en": "Expressway number"
+  },
+  "I-009": {
+    "km": "ច្រករោងចក្រ",
+    "en": "Factory gate"
+  },
+  "I-055": {
+    "km": "ទូកចម្លង",
+    "en": "Ferry"
+  },
+  "I-056": {
+    "km": "សញ្ញាព្រមានអគ្គិភ័យព្រៃ",
+    "en": "Forest fire warning signs"
+  },
+  "I-011": {
+    "km": "ទៅមុខ",
+    "en": "Forward"
+  },
+  "I-010": {
+    "km": "ទៅមុខ និងថយក្រោយ",
+    "en": "Forward and backward"
+  },
+  "I-057": {
+    "km": "ស្ថានីយ៍ជួសជុល",
+    "en": "Garage station"
+  },
+  "I-059": {
+    "km": "ស្ថានីយ៍ប្រេង",
+    "en": "Gas station"
+  },
+  "I-058": {
+    "km": "ស្ថានីយ៍ប្រេង និងជួសជុល",
+    "en": "Gas station and repair"
+  },
+  "I-091": {
+    "km": "បង្គោលនាំផ្លូវកោងគ្រោះថ្នាក់",
+    "en": "Guide post (at dangerous curve)"
+  },
+  "I-034": {
+    "km": "ស្លាកសញ្ញាណែនាំទៅកន្លែងផ្សេងៗ",
+    "en": "Guide sign to other places"
+  },
+  "I-060": {
+    "km": "មន្ទីរពេទ្យ",
+    "en": "Hospital"
+  },
+  "I-061": {
+    "km": "សណ្ឋាគារ",
+    "en": "Hotel or motel"
+  },
+  "I-099": {
+    "km": "មហាវិថីក្រមូនសារ",
+    "en": "Kramuon Sar Avenue"
+  },
+  "I-012": {
+    "km": "រថយន្តដឹកទំនិញធំលើសប្រវែង",
+    "en": "Large-size trucks having overall length exceeding the specified length"
+  },
+  "I-014": {
+    "km": "ម៉ូតូ",
+    "en": "Motorcycles"
+  },
+  "I-013": {
+    "km": "រទេះម៉ូតូ",
+    "en": "Motorcycle-drawn carts"
+  },
+  "I-100": {
+    "km": "លេខផ្លូវជាតិ",
+    "en": "National road number"
+  },
+  "I-092": {
+    "km": "សញ្ញាសម្គាល់វត្ថុ (ផ្លូវកោង)",
+    "en": "Object marker (on the curve)"
+  },
+  "I-093": {
+    "km": "សញ្ញាសម្គាល់វត្ថុ (ខាងឆ្វេង)",
+    "en": "Object marker (on the left)"
+  },
+  "I-094": {
+    "km": "សញ្ញាសម្គាល់វត្ថុ (ខាងស្តាំ)",
+    "en": "Object marker (on the right)"
+  },
+  "I-063": {
+    "km": "ព័ត៌មានទេសចរណ៍",
+    "en": "Official tourist information"
+  },
+  "I-064": {
+    "km": "ផ្លូវដោយឯកទៅ",
+    "en": "One-way traffic"
+  },
+  "I-065": {
+    "km": "ចំណតរថយន្ត",
+    "en": "Parking lot"
+  },
+  "I-066": {
+    "km": "ចំណតបង់ប្រាក់",
+    "en": "Pay parking lot"
+  },
+  "I-068": {
+    "km": "កន្លែងកម្សាន្ត",
+    "en": "Picnic site"
+  },
+  "I-101": {
+    "km": "មហាវិថីព្រះនរោត្តម",
+    "en": "Preah Norodom Boulevard"
+  },
+  "I-102": {
+    "km": "ផ្លូវព្រះត្រសក់ផ្អែម",
+    "en": "Preah Trasak Paem Street"
+  },
+  "I-027": {
+    "km": "ចាប់ផ្ដើមព្រំប្រទល់ខេត្ត ស្រុក ឬឃុំ",
+    "en": "Provincial, district or commune boundary begins"
+  },
+  "I-028": {
+    "km": "ចប់ព្រំប្រទល់ខេត្ត ស្រុក ឬឃុំ",
+    "en": "Provincial, district or commune boundary ends"
+  },
+  "I-095": {
+    "km": "បង្គោលរថភ្លើង",
+    "en": "Railway crossing post"
+  },
+  "I-069": {
+    "km": "ធុងសំរាមកែច្នៃ",
+    "en": "Recycle bin"
+  },
+  "I-070": {
+    "km": "ហាងភេសជ្ជៈ",
+    "en": "Refreshments shop"
+  },
+  "I-071": {
+    "km": "ភោជនីយដ្ឋាន",
+    "en": "Restaurants shop"
+  },
+  "I-103": {
+    "km": "ផ្លូវលេខ ១១៣",
+    "en": "Street No.113"
+  },
+  "I-072": {
+    "km": "ចំណតតាក់ស៊ី",
+    "en": "Taxis station"
+  },
+  "I-073": {
+    "km": "ទូរស័ព្ទ",
+    "en": "Telephone"
+  },
+  "I-015": {
+    "km": "សញ្ញាសម្គាល់ម៉ោង",
+    "en": "Time identification marker"
+  },
+  "I-074": {
+    "km": "បង្គន់",
+    "en": "Toilets"
+  },
+  "I-016": {
+    "km": "ទៅខាងឆ្វេង",
+    "en": "To the left hand side"
+  },
+  "I-017": {
+    "km": "ទៅខាងស្តាំ និងឆ្វេង",
+    "en": "To the right and left hand side"
+  },
+  "I-018": {
+    "km": "ទៅខាងស្តាំ",
+    "en": "To the right hand side"
+  },
+  "I-019": {
+    "km": "ម៉ាស៊ីនភ្លូត",
+    "en": "Tractors"
+  },
+  "I-020": {
+    "km": "រថយន្តដឹកទំនិញ",
+    "en": "Trucks"
+  },
+  "I-075": {
+    "km": "បត់ក",
+    "en": "U-turn"
+  },
+  "I-023": {
+    "km": "យានជំនិះលើសទម្ងន់ភ្លៅ",
+    "en": "Vehicles having overall length weight limit on one axle exceeding the specified weight limit on one axle"
+  },
+  "I-021": {
+    "km": "យានជំនិះលើសកំពស់",
+    "en": "Vehicles having over all length height exceeding the specified height"
+  },
+  "I-022": {
+    "km": "យានជំនិះលើសទទឹង",
+    "en": "Vehicles having over all length width exceeding the specified width"
+  },
+  "I-024": {
+    "km": "យានជំនិះដឹកទំនិញអាចឆាបរហស់",
+    "en": "Vehicles loading inflammable goods"
+  },
+  "I-035": {
+    "km": "ស្ថានីយ៍ថ្លឹងទម្ងន់",
+    "en": "Weigh station"
+  },
+  "PW03-R2-01": {
+    "km": "កំណត់ប្រវែង",
+    "en": "Length Limit"
+  },
+  "M-001": {
+    "km": "រទេះសត្វតែប៉ុណ្ណោះ",
+    "en": "Animal drawn carts of all form only"
+  },
+  "M-002": {
+    "km": "កង់តែប៉ុណ្ណោះ",
+    "en": "Bicycles only"
+  },
+  "M-003": {
+    "km": "ផ្លូវឡានក្រុង",
+    "en": "Buses lane"
+  },
+  "M-004": {
+    "km": "រថយន្តតែប៉ុណ្ណោះ",
+    "en": "Cars only"
+  },
+  "M-024": {
+    "km": "ផ្លូវរថភ្លើងទ្វេ ឬបីដង",
+    "en": "Double triple railway crossing"
+  },
+  "M-005": {
+    "km": "បញ្ចប់កង់តែប៉ុណ្ណោះ",
+    "en": "End of bicycles only"
+  },
+  "M-006": {
+    "km": "ចប់គន្លងឡានក្រុង",
+    "en": "End of buses lane"
+  },
+  "M-007": {
+    "km": "ចប់ល្បឿនអប្បបរមា",
+    "en": "End of minimum speed limit"
+  },
+  "M-008": {
+    "km": "ចប់ផ្លូវថ្មើរជើង និងកង់",
+    "en": "End of pedestrians and bicycles only"
+  },
+  "M-009": {
+    "km": "ចប់ផ្លូវថ្មើរជើង",
+    "en": "End of pedestrians only"
+  },
+  "M-025": {
+    "km": "បញ្ចប់ផ្លូវមានអាទិភាព",
+    "en": "End of priority road"
+  },
+  "M-026": {
+    "km": "ផ្តល់ផ្លូវចរាចរណ៍ផ្ទុយទិស",
+    "en": "Give way to all traffic from the opposite direction"
+  },
+  "M-012": {
+    "km": "ទៅត្រង់",
+    "en": "Go straight"
+  },
+  "M-010": {
+    "km": "ទៅត្រង់ ឬបត់ឆ្វេង",
+    "en": "Go straight or turn left"
+  },
+  "M-011": {
+    "km": "ទៅត្រង់ ឬបត់ស្តាំ",
+    "en": "Go straight or turn right."
+  },
+  "M-013": {
+    "km": "រក្សាខាងឆ្វេង",
+    "en": "Keep left"
+  },
+  "M-014": {
+    "km": "រក្សាខាងស្តាំ",
+    "en": "Keep right"
+  },
+  "M-015": {
+    "km": "កំណត់ល្បឿនអប្បបរមា",
+    "en": "Minimum speed limit"
+  },
+  "M-016": {
+    "km": "អ្នកថ្មើរជើង និងកង់តែប៉ុណ្ណោះ",
+    "en": "Pedestrians and bicycles only"
+  },
+  "M-017": {
+    "km": "អ្នកថ្មើរជើងតែប៉ុណ្ណោះ",
+    "en": "Pedestrians only"
+  },
+  "M-027": {
+    "km": "ផ្លូវបំបែកមានអាទិភាព",
+    "en": "Priority intersection"
+  },
+  "M-028": {
+    "km": "មានអាទិភាពលើចរាចរណ៍ផ្ទុយទិស",
+    "en": "Priority over all traffic from the opposite direction"
+  },
+  "M-029": {
+    "km": "ផ្លូវមានអាទិភាព",
+    "en": "Priority road"
+  },
+  "M-030": {
+    "km": "ផ្លូវរថភ្លើងដានតែមួយ",
+    "en": "Single track railway crossing"
+  },
+  "M-018": {
+    "km": "បន្ថយល្បឿន",
+    "en": "Slow down"
+  },
+  "M-032": {
+    "km": "ឈប់",
+    "en": "Stop"
+  },
+  "M-031": {
+    "km": "ឈប់ (ភាសាខ្មែរ និងអង់គ្លេស)",
+    "en": "Stop (Khmer and English languages)"
+  },
+  "M-021": {
+    "km": "បត់ឆ្វេង",
+    "en": "Turn left"
+  },
+  "M-019": {
+    "km": "បត់ឆ្វេងខាងមុខ",
+    "en": "Turn left ahead"
+  },
+  "M-020": {
+    "km": "បត់ឆ្វេង ឬស្តាំ",
+    "en": "Turn left or right"
+  },
+  "M-023": {
+    "km": "បត់ស្តាំ",
+    "en": "Turn right"
+  },
+  "M-022": {
+    "km": "បត់ស្តាំខាងមុខ",
+    "en": "Turn right ahead"
+  },
+  "M-033": {
+    "km": "ផ្តល់ផ្លូវ (នៅរង្វង់មូល)",
+    "en": "Yield (at roundabout)"
+  },
+  "M-034": {
+    "km": "ផ្តល់ផ្លូវ",
+    "en": "Yield (Give way)"
+  },
+  "PW03-R1-04": {
+    "km": "ហាមចូល",
+    "en": "No Entry"
+  },
+  "PW03-R1-01": {
+    "km": "ហាមបត់ឆ្វេង",
+    "en": "No Left Turn"
+  },
+  "PW03-R2-10": {
+    "km": "ហាមចត",
+    "en": "No Parking"
+  },
+  "PW03-R1-02": {
+    "km": "ហាមបត់ស្តាំ",
+    "en": "No Right Turn"
+  },
+  "PW03-R2-09": {
+    "km": "ហាមឈប់",
+    "en": "No Stopping"
+  },
+  "PW03-R1-03": {
+    "km": "ហាមបត់ត្រឡប់ក្រោយ",
+    "en": "No U-Turn"
+  },
+  "P-001": {
+    "km": "បញ្ចប់ការហាមផ្លុំស៊ីផ្លេ",
+    "en": "End of Honking Prohibition"
+  },
+  "P-002": {
+    "km": "បញ្ចប់កំណត់ល្បឿនអតិបរមា",
+    "en": "End of maximum speed limit"
+  },
+  "P-004": {
+    "km": "បញ្ចប់ហាមលើស",
+    "en": "End of overtaking prohibition"
+  },
+  "P-003": {
+    "km": "បញ្ចប់ហាមលើសឡានដឹក",
+    "en": "End of overtaking prohibition for trucks"
+  },
+  "P-005": {
+    "km": "បញ្ចប់ហាមលើសឡានដឹក",
+    "en": "End of prohibition overtaking for trucks"
+  },
+  "P-006": {
+    "km": "កំណត់ល្បឿនអតិបរមា",
+    "en": "Maximum speed limit"
+  },
+  "P-007": {
+    "km": "ចន្លោះអប្បបរមារវាងរថយន្ត",
+    "en": "Minimum separation distance for cars"
+  },
+  "P-008": {
+    "km": "ចន្លោះអប្បបរមារវាងឡានដឹក",
+    "en": "Minimum separation distance for trucks"
+  },
+  "P-009": {
+    "km": "ហាមរទេះសត្វ",
+    "en": "No animal-drawn carts"
+  },
+  "P-011": {
+    "km": "ហាមកង់",
+    "en": "No bicycles"
+  },
+  "P-010": {
+    "km": "ហាមកង់ ម៉ូតូ និងកង់បីកង់",
+    "en": "No bicycles, motorcycles and tricycles"
+  },
+  "P-012": {
+    "km": "ហាមឡានក្រុង",
+    "en": "No buses"
+  },
+  "P-013": {
+    "km": "ហាមរថយន្ត",
+    "en": "No cars"
+  },
+  "P-014": {
+    "km": "ហាមរទេះ",
+    "en": "No carts"
+  },
+  "P-015": {
+    "km": "ហាមប៉ះហោះ",
+    "en": "No honking"
+  },
+  "P-018": {
+    "km": "ហាមម៉ូតូ",
+    "en": "No motorcycles"
+  },
+  "P-017": {
+    "km": "ហាមរទេះម៉ូតូ",
+    "en": "No motorcycle-drawn carts"
+  },
+  "P-016": {
+    "km": "ហាមយានជំនិះម៉ាស៊ីន",
+    "en": "No motor vehicles"
+  },
+  "P-020": {
+    "km": "ហាមលើស",
+    "en": "No overtaking"
+  },
+  "P-019": {
+    "km": "ហាមលើសឡានដឹក",
+    "en": "No overtaking for trucks"
+  },
+  "P-021": {
+    "km": "ហាមចតថ្ងៃទី ១៦-៣១",
+    "en": "No parking from 16th to 31st day of the month"
+  },
+  "P-022": {
+    "km": "ហាមចតថ្ងៃទី ១-១៥",
+    "en": "No parking from 1st to 15th day of the month"
+  },
+  "P-023": {
+    "km": "ហាមចតថ្ងៃគู่",
+    "en": "No parking on even days"
+  },
+  "P-024": {
+    "km": "ហាមចតថ្ងៃគេ",
+    "en": "No parking on odd days"
+  },
+  "P-025": {
+    "km": "ហាមរទេះភ្ជាប់",
+    "en": "No towed trailers"
+  },
+  "P-026": {
+    "km": "ហាមម៉ាស៊ីនភ្លូត",
+    "en": "No tractors"
+  },
+  "P-027": {
+    "km": "ហាមឡានដឹក",
+    "en": "No trucks"
+  },
+  "P-028": {
+    "km": "ហាមដឹកទំនិញអាចឆាបរហស់",
+    "en": "No vehicles loading inflammable goods"
+  },
+  "P-029": {
+    "km": "កំណត់ល្បឿន ២០ គ.ម/ម៉",
+    "en": "Speed limit 20 km-h"
+  },
+  "P-030": {
+    "km": "កំណត់ល្បឿន ៥០ គ.ម/ម៉",
+    "en": "Speed limit 50 km-h"
+  },
+  "P-031": {
+    "km": "ឈប់នៅស្ថានីយ៍គយ",
+    "en": "Stop at the customs station"
+  },
+  "P-032": {
+    "km": "ឈប់នៅស្ថានីយ៍យោធា",
+    "en": "Stop at the military police station"
+  },
+  "P-033": {
+    "km": "ឈប់នៅស្ថានីយ៍ប៉ូលីស",
+    "en": "Stop at the police station"
+  },
+  "PW03-R1-06": {
+    "km": "ផ្លូវបិទចំពោះអ្នកប្រើប្រាស់ផ្លូវ",
+    "en": "Closed for All Road Users"
+  },
+  "PW03-R1-05": {
+    "km": "ផ្លូវបិទចំពោះយានជំនិះគ្រប់ប្រភេទ",
+    "en": "Closed for All Vehicles"
+  },
+  "PW03-R1-07": {
+    "km": "កំណត់ទំងន់សរុប",
+    "en": "Total Weight Limit"
+  },
+  "PW03-R1-10": {
+    "km": "កំណត់ទទឹង",
+    "en": "Width Limit"
+  },
+  "W-011": {
+    "km": "កង់ឆ្លងកាត់",
+    "en": "Bicycles crossing"
+  },
+  "W-012": {
+    "km": "គោក្របី ឬសត្វចិញ្ចឹម",
+    "en": "Cattle or domestic animals"
+  },
+  "W-017": {
+    "km": "ផ្លូវបំបែក",
+    "en": "Crossroad"
+  },
+  "W-013": {
+    "km": "ផ្លូវបំបែកលើផ្លូវកោង",
+    "en": "Crossroad on a curve (different road classes)"
+  },
+  "W-014": {
+    "km": "ផ្លូវបំបែកលើផ្លូវកោងទ្វេ",
+    "en": "Crossroad on a double curve (different road classes)"
+  },
+  "W-015": {
+    "km": "ផ្លូវបំបែកឆ្វេង (ផ្លូវខុសគ្នា)",
+    "en": "Crossroad on the left (different road classes)"
+  },
+  "W-016": {
+    "km": "ផ្លូវបំបែកស្តាំ (ផ្លូវខុសគ្នា)",
+    "en": "Crossroad on the right (different road classes)"
+  },
+  "W-018": {
+    "km": "ខ្យល់បក់ខ្លាំង",
+    "en": "Crosswinds"
+  },
+  "W-019": {
+    "km": "ផ្លូវកោងឆ្វេង",
+    "en": "Curve to the left"
+  },
+  "W-020": {
+    "km": "ផ្លូវកោងស្តាំ",
+    "en": "Curve to the right"
+  },
+  "W-021": {
+    "km": "សត្វព្រៃឆ្លងកាត់",
+    "en": "Deer or wild animals"
+  },
+  "W-001": {
+    "km": "ផ្លូវវៀចទៅឆ្វេង",
+    "en": "Detour to the left"
+  },
+  "W-002": {
+    "km": "ផ្លូវវៀចទៅស្តាំ",
+    "en": "Detour to the right"
+  },
+  "W-003": {
+    "km": "ទិសព្រួញត្រូវតាម",
+    "en": "Direction chevron to be followed"
+  },
+  "W-022": {
+    "km": "ចាប់ផ្តើមផ្លូវបំបែកទិស",
+    "en": "Divided roads begins"
+  },
+  "W-023": {
+    "km": "បញ្ចប់ផ្លូវបំបែក",
+    "en": "Divided roads ends"
+  },
+  "W-024": {
+    "km": "ផ្លូវកោងទ្វេ កោងដំបូងឆ្វេង",
+    "en": "Double curve first to the left"
+  },
+  "W-025": {
+    "km": "ផ្លូវកោងទ្វេ កោងដំបូងស្តាំ",
+    "en": "Double curve first to the right"
+  },
+  "W-026": {
+    "km": "ផ្លូវកោងញឹកទ្វេ កោងដំបូងឆ្វេង",
+    "en": "Double sharp curve first to the left"
+  },
+  "W-027": {
+    "km": "ផ្លូវកោងញឹកទ្វេ កោងដំបូងស្តាំ",
+    "en": "Double sharp curve first to the right"
+  },
+  "W-004": {
+    "km": "បញ្ចប់សារដ្ឋានកំពុងសង្គម",
+    "en": "End road works"
+  },
+  "W-028": {
+    "km": "ថ្មធ្លាក់",
+    "en": "Falling rocks"
+  },
+  "W-029": {
+    "km": "មានសញ្ញាផ្តល់ផ្លូវខាងមុខ",
+    "en": "Give way signs ahead"
+  },
+  "W-030": {
+    "km": "ឆ្លងផ្លូវជនពិការ",
+    "en": "Handicapped crossing"
+  },
+  "W-031": {
+    "km": "ផ្លូវជ្រុះ",
+    "en": "Hump"
+  },
+  "W-032": {
+    "km": "ផ្លូវបំបែកនៅផ្លូវកោង",
+    "en": "Junction on a curve (different road classes)"
+  },
+  "W-033": {
+    "km": "ផ្លូវបំបែកនៅផ្លូវកោងទ្វេ",
+    "en": "Junction on a double curve (different road classes)"
+  },
+  "W-034": {
+    "km": "ផ្លូវរអិល",
+    "en": "Loose road surface"
+  },
+  "W-035": {
+    "km": "យន្តហោះហោះទាប",
+    "en": "Low flying air craft"
+  },
+  "W-036": {
+    "km": "ស្ពានចង្អៀត",
+    "en": "Narrow bridge"
+  },
+  "W-037": {
+    "km": "ផ្លូវបំបែកឆ្វេង និងស្តាំ",
+    "en": "Offset road junction, left and right"
+  },
+  "W-038": {
+    "km": "ផ្លូវបំបែកស្តាំ និងឆ្វេង",
+    "en": "Offset road junction, right and left"
+  },
+  "W-039": {
+    "km": "គ្រោះថ្នាក់ផ្សេងៗ",
+    "en": "Other danger"
+  },
+  "W-040": {
+    "km": "ផ្លូវឆ្លងកាត់ថ្មើរជើង",
+    "en": "Pedestrian crossing"
+  },
+  "W-041": {
+    "km": "ផ្លូវរថភ្លើងខាងឆ្វេង",
+    "en": "Railway crossing on the left road"
+  },
+  "W-042": {
+    "km": "ផ្លូវរថភ្លើងខាងស្តាំ",
+    "en": "Railway crossing on the right road"
+  },
+  "W-044": {
+    "km": "ផ្លូវរថភ្លើងគ្មានរបង",
+    "en": "Railway crossing without barrier or gates"
+  },
+  "W-043": {
+    "km": "ផ្លូវរថភ្លើងមានរបង",
+    "en": "Railway crossing with barrier or gates"
+  },
+  "W-006": {
+    "km": "ទង់ក្រហម",
+    "en": "Red-flag"
+  },
+  "W-045": {
+    "km": "ផ្លូវចង្អៀតទាំងសងខាង",
+    "en": "Road narrows on the both sides"
+  },
+  "W-046": {
+    "km": "ផ្លូវចង្អៀតខាងឆ្វេង",
+    "en": "Road narrows on the left"
+  },
+  "W-047": {
+    "km": "ផ្លូវចង្អៀតខាងស្តាំ",
+    "en": "Road narrows on the right"
+  },
+  "W-048": {
+    "km": "រង្វង់មូលខាងមុខ",
+    "en": "Roundabout ahead"
+  },
+  "W-049": {
+    "km": "សាលារៀនខាងមុខ",
+    "en": "School ahead (only applies to public schools)"
+  },
+  "W-050": {
+    "km": "ផ្លូវកោងខ្លាំងទៅឆ្វេង",
+    "en": "Sharp curve to the left"
+  },
+  "W-051": {
+    "km": "ផ្លូវកោងខ្លាំងទៅស្តាំ",
+    "en": "Sharp curve to the right"
+  },
+  "W-053": {
+    "km": "ផ្លូវបំបែកខាងឆ្វេង",
+    "en": "Side road junction on the left"
+  },
+  "W-052": {
+    "km": "ផ្លូវបំបែកឆ្វេង (ថ្នាក់ផ្លូវផ្សេង)",
+    "en": "Side road junction on the left (different road classes)"
+  },
+  "W-055": {
+    "km": "ផ្លូវបំបែកខាងស្តាំ",
+    "en": "Side road junction on the right"
+  },
+  "W-054": {
+    "km": "ផ្លូវបំបែកស្តាំ (ថ្នាក់ផ្លូវផ្សេង)",
+    "en": "Side road junction on the right (different road classes)"
+  },
+  "W-056": {
+    "km": "ផ្លូវបំបែកចំហៀងឆ្វេង",
+    "en": "Skewed side road junction on the left"
+  },
+  "W-057": {
+    "km": "ផ្លូវបំបែកចំហៀងស្តាំ",
+    "en": "Skewed side road junction on the right"
+  },
+  "W-058": {
+    "km": "ផ្លូវរអិល",
+    "en": "Slippery road"
+  },
+  "W-059": {
+    "km": "ផ្លូវជ្រុងឡើង",
+    "en": "Steep climb"
+  },
+  "W-060": {
+    "km": "ផ្លូវជ្រុងចុះ",
+    "en": "Steep descent"
+  },
+  "W-061": {
+    "km": "មានសញ្ញាឈប់ខាងមុខ",
+    "en": "Stop signs ahead"
+  },
+  "W-007": {
+    "km": "សញ្ញាឈប់បណ្ដោះអាសន្ន",
+    "en": "Temporary stop signs (Khmer and English languages)"
+  },
+  "W-008": {
+    "km": "គំនរចរាចរណ៍",
+    "en": "Traffic cone"
+  },
+  "W-063": {
+    "km": "ភ្លើងចរាចរណ៍ខាងមុខ",
+    "en": "Traffic lights ahead"
+  },
+  "W-064": {
+    "km": "ចរាចរណ៍ទ្វេដង",
+    "en": "Two-way traffic"
+  },
+  "W-062": {
+    "km": "ផ្លូវបំបែករូបត",
+    "en": "T-junction ahead"
+  },
+  "W-065": {
+    "km": "ផ្លូវជ្រុះ",
+    "en": "Uneven road"
+  },
+  "W-066": {
+    "km": "ច្រកទឹកគ្មានរបង",
+    "en": "Unprotected quayside or riverbank ahead"
+  },
+  "W-067": {
+    "km": "ផ្លូវកោង",
+    "en": "Winding road"
+  },
+  "W-010": {
+    "km": "កម្មករ",
+    "en": "Workers"
+  },
+  "W-009": {
+    "km": "កម្មករនៅខាងមុខ",
+    "en": "Workers ahead"
+  },
+  "W-068": {
+    "km": "ផ្លូវបំបែករូបY",
+    "en": "Y-junction ahead"
+  }
+}

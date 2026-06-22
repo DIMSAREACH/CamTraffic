@@ -10,6 +10,7 @@ from core.permissions import IsAdmin, IsPoliceOrAdmin
 from core.responses import error_response, success_response
 from vehicles.models import Vehicle
 from vehicles.serializers import VehicleSerializer
+from violations.models import TrafficViolation, ViolationRule
 
 from .models import Fine
 from .serializers import FineCreateSerializer, FineSerializer
@@ -49,18 +50,62 @@ class FineListCreateView(generics.ListCreateAPIView):
             return error_response('Only police can issue fines', status_code=status.HTTP_403_FORBIDDEN)
         serializer = FineCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        try:
-            driver = User.objects.get(pk=serializer.validated_data['driver_id'], role='driver')
-        except User.DoesNotExist:
-            return error_response('Driver not found', status_code=status.HTTP_404_NOT_FOUND)
+        data = serializer.validated_data
+
+        violation = None
+        if data.get('violation_id'):
+            violation = (
+                TrafficViolation.objects.select_related('driver__user', 'vehicle', 'fine')
+                .filter(pk=data['violation_id'])
+                .first()
+            )
+            if not violation:
+                return error_response('Violation not found', status_code=status.HTTP_404_NOT_FOUND)
+            if getattr(violation, 'fine', None):
+                return error_response(
+                    'Fine already issued for this violation',
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                )
+
+        if violation:
+            driver = violation.driver.user
+        else:
+            try:
+                driver = User.objects.get(pk=data['driver_id'], role='driver')
+            except User.DoesNotExist:
+                return error_response('Driver not found', status_code=status.HTTP_404_NOT_FOUND)
+
+        amount = data.get('amount')
+        reason = (data.get('reason') or '').strip()
+        location = (data.get('location') or '').strip()
+        vehicle_plate = (data.get('vehicle_plate') or '').strip()
+
+        if violation:
+            rule = ViolationRule.objects.filter(
+                is_active=True,
+                sign_class_key__iexact=violation.detected_class_key,
+                prohibited_action__iexact=violation.observed_action,
+            ).first()
+            if amount is None:
+                amount = rule.default_fine_amount if rule else 25
+            if not reason:
+                reason = violation.description or violation.violation_type.replace('_', ' ').title()
+            if not location:
+                location = violation.location or 'Unknown'
+            if not vehicle_plate:
+                vehicle_plate = violation.vehicle_plate or (
+                    violation.vehicle.plate_number if violation.vehicle_id else ''
+                )
+
         fine = Fine.objects.create(
             driver=driver,
             police=request.user,
-            amount=serializer.validated_data['amount'],
-            reason=serializer.validated_data['reason'],
-            location=serializer.validated_data.get('location', ''),
-            vehicle_plate=serializer.validated_data.get('vehicle_plate', ''),
-            evidence_image=serializer.validated_data.get('evidence_image'),
+            amount=amount,
+            reason=reason,
+            location=location,
+            vehicle_plate=vehicle_plate,
+            evidence_image=data.get('evidence_image'),
+            violation=violation,
         )
         notify_driver_fine(driver, fine)
         return success_response(
@@ -108,12 +153,16 @@ class DriverLookupView(APIView):
             return error_response('License number required')
         driver = User.objects.filter(role='driver', license_no__icontains=license_no, is_active=True).first()
         if not driver:
-            return success_response({'driver': None, 'fines': [], 'vehicles': []}, message='No driver found')
+            return success_response({'driver': None, 'driver_profile_id': None, 'fines': [], 'vehicles': []}, message='No driver found')
+        from users.models import Driver
         from users.serializers import UserSerializer
+
+        driver_profile = Driver.objects.filter(user=driver).first()
         fines = Fine.objects.filter(driver=driver)
         vehicles = Vehicle.objects.filter(owner=driver)
         return success_response({
             'driver': UserSerializer(driver).data,
+            'driver_profile_id': driver_profile.id if driver_profile else None,
             'fines': FineSerializer(fines, many=True, context={'request': request}).data,
             'vehicles': VehicleSerializer(vehicles, many=True).data,
         })

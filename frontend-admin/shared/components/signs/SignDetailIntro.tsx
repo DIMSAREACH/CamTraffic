@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Hash, Pencil, Trash2 } from 'lucide-react';
 import { useLanguage } from '@shared/context/LanguageContext';
-import { signDisplayNames } from '@shared/utils/signDisplayNames';
+import { SignNameLabels } from '@shared/components/signs/SignNameLabels';
 import type { SignCategory, TrafficSign } from '@shared/types';
 
 type CatStyle = {
@@ -57,7 +57,6 @@ export function SignDetailIntro({
   onDelete,
 }: Props) {
   const { t } = useLanguage();
-  const { km, en } = signDisplayNames(sign);
 
   return (
     <div
@@ -75,8 +74,7 @@ export function SignDetailIntro({
       </div>
 
       <div className="signs-detail-intro__titles">
-        {km ? <h2 className="signs-detail-intro__km m-0">{km}</h2> : null}
-        {en ? <p className="signs-detail-intro__en m-0">{en}</p> : null}
+        <SignNameLabels sign={sign} size="detail" />
       </div>
 
       <div

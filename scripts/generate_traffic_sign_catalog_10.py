@@ -1,0 +1,174 @@
+#!/usr/bin/env python
+"""
+Build ai/traffic_sign_catalog_10.json for the dataset_10 / YOLOv8 10-class model.
+
+Usage (from repo root):
+  python scripts/generate_traffic_sign_catalog_10.py
+"""
+from __future__ import annotations
+
+import json
+from datetime import date
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+OUTPUT_PATH = ROOT / 'ai' / 'traffic_sign_catalog_10.json'
+FRONTEND_TARGETS = (
+    ROOT / 'frontend-user' / 'shared' / 'data' / 'traffic_sign_catalog_10.json',
+    ROOT / 'frontend-admin' / 'shared' / 'data' / 'traffic_sign_catalog_10.json',
+)
+
+CATALOG_PAYLOAD = {
+    'version': 1,
+    'generated_at': '2026-06-18',
+    'dataset': 'Cambodia Traffic Sign Dataset (10 Classes)',
+    'model': 'YOLOv8',
+    'total_classes': 10,
+    'signs': [
+        {
+            'id': 0,
+            'class_key': 'NO_ENTRY',
+            'sign_code': 'R1-04',
+            'category': 'Prohibitory Sign',
+            'source_folder': 'Prohibitory signs',
+            'source_file': 'No entry.png',
+            'sign_name_km': 'ហាមចូល',
+            'sign_name_en': 'No Entry',
+            'description_km': 'ហាមយានជំនិះគ្រប់ប្រភេទចូលផ្លូវនេះ។',
+            'description_en': 'Vehicles are prohibited from entering this road.',
+        },
+        {
+            'id': 1,
+            'class_key': 'NO_LEFT_TURN',
+            'sign_code': 'R1-01',
+            'category': 'Prohibitory Sign',
+            'source_folder': 'Prohibitory signs',
+            'source_file': 'No left turn.png',
+            'sign_name_km': 'ហាមបត់ឆ្វេង',
+            'sign_name_en': 'No Left Turn',
+            'description_km': 'ហាមបត់ឆ្វេងនៅទីតាំងនេះ។',
+            'description_en': 'Vehicles are prohibited from turning left.',
+        },
+        {
+            'id': 2,
+            'class_key': 'NO_RIGHT_TURN',
+            'sign_code': 'R1-02',
+            'category': 'Prohibitory Sign',
+            'source_folder': 'Prohibitory signs',
+            'source_file': 'No right turn.png',
+            'sign_name_km': 'ហាមបត់ស្តាំ',
+            'sign_name_en': 'No Right Turn',
+            'description_km': 'ហាមបត់ស្តាំនៅទីតាំងនេះ។',
+            'description_en': 'Vehicles are prohibited from turning right.',
+        },
+        {
+            'id': 3,
+            'class_key': 'NO_U_TURN',
+            'sign_code': 'R1-03',
+            'category': 'Prohibitory Sign',
+            'source_folder': 'Prohibitory signs',
+            'source_file': 'No U-turn.png',
+            'sign_name_km': 'ហាមបត់ត្រឡប់ក្រោយ',
+            'sign_name_en': 'No U-Turn',
+            'description_km': 'ហាមបត់ត្រឡប់ក្រោយនៅទីតាំងនេះ។',
+            'description_en': 'Vehicles are prohibited from making a U-turn.',
+        },
+        {
+            'id': 4,
+            'class_key': 'NO_PARKING',
+            'sign_code': 'R2-10',
+            'category': 'Prohibitory Sign',
+            'source_folder': 'Prohibitory signs',
+            'source_file': 'No parking.png',
+            'sign_name_km': 'ហាមចត',
+            'sign_name_en': 'No Parking',
+            'description_km': 'ហាមចតយានជំនិះគ្រប់ប្រភេទ។',
+            'description_en': 'Parking is prohibited.',
+        },
+        {
+            'id': 5,
+            'class_key': 'M_STOP',
+            'sign_code': 'M-032',
+            'category': 'Mandatory Sign',
+            'source_folder': 'Priority signs',
+            'source_file': 'Stop.png',
+            'sign_name_km': 'ឈប់',
+            'sign_name_en': 'Stop',
+            'description_km': 'ត្រូវឈប់យានជំនិះទាំងស្រុង មុនបន្តដំណើរ។',
+            'description_en': 'Drivers must come to a complete stop before proceeding.',
+        },
+        {
+            'id': 6,
+            'class_key': 'P_SPEED_LIMIT_20_KM_H',
+            'sign_code': 'P-029',
+            'category': 'Regulatory Sign',
+            'source_folder': 'Prohibitory signs',
+            'source_file': 'Speed limit 20 km-h.png',
+            'sign_name_km': 'កំណត់ល្បឿន ២០ គ.ម/ម៉',
+            'sign_name_en': 'Speed Limit 20 km/h',
+            'description_km': 'ល្បឿនអតិបរមាអនុញ្ញាត ២០ គីឡូម៉ែត្រក្នុងមួយម៉ោង។',
+            'description_en': 'Maximum permitted speed is 20 km/h.',
+        },
+        {
+            'id': 7,
+            'class_key': 'P_SPEED_LIMIT_50_KM_H',
+            'sign_code': 'P-030',
+            'category': 'Regulatory Sign',
+            'source_folder': 'Prohibitory signs',
+            'source_file': 'Speed limit 50 km-h.png',
+            'sign_name_km': 'កំណត់ល្បឿន ៥០ គ.ម/ម៉',
+            'sign_name_en': 'Speed Limit 50 km/h',
+            'description_km': 'ល្បឿនអតិបរមាអនុញ្ញាត ៥០ គីឡូម៉ែត្រក្នុងមួយម៉ោង។',
+            'description_en': 'Maximum permitted speed is 50 km/h.',
+        },
+        {
+            'id': 8,
+            'class_key': 'W_PEDESTRIAN_CROSSING',
+            'sign_code': 'W-040',
+            'category': 'Warning Sign',
+            'source_folder': 'Warning signs',
+            'source_file': 'Pedestrian crossing.png',
+            'sign_name_km': 'ផ្លូវឆ្លងកាត់ថ្មើរជើង',
+            'sign_name_en': 'Pedestrian Crossing',
+            'description_km': 'ប្រុងប្រយ័ត្ន មានអ្នកថ្មើរជើងឆ្លងកាត់ខាងមុខ។',
+            'description_en': 'Pedestrian crossing ahead. Slow down and be prepared to stop.',
+        },
+        {
+            'id': 9,
+            'class_key': 'I_ONE_WAY_TRAFFIC',
+            'sign_code': 'I-064',
+            'category': 'Information Sign',
+            'source_folder': 'Information signs',
+            'source_file': 'One-way traffic.png',
+            'sign_name_km': 'ផ្លូវឯកទិស',
+            'sign_name_en': 'One-Way Traffic',
+            'description_km': 'ចរាចរណ៍អនុញ្ញាតតែមួយទិសប៉ុណ្ណោះ។',
+            'description_en': 'Traffic flows in one direction only.',
+        },
+    ],
+}
+
+
+def main() -> None:
+    payload = {**CATALOG_PAYLOAD, 'generated_at': date.today().isoformat()}
+    text = json.dumps(payload, ensure_ascii=False, indent=2) + '\n'
+    OUTPUT_PATH.write_text(text, encoding='utf-8')
+    print(f'Wrote {OUTPUT_PATH} ({payload["total_classes"]} signs)')
+
+    for target in FRONTEND_TARGETS:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(text, encoding='utf-8')
+        print(f'Copied -> {target}')
+
+    sample = payload['signs'][0]
+    print(
+        f"\nSample:\n"
+        f"  Sign: {sample['sign_name_en']}\n"
+        f"  Khmer: {sample['sign_name_km']}\n"
+        f"  Code: {sample['sign_code']}\n"
+        f"  Description: {sample['description_en']}"
+    )
+
+
+if __name__ == '__main__':
+    main()

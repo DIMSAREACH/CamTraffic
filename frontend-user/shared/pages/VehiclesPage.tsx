@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
+import { usePagination } from '@shared/hooks/usePagination';
+import { TablePagination } from '@shared/components/ui/TablePagination';
 import { Car, Plus, Trash2, Search, Truck, Bike } from 'lucide-react';
 import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
@@ -106,6 +108,8 @@ export function VehiclesPage() {
     }
     return rows;
   }, [vehicles, search, typeFilter]);
+
+  const pagination = usePagination(filtered);
 
   const counts = useMemo(() => ({
     all: vehicles.length,
@@ -294,7 +298,7 @@ export function VehiclesPage() {
           </div>
         ) : (
           <div className="enforcement-page__vehicle-grid">
-            {filtered.map((v) => {
+            {pagination.pageItems.map((v) => {
               const meta = getTypeMeta(v.vehicle_type);
               return (
                 <div key={v.id} className="enforcement-page__vehicle-card">
@@ -329,7 +333,7 @@ export function VehiclesPage() {
               <TableHeader>
                 <TableRow className="enforcement-page__table-head">
                   {tableHeaders.map((h) => (
-                    <TableHead key={h} className="enforcement-page__th text-center">{h}</TableHead>
+                    <TableHead key={h} className="enforcement-page__th text-left">{h}</TableHead>
                   ))}
                 </TableRow>
               </TableHeader>
@@ -356,7 +360,7 @@ export function VehiclesPage() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ) : filtered.map((row) => {
+                ) : pagination.pageItems.map((row) => {
                   const meta = getTypeMeta(row.vehicle_type);
                   return (
                     <TableRow key={row.id} className="enforcement-page__table-row">
@@ -403,13 +407,7 @@ export function VehiclesPage() {
             </Table>
           </div>
 
-          {filtered.length > 0 && (
-            <div className="enforcement-page__footer">
-              <p className="enforcement-page__footer-text">
-                {t('vehicles.showing', { shown: filtered.length, total: vehicles.length })}
-              </p>
-            </div>
-          )}
+          <TablePagination pagination={pagination} label="vehicles" />
         </div>
       )}
 

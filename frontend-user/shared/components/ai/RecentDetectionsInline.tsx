@@ -1,0 +1,148 @@
+import { useState } from 'react';
+import { Activity, AlertCircle, Car, ChevronRight, Clock, Hash, History, Signpost } from 'lucide-react';
+import { useLanguage } from '@shared/context/LanguageContext';
+import { logDisplay, logDisplayColor } from '@shared/utils/detectionDisplay';
+import { getProfileImageUrl } from '@shared/utils/profileImage';
+import type { AIDetectionLog } from '@shared/types';
+
+const confColor = (c: number) => (c >= 95 ? '#10B981' : c >= 80 ? '#F59E0B' : '#EF4444');
+const confGrad = (c: number) =>
+  c >= 95
+    ? 'linear-gradient(90deg,#10B981,#06B6D4)'
+    : c >= 80
+      ? 'linear-gradient(90deg,#F59E0B,#F97316)'
+      : 'linear-gradient(90deg,#EF4444,#EC4899)';
+
+function RecentDetectionThumb({
+  log,
+  accent,
+  mode,
+}: {
+  log: AIDetectionLog;
+  accent: string;
+  mode: 'sign' | 'vehicle' | 'plate' | 'unknown_sign' | 'no_sign';
+}) {
+  const { locale } = useLanguage();
+  const speechLocale = locale === 'en' ? 'en' : 'km';
+  const hero = logDisplay(log, speechLocale);
+  const [imgFailed, setImgFailed] = useState(false);
+  const src = getProfileImageUrl(log.uploaded_image);
+  const FallbackIcon =
+    mode === 'vehicle' ? Car : mode === 'plate' ? Hash : mode === 'no_sign' || mode === 'unknown_sign' ? AlertCircle : Signpost;
+
+  if (src && !imgFailed) {
+    return (
+      <img
+        src={src}
+        alt={hero.title}
+        className="w-10 h-10 rounded-lg object-cover flex-shrink-0 bg-muted ring-1 ring-border/80"
+        style={{ boxShadow: `0 0 0 1.5px ${accent}35` }}
+        onError={() => setImgFailed(true)}
+      />
+    );
+  }
+
+  return (
+    <div
+      className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+      style={{ background: `${accent}18`, border: `1.5px solid ${accent}35` }}
+    >
+      <FallbackIcon size={13} style={{ color: accent }} />
+    </div>
+  );
+}
+
+export function RecentDetectionsInline({
+  logs,
+  loading,
+  onViewAll,
+  limit = 3,
+}: {
+  logs: AIDetectionLog[];
+  loading: boolean;
+  onViewAll: () => void;
+  limit?: number;
+}) {
+  const { t, locale } = useLanguage();
+  const speechLocale = locale === 'en' ? 'en' : 'km';
+  const items = logs.slice(0, limit);
+
+  return (
+    <div className="pt-3 border-t border-border">
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <div
+            className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+            style={{ background: 'linear-gradient(135deg,#059669,#10B981)' }}
+          >
+            <History size={13} color="white" strokeWidth={2.5} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] font-black uppercase tracking-wider text-foreground truncate">
+              {t('aiDetection.recentTitle')}
+            </p>
+            <p className="text-[10px] text-muted-foreground truncate">{t('aiDetection.recentSubtitle')}</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onViewAll}
+          className="flex items-center gap-0.5 text-[10px] font-bold px-2 py-1 rounded-lg flex-shrink-0 cursor-pointer transition-colors hover:bg-muted"
+          style={{ color: '#059669' }}
+        >
+          {t('aiDetection.viewAll')} <ChevronRight size={11} />
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="space-y-2">
+          {[...Array(limit)].map((_, i) => (
+            <div key={i} className="h-[52px] rounded-xl bg-muted animate-pulse" />
+          ))}
+        </div>
+      ) : items.length === 0 ? (
+        <div className="text-center py-5 px-3 rounded-xl border border-dashed border-border bg-muted/30">
+          <Activity size={22} className="mx-auto mb-2 text-muted-foreground opacity-35" />
+          <p className="text-[12px] font-semibold text-muted-foreground">{t('aiDetection.noDetections')}</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">{t('aiDetection.noDetectionsHint')}</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {items.map((log) => {
+            const hero = logDisplay(log, speechLocale);
+            const accent = logDisplayColor(hero.mode);
+            const cc = confColor(hero.confidence);
+            return (
+              <div
+                key={log.id}
+                className="flex items-center gap-2.5 p-2.5 rounded-xl border border-border/70 bg-muted/25 hover:bg-muted/50 transition-colors"
+              >
+                <RecentDetectionThumb log={log} accent={accent} mode={hero.mode} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <p className="text-[12px] font-bold truncate text-foreground">{hero.title}</p>
+                    <span className="text-[11px] font-black flex-shrink-0" style={{ color: cc }}>
+                      {hero.confidence.toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full"
+                        style={{ width: `${hero.confidence}%`, background: confGrad(hero.confidence) }}
+                      />
+                    </div>
+                    <span className="text-[9px] text-muted-foreground flex-shrink-0 flex items-center gap-0.5">
+                      <Clock size={9} />
+                      {new Date(log.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}

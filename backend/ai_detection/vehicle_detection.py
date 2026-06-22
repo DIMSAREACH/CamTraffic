@@ -22,7 +22,6 @@ VEHICLE_TYPE_LABELS: dict[str, str] = {
     'motorcycle': 'Motorcycle',
     'bus': 'Bus',
     'truck': 'Truck',
-    'tuktuk': 'Tuk-Tuk',
 }
 
 _VEHICLE_MODEL = None

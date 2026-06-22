@@ -7,6 +7,7 @@ import {
   saveAuthSession,
   saveAuthUser,
 } from '@shared/utils/authStorage';
+import { AUTH_SESSION_EXPIRED } from '@shared/utils/authEvents';
 
 interface AuthContextType {
   user: User | null;
@@ -32,6 +33,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session.user);
     }
     setIsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    const onSessionExpired = () => {
+      setToken(null);
+      setUser(null);
+      clearAuthSession();
+    };
+    window.addEventListener(AUTH_SESSION_EXPIRED, onSessionExpired);
+    return () => window.removeEventListener(AUTH_SESSION_EXPIRED, onSessionExpired);
   }, []);
 
   const setSession = (response: AuthResponse, remember = true) => {

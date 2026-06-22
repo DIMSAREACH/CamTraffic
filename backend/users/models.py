@@ -1,16 +1,20 @@
+import uuid
+
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+
+from core.models import UUIDPrimaryKeyModel
 
 from .managers import UserManager
 
 
 class User(AbstractUser):
-    """Custom user model for CamTraffic system."""
+    """Central authentication account — PRD table `users`."""
 
     ROLE_CHOICES = [
         ('admin', 'Admin'),
-        ('police', 'Traffic Police'),
-        ('driver', 'Driver'),
+        ('police', 'Traffic Police / Officer'),
+        ('driver', 'Driver / Citizen'),
     ]
 
     AUTH_PROVIDER_CHOICES = [
@@ -19,6 +23,7 @@ class User(AbstractUser):
         ('github', 'GitHub'),
     ]
 
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     username = None
     email = models.EmailField(unique=True)
     full_name = models.CharField(max_length=255)
@@ -43,6 +48,7 @@ class User(AbstractUser):
         ordering = ['-created_at']
         indexes = [
             models.Index(fields=['role', 'is_active'], name='idx_user_role_active'),
+            models.Index(fields=['email'], name='idx_user_email'),
         ]
 
     def __str__(self):
@@ -53,7 +59,9 @@ class User(AbstractUser):
         return self.full_name or self.email
 
 
-class Officer(models.Model):
+class Officer(UUIDPrimaryKeyModel):
+    """Police profile extension (1:1 with users where role = police)."""
+
     STATUS_CHOICES = [
         ('active', 'Active'),
         ('inactive', 'Inactive'),
@@ -70,34 +78,56 @@ class Officer(models.Model):
     class Meta:
         db_table = 'officers'
         ordering = ['badge_no']
+        indexes = [
+            models.Index(fields=['status'], name='idx_officer_status'),
+        ]
 
     def __str__(self):
         return f'{self.badge_no} ({self.user.full_name})'
 
 
-class Driver(models.Model):
+class Driver(UUIDPrimaryKeyModel):
+    """Verified citizen/driver profile with KYC fields — PRD table `drivers`."""
+
     STATUS_CHOICES = [
         ('active', 'Active'),
         ('inactive', 'Inactive'),
         ('suspended', 'Suspended'),
     ]
 
+    KYC_STATUS_CHOICES = [
+        ('unverified', 'Unverified'),
+        ('pending', 'Pending Review'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='driver_profile')
     license_no = models.CharField(max_length=50, unique=True, db_index=True)
+    national_id = models.CharField(max_length=50, blank=True, null=True, unique=True)
     license_expiry = models.DateField(null=True, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
+    license_photo_front = models.ImageField(upload_to='kyc/licenses/front/', blank=True, null=True)
+    license_photo_back = models.ImageField(upload_to='kyc/licenses/back/', blank=True, null=True)
+    national_id_photo = models.ImageField(upload_to='kyc/national_id/', blank=True, null=True)
+    kyc_status = models.CharField(max_length=20, choices=KYC_STATUS_CHOICES, default='unverified')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'drivers'
         ordering = ['license_no']
+        indexes = [
+            models.Index(fields=['status', 'kyc_status'], name='idx_driver_status_kyc'),
+            models.Index(fields=['license_no'], name='idx_driver_license'),
+        ]
 
     def __str__(self):
         return f'{self.license_no} ({self.user.full_name})'
 
 
-class UserPreference(models.Model):
+class UserPreference(UUIDPrimaryKeyModel):
     """Per-user notification and security preferences."""
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='preferences')
@@ -118,7 +148,7 @@ class UserPreference(models.Model):
         return f'Preferences for {self.user.email}'
 
 
-class LoginEvent(models.Model):
+class LoginEvent(UUIDPrimaryKeyModel):
     """Audit trail for sign-in attempts."""
 
     STATUS_CHOICES = [

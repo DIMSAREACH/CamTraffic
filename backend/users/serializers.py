@@ -19,6 +19,7 @@ class UserSerializer(serializers.ModelSerializer):
 class UserCreateSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
     badge_no = serializers.CharField(required=False, allow_blank=True, max_length=50)
+    email = serializers.EmailField()
 
     class Meta:
         model = User
@@ -27,6 +28,18 @@ class UserCreateSerializer(serializers.ModelSerializer):
             'address', 'license_no', 'badge_no', 'is_active',
         )
         read_only_fields = ('id',)
+        extra_kwargs = {
+            'email': {'validators': []},
+        }
+
+    def validate_email(self, value):
+        email = (value or '').strip().lower()
+        if User.objects.filter(email__iexact=email).exists():
+            raise serializers.ValidationError(
+                'An account with this email already exists. '
+                'Please sign in or use a different email.',
+            )
+        return email
 
     def validate_password(self, value):
         validate_strong_password(value)

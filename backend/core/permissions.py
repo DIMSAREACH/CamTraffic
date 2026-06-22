@@ -1,4 +1,10 @@
-"""Role-based access control permissions."""
+"""Role-based access control permissions.
+
+PRD role mapping:
+  Admin   → User.role == 'admin'
+  Officer → User.role == 'police'
+  Citizen → User.role == 'driver'
+"""
 from rest_framework.permissions import BasePermission
 
 
@@ -8,13 +14,22 @@ class IsAdmin(BasePermission):
 
 
 class IsPolice(BasePermission):
+    """Traffic officer (PRD: Officer)."""
+
     def has_permission(self, request, view):
         return request.user.is_authenticated and request.user.role == 'police'
 
 
 class IsDriver(BasePermission):
+    """Citizen driver (PRD: Citizen)."""
+
     def has_permission(self, request, view):
         return request.user.is_authenticated and request.user.role == 'driver'
+
+
+# PRD naming aliases
+IsOfficer = IsPolice
+IsCitizen = IsDriver
 
 
 class IsPoliceOrAdmin(BasePermission):

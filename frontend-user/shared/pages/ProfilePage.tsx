@@ -3,6 +3,7 @@ import {
   User, Mail, Phone, MapPin, CreditCard, Shield, Edit, Save, Key,
   Lock, CheckCircle, AlertCircle, Clock, Activity, LogOut, Bell,
   Globe, Monitor, Smartphone, Eye, EyeOff, Calendar, Zap, Loader2,
+  RefreshCw, BarChart3, Sparkles, Target, Fingerprint, TrendingUp, Award, Trash2,
 } from 'lucide-react';
 import { Input } from '@shared/components/ui/input';
 import { Label } from '@shared/components/ui/label';
@@ -21,7 +22,14 @@ import {
 } from '@shared/utils/passwordPolicy';
 import { getRefreshToken } from '@shared/utils/authStorage';
 import { WelcomeProfileAvatar } from '@shared/components/WelcomeProfileAvatar';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from '@shared/components/ui/dialog';
 import { toast } from 'sonner';
+import { DASHBOARD_PALETTE } from '@shared/constants/chartPalette';
+import type { CSSProperties } from 'react';
+
+function paletteAt(index: number) {
+  return DASHBOARD_PALETTE[index % DASHBOARD_PALETTE.length];
+}
 
 const ACTIVITY_ICONS: Record<string, typeof Edit> = {
   fine: CreditCard,
@@ -75,13 +83,17 @@ export function ProfilePage() {
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [activeTab, setActiveTab] = useState<'info' | 'security' | 'sessions'>('info');
+  const [activeTab, setActiveTab] = useState<'overview' | 'info' | 'security' | 'sessions'>('overview');
   const [prefs, setPrefs] = useState<UserPreferences | null>(null);
   const [activity, setActivity] = useState<ProfileActivityItem[]>([]);
   const [sessions, setSessions] = useState<ProfileSessionItem[]>([]);
   const [loginHistory, setLoginHistory] = useState<ProfileLoginEvent[]>([]);
   const [prefSaving, setPrefSaving] = useState<string | null>(null);
   const [deactivating, setDeactivating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [showDeletePassword, setShowDeletePassword] = useState(false);
   const [revoking, setRevoking] = useState(false);
 
   const loadOverview = useCallback(async () => {
@@ -117,6 +129,7 @@ export function ProfilePage() {
   const pwStrength = calcPasswordStrength(pwForm.new_password);
   const pwMeta = STRENGTH_META[pwStrength];
   const roleClass = `profile-page__role-badge--${user.role}`;
+  const accountActionsLocked = user.role === 'admin';
 
   const handleSave = async () => {
     setSaving(true);
@@ -199,6 +212,40 @@ export function ProfilePage() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (!deletePassword) {
+      toast.error(t('profile.fillPasswordFields'));
+      return;
+    }
+    setDeleting(true);
+    try {
+      await profileAPI.deleteAccount(deletePassword, getRefreshToken() ?? undefined);
+      toast.success(t('profile.accountDeleted'));
+      logout();
+    } catch {
+      toast.error(t('profile.deleteAccountFail'));
+    } finally {
+      setDeleting(false);
+      setDeletePassword('');
+      setDeleteDialogOpen(false);
+      setShowDeletePassword(false);
+    }
+  };
+
+  const resetDeleteDialog = () => {
+    setDeleteDialogOpen(false);
+    setDeletePassword('');
+    setShowDeletePassword(false);
+  };
+
+  const deleteRules = [
+    'deleteRulePermanent',
+    'deleteRuleData',
+    'deleteRuleSignOut',
+    'deleteRuleRecords',
+    'deleteRulePassword',
+  ] as const;
+
   const handleRevokeOthers = async () => {
     const refresh = getRefreshToken();
     if (!refresh) {
@@ -218,20 +265,94 @@ export function ProfilePage() {
   };
 
   const TABS = [
-    { id: 'info', label: t('profile.personalInfo'), icon: User, gradient: 'linear-gradient(135deg, #2563EB, #1D4ED8)' },
-    { id: 'security', label: t('profile.security'), icon: Shield, gradient: 'linear-gradient(135deg, #F59E0B, #D97706)' },
-    { id: 'sessions', label: t('profile.sessions'), icon: Monitor, gradient: 'linear-gradient(135deg, #06B6D4, #0891B2)' },
+    { id: 'overview', label: t('profile.overview'), icon: Sparkles, paletteIndex: 9 },
+    { id: 'info', label: t('profile.personalInfo'), icon: User, paletteIndex: 6 },
+    { id: 'security', label: t('profile.security'), icon: Shield, paletteIndex: 1 },
+    { id: 'sessions', label: t('profile.sessions'), icon: Monitor, paletteIndex: 5 },
   ] as const;
 
   const prefRows = [
-    ['notify_fines', t('profile.fineAlerts'), 'rose'],
-    ['notify_detections', t('profile.aiDetections'), 'violet'],
-    ['notify_alerts', t('profile.systemAlerts'), 'amber'],
-    ['notify_system', t('profile.updates'), 'blue'],
+    ['notify_fines', t('profile.fineAlerts'), 0],
+    ['notify_detections', t('profile.aiDetections'), 8],
+    ['notify_alerts', t('profile.systemAlerts'), 1],
+    ['notify_system', t('profile.updates'), 6],
   ] as const;
 
+  const accountStats = [
+    { label: t('profile.memberSince'), value: formatAppDate(locale, user.created_at, { month: 'short', year: 'numeric' }), icon: Calendar, paletteIndex: 6 },
+    { label: t('profile.accountStatus'), value: user.is_active ? t('profile.active') : t('profile.suspended'), icon: CheckCircle, paletteIndex: user.is_active ? 4 : 0 },
+    { label: t('profile.roleLevel'), value: user.role === 'admin' ? t('role.admin') : user.role === 'police' ? t('role.officer') : t('role.standard'), icon: Zap, paletteIndex: 8 },
+    { label: t('profile.lastLogin'), value: formatLastLogin(user.last_login, t('profile.justNow')), icon: Clock, paletteIndex: 5 },
+  ];
+
+  const infoFields = [
+    { icon: Mail, label: t('profile.emailAddress'), value: user.email, paletteIndex: 6 },
+    { icon: Phone, label: t('profile.phoneNumber'), value: user.phone || '—', paletteIndex: 5 },
+    { icon: MapPin, label: t('profile.address'), value: user.address || '—', paletteIndex: 4 },
+    { icon: Shield, label: t('profile.role'), value: meta.label, paletteIndex: 8 },
+    ...(user.role === 'driver' ? [{ icon: CreditCard, label: t('profile.driversLicense'), value: user.license_no || '—', paletteIndex: 1 }] : []),
+    { icon: Calendar, label: t('profile.memberSince'), value: new Date(user.created_at).toLocaleDateString(locale === 'km' ? 'km-KH' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' }), paletteIndex: 2 },
+  ];
+
+  const notifyOnCount = prefs
+    ? prefRows.filter(([key]) => prefs[key as keyof UserPreferences]).length
+    : 0;
+
+  const activityBreakdown = (() => {
+    const counts: Record<string, number> = {};
+    activity.forEach((a) => {
+      counts[a.type] = (counts[a.type] || 0) + 1;
+    });
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 4);
+  })();
+
+  const securityChecklist = [
+    { label: t('profile.checklist2fa'), done: prefs?.two_factor_enabled ?? false, paletteIndex: 8 },
+    { label: t('profile.checklistLoginAlerts'), done: prefs?.login_notifications ?? false, paletteIndex: 5 },
+    { label: t('profile.checklistPhone'), done: Boolean(user.phone?.trim()), paletteIndex: 4 },
+    { label: t('profile.checklistAddress'), done: Boolean(user.address?.trim()), paletteIndex: 3 },
+  ];
+
+  const profileCompletion = (() => {
+    const fields = [user.full_name, user.email, user.phone, user.address, ...(user.role === 'driver' ? [user.license_no] : [])];
+    const filled = fields.filter((f) => f && String(f).trim()).length;
+    return Math.round((filled / fields.length) * 100);
+  })();
+
+  const securityScore = (() => {
+    if (!prefs) return 0;
+    let score = 35;
+    if (prefs.two_factor_enabled) score += 30;
+    if (prefs.login_notifications) score += 18;
+    if (prefs.suspicious_alerts) score += 17;
+    return Math.min(score, 100);
+  })();
+
+  const loginSuccessRate = (() => {
+    if (!loginHistory.length) return 100;
+    const ok = loginHistory.filter((h) => h.status === 'success').length;
+    return Math.round((ok / loginHistory.length) * 100);
+  })();
+
+  const checklistDoneCount = securityChecklist.filter((i) => i.done).length;
+
+  const insightTiles = [
+    { label: t('profile.profileCompletion'), value: `${profileCompletion}%`, sub: t('profile.profileCompletionSub'), icon: Target, paletteIndex: 6 },
+    { label: t('profile.securityScore'), value: `${securityScore}%`, sub: t('profile.securityScoreSub'), icon: Fingerprint, paletteIndex: 8 },
+    { label: t('profile.activeDevices'), value: String(sessions.length), sub: t('profile.activeDevicesSub', { count: sessions.filter((s) => !s.current).length }), icon: Monitor, paletteIndex: 5 },
+    { label: t('profile.alertsEnabled'), value: `${notifyOnCount}/4`, sub: t('profile.alertsEnabledSub'), icon: Bell, paletteIndex: 1 },
+  ];
+
+  const roleCapabilities = user.role === 'admin'
+    ? [t('profile.capAdminUsers'), t('profile.capAdminReports'), t('profile.capAdminSystem')]
+    : user.role === 'police'
+      ? [t('profile.capPoliceFines'), t('profile.capPoliceDetections'), t('profile.capPoliceEvidence')]
+      : [t('profile.capDriverVehicles'), t('profile.capDriverFines'), t('profile.capDriverAi')];
+
   return (
-    <div className="enforcement-page enforcement-page--profile dashboard-page--profile profile-page--fullscreen">
+    <div className="enforcement-page enforcement-page--profile dashboard-page--profile profile-page--full profile-page--clean profile-page--pro profile-page--wide">
       {loading && (
         <div className="profile-page__loading" aria-live="polite">
           <Loader2 size={22} className="profile-page__loading-icon" />
@@ -239,125 +360,99 @@ export function ProfilePage() {
         </div>
       )}
 
-      <div className="profile-page__layout">
-        <aside className="profile-page__sidebar">
-          <div className="enforcement-page__panel profile-page__identity-card">
-            <div className="profile-page__identity-banner" aria-hidden />
-            <div className="profile-page__identity-body">
-              <div className="profile-page__identity-top">
-                <div className="profile-page__avatar-wrap">
-                  <WelcomeProfileAvatar variant="card" size="lg" />
-                  <span className={`profile-page__status-dot${user.is_active ? ' profile-page__status-dot--active' : ''}`} aria-hidden />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => (editing ? handleCancelEdit() : setEditing(true))}
-                  className={`profile-page__edit-btn${editing ? ' profile-page__edit-btn--muted' : ''} ${roleClass}`}
-                >
-                  {editing ? t('profile.cancel') : <><Edit size={11} /> {t('profile.edit')}</>}
-                </button>
+      <div className="profile-page__shell">
+
+        <div className="enforcement-page__hero profile-page__hero profile-page__hero--identity">
+          <div className="enforcement-page__hero-glow--primary" aria-hidden />
+          <div className="enforcement-page__hero-glow--secondary" aria-hidden />
+          <div className="profile-page__hero-inner">
+            <div className="profile-page__hero-identity">
+              <div className="profile-page__avatar-upload">
+                <WelcomeProfileAvatar variant="hero" />
+                <span className={`profile-page__status-dot profile-page__status-dot--ring${user.is_active ? ' profile-page__status-dot--active' : ''}`} aria-hidden />
               </div>
-              <p className="profile-page__name">{user.full_name}</p>
-              <p className="profile-page__email">{user.email}</p>
-              <span className={`profile-page__role-badge ${roleClass}`}>{meta.label}</span>
-              <p className="profile-page__role-desc">{meta.desc}</p>
-            </div>
-          </div>
-
-          <div className="enforcement-page__panel profile-page__side-panel">
-            <p className="profile-page__side-label">{t('profile.accountStats')}</p>
-            <div className="profile-page__stats">
-              {[
-                { label: t('profile.memberSince'), value: formatAppDate(locale, user.created_at, { month: 'short', year: 'numeric' }), icon: Calendar, variant: 'blue' },
-                { label: t('profile.accountStatus'), value: user.is_active ? t('profile.active') : t('profile.suspended'), icon: CheckCircle, variant: user.is_active ? 'emerald' : 'rose' },
-                { label: t('profile.roleLevel'), value: user.role === 'admin' ? t('role.admin') : user.role === 'police' ? t('role.officer') : t('role.standard'), icon: Zap, variant: 'violet' },
-                { label: t('profile.lastLogin'), value: formatLastLogin(user.last_login, t('profile.justNow')), icon: Clock, variant: 'teal' },
-              ].map((s) => {
-                const Icon = s.icon;
-                return (
-                  <div key={s.label} className="profile-page__stat-row">
-                    <div className={`profile-page__stat-icon profile-page__stat-icon--${s.variant}`}>
-                      <Icon size={13} />
-                    </div>
-                    <span className="profile-page__stat-label">{s.label}</span>
-                    <span className={`profile-page__stat-value profile-page__stat-value--${s.variant}`}>{s.value}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="enforcement-page__panel profile-page__side-panel">
-            <div className="profile-page__side-head">
-              <div className="profile-page__side-icon profile-page__side-icon--blue">
-                <Bell size={12} />
-              </div>
-              <p className="profile-page__side-title">{t('profile.notificationsPrefs')}</p>
-            </div>
-            <div className="profile-page__prefs">
-              {prefRows.map(([key, label]) => (
-                <div key={key} className="profile-page__pref-row">
-                  <span className="profile-page__pref-label">{label}</span>
-                  <button
-                    type="button"
-                    aria-pressed={prefs?.[key] ?? false}
-                    disabled={!prefs || prefSaving === key}
-                    onClick={() => handlePreferenceToggle(key)}
-                    className={`notifications-page__toggle${prefs?.[key] ? ' notifications-page__toggle--on' : ''}`}
-                  >
-                    <span className="notifications-page__toggle-knob" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="enforcement-page__panel profile-page__danger-panel">
-            <p className="profile-page__danger-label">{t('profile.dangerZone')}</p>
-            <button
-              type="button"
-              className="profile-page__danger-btn"
-              disabled={deactivating}
-              onClick={handleDeactivate}
-            >
-              {deactivating ? <Loader2 size={13} className="profile-page__spinner" /> : <AlertCircle size={13} />}
-              {t('profile.deactivateAccount')}
-            </button>
-          </div>
-        </aside>
-
-        <div className="profile-page__main">
-          <div className="enforcement-page__hero profile-page__hero">
-            <div className="enforcement-page__hero-glow--primary" aria-hidden />
-            <div className="enforcement-page__hero-glow--secondary" aria-hidden />
-            <div className="enforcement-page__hero-inner">
-              <div>
+              <div className="profile-page__hero-copy">
                 <div className="enforcement-page__eyebrow">
                   <span className="enforcement-page__eyebrow-icon">
                     <User size={14} />
                   </span>
                   {t('pages.profile.eyebrow')}
                 </div>
-                <h1 className="enforcement-page__title">{t('pages.profile.title')}</h1>
-                <p className="enforcement-page__subtitle">{t('pages.profile.heroSubtitle')}</p>
+                <h1 className="enforcement-page__title profile-page__hero-name">{user.full_name}</h1>
+                <p className="profile-page__hero-email">{user.email}</p>
+                <div className="profile-page__hero-badges">
+                  <span className={`profile-page__role-badge ${roleClass}`}>{meta.label}</span>
+                  <span className="profile-page__hero-subtitle">{meta.desc}</span>
+                </div>
               </div>
             </div>
+            <div className="profile-page__hero-actions">
+              <button
+                type="button"
+                className="profile-page__hero-btn profile-page__hero-btn--muted"
+                onClick={() => void loadOverview()}
+                disabled={loading}
+              >
+                <RefreshCw size={14} className={loading ? 'profile-page__spinner' : ''} />
+                {t('profile.refreshProfile')}
+              </button>
+              {editing && (
+                <button type="button" onClick={handleSave} disabled={saving} className={`profile-page__hero-btn profile-page__hero-btn--save ${roleClass}`}>
+                  {saving ? <Loader2 size={15} className="profile-page__spinner" /> : <Save size={15} />}
+                  {saving ? t('profile.saving') : t('profile.save')}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => (editing ? handleCancelEdit() : setEditing(true))}
+                className={`profile-page__hero-btn${editing ? ' profile-page__hero-btn--muted' : ` profile-page__hero-btn--accent ${roleClass}`}`}
+              >
+                {editing ? t('profile.cancel') : <><Edit size={14} /> {t('profile.edit')}</>}
+              </button>
+            </div>
           </div>
+        </div>
 
-          <div className="enforcement-page__toolbar profile-page__tabs">
-            <div className="enforcement-page__filters">
+        <div className="profile-page__metrics-strip">
+          {accountStats.map((s) => {
+            const Icon = s.icon;
+            const pal = paletteAt(s.paletteIndex);
+            return (
+              <div
+                key={s.label}
+                className="profile-page__metric-tile"
+                style={{ '--profile-accent': pal.solid, '--profile-accent-soft': pal.soft } as CSSProperties}
+              >
+                <div className="profile-page__metric-icon">
+                  <Icon size={18} />
+                </div>
+                <div>
+                  <p className="profile-page__metric-value">{s.value}</p>
+                  <p className="profile-page__metric-label">{s.label}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="profile-page__workspace profile-page__workspace--wide">
+          <div className="profile-page__workspace-head profile-page__workspace-head--pro">
+            <div className="profile-page__tab-pills profile-page__tab-pills--pro" role="tablist" aria-label={t('pages.profile.title')}>
               {TABS.map((tab) => {
                 const Icon = tab.icon;
                 const active = activeTab === tab.id;
+                const pal = paletteAt(tab.paletteIndex);
                 return (
                   <button
                     key={tab.id}
                     type="button"
+                    role="tab"
+                    aria-selected={active}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`enforcement-page__filter-btn profile-page__tab-btn${active ? ' enforcement-page__filter-btn--active' : ''}`}
-                    style={active ? { background: tab.gradient } : undefined}
+                    className={`profile-page__tab-pill${active ? ' profile-page__tab-pill--active' : ''}`}
+                    style={active ? { background: pal.grad, boxShadow: `0 6px 18px ${pal.soft}` } : undefined}
                   >
-                    <Icon size={13} />
+                    <Icon size={14} />
                     {tab.label}
                   </button>
                 );
@@ -365,128 +460,397 @@ export function ProfilePage() {
             </div>
           </div>
 
-          {activeTab === 'info' && (
-            <div className="profile-page__sections">
-              <div className="enforcement-page__panel profile-page__panel">
-                <div className="profile-page__panel-head">
-                  <div>
-                    <p className="profile-page__panel-title">{t('profile.personalInformation')}</p>
-                    <p className="profile-page__panel-desc">{t('profile.personalInfoDesc')}</p>
-                  </div>
-                  {editing && (
-                    <button type="button" onClick={handleSave} disabled={saving} className={`profile-page__save-btn ${roleClass}`}>
-                      {saving ? (
-                        <>
-                          <span className="profile-page__spinner" />
-                          {t('profile.saving')}
-                        </>
-                      ) : (
-                        <>
-                          <Save size={13} /> {t('profile.save')}
-                        </>
-                      )}
-                    </button>
-                  )}
+          <div className="profile-page__workspace-body">
+        {activeTab === 'overview' && (
+          <div className="profile-page__content-stack profile-page__content-stack--overview">
+            <section className="profile-page__section profile-page__section--glass profile-page__section--welcome profile-page__section--span-full">
+              <div className="profile-page__welcome-copy">
+                <h2 className="profile-page__welcome-title">{t('profile.overviewWelcome', { name: user.full_name.split(' ')[0] || user.full_name })}</h2>
+                <p className="profile-page__welcome-desc">{t('profile.overviewDesc')}</p>
+              </div>
+              <div className="profile-page__welcome-stats">
+                <div className="profile-page__welcome-stat">
+                  <BarChart3 size={16} />
+                  <span>{activity.length}</span>
+                  <small>{t('profile.recentActivity')}</small>
                 </div>
+                <div className="profile-page__welcome-stat">
+                  <Monitor size={16} />
+                  <span>{sessions.length}</span>
+                  <small>{t('profile.activeDevices')}</small>
+                </div>
+                <div className="profile-page__welcome-stat">
+                  <Bell size={16} />
+                  <span>{notifyOnCount}</span>
+                  <small>{t('profile.alertsEnabled')}</small>
+                </div>
+              </div>
+            </section>
 
-                {editing ? (
-                  <div className="profile-page__form-grid">
-                    <div>
-                      <Label className="enforcement-page__form-label">{t('profile.fullName')}</Label>
-                      <Input className="mt-1.5" value={form.full_name} onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))} />
+            <div className="profile-page__insight-strip">
+              {insightTiles.map((tile) => {
+                const Icon = tile.icon;
+                const pal = paletteAt(tile.paletteIndex);
+                return (
+                  <div
+                    key={tile.label}
+                    className="profile-page__insight-tile"
+                    style={{ '--profile-accent': pal.solid, '--profile-accent-soft': pal.soft } as CSSProperties}
+                  >
+                    <div className="profile-page__insight-tile-icon">
+                      <Icon size={18} />
                     </div>
-                    <div>
-                      <Label className="enforcement-page__form-label">{t('profile.phoneNumber')}</Label>
-                      <Input className="mt-1.5" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} placeholder="+855 12 345 678" />
+                    <div className="profile-page__insight-tile-copy">
+                      <p className="profile-page__insight-tile-value">{tile.value}</p>
+                      <p className="profile-page__insight-tile-label">{tile.label}</p>
+                      <p className="profile-page__insight-tile-sub">{tile.sub}</p>
                     </div>
-                    <div className="profile-page__form-span-2">
-                      <Label className="enforcement-page__form-label">{t('profile.address')}</Label>
-                      <Input className="mt-1.5" value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} placeholder="Street, District, City" />
-                    </div>
-                    {user.role === 'driver' && (
-                      <div>
-                        <Label className="enforcement-page__form-label">{t('profile.driversLicense')}</Label>
-                        <Input className="mt-1.5" value={form.license_no} onChange={(e) => setForm((f) => ({ ...f, license_no: e.target.value }))} placeholder="DL-KH-2024-XXXXXX" />
-                      </div>
-                    )}
                   </div>
+                );
+              })}
+            </div>
+
+            <nav className="profile-page__quick-nav" aria-label={t('profile.quickActions')}>
+              <button type="button" className="profile-page__quick-nav-btn" onClick={() => setEditing(true)}>
+                <Edit size={14} /> {t('profile.edit')}
+              </button>
+              <button type="button" className="profile-page__quick-nav-btn" onClick={() => setActiveTab('security')}>
+                <Key size={14} /> {t('profile.goToSecurity')}
+              </button>
+              <button type="button" className="profile-page__quick-nav-btn" onClick={() => setActiveTab('sessions')}>
+                <Globe size={14} /> {t('profile.goToSessions')}
+              </button>
+            </nav>
+
+            <div className="profile-page__overview-grid profile-page__overview-grid--wide">
+              <section className="profile-page__section profile-page__section--glass">
+                <div className="profile-page__section-head">
+                  <div className="profile-page__section-icon profile-page__section-icon--violet">
+                    <BarChart3 size={15} />
+                  </div>
+                  <div>
+                    <h2 className="profile-page__section-title">{t('profile.activityBreakdown')}</h2>
+                    <p className="profile-page__section-desc">{t('profile.activityBreakdownDesc')}</p>
+                  </div>
+                </div>
+                {activityBreakdown.length === 0 ? (
+                  <p className="profile-page__empty-note">{t('profile.noActivity')}</p>
                 ) : (
-                  <div className="profile-page__info-grid">
-                    {[
-                      { icon: Mail, label: t('profile.emailAddress'), value: user.email, variant: 'blue' },
-                      { icon: Phone, label: t('profile.phoneNumber'), value: user.phone || '—', variant: 'teal' },
-                      { icon: MapPin, label: t('profile.address'), value: user.address || '—', variant: 'emerald' },
-                      { icon: Shield, label: t('profile.role'), value: meta.label, variant: 'violet' },
-                      ...(user.role === 'driver' ? [{ icon: CreditCard, label: t('profile.driversLicense'), value: user.license_no || '—', variant: 'amber' as const }] : []),
-                      { icon: Calendar, label: t('profile.memberSince'), value: new Date(user.created_at).toLocaleDateString(locale === 'km' ? 'km-KH' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' }), variant: 'blue' as const },
-                    ].map((item) => {
-                      const Icon = item.icon;
+                  <div className="profile-page__breakdown-list">
+                    {activityBreakdown.map(([type, count], i) => {
+                      const pal = paletteAt(i + 2);
+                      const max = activityBreakdown[0][1];
                       return (
-                        <div key={item.label} className={`profile-page__info-card profile-page__info-card--${item.variant}`}>
-                          <div className={`profile-page__info-icon profile-page__info-icon--${item.variant}`}>
-                            <Icon size={14} />
+                        <div key={type} className="profile-page__breakdown-row">
+                          <span className="profile-page__breakdown-label">{type}</span>
+                          <div className="profile-page__breakdown-track">
+                            <div
+                              className="profile-page__breakdown-fill"
+                              style={{ width: `${Math.round((count / max) * 100)}%`, background: pal.grad }}
+                            />
                           </div>
-                          <div>
-                            <p className="profile-page__info-label">{item.label}</p>
-                            <p className="profile-page__info-value">{item.value}</p>
-                          </div>
+                          <span className="profile-page__breakdown-count">{count}</span>
                         </div>
                       );
                     })}
                   </div>
                 )}
-              </div>
+              </section>
 
-              <div className="enforcement-page__panel profile-page__panel">
-                <div className="profile-page__panel-head">
-                  <div className="profile-page__panel-head-icon profile-page__panel-head-icon--blue">
+              <section className="profile-page__section profile-page__section--glass">
+                <div className="profile-page__section-head">
+                  <div className="profile-page__section-icon profile-page__section-icon--amber">
+                    <Shield size={15} />
+                  </div>
+                  <div>
+                    <h2 className="profile-page__section-title">{t('profile.securityChecklist')}</h2>
+                    <p className="profile-page__section-desc">{t('profile.securityChecklistDesc')}</p>
+                  </div>
+                </div>
+                <ul className="profile-page__checklist">
+                  {securityChecklist.map((item) => {
+                    const pal = paletteAt(item.paletteIndex);
+                    return (
+                      <li key={item.label} className={`profile-page__check-item${item.done ? ' profile-page__check-item--done' : ''}`}>
+                        <span className="profile-page__check-icon" style={item.done ? { background: pal.soft, color: pal.solid } : undefined}>
+                          {item.done ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
+                        </span>
+                        <span>{item.label}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+
+              <section className="profile-page__section profile-page__section--glass profile-page__section--span-full">
+                <div className="profile-page__section-head">
+                  <div className="profile-page__section-icon profile-page__section-icon--teal">
+                    <Bell size={15} />
+                  </div>
+                  <div>
+                    <h2 className="profile-page__section-title">{t('profile.prefSummary')}</h2>
+                    <p className="profile-page__section-desc">{t('profile.prefSummaryDesc')}</p>
+                  </div>
+                </div>
+                <div className="profile-page__chip-grid">
+                  {prefRows.map(([key, label, paletteIndex]) => {
+                    const pal = paletteAt(paletteIndex);
+                    const on = prefs?.[key as keyof UserPreferences] ?? false;
+                    return (
+                      <span
+                        key={key}
+                        className={`profile-page__chip${on ? ' profile-page__chip--on' : ''}`}
+                        style={on ? { background: pal.soft, color: pal.dark, borderColor: `${pal.solid}44` } : undefined}
+                      >
+                        {on ? <CheckCircle size={12} /> : <AlertCircle size={12} />}
+                        {label}
+                      </span>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <section className="profile-page__section profile-page__section--glass profile-page__section--span-full">
+                <div className="profile-page__section-head">
+                  <div className="profile-page__section-icon profile-page__section-icon--blue">
                     <Activity size={15} />
                   </div>
                   <div>
-                    <p className="profile-page__panel-title">{t('profile.recentActivity')}</p>
-                    <p className="profile-page__panel-desc">{t('profile.recentActivityDesc')}</p>
+                    <h2 className="profile-page__section-title">{t('profile.recentTimeline')}</h2>
+                    <p className="profile-page__section-desc">{t('profile.recentTimelineDesc')}</p>
                   </div>
                 </div>
                 {activity.length === 0 ? (
                   <p className="profile-page__empty-note">{t('profile.noActivity')}</p>
                 ) : (
                   <div className="profile-page__timeline">
-                    {activity.map((a, i) => {
+                    {activity.slice(0, 6).map((a, i) => {
                       const Icon = ACTIVITY_ICONS[a.type] ?? Activity;
+                      const pal = paletteAt(i % DASHBOARD_PALETTE.length);
+                      const color = a.color || pal.solid;
                       return (
                         <div key={`${a.time}-${i}`} className="profile-page__timeline-row">
-                          <div className="profile-page__timeline-dot" style={{ background: `${a.color}18`, color: a.color }}>
-                            <Icon size={12} />
+                          <div className="profile-page__timeline-rail" style={{ background: `${color}22` }}>
+                            <span className="profile-page__timeline-dot" style={{ background: color }} />
                           </div>
-                          <div className="profile-page__timeline-copy">
-                            <p className="profile-page__timeline-action">{a.action}</p>
-                            <span className="profile-page__timeline-time">
-                              <Clock size={9} /> {a.time_label}
-                            </span>
+                          <div className="profile-page__timeline-card">
+                            <div className="profile-page__timeline-icon" style={{ background: `${color}18`, color }}>
+                              <Icon size={14} />
+                            </div>
+                            <div className="profile-page__timeline-copy">
+                              <p className="profile-page__timeline-title">{a.action}</p>
+                              <span className="profile-page__timeline-time">
+                                <Clock size={10} /> {a.time_label}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       );
                     })}
                   </div>
                 )}
-              </div>
+              </section>
             </div>
-          )}
+          </div>
+        )}
 
-          {activeTab === 'security' && (
-            <div className="profile-page__sections">
-              <div className="enforcement-page__panel profile-page__panel">
-                <div className="profile-page__panel-head">
-                  <div className="profile-page__panel-head-icon profile-page__panel-head-icon--amber">
-                    <Key size={15} />
-                  </div>
-                  <div>
-                    <p className="profile-page__panel-title">{t('profile.changePassword')}</p>
-                    <p className="profile-page__panel-desc">{t('profile.changePasswordDesc')}</p>
+        {activeTab === 'info' && (
+          <div className="profile-page__content-stack profile-page__content-stack--wide-grid">
+            <section className="profile-page__section profile-page__section--glass profile-page__section--span-full profile-page__score-hero">
+              <div className="profile-page__score-hero-inner">
+                <div className="profile-page__score-hero-copy">
+                  <p className="profile-page__score-hero-eyebrow">{t('profile.accountSnapshot')}</p>
+                  <h2 className="profile-page__score-hero-title">{t('profile.profileStrength', { percent: profileCompletion })}</h2>
+                  <p className="profile-page__score-hero-desc">{t('profile.accountSnapshotDesc')}</p>
+                  <div className="profile-page__score-hero-track">
+                    <div className="profile-page__score-hero-fill" style={{ width: `${profileCompletion}%`, background: paletteAt(6).grad }} />
                   </div>
                 </div>
+                <div className="profile-page__score-hero-stats">
+                  <div className="profile-page__score-hero-stat">
+                    <TrendingUp size={16} />
+                    <span>{profileCompletion}%</span>
+                    <small>{t('profile.profileCompletion')}</small>
+                  </div>
+                  <div className="profile-page__score-hero-stat">
+                    <Shield size={16} />
+                    <span>{securityScore}%</span>
+                    <small>{t('profile.securityScore')}</small>
+                  </div>
+                  <div className="profile-page__score-hero-stat">
+                    <CheckCircle size={16} />
+                    <span>{checklistDoneCount}/{securityChecklist.length}</span>
+                    <small>{t('profile.securityChecklist')}</small>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="profile-page__section profile-page__section--glass profile-page__section--span-full">
+              <div className="profile-page__section-head">
+                <div className="profile-page__section-icon profile-page__section-icon--blue">
+                  <User size={15} />
+                </div>
+                <div>
+                  <h2 className="profile-page__section-title">{t('profile.personalInformation')}</h2>
+                  <p className="profile-page__section-desc">{t('profile.personalInfoDesc')}</p>
+                </div>
+              </div>
+
+              {editing ? (
                 <div className="profile-page__form-grid">
+                  <div>
+                    <Label className="enforcement-page__form-label">{t('profile.fullName')}</Label>
+                    <Input className="mt-1.5" value={form.full_name} onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))} />
+                  </div>
+                  <div>
+                    <Label className="enforcement-page__form-label">{t('profile.phoneNumber')}</Label>
+                    <Input className="mt-1.5" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} placeholder="+855 12 345 678" />
+                  </div>
                   <div className="profile-page__form-span-2">
+                    <Label className="enforcement-page__form-label">{t('profile.address')}</Label>
+                    <Input className="mt-1.5" value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} placeholder="Street, District, City" />
+                  </div>
+                  {user.role === 'driver' && (
+                    <div>
+                      <Label className="enforcement-page__form-label">{t('profile.driversLicense')}</Label>
+                      <Input className="mt-1.5" value={form.license_no} onChange={(e) => setForm((f) => ({ ...f, license_no: e.target.value }))} placeholder="DL-KH-2024-XXXXXX" />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="profile-page__info-grid profile-page__info-grid--clean">
+                  {infoFields.map((item, index) => {
+                    const Icon = item.icon;
+                    const pal = paletteAt(item.paletteIndex);
+                    return (
+                      <div
+                        key={item.label}
+                        className="profile-page__info-card profile-page__info-card--clean"
+                        style={{ '--profile-accent': pal.solid, '--profile-accent-soft': pal.soft } as CSSProperties}
+                      >
+                        <div className="profile-page__info-icon">
+                          <Icon size={14} />
+                        </div>
+                        <div className="profile-page__info-copy">
+                          <p className="profile-page__info-label">{item.label}</p>
+                          <p className="profile-page__info-value">{item.value}</p>
+                        </div>
+                        <span className="profile-page__info-index">{String(index + 1).padStart(2, '0')}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+
+            <section className="profile-page__section profile-page__section--glass profile-page__section--span-full">
+              <div className="profile-page__section-head">
+                <div className="profile-page__section-icon profile-page__section-icon--violet">
+                  <Activity size={15} />
+                </div>
+                <div>
+                  <h2 className="profile-page__section-title">{t('profile.recentActivity')}</h2>
+                  <p className="profile-page__section-desc">{t('profile.recentActivityDesc')}</p>
+                </div>
+              </div>
+              {activity.length === 0 ? (
+                <p className="profile-page__empty-note">{t('profile.noActivity')}</p>
+              ) : (
+                <div className="profile-page__activity-list">
+                  {activity.map((a, i) => {
+                    const Icon = ACTIVITY_ICONS[a.type] ?? Activity;
+                    const pal = paletteAt(i % DASHBOARD_PALETTE.length);
+                    const color = a.color || pal.solid;
+                    return (
+                      <div key={`${a.time}-${i}`} className="profile-page__activity-row">
+                        <div className="profile-page__activity-icon" style={{ background: `${color}18`, color }}>
+                          <Icon size={13} />
+                        </div>
+                        <div className="profile-page__activity-copy">
+                          <p className="profile-page__activity-title">{a.action}</p>
+                          <span className="profile-page__activity-time">
+                            <Clock size={10} /> {a.time_label}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+
+            <section className="profile-page__section profile-page__section--glass profile-page__section--span-full">
+              <div className="profile-page__section-head">
+                <div className="profile-page__section-icon profile-page__section-icon--violet">
+                  <Award size={15} />
+                </div>
+                <div>
+                  <h2 className="profile-page__section-title">{t('profile.capabilities')}</h2>
+                  <p className="profile-page__section-desc">{t('profile.capabilitiesDesc')}</p>
+                </div>
+              </div>
+              <div className="profile-page__cap-grid">
+                {roleCapabilities.map((cap, i) => {
+                  const pal = paletteAt(i + 7);
+                  return (
+                    <div key={cap} className="profile-page__cap-card" style={{ '--profile-accent': pal.solid, '--profile-accent-soft': pal.soft } as CSSProperties}>
+                      <Award size={16} style={{ color: pal.solid }} />
+                      <span>{cap}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          </div>
+        )}
+
+        {activeTab === 'security' && (
+          <div className="profile-page__content-stack profile-page__content-stack--wide-grid">
+            <section className="profile-page__section profile-page__section--glass profile-page__section--span-full profile-page__score-hero profile-page__score-hero--security">
+              <div className="profile-page__score-hero-inner">
+                <div className="profile-page__score-hero-copy">
+                  <p className="profile-page__score-hero-eyebrow">{t('profile.securityOverview')}</p>
+                  <h2 className="profile-page__score-hero-title">{t('profile.securityScore')}: {securityScore}%</h2>
+                  <p className="profile-page__score-hero-desc">{t('profile.securityOverviewDesc')}</p>
+                  <div className="profile-page__score-hero-track">
+                    <div className="profile-page__score-hero-fill" style={{ width: `${securityScore}%`, background: paletteAt(8).grad }} />
+                  </div>
+                </div>
+                <div className="profile-page__score-hero-stats">
+                  <div className="profile-page__score-hero-stat">
+                    <Fingerprint size={16} />
+                    <span>{prefs?.two_factor_enabled ? t('profile.active') : t('profile.twoFactorDisabled')}</span>
+                    <small>{t('profile.twoFactor')}</small>
+                  </div>
+                  <div className="profile-page__score-hero-stat">
+                    <TrendingUp size={16} />
+                    <span>{loginSuccessRate}%</span>
+                    <small>{t('profile.loginSuccessRate')}</small>
+                  </div>
+                  <div className="profile-page__score-hero-stat">
+                    <CheckCircle size={16} />
+                    <span>{checklistDoneCount}/{securityChecklist.length}</span>
+                    <small>{t('profile.securityChecklist')}</small>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <div className="profile-page__security-pair profile-page__section--span-full">
+            <section className="profile-page__section profile-page__section--glass profile-page__section--equal">
+              <div className="profile-page__section-head">
+                <div className="profile-page__section-icon profile-page__section-icon--amber">
+                  <Key size={15} />
+                </div>
+                <div>
+                  <h2 className="profile-page__section-title">{t('profile.changePassword')}</h2>
+                  <p className="profile-page__section-desc">{t('profile.changePasswordDesc')}</p>
+                </div>
+              </div>
+              <div className="profile-page__card-body">
+                <div className="profile-page__form-stack">
+                  <div>
                     <Label className="enforcement-page__form-label">{t('profile.currentPassword')}</Label>
                     <div className="relative mt-1.5">
                       <Input type={showCurrent ? 'text' : 'password'} value={pwForm.current} onChange={(e) => setPwForm((f) => ({ ...f, current: e.target.value }))} placeholder={t('profile.currentPasswordPlaceholder')} className="pr-10" />
@@ -507,7 +871,7 @@ export function ProfilePage() {
                       <div className="mt-2">
                         <div className="profile-page__strength-bars">
                           {[1, 2, 3, 4].map((i) => (
-                            <div key={i} className="profile-page__strength-bar" style={{ background: i <= pwStrength ? pwMeta.color : 'rgba(37,99,235,0.1)' }} />
+                            <div key={i} className="profile-page__strength-bar" style={{ background: i <= pwStrength ? paletteAt(i).solid : 'rgba(148,163,184,0.2)' }} />
                           ))}
                         </div>
                         <p className="profile-page__strength-label" style={{ color: pwMeta.color }}>{pwMeta.label}</p>
@@ -529,7 +893,7 @@ export function ProfilePage() {
                     )}
                   </div>
                 </div>
-                <button type="button" onClick={handleChangePassword} disabled={changingPw} className="profile-page__password-btn">
+                <button type="button" onClick={handleChangePassword} disabled={changingPw} className="profile-page__password-btn profile-page__password-btn--clean profile-page__card-footer-btn">
                   {changingPw ? (
                     <>
                       <span className="profile-page__spinner" />
@@ -542,89 +906,227 @@ export function ProfilePage() {
                   )}
                 </button>
               </div>
+            </section>
 
-              <div className="enforcement-page__panel profile-page__panel">
-                <div className="profile-page__panel-head">
-                  <div className="profile-page__panel-head-icon profile-page__panel-head-icon--blue">
-                    <Shield size={15} />
-                  </div>
-                  <div>
-                    <p className="profile-page__panel-title">{t('profile.securitySettings')}</p>
-                    <p className="profile-page__panel-desc">{t('profile.securitySettingsDesc')}</p>
-                  </div>
+            <section className="profile-page__section profile-page__section--glass profile-page__section--equal">
+              <div className="profile-page__section-head">
+                <div className="profile-page__section-icon profile-page__section-icon--blue">
+                  <Shield size={15} />
                 </div>
-                <div className="profile-page__security-list">
-                  <div className="profile-page__security-row">
+                <div>
+                  <h2 className="profile-page__section-title">{t('profile.securitySettings')}</h2>
+                  <p className="profile-page__section-desc">{t('profile.securitySettingsDesc')}</p>
+                </div>
+              </div>
+              <div className="profile-page__card-body">
+              <div className="profile-page__security-list">
+                <div className="profile-page__security-row">
+                  <div>
+                    <p className="profile-page__security-title">{t('profile.twoFactor')}</p>
+                    <p className="profile-page__security-desc">{t('profile.twoFactorDesc')}</p>
+                  </div>
+                  <button
+                    type="button"
+                    aria-pressed={prefs?.two_factor_enabled ?? false}
+                    disabled={!prefs || prefSaving === 'two_factor_enabled'}
+                    onClick={() => handlePreferenceToggle('two_factor_enabled')}
+                    className={`notifications-page__toggle${prefs?.two_factor_enabled ? ' notifications-page__toggle--on' : ''}`}
+                    style={prefs?.two_factor_enabled ? { background: paletteAt(8).grad } : undefined}
+                  >
+                    <span className="notifications-page__toggle-knob" />
+                  </button>
+                </div>
+                {([
+                  ['login_notifications', t('profile.loginNotifications'), t('profile.loginNotificationsDesc'), 5],
+                  ['suspicious_alerts', t('profile.suspiciousAlerts'), t('profile.suspiciousAlertsDesc'), 0],
+                ] as const).map(([key, label, desc, paletteIndex]) => (
+                  <div key={key} className="profile-page__security-row">
                     <div>
-                      <p className="profile-page__security-title">{t('profile.twoFactor')}</p>
-                      <p className="profile-page__security-desc">{t('profile.twoFactorDesc')}</p>
+                      <p className="profile-page__security-title">{label}</p>
+                      <p className="profile-page__security-desc">{desc}</p>
                     </div>
                     <button
                       type="button"
-                      aria-pressed={prefs?.two_factor_enabled ?? false}
-                      disabled={!prefs || prefSaving === 'two_factor_enabled'}
-                      onClick={() => handlePreferenceToggle('two_factor_enabled')}
-                      className={`notifications-page__toggle${prefs?.two_factor_enabled ? ' notifications-page__toggle--on' : ''}`}
+                      aria-pressed={prefs?.[key] ?? false}
+                      disabled={!prefs || prefSaving === key}
+                      onClick={() => handlePreferenceToggle(key)}
+                      className={`notifications-page__toggle${prefs?.[key] ? ' notifications-page__toggle--on' : ''}`}
+                      style={prefs?.[key] ? { background: paletteAt(paletteIndex).grad } : undefined}
                     >
                       <span className="notifications-page__toggle-knob" />
                     </button>
                   </div>
-                  {([
-                    ['login_notifications', t('profile.loginNotifications'), t('profile.loginNotificationsDesc')],
-                    ['suspicious_alerts', t('profile.suspiciousAlerts'), t('profile.suspiciousAlertsDesc')],
-                  ] as const).map(([key, label, desc]) => (
-                    <div key={key} className="profile-page__security-row">
-                      <div>
-                        <p className="profile-page__security-title">{label}</p>
-                        <p className="profile-page__security-desc">{desc}</p>
-                      </div>
+                ))}
+                <div className="profile-page__session-banner profile-page__card-footer-banner">
+                  <CheckCircle size={16} className="profile-page__session-banner-icon" />
+                  <div>
+                    <p className="profile-page__session-banner-title">{t('profile.sessionActive')}</p>
+                    <p className="profile-page__session-banner-desc">
+                      {t('profile.sessionActiveDesc', { status: user.is_active ? t('profile.active') : t('profile.suspended') })}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              </div>
+            </section>
+            </div>
+
+            <section className="profile-page__section profile-page__section--glass profile-page__section--span-full">
+              <div className="profile-page__section-head">
+                <div className="profile-page__section-icon profile-page__section-icon--teal">
+                  <Bell size={15} />
+                </div>
+                <div>
+                  <h2 className="profile-page__section-title">{t('profile.notificationsPrefs')}</h2>
+                  <p className="profile-page__section-desc">{t('pages.profile.heroSubtitle')}</p>
+                </div>
+              </div>
+              <div className="profile-page__prefs profile-page__prefs--clean">
+                {prefRows.map(([key, label, paletteIndex]) => {
+                  const pal = paletteAt(paletteIndex);
+                  return (
+                    <div key={key} className="profile-page__pref-row-clean">
+                      <span className="profile-page__pref-label">{label}</span>
                       <button
                         type="button"
                         aria-pressed={prefs?.[key] ?? false}
                         disabled={!prefs || prefSaving === key}
                         onClick={() => handlePreferenceToggle(key)}
                         className={`notifications-page__toggle${prefs?.[key] ? ' notifications-page__toggle--on' : ''}`}
+                        style={prefs?.[key] ? { background: pal.grad } : undefined}
                       >
                         <span className="notifications-page__toggle-knob" />
                       </button>
                     </div>
-                  ))}
-                  <div className="profile-page__session-banner">
-                    <CheckCircle size={16} className="profile-page__session-banner-icon" />
-                    <div>
-                      <p className="profile-page__session-banner-title">{t('profile.sessionActive')}</p>
-                      <p className="profile-page__session-banner-desc">
-                        {t('profile.sessionActiveDesc', { status: user.is_active ? t('profile.active') : t('profile.suspended') })}
-                      </p>
-                    </div>
-                  </div>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section className="profile-page__section profile-page__section--glass profile-page__section--danger profile-page__section--span-full">
+              <div className="profile-page__section-head">
+                <div className="profile-page__section-icon profile-page__section-icon--red">
+                  <AlertCircle size={15} />
+                </div>
+                <div>
+                  <h2 className="profile-page__section-title">{t('profile.dangerZone')}</h2>
+                  <p className="profile-page__section-desc">{t('profile.dangerZoneDesc')}</p>
                 </div>
               </div>
-            </div>
-          )}
-
-          {activeTab === 'sessions' && (
-            <div className="profile-page__sections">
-              <div className="enforcement-page__panel profile-page__panel">
-                <div className="profile-page__panel-head profile-page__panel-head--split">
-                  <div className="profile-page__panel-head">
-                    <div className="profile-page__panel-head-icon profile-page__panel-head-icon--blue">
-                      <Globe size={15} />
-                    </div>
+              {accountActionsLocked && (
+                <div className="profile-page__danger-admin-note">
+                  <Shield size={15} />
+                  <p>{t('profile.adminAccountProtected')}</p>
+                </div>
+              )}
+              <div className="profile-page__danger-grid">
+                <div className="profile-page__danger-card">
+                  <div className="profile-page__danger-card-head">
+                    <span className="profile-page__danger-card-icon profile-page__danger-card-icon--warn">
+                      <LogOut size={16} />
+                    </span>
                     <div>
-                      <p className="profile-page__panel-title">{t('profile.activeSessions')}</p>
-                      <p className="profile-page__panel-desc">{t('profile.activeSessionsDesc')}</p>
+                      <h3 className="profile-page__danger-card-title">{t('profile.deactivateAccount')}</h3>
+                      <p className="profile-page__danger-card-desc">{t('profile.deactivateAccountDesc')}</p>
                     </div>
                   </div>
-                  <button type="button" className="profile-page__revoke-btn" disabled={revoking} onClick={handleRevokeOthers}>
-                    {revoking ? <Loader2 size={11} className="profile-page__spinner" /> : <LogOut size={11} />}
-                    {t('profile.revokeOthers')}
+                  <button
+                    type="button"
+                    className="profile-page__danger-btn profile-page__danger-btn--outline"
+                    disabled={deactivating || accountActionsLocked}
+                    onClick={handleDeactivate}
+                  >
+                    {deactivating ? <Loader2 size={13} className="profile-page__spinner" /> : <LogOut size={13} />}
+                    {t('profile.deactivateAccount')}
                   </button>
                 </div>
-                <div className="profile-page__sessions">
-                  {sessions.map((s, i) => (
-                    <div key={s.id ?? `session-${i}`} className={`profile-page__session-row${s.current ? ' profile-page__session-row--current' : ''}`}>
-                      <div className={`profile-page__session-icon${s.current ? ' profile-page__session-icon--current' : ''}`}>
+
+                <div className="profile-page__danger-card profile-page__danger-card--delete">
+                  <div className="profile-page__danger-card-head">
+                    <span className="profile-page__danger-card-icon profile-page__danger-card-icon--delete">
+                      <Trash2 size={16} />
+                    </span>
+                    <div>
+                      <h3 className="profile-page__danger-card-title">{t('profile.deleteAccount')}</h3>
+                      <p className="profile-page__danger-card-desc">{t('profile.deleteAccountDesc')}</p>
+                    </div>
+                  </div>
+                  {accountActionsLocked ? (
+                    <button
+                      type="button"
+                      className="profile-page__danger-btn profile-page__danger-btn--solid"
+                      disabled
+                    >
+                      <Trash2 size={13} />
+                      {t('profile.deleteAccount')}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="profile-page__danger-btn profile-page__danger-btn--solid"
+                      onClick={() => setDeleteDialogOpen(true)}
+                    >
+                      <Trash2 size={13} />
+                      {t('profile.deleteAccount')}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {activeTab === 'sessions' && (
+          <div className="profile-page__content-stack profile-page__content-stack--wide-grid">
+            <div className="profile-page__session-stats profile-page__section--span-full">
+              <div className="profile-page__session-stat-card" style={{ '--profile-accent': paletteAt(5).solid, '--profile-accent-soft': paletteAt(5).soft } as CSSProperties}>
+                <Monitor size={18} />
+                <span>{sessions.length}</span>
+                <small>{t('profile.activeDevices')}</small>
+              </div>
+              <div className="profile-page__session-stat-card" style={{ '--profile-accent': paletteAt(6).solid, '--profile-accent-soft': paletteAt(6).soft } as CSSProperties}>
+                <Globe size={18} />
+                <span>{sessions.filter((s) => !s.current).length}</span>
+                <small>{t('profile.otherSessions')}</small>
+              </div>
+              <div className="profile-page__session-stat-card" style={{ '--profile-accent': paletteAt(4).solid, '--profile-accent-soft': paletteAt(4).soft } as CSSProperties}>
+                <TrendingUp size={18} />
+                <span>{loginSuccessRate}%</span>
+                <small>{t('profile.loginSuccessRate')}</small>
+              </div>
+              <div className="profile-page__session-stat-card" style={{ '--profile-accent': paletteAt(8).solid, '--profile-accent-soft': paletteAt(8).soft } as CSSProperties}>
+                <Clock size={18} />
+                <span>{formatLastLogin(user.last_login, t('profile.justNow'))}</span>
+                <small>{t('profile.lastLogin')}</small>
+              </div>
+            </div>
+
+            <section className="profile-page__section profile-page__section--glass">
+              <div className="profile-page__section-head profile-page__section-head--split">
+                <div className="profile-page__section-head">
+                  <div className="profile-page__section-icon profile-page__section-icon--cyan">
+                    <Globe size={15} />
+                  </div>
+                  <div>
+                    <h2 className="profile-page__section-title">{t('profile.activeSessions')}</h2>
+                    <p className="profile-page__section-desc">{t('profile.activeSessionsDesc')}</p>
+                  </div>
+                </div>
+                <button type="button" className="profile-page__revoke-btn" disabled={revoking} onClick={handleRevokeOthers}>
+                  {revoking ? <Loader2 size={11} className="profile-page__spinner" /> : <LogOut size={11} />}
+                  {t('profile.revokeOthers')}
+                </button>
+              </div>
+              <div className="profile-page__sessions profile-page__sessions--clean">
+                {sessions.map((s, i) => {
+                  const pal = paletteAt(i % DASHBOARD_PALETTE.length);
+                  return (
+                    <div
+                      key={s.id ?? `session-${i}`}
+                      className={`profile-page__session-row profile-page__session-row--clean${s.current ? ' profile-page__session-row--current' : ''}`}
+                      style={s.current ? { '--profile-accent': pal.solid, '--profile-accent-soft': pal.soft } as CSSProperties : undefined}
+                    >
+                      <div className="profile-page__session-icon">
                         {sessionIcon(s.device)}
                       </div>
                       <div className="profile-page__session-copy">
@@ -646,42 +1148,105 @@ export function ProfilePage() {
                         </button>
                       )}
                     </div>
-                  ))}
+                  );
+                })}
+              </div>
+            </section>
+
+            <section className="profile-page__section profile-page__section--glass">
+              <div className="profile-page__section-head">
+                <div className="profile-page__section-icon profile-page__section-icon--yellow">
+                  <Clock size={15} />
+                </div>
+                <div>
+                  <h2 className="profile-page__section-title">{t('profile.loginHistory')}</h2>
+                  <p className="profile-page__section-desc">{t('profile.loginHistoryDesc')}</p>
                 </div>
               </div>
-
-              <div className="enforcement-page__panel profile-page__panel">
-                <div className="profile-page__panel-head">
-                  <div className="profile-page__panel-head-icon profile-page__panel-head-icon--blue">
-                    <Clock size={15} />
-                  </div>
-                  <div>
-                    <p className="profile-page__panel-title">{t('profile.loginHistory')}</p>
-                    <p className="profile-page__panel-desc">{t('profile.loginHistoryDesc')}</p>
-                  </div>
-                </div>
-                {loginHistory.length === 0 ? (
-                  <p className="profile-page__empty-note">{t('profile.noLoginHistory')}</p>
-                ) : (
-                  <div className="profile-page__history">
-                    {loginHistory.map((h, i) => (
-                      <div key={`${h.time}-${i}`} className="profile-page__history-row">
-                        <div className={`profile-page__history-dot profile-page__history-dot--${h.status}`} />
+              {loginHistory.length === 0 ? (
+                <p className="profile-page__empty-note">{t('profile.noLoginHistory')}</p>
+              ) : (
+                <div className="profile-page__history profile-page__history--clean">
+                  {loginHistory.map((h, i) => {
+                    const pal = paletteAt(i % DASHBOARD_PALETTE.length);
+                    return (
+                      <div key={`${h.time}-${i}`} className="profile-page__history-row profile-page__history-row--clean">
+                        <div className="profile-page__history-dot" style={{ background: pal.solid }} />
                         <div className="profile-page__history-copy">
                           <p className="profile-page__history-device">{h.device}</p>
                           <p className="profile-page__history-ip">{h.ip_masked}</p>
                         </div>
                         <span className="profile-page__history-time">{h.time_label}</span>
-                        <span className={`profile-page__history-badge profile-page__history-badge--${h.status}`}>{h.status}</span>
+                        <span className="profile-page__history-badge" style={{ color: pal.dark, background: pal.soft }}>
+                          {h.status}
+                        </span>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          </div>
+        )}
+          </div>
         </div>
       </div>
+
+      <Dialog open={deleteDialogOpen} onOpenChange={(open) => { if (!open) resetDeleteDialog(); else setDeleteDialogOpen(true); }}>
+        <DialogContent className="profile-page__delete-dialog max-w-md">
+          <DialogHeader>
+            <DialogTitle className="profile-page__delete-dialog-title">
+              <span className="profile-page__danger-card-icon profile-page__danger-card-icon--delete">
+                <Trash2 size={16} />
+              </span>
+              {t('profile.deleteAccountDialogTitle')}
+            </DialogTitle>
+            <DialogDescription className="profile-page__delete-dialog-desc">
+              {t('profile.deleteAccountDialogDesc')}
+            </DialogDescription>
+          </DialogHeader>
+
+          <ul className="profile-page__delete-rules">
+            {deleteRules.map((key) => (
+              <li key={key}>
+                <AlertCircle size={14} />
+                <span>{t(`profile.${key}`)}</span>
+              </li>
+            ))}
+          </ul>
+
+          <div className="profile-page__delete-dialog-form">
+            <Label className="enforcement-page__form-label">{t('profile.deletePasswordLabel')}</Label>
+            <div className="relative mt-1.5">
+              <Input
+                type={showDeletePassword ? 'text' : 'password'}
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                placeholder={t('profile.deletePasswordPlaceholder')}
+                className="pr-10"
+              />
+              <button type="button" onClick={() => setShowDeletePassword(!showDeletePassword)} className="profile-page__eye-btn">
+                {showDeletePassword ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            </div>
+          </div>
+
+          <DialogFooter className="profile-page__delete-dialog-footer">
+            <button type="button" className="profile-page__danger-btn profile-page__danger-btn--ghost" disabled={deleting} onClick={resetDeleteDialog}>
+              {t('common.cancel')}
+            </button>
+            <button
+              type="button"
+              className="profile-page__danger-btn profile-page__danger-btn--solid"
+              disabled={deleting || !deletePassword}
+              onClick={handleDeleteAccount}
+            >
+              {deleting ? <Loader2 size={13} className="profile-page__spinner" /> : <Trash2 size={13} />}
+              {t('profile.deleteConfirmAction')}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

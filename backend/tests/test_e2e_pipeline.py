@@ -63,6 +63,46 @@ def _seed_violation_rules():
         )
 
 
+def _seed_traffic_sign(code='P-001', name_km='បញ្ចប់ការហាមផ្លុំស៊ីផ្លេ', name_en='End of Honking Prohibition'):
+    from traffic_signs.models import TrafficSign
+    return TrafficSign.objects.get_or_create(
+        sign_code=code,
+        defaults={
+            'sign_name': name_km,
+            'sign_name_km': name_km,
+            'sign_name_en': name_en,
+            'description': f'សញ្ញាហាមឃាត់ {name_km}។',
+            'description_en': f'{name_en} — prohibitory sign used on Cambodian roads.',
+            'guidance': f'សូមគោរពច្បាប់ហាមឃាត់ {name_km}។',
+            'guidance_en': f'Follow the prohibition shown by this sign: {name_en}.',
+            'category': 'prohibitory',
+        },
+    )[0]
+
+
+def _seed_fine(admin_user):
+    from decimal import Decimal
+    from django.contrib.auth import get_user_model
+    from fines.models import Fine
+    User = get_user_model()
+    driver, _ = User.objects.get_or_create(
+        email='e2e_driver@camtraffic.kh',
+        defaults={'full_name': 'E2E Driver', 'role': 'driver', 'is_active': True},
+    )
+    fine, _ = Fine.objects.get_or_create(
+        driver=driver,
+        reason='E2E test fine — illegal left turn',
+        defaults={
+            'police': admin_user,
+            'amount': Decimal('25.00'),
+            'status': 'pending',
+            'location': 'Phnom Penh Test Intersection',
+            'vehicle_plate': '2A-1234',
+        },
+    )
+    return fine
+
+
 def _sample_image(path=None):
     """Return a SimpleUploadedFile from a real image, or a minimal fallback."""
     chosen = path or SAMPLE_IMAGE
@@ -211,6 +251,32 @@ class DetectionPipelineTests(TestCase):
         url = payload.get('uploaded_image', '')
         self.assertTrue(url.startswith('http'), f'Expected absolute URL, got: {url!r}')
 
+    def test_live_scan_accepts_track_session(self):
+        """Live webcam preview with track_session returns tracking metadata."""
+        from unittest.mock import patch
+
+        tracked = [{
+            'vehicle_type': 'car',
+            'label': 'Car',
+            'confidence': 91.0,
+            'bbox': {'x1': 0.1, 'y1': 0.2, 'x2': 0.5, 'y2': 0.7},
+            'track_id': 4,
+        }]
+        img = _sample_image()
+        with patch('ai_detection.pipeline.track_vehicles', return_value=tracked):
+            r = self.client.post('/api/ai/detect/', {
+                'image': img,
+                'original_filename': 'webcam-live.jpg',
+                'live_scan': 'true',
+                'track_session': 'e2e-track-session',
+            }, format='multipart')
+        self.assertIn(r.status_code, [200, 201], r.content)
+        payload = r.json()['data']
+        self.assertTrue(payload.get('live_preview'))
+        self.assertEqual(payload.get('track_session'), 'e2e-track-session')
+        self.assertEqual(payload.get('vehicles'), tracked)
+        self.assertIsNone(payload.get('log_id'))
+
 
 class ViolationEngineTests(TestCase):
     """Step 5: Violation rule engine"""
@@ -265,13 +331,10 @@ class FinePDFTests(TestCase):
 
     def setUp(self):
         self.client, self.user = _admin_client()
+        self.fine = _seed_fine(self.user)
 
     def test_fine_pdf_returns_pdf_bytes(self):
-        from fines.models import Fine
-        fine = Fine.objects.first()
-        if not fine:
-            self.skipTest('No fines in DB — issue one first')
-        r = self.client.get(f'/api/fines/{fine.id}/pdf/')
+        r = self.client.get(f'/api/fines/{self.fine.id}/pdf/')
         self.assertEqual(r.status_code, 200, r.content)
         self.assertEqual(r['Content-Type'], 'application/pdf')
         self.assertIn(b'%PDF', r.content[:10])
@@ -282,6 +345,7 @@ class TrafficSignAPITests(TestCase):
 
     def setUp(self):
         self.client, _ = _admin_client()
+        self.sign = _seed_traffic_sign()
 
     def test_signs_endpoint_accessible(self):
         """Signs API is reachable and returns a valid paginated response."""
@@ -289,14 +353,97 @@ class TrafficSignAPITests(TestCase):
         self.assertEqual(r.status_code, 200)
         data = r.json()
         self.assertTrue(data.get('success'), data)
-        # Test DB may be empty — just confirm the endpoint works
         self.assertIsInstance(data.get('data'), list)
+        self.assertGreaterEqual(len(data['data']), 1)
+
+    def test_sign_has_bilingual_names(self):
+        """Seeded sign must expose Khmer and English names for TTS/UI."""
+        r = self.client.get(f'/api/signs/{self.sign.id}/')
+        self.assertEqual(r.status_code, 200, r.content)
+        payload = r.json()['data']
+        self.assertTrue(payload.get('sign_name_km'))
+        self.assertTrue(payload.get('sign_name_en'))
+        self.assertIn('description', payload)
+        self.assertIn('guidance', payload)
 
     def test_sign_categories_in_production_db(self):
-        """Verify signs are imported in the REAL DB (skips on empty test DB)."""
+        """Verify signs have valid categories."""
         from traffic_signs.models import TrafficSign
-        count = TrafficSign.objects.count()
-        if count == 0:
-            self.skipTest('Test DB is empty — run import_cambodia_signs in production')
+        _seed_traffic_sign('P-002', 'បញ្ចប់កំណត់ល្បឿនអតិបរមា', 'End of maximum speed limit')
         cats = set(TrafficSign.objects.values_list('category', flat=True).distinct())
         self.assertGreater(len(cats), 0)
+
+
+class EvidenceArchiveTests(TestCase):
+    """Module 6 — unified evidence archive search."""
+
+    def setUp(self):
+        self.client, _ = _admin_client()
+
+    def test_evidence_archive_returns_list(self):
+        r = self.client.get('/api/dashboard/evidence/')
+        self.assertEqual(r.status_code, 200, r.content[:200])
+        data = r.json()['data']
+        self.assertIn('count', data)
+        self.assertIn('results', data)
+        self.assertIsInstance(data['results'], list)
+
+    def test_evidence_archive_filter_by_type(self):
+        r = self.client.get('/api/dashboard/evidence/', {'type': 'detection'})
+        self.assertEqual(r.status_code, 200, r.content[:200])
+        for row in r.json()['data']['results']:
+            self.assertEqual(row['source_type'], 'detection')
+
+
+class DashboardReportPDFTests(TestCase):
+    """Module 7 — Analytics report PDF export."""
+
+    def setUp(self):
+        self.client, self.user = _admin_client()
+
+    def test_admin_report_pdf_returns_pdf_bytes(self):
+        r = self.client.get('/api/dashboard/admin/report/pdf/')
+        self.assertEqual(r.status_code, 200, r.content[:200])
+        self.assertEqual(r['Content-Type'], 'application/pdf')
+        self.assertIn(b'%PDF', r.content[:10])
+
+    def test_police_report_pdf_returns_pdf_bytes(self):
+        r = self.client.get('/api/dashboard/police/reports/pdf/')
+        self.assertEqual(r.status_code, 200, r.content[:200])
+        self.assertEqual(r['Content-Type'], 'application/pdf')
+        self.assertIn(b'%PDF', r.content[:10])
+
+
+class TTSTests(TestCase):
+    """Neural TTS API — Khmer and English speech synthesis."""
+
+    def setUp(self):
+        self.client, _ = _admin_client()
+
+    def test_tts_endpoint_requires_text(self):
+        r = self.client.post('/api/ai/tts/', {'text': ''}, format='json')
+        self.assertEqual(r.status_code, 400, r.content)
+
+    def test_tts_khmer_returns_audio(self):
+        from ai_detection.tts import tts_available
+        if not tts_available():
+            self.skipTest('edge-tts not installed')
+        r = self.client.post('/api/ai/tts/', {
+            'text': 'បញ្ចប់ការហាមផ្លុំស៊ីផ្លេ',
+            'lang': 'km',
+        }, format='json')
+        self.assertEqual(r.status_code, 200, r.content[:200])
+        self.assertEqual(r['Content-Type'], 'audio/mpeg')
+        self.assertGreater(len(r.content), 1000)
+
+    def test_tts_english_returns_audio(self):
+        from ai_detection.tts import tts_available
+        if not tts_available():
+            self.skipTest('edge-tts not installed')
+        r = self.client.post('/api/ai/tts/', {
+            'text': 'End of Honking Prohibition',
+            'lang': 'en',
+        }, format='json')
+        self.assertEqual(r.status_code, 200, r.content[:200])
+        self.assertEqual(r['Content-Type'], 'audio/mpeg')
+        self.assertGreater(len(r.content), 1000)

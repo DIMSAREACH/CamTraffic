@@ -1,7 +1,9 @@
 from django.contrib.auth.models import BaseUserManager
+from django.db import transaction
 
 
 class UserManager(BaseUserManager):
+    @transaction.atomic
     def create_user(self, email, password=None, **extra_fields):
         if not email:
             raise ValueError('Email is required')

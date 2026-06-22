@@ -6,6 +6,7 @@ from django.test import SimpleTestCase, override_settings
 
 from ai_detection.plate_ocr import (
     classify_plate_type,
+    lookup_plate_province,
     normalize_plate_text,
     plate_ocr_enabled,
     recognize_plate,
@@ -24,6 +25,21 @@ class PlateNormalizeTest(SimpleTestCase):
 
     def test_classify_private(self):
         self.assertEqual(classify_plate_type('2A-1234'), 'private')
+
+    def test_province_lookup_single_digit(self):
+        province = lookup_plate_province('2A-1234')
+        self.assertIsNotNone(province)
+        self.assertEqual(province['code'], '2')
+        self.assertEqual(province['name_en'], 'Battambang')
+
+    def test_province_lookup_two_digit_phnom_penh(self):
+        province = lookup_plate_province('12A-5678')
+        self.assertIsNotNone(province)
+        self.assertEqual(province['code'], '12')
+        self.assertEqual(province['name_en'], 'Phnom Penh')
+
+    def test_province_lookup_unknown(self):
+        self.assertIsNone(lookup_plate_province('POL-001'))
 
 
 class PlateOCRServiceTest(SimpleTestCase):
@@ -60,6 +76,7 @@ class PlateOCRServiceTest(SimpleTestCase):
         self.assertEqual(result['plate_text'], '2A-1234')
         self.assertEqual(result['plate_confidence'], 88.0)
         self.assertEqual(result['plate_type'], 'private')
+        self.assertEqual(result['plate_province_en'], 'Battambang')
         self.assertEqual(result['ocr_engine'], 'easyocr')
 
     @override_settings(AI_PLATE_OCR_ENABLED=True)

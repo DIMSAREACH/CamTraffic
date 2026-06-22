@@ -1,0 +1,92 @@
+# CamTraffic — local development & staging stack
+# Usage: copy .env.docker.example → .env.docker, then:
+#   docker compose --env-file .env.docker up -d --build
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: camtraffic_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-camtraffic_db}
+      POSTGRES_USER: ${DB_USER:-camtraffic}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-camtraffic_secret}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-camtraffic} -d ${DB_NAME:-camtraffic_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: camtraffic_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redisdata:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.backend
+    container_name: camtraffic_backend
+    restart: unless-stopped
+    env_file:
+      - .env.docker
+    environment:
+      DOCKER: "1"
+      DB_HOST: postgres
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+    volumes:
+      - ./backend:/app/backend
+      - ./backend/media:/app/backend/media
+      - ./ai/weights:/app/ai/weights
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             gunicorn camtraffic.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120"
+
+  celery:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.celery
+    container_name: camtraffic_celery
+    restart: unless-stopped
+    env_file:
+      - .env.docker
+    environment:
+      DOCKER: "1"
+      DB_HOST: postgres
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+    volumes:
+      - ./backend/media:/app/backend/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_started
+
+volumes:
+  pgdata:
+  redisdata:

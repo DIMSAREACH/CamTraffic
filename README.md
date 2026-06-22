@@ -1,206 +1,154 @@
-# CamTraffic — AI-Based Traffic Sign Detection & Law Enforcement System (Cambodia)
+# CamTraffic
 
-Final year project: an AI-powered traffic management platform for Cambodia with role-based access for **Admin**, **Traffic Police**, and **Drivers**.
+**AI-Based Traffic Sign Detection and Traffic Law Enforcement System in Cambodia**
 
-## Architecture
-
-```
-CamTraffic/
-├── backend/             # Django + DRF + JWT + PostgreSQL
-├── frontend-user/       # Driver & police portal (:5173)
-│   ├── user/            # User-only pages & layout
-│   └── shared/          # Shared UI, API client, styles
-├── frontend-admin/      # Administrator portal (:5174)
-│   ├── admin/           # Admin-only pages & layout
-│   └── shared/          # Shared UI, API client, styles
-├── ai/                  # YOLOv8 training & inference
-└── docs/                # API, schema, deployment
-```
-
-```mermaid
-flowchart LR
-  subgraph client [React Frontend]
-    UI[Dashboard UI]
-    Axios[Axios API Client]
-  end
-  subgraph server [Django Backend]
-    API[REST API]
-    Auth[JWT Auth]
-    AI[AI Detection Service]
-  end
-  DB[(PostgreSQL)]
-  Model[YOLOv8 Weights]
-  UI --> Axios --> API
-  API --> Auth
-  API --> DB
-  API --> AI --> Model
-```
-
-## Features
-
-- JWT authentication with role-based access control
-- Driver: vehicles, fines, AI sign detection, learning module, chatbot
-- Police: driver lookup, digital fines, evidence upload, reports
-- Admin: user management, analytics dashboard, AI logs
-- YOLOv8 traffic sign detection (mock mode for demos without GPU)
-- PDF fine export, notifications, password reset
-
-## GitHub (manual push only)
-
-Code is stored with **Git** locally. Nothing uploads to GitHub automatically — push only when you ask.
-
-See **[docs/GITHUB.md](docs/GITHUB.md)** for linking a new GitHub repo and running `git push`.
+Final-year thesis project: an intelligent transportation platform with role-based access for **Administrator**, **Traffic Police**, and **Drivers**. Automates Cambodian traffic sign detection (YOLOv8), vehicle tracking (ByteTrack), license plate OCR (EasyOCR), violation evaluation (rule engine), evidence capture, and fine management.
 
 ---
 
-## Quick start
+## Stack
 
-### 1. Backend
+| Layer | Technology |
+| --- | --- |
+| **Frontend** | React 18, TypeScript, Vite, Tailwind CSS 4, Axios, React Router |
+| **Backend** | Python 3.10+, Django 4.2, Django REST Framework, SimpleJWT |
+| **Database** | PostgreSQL (production) · SQLite (local dev) |
+| **AI / CV** | YOLOv8, OpenCV, EasyOCR, ByteTrack, optional Gemini Vision |
+| **Deployment** | Gunicorn + Nginx (documented) · Docker planned |
+
+**Portals:** Admin `:5174` · User (police + driver) `:5173`
+
+---
+
+## Documents (read these first)
+
+| File | Purpose |
+| --- | --- |
+| [PRD.md](PRD.md) | Product requirements — objectives, roles, functional requirements |
+| [PLAN.md](PLAN.md) | 12-month implementation, QA, deployment, and rollout plan |
+| [TASKS.md](TASKS.md) | Development checklist — Phase 1–16 with checkboxes (~53% done) |
+| [SYSTEM_FLOW.md](SYSTEM_FLOW.md) | End-to-end workflow — camera → AI → violation → fine |
+| [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md) | Tables, columns, relationships |
+| [API_SPEC.md](API_SPEC.md) | REST API endpoints and request/response formats |
+| [TECH_STACK.md](TECH_STACK.md) | Technology choices and repo layout |
+| [docs/architecture/](docs/architecture/README.md) | **Professional structure** — folder layout, backend/frontend architecture, DB design, roadmap |
+
+**Extended docs:** [docs/ERD.md](docs/ERD.md) · [docs/API.md](docs/API.md) · [DEMO_SCRIPT.md](DEMO_SCRIPT.md) · [TASK.md](TASK.md) (detailed defense tracker)
+
+---
+
+## Goal
+
+Build a production-ready traffic law enforcement platform with:
+
+- Admin Dashboard — analytics, users, signs, cameras, AI logs, reports
+- Officer Dashboard — live detection, violation review, fine issuance, evidence
+- Citizen Dashboard — vehicles, fines, notifications, sign learning
+- AI Traffic Sign Detection — 10-class Cambodian YOLO model + optional Gemini hybrid
+- License Plate Recognition — Latin plates with province lookup
+- Fine Management — create, status workflow, PDF export
+- Appeals System — planned (Phase 9)
+- Real-Time Monitoring — browser webcam + IP camera snapshot poll
+
+---
+
+## Repository Layout
+
+```text
+CamTraffic/
+├── backend/              # Django REST API + AI detection pipeline
+├── frontend-admin/       # Admin portal (:5174)
+├── frontend-user/        # Police + driver portal (:5173)
+├── ai/                   # Dataset, weights (best.pt), training scripts
+├── docs/                 # Thesis chapters, ERD, deployment guides
+├── scripts/              # Defense demo, audit, screenshot tools
+├── PRD.md
+├── TASKS.md
+├── SYSTEM_FLOW.md
+├── DATABASE_SCHEMA.md
+├── API_SPEC.md
+└── TECH_STACK.md
+```
+
+---
+
+## Quick Start
+
+### Backend
 
 ```bash
 cd backend
 python -m venv venv
 venv\Scripts\activate          # Windows
 pip install -r requirements.txt
-copy .env.example .env         # USE_SQLITE=True by default
+copy .env.example .env           # USE_SQLITE=True by default
 python manage.py migrate
-python manage.py create_admin    # you choose admin email + password
-python manage.py seed_data       # traffic signs only (no demo logins)
+python manage.py create_admin
 python manage.py runserver
 ```
 
-### 2. Frontend
+### Frontend (both portals)
 
 ```bash
-# From project root — both portals
 npm run install:frontends
 npm run dev
 ```
 
-Or run one portal:
-
-```bash
-cd frontend-user && npm install && npm run dev   # http://localhost:5173
-cd frontend-admin && npm install && npm run dev  # http://localhost:5174
-```
-
 | Portal | URL |
-|--------|-----|
+| --- | --- |
 | User (driver / police) | http://localhost:5173 |
 | Admin | http://localhost:5174 |
 
-Run **both** frontends (`npm run dev` from project root). Each portal keeps its own login session, so opening the user portal after signing in as admin will not show the admin dashboard.
-
-### Password policy
-
-All new and changed passwords must be **at least 8 characters** and include an **uppercase letter**, a **number**, and a **special character** (enforced on the API).
-
-### Create your own accounts (no demo logins in seed)
-
-| Role | How to create |
-|------|----------------|
-| **Admin** | `python manage.py create_admin` — prompts for your email, name, and password |
-| **Police** | Sign in as admin → **Users** → Add user (role: Traffic Police) — you set email and password |
-| **Driver** | User portal → **Create an account** (`/register`) — self-registration |
-
-`seed_data` only loads traffic signs (and optional sample fines if you already have police/driver users). It does **not** create users or passwords.
-
-**First administrator example:**
+### Tests
 
 ```bash
 cd backend
-python manage.py create_admin
-# Admin email: you@yourdomain.com
-# Full name: Your Name
-# Password: (hidden prompt — must meet policy above)
+python manage.py test
 ```
 
-Then open http://localhost:5174 and sign in with that email and password.
+---
 
-**Role-based login:** Each portal checks email + password against the account’s role. Admin portal (`5174`) only accepts `admin` users. User portal (`5173`) accepts `police` or `driver` and matches the **Officer** / **Driver** tab you selected.
+## For AI Coding Agents
 
-### Environment
+Use this prompt to continue development:
 
-- **Frontend:** `frontend-user/.env` and `frontend-admin/.env` → `VITE_API_URL=/api` (Vite proxies to Django in dev), `VITE_USE_MOCK=false`
-- **Backend:** `backend/.env` → include **both** portal ports in `CORS_ALLOWED_ORIGINS` (`5173` user, `5174` admin). Restart `runserver` after changing `.env`.
-- **Mock-only UI:** set `VITE_USE_MOCK=true` (no backend required)
+```text
+Read README.md, PRD.md, TASKS.md, SYSTEM_FLOW.md, DATABASE_SCHEMA.md, TECH_STACK.md,
+and docs/architecture/ (folder structure, backend/frontend architecture, DB design, roadmap).
 
-### Google / GitHub login (user portal)
+This is an existing CamTraffic codebase (~53% complete). Do not rebuild from scratch.
 
-**Step-by-step guides:**
+Continue from TASKS.md — pick the next unchecked high-priority item and implement it using:
+- React + TailwindCSS (frontend-admin + frontend-user)
+- Django REST Framework (backend/)
+- PostgreSQL (migrations in backend/*/migrations/)
+- YOLOv8 + EasyOCR (ai_detection app)
 
-- Google: [docs/GOOGLE_OAUTH_SETUP.md](docs/GOOGLE_OAUTH_SETUP.md)
-- GitHub: [docs/GITHUB_OAUTH_SETUP.md](docs/GITHUB_OAUTH_SETUP.md)
-
-1. Create OAuth apps:
-   - **Google:** [Google Cloud Console](https://console.cloud.google.com/) → **Credentials** → **OAuth client ID** (Web application). Redirect URI: `http://localhost:5173/auth/oauth/callback`
-   - **GitHub:** [GitHub Developer settings → OAuth Apps](https://github.com/settings/developers). Authorization callback URL: `http://localhost:5173/auth/oauth/callback`
-2. Add to `backend/.env` (see `backend/.env.example`):
-   ```
-   GOOGLE_OAUTH_CLIENT_ID=...
-   GOOGLE_OAUTH_CLIENT_SECRET=...
-   GITHUB_OAUTH_CLIENT_ID=...
-   GITHUB_OAUTH_CLIENT_SECRET=...
-   OAUTH_FRONTEND_CALLBACK_URL=http://localhost:5173/auth/oauth/callback
-   ```
-3. Restart Django. On the user login page, use **Google** or **GitHub**. New accounts are created as **drivers**.
-
-### Forgot password (Resend)
-
-Password reset emails are sent via [Resend](https://resend.com). See [docs/RESEND_EMAIL_SETUP.md](docs/RESEND_EMAIL_SETUP.md).
-
-```env
-RESEND_API_KEY=re_...
-RESEND_FROM_EMAIL=CamTraffic <onboarding@resend.dev>
-FRONTEND_PASSWORD_RESET_URL=http://localhost:5173/reset-password
+Match existing code conventions. Run tests after changes.
 ```
 
-Restart Django, then use **Forgot password** on the user login page (resend uses the same API).
+**Suggested build order for new features:**
 
-## PostgreSQL
+1. Database model + migration
+2. Serializer + view + URL
+3. Frontend API client + page/component
+4. Test in `backend/tests/`
 
-Set in `backend/.env`:
+---
 
-```
-USE_SQLITE=False
-DB_NAME=camtraffic_db
-DB_USER=postgres
-DB_PASSWORD=your_password
-DB_HOST=localhost
-DB_PORT=5432
-```
+## Current Status (~53%)
 
-Create database: `createdb camtraffic_db` then `python manage.py migrate`
+| Complete | In Progress | Not Started |
+| --- | --- | --- |
+| Auth (JWT, OAuth, RBAC) | KYC, payment receipts | Appeals system |
+| 10-class YOLO sign model | RTSP, camera heartbeat | Docker / CI/CD |
+| Violation rule engine | Khmer plate OCR | Redis cache |
+| Fine management + PDF | Maps / heatmaps | AI model admin UI |
+| Dual React dashboards | Daily/weekly reports | Audit logs |
 
-## AI module
+See [TASKS.md](TASKS.md) for the full checklist.
 
-See [ai/README.md](ai/README.md). The project can train on **232 Cambodia signs** from your reference folder (`ស្លាកសញ្ញាចរាចរណ៏`).
-
-```bash
-cd ai
-..\backend\venv\Scripts\python.exe build_dataset.py
-..\backend\venv\Scripts\python.exe train.py --epochs 30 --device cpu
-cd ..\backend
-python manage.py import_cambodia_signs --update
-```
-
-Then set `AI_USE_MOCK=False` and `AI_MODEL_PATH=../ai/weights/best.pt` in `backend/.env`.
-
-## Documentation
-
-- [API Reference](docs/API.md)
-- [Database Schema](docs/SCHEMA.sql)
-- [Deployment](docs/DEPLOYMENT.md)
-
-## Tech stack
-
-| Layer | Technology |
-|-------|------------|
-| Backend | Django 4.2, DRF, SimpleJWT |
-| Frontend | React 18, Vite, Tailwind CSS 4 |
-| Database | PostgreSQL (SQLite for dev) |
-| AI | YOLOv8, OpenCV, Ultralytics |
-| State | React Context API |
+---
 
 ## License
 

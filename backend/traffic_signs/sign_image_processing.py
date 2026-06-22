@@ -4,7 +4,9 @@ from __future__ import annotations
 from io import BytesIO
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageFilter
+
+DISPLAY_LONG_EDGE = 480
 
 
 def _red_mask(rgb: np.ndarray) -> np.ndarray:
@@ -16,7 +18,27 @@ def _red_mask(rgb: np.ndarray) -> np.ndarray:
 def _ink_mask(rgb: np.ndarray) -> np.ndarray:
     rgb = rgb.astype(np.int16)
     saturation = rgb.max(axis=2) - rgb.min(axis=2)
-    return saturation > 25
+    color_ink = saturation > 25
+    # Grayscale catalog art (low saturation) — keep non-white pixels as sign ink.
+    luminance = rgb.mean(axis=2)
+    gray_ink = luminance < 240
+    return color_ink | gray_ink
+
+
+def _visible_pixel_ratio(image: Image.Image) -> float:
+    rgba = image.convert('RGBA')
+    data = np.array(rgba)
+    visible = int((data[:, :, 3] > 24).sum())
+    total = data.shape[0] * data.shape[1]
+    return visible / total if total else 0.0
+
+
+def _prepare_sign_rgba(image: Image.Image) -> Image.Image:
+    """Background-removed RGBA, or original art if removal would blank the image."""
+    processed = remove_sign_background(image)
+    if _visible_pixel_ratio(processed) < 0.05:
+        return image.convert('RGBA')
+    return processed
 
 
 def _dilate(mask: np.ndarray, steps: int) -> np.ndarray:
@@ -114,8 +136,34 @@ def remove_sign_background(
     return Image.fromarray(data[y1:y2, x1:x2], 'RGBA')
 
 
+def upscale_sign_for_display(
+    image: Image.Image,
+    long_edge: int = DISPLAY_LONG_EDGE,
+) -> Image.Image:
+    """Upscale small catalog art for crisp UI display (keeps alpha)."""
+    rgba = image.convert('RGBA')
+    w, h = rgba.size
+    longest = max(w, h)
+    if longest >= long_edge:
+        return rgba
+    scale = long_edge / longest
+    nw = max(1, round(w * scale))
+    nh = max(1, round(h * scale))
+    upscaled = rgba.resize((nw, nh), Image.Resampling.LANCZOS)
+    return upscaled.filter(ImageFilter.UnsharpMask(radius=1.2, percent=115, threshold=2))
+
+
 def sign_png_bytes(image: Image.Image) -> bytes:
     """Encode a sign image as PNG with outside background removed."""
     out = BytesIO()
-    remove_sign_background(image).save(out, format='PNG', optimize=True)
+    _prepare_sign_rgba(image).save(out, format='PNG', optimize=True)
+    return out.getvalue()
+
+
+def sign_display_png_bytes(image: Image.Image, long_edge: int = DISPLAY_LONG_EDGE) -> bytes:
+    """Background-removed PNG upscaled for catalog / AI detection UI."""
+    out = BytesIO()
+    upscale_sign_for_display(_prepare_sign_rgba(image), long_edge).save(
+        out, format='PNG', optimize=True,
+    )
     return out.getvalue()

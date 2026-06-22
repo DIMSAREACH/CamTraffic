@@ -1,12 +1,13 @@
 from django.db import models
 
+from core.models import TimeStampedUUIDModel, UUIDPrimaryKeyModel
 from infrastructure.models import Camera, Road
 from users.models import Driver, Officer
 from vehicles.models import Vehicle
 
 
-class ViolationRule(models.Model):
-    """Maps a detected sign + observed driver action to a violation type."""
+class ViolationRule(UUIDPrimaryKeyModel):
+    """Expert-system rule — maps sign class + action to violation type."""
 
     sign_class_key = models.CharField(max_length=80, db_index=True)
     prohibited_action = models.CharField(max_length=50)
@@ -31,7 +32,9 @@ class ViolationRule(models.Model):
         return f'{self.violation_type} ({self.sign_class_key} + {self.prohibited_action})'
 
 
-class TrafficViolation(models.Model):
+class TrafficViolation(TimeStampedUUIDModel):
+    """AI-captured or manually flagged violation — PRD table `traffic_violations`."""
+
     STATUS_CHOICES = [
         ('draft', 'Draft'),
         ('pending_review', 'Pending Review'),
@@ -92,12 +95,17 @@ class TrafficViolation(models.Model):
     violation_date = models.DateTimeField()
     location = models.CharField(max_length=255)
     description = models.TextField(blank=True)
+    officer_note = models.TextField(blank=True)
+    dismissal_reason = models.CharField(max_length=200, blank=True)
     evidence_image = models.ImageField(upload_to='violations/evidence/', blank=True, null=True)
     vehicle_evidence_image = models.ImageField(upload_to='violations/evidence/vehicles/', blank=True, null=True)
     plate_evidence_image = models.ImageField(upload_to='violations/evidence/plates/', blank=True, null=True)
+    ai_confidence_score = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    plate_detected = models.CharField(max_length=20, blank=True, db_index=True)
+    speed_detected = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+    road_speed_limit = models.PositiveIntegerField(null=True, blank=True)
+    bbox_coords = models.JSONField(default=dict, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'traffic_violations'
@@ -106,6 +114,8 @@ class TrafficViolation(models.Model):
             models.Index(fields=['status', 'violation_date'], name='idx_violation_status_date'),
             models.Index(fields=['camera', 'violation_date'], name='idx_violation_camera_date'),
             models.Index(fields=['violation_type', 'violation_date'], name='idx_violation_type_date'),
+            models.Index(fields=['driver', 'status'], name='idx_violation_driver_status'),
+            models.Index(fields=['plate_detected'], name='idx_violation_plate'),
         ]
 
     def __str__(self):

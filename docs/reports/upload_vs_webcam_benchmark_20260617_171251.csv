@@ -1,0 +1,11 @@
+Class,Expected Code,Image,Upload Class,Upload Code,Upload Conf,Upload Engine,Webcam Class,Webcam Code,Webcam Conf,Webcam Engine,Same Class,Upload OK,Webcam OK,Conf Delta,Diagnosis
+NO_ENTRY,PW03-R1-04,NO_ENTRY_No entry_00.jpg,no_entry,PW03-R1-04,98.30,yolo,no_entry,PW03-R1-04,98.30,yolo,True,True,True,0.00,OK — upload and webcam agree
+NO_LEFT_TURN,PW03-R1-01,NO_LEFT_TURN_No left turn_00.jpg,no_left_turn,PW03-R1-01,88.00,filename,w_pedestrian_crossing,W-040,91.70,yolo,False,True,False,3.70,WEBCAM FAIL — check preprocessing / hint / live path (not model)
+NO_RIGHT_TURN,PW03-R1-02,NO_RIGHT_TURN_No right turn_01.jpg,no_u_turn,PW03-R1-03,100.00,yolo,no_u_turn,PW03-R1-03,100.00,yolo,True,False,False,0.00,BOTH FAIL — model or image quality
+NO_U_TURN,PW03-R1-03,NO_U_TURN_No U-turn_00.jpg,no_u_turn,PW03-R1-03,88.00,filename,no_u_turn,PW03-R1-03,86.00,yolo,True,True,True,2.00,OK — upload and webcam agree
+NO_PARKING,PW03-R2-10,NO_PARKING_No parking_01.jpg,no_u_turn,PW03-R1-03,99.60,yolo,no_u_turn,PW03-R1-03,99.60,yolo,True,False,False,0.00,BOTH FAIL — model or image quality
+M_STOP,M-032,M_STOP_Stop_00.jpg,no_u_turn,PW03-R1-03,99.60,yolo,no_u_turn,PW03-R1-03,99.60,yolo,True,False,False,0.00,BOTH FAIL — model or image quality
+P_SPEED_LIMIT_20_KM_H,P-029,P_SPEED_LIMIT_20_KM_H_Speed limit 20 km-h_00.jpg,w_pedestrian_crossing,W-040,94.70,yolo,w_pedestrian_crossing,W-040,94.70,yolo,True,False,False,0.00,BOTH FAIL — model or image quality
+P_SPEED_LIMIT_50_KM_H,P-030,P_SPEED_LIMIT_50_KM_H_Speed limit 50 km-h_00.jpg,w_pedestrian_crossing,W-040,76.90,yolo,w_pedestrian_crossing,W-040,76.90,yolo,True,False,False,0.00,BOTH FAIL — model or image quality
+W_PEDESTRIAN_CROSSING,W-040,W_PEDESTRIAN_CROSSING_Pedestrian crossing_00.jpg,w_pedestrian_crossing,W-040,99.70,yolo,w_pedestrian_crossing,W-040,99.70,yolo,True,True,True,0.00,OK — upload and webcam agree
+I_ONE_WAY_TRAFFIC,I-064,I_ONE_WAY_TRAFFIC_One-way traffic_00.jpg,i_one_way_traffic,I-064,100.00,yolo,i_one_way_traffic,I-064,100.00,yolo,True,True,True,0.00,OK — upload and webcam agree

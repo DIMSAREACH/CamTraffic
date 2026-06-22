@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.db import models
+from django.db.models.deletion import ProtectedError
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, generics, status
 from rest_framework.permissions import IsAuthenticated
@@ -88,13 +89,16 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
             return error_response('Permission denied', status_code=status.HTTP_403_FORBIDDEN)
         instance = self.get_object()
         if instance.pk == request.user.pk:
-            return error_response('You cannot deactivate your own account.', status_code=status.HTTP_400_BAD_REQUEST)
-        instance.is_active = False
-        instance.save(update_fields=['is_active'])
-        from users.profile_services import sync_profile_status
-
-        sync_profile_status(instance)
-        return success_response(message='User deactivated')
+            return error_response('You cannot delete your own account.', status_code=status.HTTP_400_BAD_REQUEST)
+        try:
+            instance.delete()
+        except ProtectedError:
+            return error_response(
+                'Cannot delete this user because they have linked violations or records. '
+                'Deactivate the account instead.',
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+        return success_response(message='User deleted')
 
 
 class ToggleActiveView(APIView):

@@ -1,4 +1,4 @@
-"""Khmer text-to-speech via Microsoft Edge online voices (edge-tts, free, no API key)."""
+"""Neural text-to-speech (Khmer + English) via Microsoft Edge voices (edge-tts)."""
 from __future__ import annotations
 
 import asyncio
@@ -11,12 +11,19 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_VOICE = 'km-KH-SreymomNeural'
-VOICES = {
-    'km': 'km-KH-SreymomNeural',
-    'en': 'en-US-JennyNeural',
-}
+DEFAULT_VOICE_KM = 'km-KH-SreymomNeural'
+DEFAULT_VOICE_EN = 'en-US-JennyNeural'
 MAX_CHARS = 3000
+
+
+def _voice_for_lang(lang_key: str) -> str:
+    if lang_key == 'en':
+        return getattr(settings, 'TTS_VOICE_EN', DEFAULT_VOICE_EN)
+    return getattr(settings, 'TTS_VOICE', DEFAULT_VOICE_KM)
+
+
+def _speech_rate() -> str:
+    return str(getattr(settings, 'TTS_RATE', '-5%') or '-5%')
 
 
 def _ssl_verify_enabled() -> bool:
@@ -66,7 +73,12 @@ async def _stream_to_bytes(text: str, voice: str) -> bytes:
     for use_verify in attempts:
         connector = _aiohttp_ssl_connector(use_verify)
         _patch_edge_tts_ssl(use_verify)
-        communicate = edge_tts.Communicate(text, voice=voice, connector=connector)
+        communicate = edge_tts.Communicate(
+            text,
+            voice=voice,
+            rate=_speech_rate(),
+            connector=connector,
+        )
         buf = io.BytesIO()
         try:
             async for chunk in communicate.stream():
@@ -98,7 +110,9 @@ def synthesize_speech(text: str, lang: str = 'km') -> bytes:
         raise ValueError(f'Text too long (max {MAX_CHARS} characters)')
 
     lang_key = (lang or 'km').lower()[:2]
-    voice = VOICES.get(lang_key) or getattr(settings, 'TTS_VOICE', DEFAULT_VOICE)
+    if lang_key not in ('km', 'en'):
+        lang_key = 'km'
+    voice = _voice_for_lang(lang_key)
     return asyncio.run(_stream_to_bytes(cleaned, voice))
 
 

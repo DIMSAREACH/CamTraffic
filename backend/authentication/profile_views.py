@@ -1,4 +1,5 @@
 from django.contrib.auth.models import update_last_login
+from django.db.models import ProtectedError
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
@@ -48,6 +49,11 @@ class DeactivateAccountView(APIView):
 
     def post(self, request):
         user = request.user
+        if user.role == 'admin':
+            return error_response(
+                'Administrator accounts cannot be self-deactivated. Contact another administrator.',
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
         if not user.is_active:
             return error_response('Account is already deactivated.', status_code=status.HTTP_400_BAD_REQUEST)
         user.is_active = False
@@ -60,6 +66,36 @@ class DeactivateAccountView(APIView):
         except Exception:
             pass
         return success_response(message='Account deactivated')
+
+
+class DeleteAccountView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        if user.role == 'admin':
+            return error_response(
+                'Administrator accounts cannot be self-deleted. Contact another administrator.',
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+        password = request.data.get('password', '')
+        if not password or not user.check_password(password):
+            return error_response('Invalid password.', status_code=status.HTTP_400_BAD_REQUEST)
+        try:
+            refresh = request.data.get('refresh')
+            if refresh:
+                try:
+                    RefreshToken(refresh).blacklist()
+                except Exception:
+                    pass
+            user.delete()
+        except ProtectedError:
+            return error_response(
+                'Cannot delete this account because it has linked violations or records. '
+                'Deactivate the account instead.',
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+        return success_response(message='Account deleted')
 
 
 class LogoutOtherSessionsView(APIView):

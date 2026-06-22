@@ -33,6 +33,35 @@ PLATE_TYPE_LABELS = {
     'unknown': 'Unknown',
 }
 
+# Cambodia private plate province codes (MPPWT registration digits 1–25).
+CAMBODIA_PLATE_PROVINCES: dict[str, dict[str, str]] = {
+    '1': {'en': 'Banteay Meanchey', 'km': 'បន្ទាយមានជ័យ'},
+    '2': {'en': 'Battambang', 'km': 'បាត់ដំបង'},
+    '3': {'en': 'Kampong Cham', 'km': 'កំពង់ចាម'},
+    '4': {'en': 'Kampong Chhnang', 'km': 'កំពង់ឆ្នាំង'},
+    '5': {'en': 'Kampong Speu', 'km': 'កំពង់ស្ពឺ'},
+    '6': {'en': 'Kampong Thom', 'km': 'កំពង់ធំ'},
+    '7': {'en': 'Kampot', 'km': 'កំពត'},
+    '8': {'en': 'Kandal', 'km': 'កណ្តាល'},
+    '9': {'en': 'Koh Kong', 'km': 'កោះកុង'},
+    '10': {'en': 'Kratie', 'km': 'ក្រចេះ'},
+    '11': {'en': 'Mondulkiri', 'km': 'មណ្ឌលគិរី'},
+    '12': {'en': 'Phnom Penh', 'km': 'ភ្នំពេញ'},
+    '13': {'en': 'Preah Vihear', 'km': 'ព្រះវិហារ'},
+    '14': {'en': 'Prey Veng', 'km': 'ព្រៃវែង'},
+    '15': {'en': 'Pursat', 'km': 'ពោធិ៍សាត់'},
+    '16': {'en': 'Ratanakiri', 'km': 'រតនគិរី'},
+    '17': {'en': 'Siem Reap', 'km': 'សៀមរាប'},
+    '18': {'en': 'Preah Sihanouk', 'km': 'ព្រះសីហនុ'},
+    '19': {'en': 'Stung Treng', 'km': 'ស្ទឹងត្រែង'},
+    '20': {'en': 'Svay Rieng', 'km': 'ស្វាយរៀង'},
+    '21': {'en': 'Takeo', 'km': 'តាកែវ'},
+    '22': {'en': 'Oddar Meanchey', 'km': 'ឧ.មានជ័យ'},
+    '23': {'en': 'Kep', 'km': 'កែប'},
+    '24': {'en': 'Pailin', 'km': 'ប៉ែលិន'},
+    '25': {'en': 'Tbong Khmum', 'km': 'ត្បូងឃ្មុំ'},
+}
+
 
 def plate_ocr_enabled() -> bool:
     return getattr(settings, 'AI_PLATE_OCR_ENABLED', True)
@@ -106,6 +135,47 @@ def classify_plate_type(plate_text: str) -> str:
     if _PLATE_FORMAT.match(plate) or _PLATE_LOOSE.match(plate.replace('-', '')):
         return 'private'
     return 'unknown'
+
+
+def extract_plate_province_code(plate_text: str) -> str | None:
+    """Return leading province digits from a normalized Cambodian private plate."""
+    normalized = normalize_plate_text(plate_text)
+    if not normalized:
+        return None
+    match = _PLATE_FORMAT.match(normalized)
+    if not match:
+        loose = normalized.replace('-', '')
+        match = _PLATE_LOOSE.match(loose)
+    if not match:
+        return None
+    return match.group(1)
+
+
+def lookup_plate_province(plate_text: str) -> dict | None:
+    """Map plate leading digits to Cambodia province names (EN + KM)."""
+    code_raw = extract_plate_province_code(plate_text)
+    if not code_raw:
+        return None
+    if len(code_raw) >= 2:
+        two_digit = code_raw[:2]
+        if two_digit in CAMBODIA_PLATE_PROVINCES:
+            entry = CAMBODIA_PLATE_PROVINCES[two_digit]
+            return {'code': two_digit, 'name_en': entry['en'], 'name_km': entry['km']}
+    one_digit = code_raw[0]
+    if one_digit in CAMBODIA_PLATE_PROVINCES:
+        entry = CAMBODIA_PLATE_PROVINCES[one_digit]
+        return {'code': one_digit, 'name_en': entry['en'], 'name_km': entry['km']}
+    return None
+
+
+def enrich_plate_result(plate_text: str, result: dict) -> dict:
+    """Attach province lookup fields when a private plate code is recognized."""
+    province = lookup_plate_province(plate_text)
+    if province:
+        result['plate_province_code'] = province['code']
+        result['plate_province_en'] = province['name_en']
+        result['plate_province_km'] = province['name_km']
+    return result
 
 
 def _enhance_for_ocr(image_bgr: np.ndarray) -> list[np.ndarray]:
@@ -281,7 +351,7 @@ def recognize_plate(image_path: str, vehicles: list[dict] | None = None) -> dict
             }
 
         plate_text = best['text']
-        return {
+        result = {
             'plate_text': plate_text,
             'plate_confidence': best['confidence'],
             'plate_type': classify_plate_type(plate_text),
@@ -292,6 +362,7 @@ def recognize_plate(image_path: str, vehicles: list[dict] | None = None) -> dict
             'plate_region_found': bool(regions_used),
             'matched_vehicle': link_plate_to_vehicle(plate_text),
         }
+        return enrich_plate_result(plate_text, result)
     except RuntimeError:
         logger.warning('Plate OCR unavailable — EasyOCR not installed')
         return empty

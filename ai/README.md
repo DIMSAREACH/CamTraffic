@@ -73,20 +73,27 @@ python scripts/export_ai06_evidence.py
 
 Output: `docs/thesis_evidence/AI-06/` (`training/`, `predictions/`, `README.md`, `metrics_summary.json`).
 
-## Hybrid detection (YOLO + Gemini)
+## Detection pipeline (Option 1 — thesis defense)
 
-Live detection uses **YOLO first**. If confidence is below **70%** (`AI_HYBRID_CONFIDENCE_THRESHOLD`), the backend calls **Gemini Vision** as fallback.
+Default mode is **offline** (`AI_DETECTION_MODE=local` in `backend/.env`):
 
-1. Copy `backend/.env.example` → `backend/.env` if needed.
-2. Add your key from [Google AI Studio](https://aistudio.google.com/apikey):
-
-```env
-GEMINI_API_KEY=your-key-here
-GEMINI_ENABLED=True
-GEMINI_MODEL=gemini-2.0-flash
-AI_HYBRID_CONFIDENCE_THRESHOLD=70
+```text
+Webcam / Upload → OpenCV preprocess → YOLOv8 signs → catalog match
+                → YOLOv8 vehicles (COCO) → EasyOCR plates → violation engine → PostgreSQL
 ```
 
-3. Restart Django. The detect API returns `detection_engine`: `yolo`, `gemini`, `hash`, or `filename`.
+Priority for signs: **YOLO** (236 trained classes from `best.pt`) → **catalog histogram match** (236 refs) → **OpenCV shape hints**.
 
-Implementation: `backend/ai_detection/gemini_service.py`, hybrid logic in `backend/ai_detection/services.py`.
+Gemini Vision is **disabled by default**. Enable only as optional backup:
+
+```env
+AI_DETECTION_MODE=hybrid
+GEMINI_ENABLED=True
+GEMINI_API_KEY=your-key-here
+AI_GEMINI_UPLOAD_FALLBACK=True
+AI_GEMINI_LIVE_FALLBACK=True
+```
+
+Restart Django after changing `.env`. The detect API returns `detection_engine`: `yolo`, `catalog_match`, `opencv`, `shape_hint`, or `gemini` (hybrid only).
+
+Implementation: `backend/ai_detection/services.py`, `catalog_visual_match.py`, `vehicle_detection.py`, `plate_ocr.py`.

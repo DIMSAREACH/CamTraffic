@@ -1,17 +1,22 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
+import { usePagination } from '@shared/hooks/usePagination';
+import { TablePagination } from '@shared/components/ui/TablePagination';
 import {
   Search, Eye, CheckCircle, XCircle, Clock, AlertTriangle,
-  FileText, Shield, Trash2, ImageIcon, MapPin,
+  FileText, Shield, Trash2, ImageIcon, MapPin, Plus, DollarSign,
 } from 'lucide-react';
 import { Button } from '@shared/components/ui/button';
+import { Label } from '@shared/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@shared/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@shared/components/ui/table';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
+import { khrToUsd, usdToKhr } from '@shared/i18n/localeFormat';
 import { useLiveData } from '@shared/hooks/useLiveData';
-import { violationsAPI } from '@shared/services/api';
+import { OBSERVED_ACTION_VALUES } from '@shared/constants/observedActions';
+import { finesAPI, violationsAPI } from '@shared/services/api';
 import { toast } from 'sonner';
-import type { TrafficViolation } from '@shared/types';
+import type { TrafficViolation, ViolationRule } from '@shared/types';
 
 const STATUS_TABS = ['all', 'pending_review', 'confirmed', 'rejected', 'draft'] as const;
 type StatusTab = typeof STATUS_TABS[number];
@@ -86,6 +91,28 @@ export function ViolationsPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusTab>('all');
   const [selected, setSelected] = useState<TrafficViolation | null>(null);
+  const [rules, setRules] = useState<ViolationRule[]>([]);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [issueFineOpen, setIssueFineOpen] = useState(false);
+  const [issuingFine, setIssuingFine] = useState(false);
+  const [fineTarget, setFineTarget] = useState<TrafficViolation | null>(null);
+  const [createForm, setCreateForm] = useState({
+    driver_license: '',
+    driver_profile_id: null as number | null,
+    driver_name: '',
+    rule_id: '',
+    observed_action: '',
+    location: '',
+    sign_code: '',
+  });
+  const [fineForm, setFineForm] = useState({
+    amount: '',
+    reason: '',
+    location: '',
+    vehicle_plate: '',
+  });
+  const [evalPreview, setEvalPreview] = useState<{ is_violation?: boolean; violation_type?: string } | null>(null);
 
   const canManage = user?.role === 'admin' || user?.role === 'police';
 
@@ -106,6 +133,13 @@ export function ViolationsPage() {
     loadViolations();
   }, [loadViolations]);
 
+  useEffect(() => {
+    if (!canManage) return;
+    violationsAPI.getRules()
+      .then(setRules)
+      .catch(() => { /* rules optional for view */ });
+  }, [canManage]);
+
   useLiveData(() => loadViolations(true), 30_000, Boolean(user));
 
   const filtered = useMemo(() => {
@@ -125,6 +159,8 @@ export function ViolationsPage() {
     }
     return rows;
   }, [violations, search, statusFilter]);
+
+  const pagination = usePagination(filtered);
 
   const counts = useMemo(() => ({
     all: violations.length,
@@ -160,6 +196,140 @@ export function ViolationsPage() {
     }
   };
 
+  const selectedRule = useMemo(
+    () => rules.find((r) => String(r.id) === createForm.rule_id) ?? null,
+    [rules, createForm.rule_id],
+  );
+
+  const effectiveAction = createForm.observed_action || selectedRule?.prohibited_action || '';
+
+  const resetCreateForm = () => {
+    setCreateForm({
+      driver_license: '',
+      driver_profile_id: null,
+      driver_name: '',
+      rule_id: '',
+      observed_action: '',
+      location: '',
+      sign_code: '',
+    });
+    setEvalPreview(null);
+  };
+
+  const handleDriverLookup = async () => {
+    if (!createForm.driver_license.trim()) return;
+    try {
+      const r = await finesAPI.searchByLicense(createForm.driver_license.trim());
+      if (r.driver && r.driver_profile_id) {
+        setCreateForm((prev) => ({
+          ...prev,
+          driver_profile_id: r.driver_profile_id,
+          driver_name: r.driver.full_name,
+        }));
+        toast.success(t('violations.driverFound', { name: r.driver.full_name }));
+      } else {
+        setCreateForm((prev) => ({ ...prev, driver_profile_id: null, driver_name: '' }));
+        toast.error(t('violations.driverNotFound'));
+      }
+    } catch {
+      toast.error(t('violations.driverNotFound'));
+    }
+  };
+
+  const refreshEvalPreview = useCallback(async (classKey: string, action: string, signCode: string) => {
+    if (!classKey || !action) {
+      setEvalPreview(null);
+      return;
+    }
+    try {
+      const preview = await violationsAPI.evaluate({
+        class_key: classKey,
+        observed_action: action,
+        sign_code: signCode,
+      });
+      setEvalPreview(preview as { is_violation?: boolean; violation_type?: string });
+    } catch {
+      setEvalPreview(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!createOpen || !selectedRule) {
+      setEvalPreview(null);
+      return;
+    }
+    void refreshEvalPreview(
+      selectedRule.sign_class_key,
+      effectiveAction,
+      createForm.sign_code,
+    );
+  }, [createOpen, selectedRule, effectiveAction, createForm.sign_code, refreshEvalPreview]);
+
+  const handleCreateViolation = async () => {
+    if (!createForm.driver_profile_id || !selectedRule || !createForm.location.trim()) {
+      toast.error(t('violations.toastFillRequired'));
+      return;
+    }
+    setCreating(true);
+    try {
+      const created = await violationsAPI.create({
+        driver_id: createForm.driver_profile_id,
+        class_key: selectedRule.sign_class_key,
+        observed_action: effectiveAction,
+        sign_code: createForm.sign_code || undefined,
+        location: createForm.location.trim(),
+      });
+      setViolations((prev) => [created, ...prev]);
+      setCreateOpen(false);
+      resetCreateForm();
+      toast.success(t('violations.toastCreated', { id: String(created.id) }));
+    } catch {
+      toast.error(t('violations.toastCreateFail'));
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const openIssueFine = (violation: TrafficViolation) => {
+    const rule = rules.find(
+      (r) => r.sign_class_key === violation.detected_class_key
+        && r.prohibited_action === violation.observed_action,
+    );
+    setFineTarget(violation);
+    setFineForm({
+      amount: rule ? String(usdToKhr(Number(rule.default_fine_amount))) : String(usdToKhr(25)),
+      reason: violation.description || formatViolationType(violation.violation_type),
+      location: violation.location || '',
+      vehicle_plate: violation.vehicle_plate || '',
+    });
+    setIssueFineOpen(true);
+  };
+
+  const handleIssueFine = async () => {
+    if (!fineTarget) return;
+    setIssuingFine(true);
+    try {
+      const fine = await finesAPI.create({
+        violation_id: fineTarget.id,
+        amount: khrToUsd(parseFloat(fineForm.amount)),
+        reason: fineForm.reason.trim(),
+        location: fineForm.location.trim(),
+        vehicle_plate: fineForm.vehicle_plate.trim(),
+      });
+      const updated = { ...fineTarget, fine_id: fine.id };
+      setViolations((prev) => prev.map((v) => (v.id === fineTarget.id ? updated : v)));
+      if (selected?.id === fineTarget.id) setSelected(updated);
+      setIssueFineOpen(false);
+      setFineTarget(null);
+      toast.success(t('violations.toastFineIssued', { id: String(fine.id) }));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '';
+      toast.error(msg.includes('already') ? t('violations.toastFineExists') : t('violations.toastFineFail'));
+    } finally {
+      setIssuingFine(false);
+    }
+  };
+
   return (
     <div className="enforcement-page enforcement-page--violations dashboard-page--violations">
       {/* Hero */}
@@ -179,6 +349,15 @@ export function ViolationsPage() {
               {canManage ? t('pages.violations.subtitleAdmin') : t('pages.violations.subtitleDriver')}
             </p>
           </div>
+          {canManage && (
+            <button
+              type="button"
+              className="enforcement-page__hero-btn"
+              onClick={() => { resetCreateForm(); setCreateOpen(true); }}
+            >
+              <Plus size={16} /> {t('violations.createViolation')}
+            </button>
+          )}
         </div>
       </div>
 
@@ -263,7 +442,7 @@ export function ViolationsPage() {
                   t('violations.colStatus'),
                   t('violations.colActions'),
                 ].map((h) => (
-                  <TableHead key={h} className="enforcement-page__th text-center">{h}</TableHead>
+                  <TableHead key={h} className="enforcement-page__th text-left">{h}</TableHead>
                 ))}
               </TableRow>
             </TableHeader>
@@ -292,7 +471,7 @@ export function ViolationsPage() {
                     </div>
                   </TableCell>
                 </TableRow>
-              ) : filtered.map((row) => {
+              ) : pagination.pageItems.map((row) => {
                 const meta = getStatusMeta(row.status);
                 return (
                   <TableRow key={row.id} className="enforcement-page__table-row">
@@ -349,16 +528,7 @@ export function ViolationsPage() {
           </Table>
         </div>
 
-        {filtered.length > 0 && (
-          <div className="enforcement-page__footer">
-            <p className="enforcement-page__footer-text">
-              {t('violations.showing', { shown: filtered.length, total: violations.length })}
-            </p>
-            <p className="enforcement-page__footer-text enforcement-page__footer-text--emphasis">
-              {t('violations.confirmedCount', { count: counts.confirmed })}
-            </p>
-          </div>
-        )}
+        <TablePagination pagination={pagination} label="violations" />
       </div>
 
       {/* Detail dialog */}
@@ -448,6 +618,16 @@ export function ViolationsPage() {
                 {canManage && (
                   <DialogFooter className="flex flex-wrap gap-2 sm:justify-between mt-2">
                     <div className="flex flex-wrap gap-2">
+                      {selected.status === 'confirmed' && !selected.fine_id && (
+                        <Button
+                          size="sm"
+                          className="text-[13px] font-semibold"
+                          style={{ background: 'linear-gradient(135deg, #F59E0B, #D97706)' }}
+                          onClick={() => openIssueFine(selected)}
+                        >
+                          <DollarSign size={14} /> {t('violations.issueFine')}
+                        </Button>
+                      )}
                       {selected.status !== 'confirmed' && (
                         <Button
                           size="sm"
@@ -474,6 +654,159 @@ export function ViolationsPage() {
               </>
             );
           })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* Create violation dialog */}
+      <Dialog open={createOpen} onOpenChange={(open) => { if (!open) resetCreateForm(); setCreateOpen(open); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{t('violations.createTitle')}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="enforcement-page__form-label">{t('violations.driverLicense')} *</Label>
+              <div className="flex gap-2 mt-1">
+                <input
+                  value={createForm.driver_license}
+                  onChange={(e) => setCreateForm((p) => ({ ...p, driver_license: e.target.value }))}
+                  className="enforcement-page__search flex-1"
+                  placeholder="LIC-00001"
+                />
+                <Button type="button" variant="outline" size="sm" onClick={() => void handleDriverLookup()}>
+                  {t('violations.lookupDriver')}
+                </Button>
+              </div>
+              {createForm.driver_name && (
+                <p className="text-[12px] text-emerald-600 mt-1">{createForm.driver_name}</p>
+              )}
+            </div>
+            <div>
+              <Label className="enforcement-page__form-label">{t('violations.ruleLabel')} *</Label>
+              <select
+                value={createForm.rule_id}
+                onChange={(e) => setCreateForm((p) => ({ ...p, rule_id: e.target.value, observed_action: '' }))}
+                className="w-full mt-1 rounded-xl border border-border bg-background px-3 py-2.5 text-[13px]"
+              >
+                <option value="">{t('violations.selectRule')}</option>
+                {rules.map((rule) => (
+                  <option key={rule.id} value={rule.id}>
+                    {rule.sign_class_key} + {formatObservedAction(rule.prohibited_action)} — {rule.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label className="enforcement-page__form-label">{t('violations.overrideAction')}</Label>
+              <select
+                value={createForm.observed_action}
+                onChange={(e) => setCreateForm((p) => ({ ...p, observed_action: e.target.value }))}
+                className="w-full mt-1 rounded-xl border border-border bg-background px-3 py-2.5 text-[13px]"
+              >
+                <option value="">{t('violations.useRuleDefault')}</option>
+                {OBSERVED_ACTION_VALUES.map((action) => (
+                  <option key={action} value={action}>{formatObservedAction(action)}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label className="enforcement-page__form-label">{t('violations.colSign')}</Label>
+              <input
+                value={createForm.sign_code}
+                onChange={(e) => setCreateForm((p) => ({ ...p, sign_code: e.target.value }))}
+                className="enforcement-page__search w-full mt-1"
+                placeholder="PW03-R1-01"
+              />
+            </div>
+            <div>
+              <Label className="enforcement-page__form-label">{t('violations.locationLabel')} *</Label>
+              <input
+                value={createForm.location}
+                onChange={(e) => setCreateForm((p) => ({ ...p, location: e.target.value }))}
+                className="enforcement-page__search w-full mt-1"
+                placeholder={t('violations.locationPlaceholder')}
+              />
+            </div>
+            {evalPreview && (
+              <p className={`text-[12px] ${evalPreview.is_violation ? 'text-red-600' : 'text-muted-foreground'}`}>
+                {evalPreview.is_violation
+                  ? t('violations.previewMatch', { type: formatViolationType(evalPreview.violation_type || '') })
+                  : t('violations.previewNoMatch')}
+              </p>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>{t('common.cancel')}</Button>
+            <Button
+              disabled={creating}
+              onClick={() => void handleCreateViolation()}
+              style={{ background: 'linear-gradient(135deg, #EF4444, #DC2626)' }}
+            >
+              {creating ? t('common.saving') : t('violations.createViolation')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Issue fine dialog */}
+      <Dialog open={issueFineOpen} onOpenChange={setIssueFineOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t('violations.issueFineTitle')}</DialogTitle>
+          </DialogHeader>
+          {fineTarget && (
+            <div className="space-y-4">
+              <p className="text-[13px] text-muted-foreground">
+                {formatViolationType(fineTarget.violation_type)} — {fineTarget.driver_name}
+              </p>
+              <div>
+                <Label className="enforcement-page__form-label">{t('violations.fineAmount')} *</Label>
+                <input
+                  type="number"
+                  min="0"
+                  step="100"
+                  placeholder={t('fines.amountPlaceholder')}
+                  value={fineForm.amount}
+                  onChange={(e) => setFineForm((p) => ({ ...p, amount: e.target.value }))}
+                  className="enforcement-page__search w-full mt-1"
+                />
+              </div>
+              <div>
+                <Label className="enforcement-page__form-label">{t('violations.fineReason')} *</Label>
+                <textarea
+                  value={fineForm.reason}
+                  onChange={(e) => setFineForm((p) => ({ ...p, reason: e.target.value }))}
+                  className="enforcement-page__search w-full mt-1 min-h-[72px]"
+                />
+              </div>
+              <div>
+                <Label className="enforcement-page__form-label">{t('violations.locationLabel')}</Label>
+                <input
+                  value={fineForm.location}
+                  onChange={(e) => setFineForm((p) => ({ ...p, location: e.target.value }))}
+                  className="enforcement-page__search w-full mt-1"
+                />
+              </div>
+              <div>
+                <Label className="enforcement-page__form-label">{t('violations.vehiclePlate')}</Label>
+                <input
+                  value={fineForm.vehicle_plate}
+                  onChange={(e) => setFineForm((p) => ({ ...p, vehicle_plate: e.target.value }))}
+                  className="enforcement-page__search w-full mt-1"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setIssueFineOpen(false)}>{t('common.cancel')}</Button>
+            <Button
+              disabled={issuingFine}
+              onClick={() => void handleIssueFine()}
+              style={{ background: 'linear-gradient(135deg, #F59E0B, #D97706)' }}
+            >
+              {issuingFine ? t('common.saving') : t('violations.issueFine')}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

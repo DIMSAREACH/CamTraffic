@@ -1,4 +1,6 @@
 """Officer/driver profiles and RBAC assignment on user lifecycle."""
+import uuid
+
 from django.db import transaction
 
 from rbac.models import Role, UserRole
@@ -19,7 +21,13 @@ class ProfileValidationError(Exception):
         super().__init__(message)
 
 
-def validate_unique_license_no(license_no: str, *, exclude_user_id: int | None = None) -> None:
+def _profile_code(prefix: str, user_id: uuid.UUID | str) -> str:
+    """Build a stable profile code from a UUID primary key."""
+    token = str(user_id).replace('-', '')[:8].upper()
+    return f'{prefix}-{token}'
+
+
+def validate_unique_license_no(license_no: str, *, exclude_user_id: uuid.UUID | None = None) -> None:
     license_no = (license_no or '').strip()
     if not license_no:
         return
@@ -30,7 +38,7 @@ def validate_unique_license_no(license_no: str, *, exclude_user_id: int | None =
         raise ProfileValidationError('license_no', 'This license number is already registered.')
 
 
-def validate_unique_badge_no(badge_no: str, *, exclude_user_id: int | None = None) -> None:
+def validate_unique_badge_no(badge_no: str, *, exclude_user_id: uuid.UUID | None = None) -> None:
     badge_no = (badge_no or '').strip()
     if not badge_no:
         return
@@ -59,7 +67,7 @@ def provision_user_account(
     profile_status = 'active' if user.is_active else 'inactive'
 
     if user.role == 'police':
-        badge = (badge_no or '').strip() or f'BADGE-{user.id:05d}'
+        badge = (badge_no or '').strip() or _profile_code('BADGE', user.id)
         validate_unique_badge_no(badge, exclude_user_id=user.id)
         Officer.objects.update_or_create(
             user=user,
@@ -72,7 +80,7 @@ def provision_user_account(
         )
         Driver.objects.filter(user=user).delete()
     elif user.role == 'driver':
-        lic = (license_no or user.license_no or '').strip() or f'DRV-{user.id:05d}'
+        lic = (license_no or user.license_no or '').strip() or _profile_code('DRV', user.id)
         validate_unique_license_no(lic, exclude_user_id=user.id)
         if user.license_no != lic:
             user.license_no = lic

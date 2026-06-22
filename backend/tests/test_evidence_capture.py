@@ -74,10 +74,7 @@ class EvidenceCaptureIntegrationTest(TestCase):
             role='driver',
             license_no='LIC-EV-01',
         )
-        driver, _ = Driver.objects.get_or_create(
-            user=driver_user,
-            defaults={'license_no': 'LIC-EV-01'},
-        )
+        driver = driver_user.driver_profile
         vehicle = Vehicle.objects.create(
             owner=driver_user,
             driver=driver,
@@ -92,7 +89,10 @@ class EvidenceCaptureIntegrationTest(TestCase):
         if not sample.is_file():
             self.skipTest('plate sample image missing')
 
-        evidence = capture_evidence_snapshots(str(sample), [], {'best_region': 'full_frame'})
+        evidence = capture_evidence_snapshots(
+            str(sample), [], {'best_region': 'full_frame', 'plate_text': '2A-1234'},
+        )
+        self.assertTrue(evidence.get('captured'), 'Expected plate crop from full_frame sample')
         log = AIDetectionLog.objects.create(
             user=admin,
             detected_sign='No Left Turn',

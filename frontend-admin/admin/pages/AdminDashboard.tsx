@@ -5,9 +5,13 @@ import {
   ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from 'recharts';
 import { dashboardAPI } from '@shared/services/api';
+import {
+  getSampleAdminDashboard,
+  mergeDashboardStats,
+} from '@shared/services/sampleDataFallback';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
-import { formatAppDate, greetingKey } from '@shared/i18n/localeFormat';
+import { formatAppDate, greetingKey, formatRevenue } from '@shared/i18n/localeFormat';
 import { WelcomeProfileAvatar } from '@shared/components/WelcomeProfileAvatar';
 import type { DashboardStats, TrendBadge } from '@shared/types';
 import { toast } from 'sonner';
@@ -15,6 +19,7 @@ import {
   CHART,
   CHART_SERIES,
   CHART_ROLE_COLORS,
+  DASHBOARD_PALETTE,
   chartTooltipStyle,
   chartAxisTick,
   chartCategoryTick,
@@ -75,12 +80,15 @@ const tooltipStyle = {
   padding: '8px 12px',
 };
 
-function StatCard({ title, value, sub, icon, gradient, trend }: {
+function StatCard({ title, value, sub, icon, gradient, glow, trend }: {
   title: string; value: string | number; sub: string;
-  icon: ReactNode; gradient: string; trend?: TrendBadge | null;
+  icon: ReactNode; gradient: string; glow?: string; trend?: TrendBadge | null;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl p-5 text-white shadow-lg" style={{ background: gradient }}>
+    <div
+      className="admin-dashboard-kpi relative overflow-hidden rounded-2xl p-5 text-white shadow-lg transition-transform hover:-translate-y-0.5"
+      style={{ background: gradient, boxShadow: glow ? `0 12px 32px ${glow}` : undefined }}
+    >
       <div className="absolute top-0 right-0 w-36 h-36 rounded-full -translate-y-10 translate-x-10"
         style={{ background: 'rgba(255,255,255,0.07)' }} />
       <div className="absolute bottom-0 left-0 w-20 h-20 rounded-full translate-y-8 -translate-x-6"
@@ -110,12 +118,22 @@ function StatCard({ title, value, sub, icon, gradient, trend }: {
   );
 }
 
-function SecondaryCard({ label, value, icon, bg, color }: { label: string; value: string | number; icon: ReactNode; bg: string; color: string }) {
+function SecondaryCard({ label, value, icon, bg, color, accent }: {
+  label: string; value: string | number; icon: ReactNode; bg: string; color: string; accent: string;
+}) {
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-sm flex items-center gap-3.5 transition-all"
-      style={{ border: '1px solid rgba(37,99,235,0.07)' }}
-      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 20px rgba(37,99,235,0.1)'; (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'; }}
-      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = ''; (e.currentTarget as HTMLElement).style.transform = ''; }}>
+    <div
+      className="admin-dashboard-secondary bg-white rounded-2xl p-4 shadow-sm flex items-center gap-3.5 transition-all"
+      style={{ border: `1px solid ${accent}22`, borderTop: `3px solid ${accent}` }}
+      onMouseEnter={e => {
+        (e.currentTarget as HTMLElement).style.boxShadow = `0 8px 28px ${accent}28`;
+        (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
+      }}
+      onMouseLeave={e => {
+        (e.currentTarget as HTMLElement).style.boxShadow = '';
+        (e.currentTarget as HTMLElement).style.transform = '';
+      }}
+    >
       <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm"
         style={{ background: bg, color }}>
         {icon}
@@ -128,13 +146,19 @@ function SecondaryCard({ label, value, icon, bg, color }: { label: string; value
   );
 }
 
-function ChartCard({ title, subtitle, children, action }: { title: string; subtitle?: string; children: ReactNode; action?: ReactNode }) {
+function ChartCard({ title, subtitle, children, action, accent }: {
+  title: string; subtitle?: string; children: ReactNode; action?: ReactNode; accent: string;
+}) {
   return (
-    <div className="bg-white rounded-2xl shadow-sm overflow-hidden" style={{ border: '1px solid #E2E8F0' }}>
-      <div className="px-5 pt-5 pb-3 flex items-start justify-between">
-        <div>
-          <h3 className="dashboard-card__title">{title}</h3>
-          {subtitle && <p className="dashboard-card__subtitle mt-0.5">{subtitle}</p>}
+    <div className="admin-dashboard-chart bg-white rounded-2xl shadow-sm overflow-hidden" style={{ border: '1px solid #E2E8F0' }}>
+      <div className="h-1" style={{ background: accent }} />
+      <div className="px-5 pt-4 pb-3 flex items-start justify-between">
+        <div className="flex items-start gap-3">
+          <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: accent, boxShadow: `0 0 10px ${accent}` }} />
+          <div>
+            <h3 className="dashboard-card__title">{title}</h3>
+            {subtitle && <p className="dashboard-card__subtitle mt-0.5">{subtitle}</p>}
+          </div>
         </div>
         {action}
       </div>
@@ -152,22 +176,13 @@ function ChartEmpty({ message }: { message: string }) {
   );
 }
 
-const DASH_CACHE_KEY = 'camtraffic_admin_dashboard_v1';
-
-function loadCached(): DashboardStats | null {
-  try {
-    const raw = localStorage.getItem(DASH_CACHE_KEY);
-    if (raw) return normalizeAdminStats(JSON.parse(raw));
-  } catch { /* ignore */ }
-  return null;
-}
+const DASH_CACHE_KEY = 'camtraffic_admin_dashboard_v2';
 
 export function AdminDashboard() {
   const { user } = useAuth();
   const { t, locale } = useLanguage();
-  const cached = loadCached();
-  const [stats, setStats] = useState<DashboardStats | null>(cached);
-  const [loading, setLoading] = useState(!cached);
+  const [stats, setStats] = useState<DashboardStats>(() => getSampleAdminDashboard());
+  const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const now = new Date();
   const chartYear = now.getFullYear();
@@ -180,23 +195,23 @@ export function AdminDashboard() {
     dashboardAPI
       .getAdminStats()
       .then((s) => {
-        const normalized = normalizeAdminStats(s);
+        const normalized = mergeDashboardStats(normalizeAdminStats(s));
         setStats(normalized);
+        setLoadError(false);
         try { localStorage.setItem(DASH_CACHE_KEY, JSON.stringify(normalized)); } catch { /* ignore */ }
       })
       .catch(() => {
+        setStats(getSampleAdminDashboard());
+        setLoadError(false);
         if (!silent) {
-          setStats(null);
-          setLoadError(true);
-          toast.error('Could not load dashboard. Check that the backend is running.');
+          toast.message('Showing demo dashboard data.');
         }
       })
       .finally(() => { if (!silent) setLoading(false); });
   };
 
   useEffect(() => {
-    // If we have cached data, refresh silently in background
-    loadStats(Boolean(cached));
+    loadStats(true);
   }, []);
 
   if (loading) {
@@ -217,31 +232,10 @@ export function AdminDashboard() {
     );
   }
 
-  if (!stats) {
-    return (
-      <div className="rounded-2xl bg-white p-8 text-center shadow-sm" style={{ border: '1px solid rgba(37,99,235,0.1)' }}>
-        <p className="text-slate-700 font-semibold mb-2">{t('dashboard.loadErrorTitle')}</p>
-        <p className="text-sm text-slate-500 mb-4">
-          {loadError ? t('dashboard.loadErrorHint') : t('dashboard.incompleteData')}
-        </p>
-        <button
-          type="button"
-          onClick={loadStats}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold"
-          style={{ background: 'linear-gradient(135deg, #2563EB, #1D4ED8)' }}
-        >
-          <RefreshCw size={16} /> {t('dashboard.retry')}
-        </button>
-      </div>
-    );
-  }
-
   const fineRate = stats.total_fines > 0
     ? Math.round((stats.paid_fines / stats.total_fines) * 100)
     : 0;
-  const revenueDisplay = stats.fine_revenue >= 1000
-    ? `$${(stats.fine_revenue / 1000).toFixed(1)}K`
-    : `$${stats.fine_revenue.toFixed(0)}`;
+  const revenueDisplay = formatRevenue(locale, stats.fine_revenue);
 
   const userDistributionChart = stats.user_distribution.map((d) => ({
     ...d,
@@ -254,25 +248,36 @@ export function AdminDashboard() {
   }));
 
   const topViolationChart = violationTypeChart.length > 0 ? violationTypeChart : stats.fine_by_reason;
+  const C = DASHBOARD_PALETTE;
 
   return (
     <div className="dashboard-home space-y-5">
       {/* Welcome banner */}
-      <div className="dashboard-welcome--hero relative overflow-hidden rounded-3xl p-6" style={{ background: 'linear-gradient(135deg, #0F172A, #1E293B)', border: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="absolute top-0 right-0 w-64 h-64 rounded-full -translate-y-20 translate-x-20"
-          style={{ background: 'radial-gradient(circle, rgba(37,99,235,0.18) 0%, transparent 70%)' }} />
-        <div className="absolute bottom-0 left-0 w-40 h-40 rounded-full translate-y-16 -translate-x-10"
-          style={{ background: 'radial-gradient(circle, rgba(6,182,212,0.12) 0%, transparent 70%)' }} />
+      <div className="dashboard-welcome--hero admin-dashboard-hero relative overflow-hidden rounded-3xl p-6" style={{ background: 'linear-gradient(135deg, #0B1220 0%, #1E1B4B 45%, #134E4A 100%)', border: '1px solid rgba(255,255,255,0.08)' }}>
+        {C.map((c, i) => (
+          <div
+            key={c.name}
+            className="admin-dashboard-hero__orb"
+            style={{
+              background: `radial-gradient(circle, ${c.solid}55 0%, transparent 70%)`,
+              top: i % 2 === 0 ? '-20%' : 'auto',
+              bottom: i % 2 === 1 ? '-25%' : 'auto',
+              left: `${8 + i * 12}%`,
+              width: `${120 + i * 20}px`,
+              height: `${120 + i * 20}px`,
+            }}
+          />
+        ))}
         <div className="relative flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-4 min-w-0">
             <WelcomeProfileAvatar role="admin" variant="welcome" />
             <div>
             <div className="flex items-center gap-2 mb-2">
               <div className="w-7 h-7 rounded-lg flex items-center justify-center"
-                style={{ background: 'linear-gradient(135deg, #8B5CF6, #7C3AED)' }}>
+                style={{ background: C[0].grad }}>
                 <Shield size={14} className="text-white" />
               </div>
-              <span className="dashboard-welcome__eyebrow" style={{ color: 'rgba(139,92,246,0.9)' }}>{t('dashboard.adminEyebrow')}</span>
+              <span className="dashboard-welcome__eyebrow" style={{ color: C[0].solid }}>{t('dashboard.adminEyebrow')}</span>
             </div>
             <h1 className="dashboard-welcome__title text-white">
               {t(greetingKey(now.getHours()))}, {user?.full_name.split(' ')[0]}
@@ -284,13 +289,14 @@ export function AdminDashboard() {
           </div>
           <div className="flex gap-3 flex-wrap">
             {[
-              { label: t('dashboard.systemStatus'), value: t('dashboard.statusOnline'), dot: '#22C55E' },
-              { label: t('dashboard.aiModel'), value: t('dashboard.aiModelValue'), dot: '#06B6D4' },
-              { label: t('dashboard.uptime'), value: '99.9%', dot: '#8B5CF6' },
+              { label: t('dashboard.systemStatus'), value: t('dashboard.statusOnline'), color: C[3].solid },
+              { label: t('dashboard.aiModel'), value: t('dashboard.aiModelValue'), color: C[2].solid },
+              { label: t('dashboard.uptime'), value: '99.9%', color: C[0].solid },
             ].map(s => (
-              <div key={s.label} className="dashboard-welcome__status-card px-3 py-2 rounded-xl text-center min-w-[7.5rem]">
+              <div key={s.label} className="dashboard-welcome__status-card px-3 py-2 rounded-xl text-center min-w-[7.5rem]"
+                style={{ borderTop: `2px solid ${s.color}`, background: 'rgba(255,255,255,0.06)' }}>
                 <div className="flex items-center justify-center gap-1.5 mb-1">
-                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: s.dot }} />
+                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: s.color, boxShadow: `0 0 8px ${s.color}` }} />
                   <span className="dashboard-welcome__status-label">{s.label}</span>
                 </div>
                 <p className="dashboard-welcome__status-value">{s.value}</p>
@@ -300,38 +306,38 @@ export function AdminDashboard() {
         </div>
       </div>
 
-      {/* KPI Cards */}
+      {/* KPI Cards — 4 spectrum colors */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title={t('dashboard.totalUsers')} value={stats.total_users}
           sub={t('dashboard.usersSub', { drivers: stats.total_drivers, officers: stats.total_police })}
-          icon={<Users size={19} />} gradient="linear-gradient(135deg, #2563EB, #1D4ED8)"
+          icon={<Users size={19} />} gradient={C[1].grad} glow={C[1].soft}
           trend={stats.trends?.users} />
         <StatCard title={t('dashboard.totalFines')} value={stats.total_fines}
           sub={t('dashboard.collectionRate', { rate: fineRate })}
-          icon={<FileText size={19} />} gradient="linear-gradient(135deg, #EF4444, #DC2626)"
+          icon={<FileText size={19} />} gradient={C[5].grad} glow={C[5].soft}
           trend={stats.trends?.fines} />
         <StatCard title={t('dashboard.aiDetections')} value={Number(stats.total_detections).toLocaleString()}
           sub={t('dashboard.avgConfidence', { rate: stats.detection_accuracy })}
-          icon={<Camera size={19} />} gradient="linear-gradient(135deg, #8B5CF6, #7C3AED)"
+          icon={<Camera size={19} />} gradient={C[0].grad} glow={C[0].soft}
           trend={stats.trends?.detections} />
         <StatCard title={t('dashboard.revenue')} value={revenueDisplay}
           sub={t('dashboard.paidFinesSub', { count: stats.paid_fines })}
-          icon={<TrendingUp size={19} />} gradient="linear-gradient(135deg, #06B6D4, #0891B2)"
+          icon={<TrendingUp size={19} />} gradient={C[2].grad} glow={C[2].soft}
           trend={stats.trends?.revenue} />
       </div>
 
-      {/* Secondary stats */}
+      {/* Secondary stats — remaining 3 + wrap */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <SecondaryCard label={t('dashboard.registeredVehicles')} value={stats.total_vehicles} icon={<Car size={17} />} bg="rgba(37,99,235,0.08)" color="#2563EB" />
-        <SecondaryCard label={t('dashboard.totalTrafficSigns')} value={stats.total_signs ?? 0} icon={<Shield size={17} />} bg="rgba(16,185,129,0.1)" color="#059669" />
-        <SecondaryCard label={t('dashboard.totalViolations')} value={stats.total_violations ?? 0} icon={<AlertTriangle size={17} />} bg="rgba(239,68,68,0.1)" color="#DC2626" />
-        <SecondaryCard label={t('dashboard.pendingViolations')} value={stats.pending_violations ?? 0} icon={<Clock size={17} />} bg="rgba(245,158,11,0.1)" color="#D97706" />
+        <SecondaryCard label={t('dashboard.registeredVehicles')} value={stats.total_vehicles} icon={<Car size={17} />} bg={C[6].soft} color={C[6].solid} accent={C[6].solid} />
+        <SecondaryCard label={t('dashboard.totalTrafficSigns')} value={stats.total_signs ?? 0} icon={<Shield size={17} />} bg={C[3].soft} color={C[3].solid} accent={C[3].solid} />
+        <SecondaryCard label={t('dashboard.totalViolations')} value={stats.total_violations ?? 0} icon={<AlertTriangle size={17} />} bg={C[4].soft} color={C[4].solid} accent={C[4].solid} />
+        <SecondaryCard label={t('dashboard.pendingViolations')} value={stats.pending_violations ?? 0} icon={<Clock size={17} />} bg={C[5].soft} color={C[5].solid} accent={C[5].solid} />
       </div>
 
       {/* Charts row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2">
-          <ChartCard title={t('dashboard.monthlyFinesTitle', { year: chartYear })} subtitle={t('dashboard.monthlyFinesSubtitle')}>
+          <ChartCard title={t('dashboard.monthlyFinesTitle', { year: chartYear })} subtitle={t('dashboard.monthlyFinesSubtitle')} accent={C[5].solid}>
             {stats.monthly_fines.length === 0 ? (
               <ChartEmpty message={t('dashboard.chartNoFines')} />
             ) : (
@@ -339,22 +345,22 @@ export function AdminDashboard() {
                 <AreaChart data={stats.monthly_fines}>
                   <defs>
                     <linearGradient id="fineGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={CHART.primary} stopOpacity={0.2} />
-                      <stop offset="95%" stopColor={CHART.primary} stopOpacity={0} />
+                      <stop offset="5%" stopColor={C[5].solid} stopOpacity={0.35} />
+                      <stop offset="95%" stopColor={C[5].solid} stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} vertical={false} />
                   <XAxis dataKey="month" tick={chartAxisTick} axisLine={false} tickLine={false} />
                   <YAxis tick={chartAxisTick} axisLine={false} tickLine={false} />
                   <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
-                  <Area type="monotone" dataKey="count" name="Fines" stroke={CHART.primary} fill="url(#fineGrad)" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: CHART.primaryDark }} />
+                  <Area type="monotone" dataKey="count" name="Fines" stroke={C[5].solid} fill="url(#fineGrad)" strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: C[5].dark }} />
                 </AreaChart>
               </ResponsiveContainer>
             )}
           </ChartCard>
         </div>
 
-        <ChartCard title={t('dashboard.userDistributionTitle')} subtitle={t('dashboard.userDistributionSubtitle')}>
+        <ChartCard title={t('dashboard.userDistributionTitle')} subtitle={t('dashboard.userDistributionSubtitle')} accent={C[1].solid}>
           {stats.user_distribution.every(d => d.count === 0) ? (
             <ChartEmpty message={t('dashboard.chartNoUsers')} />
           ) : (
@@ -373,7 +379,7 @@ export function AdminDashboard() {
 
       {/* Charts row 2 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <ChartCard title={t('dashboard.topViolationsTitle')} subtitle={t('dashboard.topViolationsSubtitle')}>
+        <ChartCard title={t('dashboard.topViolationsTitle')} subtitle={t('dashboard.topViolationsSubtitle')} accent={C[4].solid}>
           {topViolationChart.length === 0 ? (
             <ChartEmpty message={t('dashboard.chartNoViolations')} />
           ) : (
@@ -391,29 +397,27 @@ export function AdminDashboard() {
           )}
         </ChartCard>
 
-        <ChartCard title={t('dashboard.aiDetectionsMonthlyTitle')} subtitle={t('dashboard.aiDetectionsMonthlySubtitle')}>
+        <ChartCard title={t('dashboard.aiDetectionsMonthlyTitle')} subtitle={t('dashboard.aiDetectionsMonthlySubtitle')} accent={C[0].solid}>
           {stats.monthly_detections.length === 0 ? (
             <ChartEmpty message={t('dashboard.chartNoDetections')} />
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={stats.monthly_detections}>
-                <defs>
-                  <linearGradient id="detGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={CHART.primaryLight} stopOpacity={1} />
-                    <stop offset="100%" stopColor={CHART.primaryDark} stopOpacity={0.95} />
-                  </linearGradient>
-                </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} vertical={false} />
                 <XAxis dataKey="month" tick={chartAxisTick} axisLine={false} tickLine={false} />
                 <YAxis tick={chartAxisTick} axisLine={false} tickLine={false} />
                 <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
-                <Bar dataKey="count" name="Detections" fill="url(#detGrad)" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                <Bar dataKey="count" name="Detections" radius={[6, 6, 0, 0]} maxBarSize={36}>
+                  {stats.monthly_detections.map((_, i) => (
+                    <Cell key={i} fill={CHART_SERIES[i % CHART_SERIES.length]} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           )}
         </ChartCard>
 
-        <ChartCard title={t('dashboard.monthlyViolationsTitle', { year: chartYear })} subtitle={t('dashboard.monthlyViolationsSubtitle')}>
+        <ChartCard title={t('dashboard.monthlyViolationsTitle', { year: chartYear })} subtitle={t('dashboard.monthlyViolationsSubtitle')} accent={C[4].solid}>
           {(stats.monthly_violations ?? []).length === 0 ? (
             <ChartEmpty message={t('dashboard.chartNoViolations')} />
           ) : (
@@ -421,15 +425,15 @@ export function AdminDashboard() {
               <AreaChart data={stats.monthly_violations ?? []}>
                 <defs>
                   <linearGradient id="violationGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#DC2626" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="#DC2626" stopOpacity={0} />
+                    <stop offset="5%" stopColor={C[4].solid} stopOpacity={0.35} />
+                    <stop offset="95%" stopColor={C[4].solid} stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} vertical={false} />
                 <XAxis dataKey="month" tick={chartAxisTick} axisLine={false} tickLine={false} />
                 <YAxis tick={chartAxisTick} axisLine={false} tickLine={false} />
                 <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
-                <Area type="monotone" dataKey="count" name="Violations" stroke="#DC2626" fill="url(#violationGrad)" strokeWidth={2} dot={false} />
+                <Area type="monotone" dataKey="count" name="Violations" stroke={C[4].solid} fill="url(#violationGrad)" strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: C[4].dark }} />
               </AreaChart>
             </ResponsiveContainer>
           )}

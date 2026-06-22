@@ -1,28 +1,54 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { aiAPI } from '@shared/services/api';
-import { heroSpeechText, resolveDetectionMode } from '@shared/utils/detectionDisplay';
+import { heroSpeechText, prepareKhmerTtsText, resolveDetectionMode } from '@shared/utils/detectionDisplay';
 
-function pickLang(text: string, preferred?: 'en' | 'km') {
-  if (preferred === 'km') return 'km-KH';
-  if (preferred === 'en') return 'en-US';
-  return /[\u1780-\u17FF]/.test(text) ? 'km-KH' : 'en-US';
+const KHMER_RE = /[\u1780-\u17FF]/;
+
+function resolveSpeakLang(preferred?: 'en' | 'km', langOverride?: string): 'km' | 'en' {
+  const override = (langOverride || '').toLowerCase();
+  if (override.startsWith('en')) return 'en';
+  if (override.startsWith('km')) return 'km';
+  if (preferred === 'en') return 'en';
+  if (preferred === 'km') return 'km';
+  return 'en';
 }
 
-function pickBrowserVoice(lang: string): SpeechSynthesisVoice | null {
+function pickBrowserVoice(lang: 'km' | 'en'): SpeechSynthesisVoice | null {
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
   const voices = window.speechSynthesis.getVoices();
-  const wantKm = lang.startsWith('km');
-  const ranked = voices.filter(v => {
-    if (wantKm) return v.lang.toLowerCase().startsWith('km');
-    return v.lang.toLowerCase().startsWith('en');
+  const wantKm = lang === 'km';
+  const ranked = voices.filter((v) => {
+    const code = v.lang.toLowerCase();
+    if (wantKm) return code.startsWith('km');
+    return code.startsWith('en');
   });
-  return ranked.find(v => !v.localService) || ranked[0] || null;
+  return ranked.find((v) => !v.localService) || ranked[0] || null;
 }
 
 const USE_SERVER_TTS =
   import.meta.env.VITE_USE_MOCK !== 'true' &&
+  import.meta.env.VITE_SERVER_TTS !== 'false' &&
   import.meta.env.VITE_KHMER_SERVER_TTS !== 'false';
+
+async function fetchNeuralSpeech(text: string, lang: 'km' | 'en'): Promise<Blob> {
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const blob = await aiAPI.speakText(text, lang);
+      if (!blob || blob.size < 128) {
+        throw new Error('Empty audio from server');
+      }
+      return blob;
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      if (attempt < 1) {
+        await new Promise((resolve) => setTimeout(resolve, 600));
+      }
+    }
+  }
+  throw lastError ?? new Error('Voice failed');
+}
 
 export function useSpeech(preferredLocale?: 'en' | 'km') {
   const [speaking, setSpeaking] = useState(false);
@@ -53,10 +79,9 @@ export function useSpeech(preferredLocale?: 'en' | 'km') {
   }, [cleanupAudio]);
 
   const speakBrowser = useCallback(
-    (text: string, id: string, langOverride?: string) => {
-      const lang = langOverride || pickLang(text, preferredLocale);
+    (text: string, id: string, lang: 'km' | 'en') => {
       const utter = new SpeechSynthesisUtterance(text.trim());
-      utter.lang = lang;
+      utter.lang = lang === 'km' ? 'km-KH' : 'en-US';
       const voice = pickBrowserVoice(lang);
       if (voice) utter.voice = voice;
       utter.rate = 0.92;
@@ -75,7 +100,7 @@ export function useSpeech(preferredLocale?: 'en' | 'km') {
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utter);
     },
-    [preferredLocale],
+    [],
   );
 
   const speak = useCallback(
@@ -93,19 +118,12 @@ export function useSpeech(preferredLocale?: 'en' | 'km') {
 
       stop();
 
-      const lang: 'km' | 'en' =
-        langOverride === 'en-US' || preferredLocale === 'en'
-          ? 'en'
-          : langOverride === 'km-KH' || preferredLocale === 'km' || /[\u1780-\u17FF]/.test(text)
-            ? 'km'
-            : 'en';
+      const lang = resolveSpeakLang(preferredLocale, langOverride);
+      const trimmed = lang === 'km' ? prepareKhmerTtsText(text) : text.trim();
 
       if (USE_SERVER_TTS) {
         try {
-          const blob = await aiAPI.speakText(text.trim(), lang);
-          if (!blob || blob.size < 128) {
-            throw new Error('Empty audio from server');
-          }
+          const blob = await fetchNeuralSpeech(trimmed, lang);
           const url = URL.createObjectURL(blob);
           urlRef.current = url;
           const audio = new Audio(url);
@@ -127,9 +145,21 @@ export function useSpeech(preferredLocale?: 'en' | 'km') {
           return;
         } catch (err) {
           const msg = err instanceof Error ? err.message : 'Voice failed';
-          if (!msg.includes('Network Error')) {
-            toast.message('Using browser voice (server TTS unavailable).');
+          if (lang === 'km') {
+            toast.error(
+              msg.includes('503') || msg.includes('TTS')
+                ? 'Khmer voice unavailable. Install edge-tts on the server and check internet.'
+                : `Khmer voice failed: ${msg}`,
+            );
+            return;
           }
+          if (!('speechSynthesis' in window)) {
+            toast.error(`English voice failed: ${msg}`);
+            return;
+          }
+          toast.message('Using browser voice (neural English unavailable).');
+          speakBrowser(trimmed, id, 'en');
+          return;
         }
       }
 
@@ -137,7 +167,11 @@ export function useSpeech(preferredLocale?: 'en' | 'km') {
         toast.error('Voice is not supported in this browser.');
         return;
       }
-      speakBrowser(text, id, langOverride);
+      if (lang === 'km') {
+        toast.error('Khmer neural voice requires the CamTraffic server (edge-tts).');
+        return;
+      }
+      speakBrowser(trimmed, id, lang);
     },
     [cleanupAudio, preferredLocale, speakBrowser, speaking, speakingId, stop],
   );
@@ -157,6 +191,14 @@ export function useSpeech(preferredLocale?: 'en' | 'km') {
   return { speak, stop, speaking, speakingId };
 }
 
+export function buildCatalogSignSpeech(
+  sign: DetectionSpeechFields,
+  locale: 'en' | 'km' = 'km',
+) {
+  const { name, desc, guide } = detectionDisplayText(sign, locale);
+  return buildTrafficSignSpeech(name, desc, guide, locale);
+}
+
 export function buildTrafficSignSpeech(
   signName: string,
   description: string,
@@ -164,11 +206,11 @@ export function buildTrafficSignSpeech(
   locale: 'en' | 'km' = 'km',
 ) {
   if (locale === 'km') {
-    return (
-      `បានរកឃើញស្លាកចរាចរណ៍ ${signName}។ ` +
-      `${description} ` +
-      `សូមបញ្ជរកចរាចរតាមស្លាកចរាចរណ៍នេះ៖ ${guidance}`
-    );
+  return prepareKhmerTtsText(
+    `បានរកឃើញស្លាកចរាចរណ៍ ${signName}។ ` +
+    `${description} ` +
+    `សូមបញ្ជរកចរាចរតាមស្លាកចរាចរណ៍នេះ៖ ${guidance}`,
+  );
   }
   return (
     `Traffic sign detected: ${signName}. ` +
@@ -176,8 +218,6 @@ export function buildTrafficSignSpeech(
     `Please follow this traffic sign guidance: ${guidance}`
   );
 }
-
-const KHMER_RE = /[\u1780-\u17FF]/;
 
 export function khmerSpeechText(result: {
   sign_name: string;

@@ -1,22 +1,23 @@
-import { useState, useEffect, type KeyboardEvent, type ReactNode } from 'react';
+import { useState, useEffect, useMemo, type KeyboardEvent, type ReactNode } from 'react';
+import { usePagination, useSignGridPageSize } from '@shared/hooks/usePagination';
+import { TablePagination } from '@shared/components/ui/TablePagination';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { Search, BookOpen, AlertTriangle, Shield, Info, ChevronRight, LayoutGrid, Table2, Eye, Plus, Pencil, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@shared/components/ui/dialog';
 import { Button } from '@shared/components/ui/button';
 import { SignFormDialog } from '@shared/components/signs/SignFormDialog';
 import { SignDetailIntro } from '@shared/components/signs/SignDetailIntro';
+import { SignNameLabels } from '@shared/components/signs/SignNameLabels';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@shared/components/ui/table';
-import { getProfileImageUrl } from '@shared/utils/profileImage';
 import {
-  isPlaceholderSignGraphic,
-  isSignMediaKnownInvalid,
+  clearSignMediaCache,
   markSignMediaInvalid,
   markSignMediaValid,
-  resolveSignMediaUrl,
   catalogIncludesSign,
   normalizeTrafficSign,
   resetSignMediaProbeForSign,
-  signHasResolvableImage,
+  trafficSignImageCandidates,
+  isPlaceholderSignGraphic,
 } from '@shared/utils/signImage';
 import { signsAPI } from '@shared/services/api';
 import { signDisplayNames } from '@shared/utils/signDisplayNames';
@@ -123,9 +124,9 @@ function SignFallback({ sign, size = 52 }: { sign: TrafficSign; size?: number })
   );
 }
 
-/** Sign has an image URL on record (may still be a placeholder graphic). */
+/** Sign has a displayable image (API media or catalog demo art). */
 function hasSignImage(sign: TrafficSign): boolean {
-  return Boolean(signHasResolvableImage(sign.image));
+  return trafficSignImageCandidates(sign).length > 0;
 }
 
 function mergeCatalogSigns(
@@ -144,16 +145,15 @@ function mergeCatalogSigns(
   return Array.from(map.values());
 }
 
-function signMediaSrc(sign: TrafficSign): string | null {
-  return signHasResolvableImage(sign.image);
-}
-
 /* ── Sign image with fallback ─────────────────────────── */
 function SignImage({
   sign,
   size = 52,
   className = '',
   hideFallback = false,
+  showcase = false,
+  fill = false,
+  strictProbe = true,
   onUnavailable,
 }: {
   sign: TrafficSign;
@@ -161,19 +161,44 @@ function SignImage({
   className?: string;
   /** When true, missing/broken images render nothing (no colored placeholder). */
   hideFallback?: boolean;
+  /** White stage behind transparent PNGs for clearer viewing. */
+  showcase?: boolean;
+  /** Fill parent container (use with showcase on cards / dialog). */
+  fill?: boolean;
+  /** When false, skip blank-pixel rejection (admin catalog). */
+  strictProbe?: boolean;
   onUnavailable?: () => void;
 }) {
-  const src = signMediaSrc(sign);
-  const [failed, setFailed] = useState(() => (src ? isSignMediaKnownInvalid(src) : false));
+  const candidates = useMemo(
+    () => trafficSignImageCandidates(sign),
+    [sign.id, sign.image, sign.sign_code],
+  );
+  const [index, setIndex] = useState(0);
+  const [failed, setFailed] = useState(false);
 
-  const markUnavailable = () => {
+  useEffect(() => {
+    setIndex(0);
+    setFailed(false);
+  }, [sign.id, sign.image, sign.sign_code]);
+
+  const src = candidates[index] ?? null;
+
+  const tryNext = () => {
     if (src) markSignMediaInvalid(src);
+    if (index < candidates.length - 1) {
+      setIndex((i) => i + 1);
+      return;
+    }
     setFailed(true);
     onUnavailable?.();
   };
 
+  const imgStyle = fill
+    ? { width: '100%', height: '100%', maxWidth: '100%', maxHeight: '100%' }
+    : { width: size, height: size };
+
   if (src && !failed) {
-    return (
+    const img = (
       <img
         src={src}
         alt={sign.sign_name}
@@ -182,22 +207,49 @@ function SignImage({
         onLoad={e => {
           const el = e.currentTarget;
           const url = el.currentSrc || el.src;
-          markSignMediaValid(url);
-          const checkPlaceholder = () => {
-            if (isPlaceholderSignGraphic(el)) markUnavailable();
-          };
-          if (typeof requestIdleCallback === 'function') {
-            requestIdleCallback(checkPlaceholder, { timeout: 400 });
-          } else {
-            setTimeout(checkPlaceholder, 0);
+          const rejectPlaceholder = strictProbe || candidates.length > 1;
+          if (rejectPlaceholder) {
+            try {
+              if (isPlaceholderSignGraphic(el)) {
+                tryNext();
+                return;
+              }
+            } catch { /* tainted canvas — treat as valid */ }
           }
+          if (strictProbe) {
+            try {
+              const canvas = document.createElement('canvas');
+              canvas.width = 32; canvas.height = 32;
+              const ctx = canvas.getContext('2d');
+              if (ctx) {
+                ctx.drawImage(el, 0, 0, 32, 32);
+                const { data } = ctx.getImageData(0, 0, 32, 32);
+                let visible = 0;
+                for (let i = 3; i < data.length; i += 4) if (data[i] > 24) visible++;
+                if (visible < 24) { tryNext(); return; }
+              }
+            } catch { /* tainted canvas — treat as valid */ }
+          }
+          markSignMediaValid(url);
         }}
-        onError={markUnavailable}
+        onError={tryNext}
         className={`object-contain flex-shrink-0 ${className}`}
-        style={{ width: size, height: size }}
+        style={imgStyle}
         draggable={false}
       />
     );
+
+    if (showcase) {
+      return (
+        <div
+          className={`signs-img-stage${fill ? ' signs-img-stage--fill' : ''}`}
+          style={fill ? undefined : { width: size, height: size }}
+        >
+          {img}
+        </div>
+      );
+    }
+    return img;
   }
   if (hideFallback) return null;
   return <SignFallback sign={sign} size={size} />;
@@ -212,41 +264,55 @@ function SignDialogVisual({
   onUnavailable?: () => void;
 }) {
   const c = CAT[sign.category];
+  const candidates = useMemo(
+    () => trafficSignImageCandidates(sign),
+    [sign.id, sign.image, sign.sign_code],
+  );
+  const [index, setIndex] = useState(0);
   const [failed, setFailed] = useState(false);
-  const src = resolveSignMediaUrl(sign.image) ?? getProfileImageUrl(sign.image);
+
+  useEffect(() => {
+    setIndex(0);
+    setFailed(false);
+  }, [sign.id, sign.image, sign.sign_code]);
+
+  const src = candidates[index] ?? null;
+
+  const tryNext = () => {
+    if (index < candidates.length - 1) {
+      setIndex((i) => i + 1);
+      return;
+    }
+    setFailed(true);
+    onUnavailable?.();
+  };
 
   if (!src || failed) return null;
 
   return (
     <div
-      className="signs-dialog-visual relative flex-shrink-0 flex items-center justify-center px-6 pt-10 pb-11 pr-14"
-      style={{ background: c.gradient }}
+      className="signs-dialog-visual relative flex-shrink-0 flex items-center justify-center px-8 py-8"
+      style={{
+        background: 'linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%)',
+        borderBottom: `3px solid ${c.color}`,
+      }}
     >
-      <div className="signs-dialog-visual__glow signs-dialog-visual__glow--tr" />
-      <div className="signs-dialog-visual__glow signs-dialog-visual__glow--bl" />
       <div className="signs-dialog-showcase relative z-[1] w-full flex items-center justify-center">
-        <img
-          src={src}
-          alt={sign.sign_name}
-          className="signs-dialog-showcase__img object-contain"
-          decoding="async"
-          fetchPriority="high"
-          draggable={false}
-          onLoad={e => {
-            const el = e.currentTarget;
-            if (isPlaceholderSignGraphic(el)) {
-              markSignMediaInvalid(el.currentSrc || el.src);
-              setFailed(true);
-              onUnavailable?.();
-              return;
-            }
-            markSignMediaValid(el.currentSrc || el.src);
-          }}
-          onError={() => {
-            setFailed(true);
-            onUnavailable?.();
-          }}
-        />
+        <div className="signs-img-stage signs-img-stage--dialog signs-img-stage--dialog-clear">
+          <img
+            src={src}
+            alt={sign.sign_name}
+            className="signs-dialog-showcase__img object-contain"
+            decoding="async"
+            fetchPriority="high"
+            draggable={false}
+            onLoad={e => {
+              const url = e.currentTarget.currentSrc || e.currentTarget.src;
+              markSignMediaValid(url);
+            }}
+            onError={tryNext}
+          />
+        </div>
       </div>
     </div>
   );
@@ -353,11 +419,7 @@ function SignCardItem({
 }) {
   const { t } = useLanguage();
   const c = CAT[sign.category];
-  const { km, en } = signDisplayNames(sign);
-  const mediaSrc = signMediaSrc(sign);
-  const [photoInvalid, setPhotoInvalid] = useState(() =>
-    mediaSrc ? isSignMediaKnownInvalid(mediaSrc) : false,
-  );
+  const [photoInvalid, setPhotoInvalid] = useState(false);
 
   if (!catalogIncludesSign(sign, canManage)) return null;
   if (!canManage && (!hasSignImage(sign) || photoInvalid)) return null;
@@ -400,14 +462,16 @@ function SignCardItem({
     >
       <div className="signs-card__accent h-1 w-full flex-shrink-0" style={{ background: c.gradient }} />
       <div
-        className="signs-card__media flex flex-1 items-center justify-center px-2 py-6"
-        style={{ minHeight: '13rem', background: c.bg }}
+        className="signs-card__media flex flex-1 items-center justify-center px-3 py-5"
+        style={{ minHeight: '16rem', background: c.bg }}
       >
         <div className="signs-card__img-wrap flex items-center justify-center w-full h-full">
           <SignImage
             sign={sign}
-            size={140}
             hideFallback={!canManage}
+            strictProbe={!canManage}
+            showcase
+            fill
             onUnavailable={hideCard}
             className="signs-card__img object-contain"
           />
@@ -420,22 +484,7 @@ function SignCardItem({
           borderTop: `1px solid ${c.border}`,
         }}
       >
-        {km ? (
-          <p
-            className="signs-card__name dashboard-card__title leading-snug line-clamp-2 m-0"
-            style={{ color: 'var(--foreground)' }}
-          >
-            {km}
-          </p>
-        ) : null}
-        {en ? (
-          <p
-            className="signs-card__name-en dashboard-text__caption mt-1 line-clamp-2 m-0"
-            style={{ color: 'var(--muted-foreground)', fontWeight: 500 }}
-          >
-            {en}
-          </p>
-        ) : null}
+        <SignNameLabels sign={sign} />
         <div className="flex items-center justify-between gap-2 mt-3">
           <CategoryBadge category={sign.category} className="signs-card__badge px-3 py-1">
             {categoryLabel}
@@ -472,7 +521,7 @@ function SignsCardGridSkeleton({ count = 12 }: { count?: number }) {
       {[...Array(count)].map((_, i) => (
         <div key={i} className="signs-card-skeleton w-full rounded-2xl overflow-hidden animate-pulse">
           <div className="h-1 w-full" style={{ background: 'rgba(37,99,235,0.12)' }} />
-          <div className="h-[13rem]" style={{ background: 'rgba(37,99,235,0.06)' }} />
+          <div className="h-[16rem]" style={{ background: 'rgba(37,99,235,0.06)' }} />
           <div className="px-3.5 py-3.5 space-y-2" style={{ background: 'rgba(37,99,235,0.05)' }}>
             <div className="h-3.5 w-full rounded" style={{ background: 'rgba(37,99,235,0.1)' }} />
             <div className="h-3 w-2/3 rounded" style={{ background: 'rgba(37,99,235,0.07)' }} />
@@ -581,12 +630,8 @@ function SignTableRow({
   onDelete?: (sign: TrafficSign) => void;
 }) {
   const c = CAT[sign.category];
-  const { km, en } = signDisplayNames(sign);
   const categoryLabel = catLabel(sign.category);
-  const mediaSrc = signMediaSrc(sign);
-  const [photoInvalid, setPhotoInvalid] = useState(() =>
-    mediaSrc ? isSignMediaKnownInvalid(mediaSrc) : false,
-  );
+  const [photoInvalid, setPhotoInvalid] = useState(false);
 
   if (!catalogIncludesSign(sign, canManage)) return null;
   if (!canManage && (!hasSignImage(sign) || photoInvalid)) return null;
@@ -600,20 +645,20 @@ function SignTableRow({
                 style={{ borderBottom: '1px solid rgba(37,99,235,0.06)' }}
               >
                 <TableCell className="py-3 px-3 align-middle">
-                  <div
-                    className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto"
-                    style={{ background: c.bg, border: `1px solid ${c.border}` }}
-                  >
-                    <SignImage sign={sign} size={44} hideFallback={!canManage} onUnavailable={hideCard} />
+                  <div className="signs-table-img-wrap mx-auto">
+                    <SignImage
+                      sign={sign}
+                      size={64}
+                      showcase
+                      strictProbe={!canManage}
+                      hideFallback={!canManage}
+                      onUnavailable={hideCard}
+                      className="signs-table-img"
+                    />
                   </div>
                 </TableCell>
                 <TableCell className="py-3 px-3 align-middle min-w-[160px]">
-                  {km ? <p className="dashboard-card__title leading-snug">{km}</p> : null}
-                  {en ? (
-                    <p className="dashboard-text__caption mt-0.5" style={{ color: 'var(--muted-foreground)' }}>
-                      {en}
-                    </p>
-                  ) : null}
+                  <SignNameLabels sign={sign} size="sm" />
                   <CategoryBadge category={sign.category} className="mt-1.5 lg:hidden px-2.5 py-0.5">
                     {categoryLabel}
                   </CategoryBadge>
@@ -747,11 +792,12 @@ export function TrafficSignsPage() {
   };
 
   useEffect(() => {
+    clearSignMediaCache();
     loadSigns();
   }, []);
 
   const openSignDetail = (sign: TrafficSign) => {
-    if (!hasSignImage(sign)) return;
+    if (!canManage && !hasSignImage(sign)) return;
     setDialogHero(true);
     setSelected(sign);
   };
@@ -808,6 +854,9 @@ export function TrafficSignsPage() {
     }
     setFiltered(result);
   }, [signs, search, category]);
+
+  const gridPageSize = useSignGridPageSize(2);
+  const pagination = usePagination(filtered, viewMode === 'grid' ? gridPageSize : 10);
 
   const counts = {
     all: signs.length,
@@ -1057,24 +1106,27 @@ export function TrafficSignsPage() {
               <p className="dashboard-text__caption mt-1">{t('pages.signs.noResultsHint')}</p>
             </div>
           ) : viewMode === 'grid' ? (
-            <div className="signs-card-grid">
-              {filtered.map(sign => (
-                <div key={sign.id} className="signs-card-grid__slot min-w-0">
-                  <SignCardItem
-                    sign={sign}
-                    categoryLabel={catLabel(sign.category)}
-                    onSelect={() => openSignDetail(sign)}
-                    canManage={canManage}
-                    onEdit={() => openEdit(sign)}
-                    onDelete={() => setDeleteTarget(sign)}
-                  />
-                </div>
-              ))}
-            </div>
+            <>
+              <div className="signs-card-grid">
+                {pagination.pageItems.map(sign => (
+                  <div key={sign.id} className="signs-card-grid__slot min-w-0">
+                    <SignCardItem
+                      sign={sign}
+                      categoryLabel={catLabel(sign.category)}
+                      onSelect={() => openSignDetail(sign)}
+                      canManage={canManage}
+                      onEdit={() => openEdit(sign)}
+                      onDelete={() => setDeleteTarget(sign)}
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="px-4"><TablePagination pagination={pagination} label="signs" /></div>
+            </>
           ) : (
             <div className="mx-4">
             <SignsTable
-              signs={filtered}
+              signs={pagination.pageItems}
               catLabel={catLabel}
               onSelect={openSignDetail}
               canManage={canManage}
@@ -1091,6 +1143,7 @@ export function TrafficSignsPage() {
                 delete: t('common.delete'),
               }}
             />
+            <TablePagination pagination={pagination} label="signs" />
             </div>
           )}
         </div>
@@ -1099,7 +1152,7 @@ export function TrafficSignsPage() {
       {/* ── DETAIL MODAL ── */}
       <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
         <DialogContent
-          className={`dashboard-signs-dialog max-w-2xl p-0 gap-0 overflow-hidden rounded-[1.35rem] border-0 ${
+          className={`dashboard-signs-dialog flex flex-col max-w-none p-0 gap-0 overflow-hidden rounded-[1.35rem] border-0 ${
             selected && (!dialogHero || !hasSignImage(selected)) ? 'dashboard-signs-dialog--no-hero' : ''
           }`}
         >
@@ -1107,7 +1160,7 @@ export function TrafficSignsPage() {
             const c = CAT[selected.category];
             const showDialogHero = dialogHero && hasSignImage(selected);
             return (
-              <div className="signs-dialog flex flex-col h-full max-h-[88vh] overflow-hidden">
+              <div className="signs-dialog flex flex-col min-h-0 flex-1 overflow-hidden">
                 {showDialogHero && (
                   <SignDialogVisual
                     sign={selected}
@@ -1117,7 +1170,7 @@ export function TrafficSignsPage() {
 
                 {/* Bottom — all text */}
                 <div
-                  className={`signs-dialog-body relative flex-1 min-h-0 flex flex-col overflow-hidden ${
+                  className={`signs-dialog-body relative flex-1 min-h-0 flex flex-col ${
                     showDialogHero ? 'rounded-t-[1.65rem] -mt-5' : 'rounded-t-none'
                   }`}
                   style={{
@@ -1137,7 +1190,7 @@ export function TrafficSignsPage() {
                     }}
                   />
 
-                  <div className="signs-dialog-card flex flex-col flex-1 min-h-0 overflow-y-auto">
+                  <div className="signs-dialog-card flex flex-col flex-shrink-0">
                     {/* Description */}
                     <section className="signs-dialog-section flex-shrink-0">
                       <div className="signs-dialog-section__head">
@@ -1213,7 +1266,7 @@ export function TrafficSignsPage() {
                               >
                                 {i + 1}
                               </span>
-                              <p className="signs-dialog-rule-text m-0 line-clamp-2">{r}</p>
+                              <p className="signs-dialog-rule-text m-0">{r}</p>
                             </li>
                           ))}
                         </ul>
@@ -1237,7 +1290,7 @@ export function TrafficSignsPage() {
                             <p className="signs-dialog-section__label signs-dialog-section__label--penalty m-0 mb-1.5">
                               {t('pages.signs.penalty')}
                             </p>
-                            <p className="signs-dialog-penalty-text m-0 line-clamp-2">{selected.penalty}</p>
+                            <p className="signs-dialog-penalty-text m-0">{selected.penalty}</p>
                           </div>
                         </div>
                       </section>
