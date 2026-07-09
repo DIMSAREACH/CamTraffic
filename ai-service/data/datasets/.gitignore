@@ -6,6 +6,12 @@ annotations/exports/**
 !annotations/exports/.gitkeep
 !annotations/exports/BATCH-ANN-001/
 !annotations/exports/BATCH-ANN-001/**
+!annotations/exports/BATCH-REF-PROH-001/
+!annotations/exports/BATCH-REF-PROH-001/**
+!annotations/exports/BATCH-VEH-001/
+!annotations/exports/BATCH-VEH-001/**
+!annotations/exports/BATCH-VEH-002/
+!annotations/exports/BATCH-VEH-002/**
 
 !raw/.gitkeep
 !raw/traffic-signs/

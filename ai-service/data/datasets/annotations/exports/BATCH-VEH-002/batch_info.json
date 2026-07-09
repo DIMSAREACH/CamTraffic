@@ -1,0 +1,12 @@
+{
+  "batch_id": "BATCH-VEH-002",
+  "description": "Real Cambodian vehicle footage — Phnom Penh city tour 2022 dashcam frames",
+  "source": "Cambodia-city-tour-Phnom-Penh-2022 (Roboflow public dataset)",
+  "date_added": "2026-07-09",
+  "total_images": 70,
+  "status": "unannotated",
+  "annotation_tool": "Roboflow",
+  "expected_classes": ["car_sedan", "car_suv", "car_pickup", "motorcycle_small", "motorcycle_large", "bus", "truck", "van", "tuk_tuk"],
+  "notes": "Dashcam/city tour frames from Phnom Penh streets. Real-world vehicle data for model training diversity.",
+  "annotation_guide": "docs/final-year-project/ANNOTATION-GUIDE.md"
+}
