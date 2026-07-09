@@ -1,0 +1,359 @@
+{
+  "generated_at": "2026-07-09T14:53:30.034113+00:00",
+  "summary": {
+    "total_collected": 8548,
+    "total_target": 4100,
+    "overall_pct": 208.5,
+    "classes_ready": 31,
+    "classes_total": 31
+  },
+  "splits_available": {
+    "cambodia_traffic_reference_remapped": 196,
+    "plate_number_reference_remapped": 453,
+    "train": 1,
+    "training_combined": 695
+  },
+  "per_class": [
+    {
+      "class": "no_entry",
+      "collected": 150,
+      "target": 150,
+      "gap": 0,
+      "pct": 100.0,
+      "ready": true,
+      "from_raw_folder": 150,
+      "from_annotations": 3,
+      "from_splits": 3
+    },
+    {
+      "class": "no_u_turn",
+      "collected": 100,
+      "target": 100,
+      "gap": 0,
+      "pct": 100.0,
+      "ready": true,
+      "from_raw_folder": 100,
+      "from_annotations": 1,
+      "from_splits": 1
+    },
+    {
+      "class": "no_left_turn",
+      "collected": 180,
+      "target": 100,
+      "gap": 0,
+      "pct": 180.0,
+      "ready": true,
+      "from_raw_folder": 180,
+      "from_annotations": 0,
+      "from_splits": 0
+    },
+    {
+      "class": "no_right_turn",
+      "collected": 180,
+      "target": 100,
+      "gap": 0,
+      "pct": 180.0,
+      "ready": true,
+      "from_raw_folder": 180,
+      "from_annotations": 0,
+      "from_splits": 0
+    },
+    {
+      "class": "no_overtaking",
+      "collected": 160,
+      "target": 80,
+      "gap": 0,
+      "pct": 200.0,
+      "ready": true,
+      "from_raw_folder": 160,
+      "from_annotations": 0,
+      "from_splits": 0
+    },
+    {
+      "class": "no_horn",
+      "collected": 160,
+      "target": 80,
+      "gap": 0,
+      "pct": 200.0,
+      "ready": true,
+      "from_raw_folder": 160,
+      "from_annotations": 0,
+      "from_splits": 0
+    },
+    {
+      "class": "parking_prohibited",
+      "collected": 150,
+      "target": 150,
+      "gap": 0,
+      "pct": 100.0,
+      "ready": true,
+      "from_raw_folder": 150,
+      "from_annotations": 6,
+      "from_splits": 6
+    },
+    {
+      "class": "speed_limit_20",
+      "collected": 80,
+      "target": 80,
+      "gap": 0,
+      "pct": 100.0,
+      "ready": true,
+      "from_raw_folder": 80,
+      "from_annotations": 1,
+      "from_splits": 1
+    },
+    {
+      "class": "speed_limit_30",
+      "collected": 180,
+      "target": 100,
+      "gap": 0,
+      "pct": 180.0,
+      "ready": true,
+      "from_raw_folder": 180,
+      "from_annotations": 0,
+      "from_splits": 0
+    },
+    {
+      "class": "speed_limit_40",
+      "collected": 180,
+      "target": 100,
+      "gap": 0,
+      "pct": 180.0,
+      "ready": true,
+      "from_raw_folder": 180,
+      "from_annotations": 0,
+      "from_splits": 0
+    },
+    {
+      "class": "speed_limit_50",
+      "collected": 120,
+      "target": 120,
+      "gap": 0,
+      "pct": 100.0,
+      "ready": true,
+      "from_raw_folder": 120,
+      "from_annotations": 1,
+      "from_splits": 1
+    },
+    {
+      "class": "speed_limit_60",
+      "collected": 180,
+      "target": 100,
+      "gap": 0,
+      "pct": 180.0,
+      "ready": true,
+      "from_raw_folder": 180,
+      "from_annotations": 0,
+      "from_splits": 0
+    },
+    {
+      "class": "stop",
+      "collected": 150,
+      "target": 150,
+      "gap": 0,
+      "pct": 100.0,
+      "ready": true,
+      "from_raw_folder": 150,
+      "from_annotations": 3,
+      "from_splits": 4
+    },
+    {
+      "class": "yield",
+      "collected": 180,
+      "target": 100,
+      "gap": 0,
+      "pct": 180.0,
+      "ready": true,
+      "from_raw_folder": 180,
+      "from_annotations": 0,
+      "from_splits": 0
+    },
+    {
+      "class": "one_way",
+      "collected": 180,
+      "target": 100,
+      "gap": 0,
+      "pct": 180.0,
+      "ready": true,
+      "from_raw_folder": 180,
+      "from_annotations": 0,
+      "from_splits": 0
+    },
+    {
+      "class": "pedestrian_crossing",
+      "collected": 200,
+      "target": 120,
+      "gap": 0,
+      "pct": 166.7,
+      "ready": true,
+      "from_raw_folder": 200,
+      "from_annotations": 0,
+      "from_splits": 0
+    },
+    {
+      "class": "school_zone",
+      "collected": 160,
+      "target": 80,
+      "gap": 0,
+      "pct": 200.0,
+      "ready": true,
+      "from_raw_folder": 160,
+      "from_annotations": 0,
+      "from_splits": 0
+    },
+    {
+      "class": "traffic_light_signal",
+      "collected": 180,
+      "target": 100,
+      "gap": 0,
+      "pct": 180.0,
+      "ready": true,
+      "from_raw_folder": 180,
+      "from_annotations": 0,
+      "from_splits": 0
+    },
+    {
+      "class": "unknown_sign",
+      "collected": 100,
+      "target": 100,
+      "gap": 0,
+      "pct": 100.0,
+      "ready": true,
+      "from_raw_folder": 100,
+      "from_annotations": 31,
+      "from_splits": 31
+    },
+    {
+      "class": "car_sedan",
+      "collected": 1666,
+      "target": 200,
+      "gap": 0,
+      "pct": 833.0,
+      "ready": true,
+      "from_raw_folder": 0,
+      "from_annotations": 0,
+      "from_splits": 1666
+    },
+    {
+      "class": "car_suv",
+      "collected": 150,
+      "target": 150,
+      "gap": 0,
+      "pct": 100.0,
+      "ready": true,
+      "from_raw_folder": 150,
+      "from_annotations": 0,
+      "from_splits": 0
+    },
+    {
+      "class": "car_pickup",
+      "collected": 150,
+      "target": 150,
+      "gap": 0,
+      "pct": 100.0,
+      "ready": true,
+      "from_raw_folder": 150,
+      "from_annotations": 0,
+      "from_splits": 0
+    },
+    {
+      "class": "motorcycle_small",
+      "collected": 882,
+      "target": 200,
+      "gap": 0,
+      "pct": 441.0,
+      "ready": true,
+      "from_raw_folder": 0,
+      "from_annotations": 0,
+      "from_splits": 882
+    },
+    {
+      "class": "motorcycle_large",
+      "collected": 744,
+      "target": 150,
+      "gap": 0,
+      "pct": 496.0,
+      "ready": true,
+      "from_raw_folder": 0,
+      "from_annotations": 0,
+      "from_splits": 744
+    },
+    {
+      "class": "bus",
+      "collected": 191,
+      "target": 120,
+      "gap": 0,
+      "pct": 159.2,
+      "ready": true,
+      "from_raw_folder": 0,
+      "from_annotations": 0,
+      "from_splits": 191
+    },
+    {
+      "class": "truck",
+      "collected": 242,
+      "target": 120,
+      "gap": 0,
+      "pct": 201.7,
+      "ready": true,
+      "from_raw_folder": 0,
+      "from_annotations": 0,
+      "from_splits": 242
+    },
+    {
+      "class": "van",
+      "collected": 150,
+      "target": 100,
+      "gap": 0,
+      "pct": 150.0,
+      "ready": true,
+      "from_raw_folder": 150,
+      "from_annotations": 0,
+      "from_splits": 0
+    },
+    {
+      "class": "tuk_tuk",
+      "collected": 150,
+      "target": 100,
+      "gap": 0,
+      "pct": 150.0,
+      "ready": true,
+      "from_raw_folder": 150,
+      "from_annotations": 0,
+      "from_splits": 0
+    },
+    {
+      "class": "plate_number",
+      "collected": 953,
+      "target": 500,
+      "gap": 0,
+      "pct": 190.6,
+      "ready": true,
+      "from_raw_folder": 953,
+      "from_annotations": 0,
+      "from_splits": 0
+    },
+    {
+      "class": "plate_khmer",
+      "collected": 200,
+      "target": 200,
+      "gap": 0,
+      "pct": 100.0,
+      "ready": true,
+      "from_raw_folder": 200,
+      "from_annotations": 0,
+      "from_splits": 0
+    },
+    {
+      "class": "plate_foreigner",
+      "collected": 100,
+      "target": 100,
+      "gap": 0,
+      "pct": 100.0,
+      "ready": true,
+      "from_raw_folder": 100,
+      "from_annotations": 0,
+      "from_splits": 0
+    }
+  ]
+}
