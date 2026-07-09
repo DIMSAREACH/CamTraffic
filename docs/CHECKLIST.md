@@ -341,7 +341,7 @@
 - [x] Review OCR quality
 - [x] Review metadata
 - [x] Verify backup
-- [ ] Commit dataset-related configs/manifests/docs
+- [x] Commit dataset-related configs/manifests/docs
 - [x] Finalize documentation
 
 #### Final Milestone (Dataset Ready)
