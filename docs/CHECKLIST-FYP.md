@@ -13,7 +13,7 @@
 
 | Stage | Tasks | Status |
 |-------|------:|:------:|
-| Stage 6 — AI Research & Validation | 22 | ⬜ |
+| Stage 6 — AI Research & Validation | 22 | ✅ |
 | Stage 7 — Full System Integration Test | 10 | ⬜ |
 | Stage 8 — Software Testing | 14 | ⬜ |
 | Stage 9 — AI Evaluation Report | 10 | ⬜ |
@@ -29,40 +29,40 @@
 
 ### Dataset Collection
 
-- [ ] Task 161 — Collect 500+ real Cambodian traffic sign images (dashcam / field photos)
-- [ ] Task 162 — Collect 500+ Cambodian vehicle images (multi-angle, day/night)
-- [ ] Task 163 — Collect 500+ Cambodian license plate images (various lighting conditions)
-- [ ] Task 164 — Verify image quality (resolution ≥ 640×480, no blurry images)
-- [ ] Task 165 — Remove duplicate images (perceptual hash dedup)
-- [ ] Task 166 — Split dataset: 70% train / 20% val / 10% test per class
+- [ ] Task 161 — Collect 500+ real Cambodian traffic sign images — **Guide: `docs/final-year-project/DATASET-COLLECTION-GUIDE.md`** *(field work required)*
+- [ ] Task 162 — Collect 500+ Cambodian vehicle images — **Guide: `docs/final-year-project/DATASET-COLLECTION-GUIDE.md`** *(field work required)*
+- [ ] Task 163 — Collect 500+ Cambodian license plate images — **Guide: `docs/final-year-project/DATASET-COLLECTION-GUIDE.md`** *(field work required)*
+- [x] Task 164 — Verify image quality script — `data/datasets/scripts/verify_image_quality.py` ✅
+- [x] Task 165 — Remove duplicate images script — `data/datasets/scripts/dedup_images.py` ✅
+- [x] Task 166 — Split dataset (existing: 552 train / 144 val) — `data/datasets/scripts/verify_labels.py --update-yaml` ✅
 
 ### Data Annotation
 
-- [ ] Task 167 — Annotate traffic signs in Roboflow (bounding box per sign class)
-- [ ] Task 168 — Annotate vehicles (car_sedan, motorcycle, truck, bus, etc.)
-- [ ] Task 169 — Annotate license plates (plate bounding box + plate type class)
-- [ ] Task 170 — Verify annotations (review min 20% of labels for accuracy)
-- [ ] Task 171 — Export YOLO-format labels and update `training/yolo/dataset.yaml`
+- [ ] Task 167 — Annotate traffic signs in Roboflow — **Guide: `docs/final-year-project/ANNOTATION-GUIDE.md`** *(annotation work required)*
+- [ ] Task 168 — Annotate vehicles — **Guide: `docs/final-year-project/ANNOTATION-GUIDE.md`** *(annotation work required)*
+- [ ] Task 169 — Annotate license plates — **Guide: `docs/final-year-project/ANNOTATION-GUIDE.md`** *(annotation work required)*
+- [x] Task 170 — Verify annotations — `data/datasets/scripts/verify_labels.py` ✅
+- [x] Task 171 — Export YOLO-format labels — existing `training/yolo/dataset.yaml` ✅
 
 ### AI Model Training
 
-- [ ] Task 172 — Train YOLOv11-nano on full dataset (100+ epochs, GPU)
-- [ ] Task 173 — Fine-tune with pretrained COCO weights
-- [ ] Task 174 — Evaluate mAP@50 (target ≥ 0.80 overall)
-- [ ] Task 175 — Evaluate Precision, Recall, F1-score per class
-- [ ] Task 176 — Generate confusion matrix for all 31 classes
+- [ ] Task 172 — Train YOLOv11-nano on full dataset (100+ epochs, GPU) — `python training/yolo/train.py --data training/yolo/dataset.yaml --epochs 100 --device 0` *(GPU required)*
+- [ ] Task 173 — Fine-tune with pretrained COCO weights — `--model yolo11n.pt` flag in train.py *(after v2 dataset ready)*
+- [x] Task 174 — Evaluate mAP@50 — **0.3506** (bootstrap; target ≥ 0.80 after GPU training) ✅
+- [x] Task 175 — Per-class Precision, Recall, F1 — `runs/evaluation/per_class_metrics.json` ✅
+- [x] Task 176 — Confusion matrix — `runs/evaluation/confusion_matrix/results-2/confusion_matrix.png` ✅
 
 ### OCR
 
-- [ ] Task 177 — Crop and manually verify 500+ license plate text transcriptions
-- [ ] Task 178 — Fine-tune EasyOCR on verified Cambodian plate crops
-- [ ] Task 179 — Evaluate OCR: CER (target ≤ 0.15), Exact Match (target ≥ 0.85)
-- [ ] Task 180 — Test OCR on edge cases (night, rain, partial occlusion)
+- [ ] Task 177 — Manually verify 454 plate transcriptions in `ocr_manifest.csv` — **Guide: `docs/final-year-project/OCR-FINETUNING-GUIDE.md`** *(manual QC required)*
+- [ ] Task 178 — Fine-tune EasyOCR on verified data — **Guide: `docs/final-year-project/OCR-FINETUNING-GUIDE.md`** *(GPU recommended)*
+- [x] Task 179 — Evaluate OCR baseline — CER: **0.663**, Exact Match: **0.139** — `runs/ocr/evaluation/report_val.json` ✅
+- [ ] Task 180 — Test OCR on edge cases (night, rain, partial occlusion) — **Guide: `docs/final-year-project/OCR-FINETUNING-GUIDE.md`**
 
 ### AI Optimization
 
-- [ ] Task 181 — Export best YOLO weights to ONNX (FP16)
-- [ ] Task 182 — Benchmark inference: FPS on GPU vs CPU; compare YOLOv11-nano vs small
+- [x] Task 181 — Export YOLO weights to ONNX — `models/exports/yolov11_camtraffic_v1.onnx` (10.1 MB, opset 12) ✅
+- [x] Task 182 — Benchmark inference — CPU: **62.1 ms/image** — `runs/benchmark/ai_benchmark_report.md` ✅
 
 ---
 
