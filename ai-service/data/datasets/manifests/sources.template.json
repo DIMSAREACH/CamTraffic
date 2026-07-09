@@ -1,0 +1,14 @@
+{
+  "sources": [
+    {
+      "source_id": "SRC-001",
+      "type": "roadside-camera",
+      "owner": "CamTraffic Pilot",
+      "location": "Phnom Penh",
+      "device": "Cam03",
+      "resolution": "1920x1080",
+      "fps": 25,
+      "notes": "Pilot collection source"
+    }
+  ]
+}

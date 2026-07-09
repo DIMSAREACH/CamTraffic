@@ -1,0 +1,2 @@
+batch_id,task_name,annotator,reviewer,images_uploaded,images_annotated,sign_boxes,vehicle_boxes,plate_boxes,qa_sample_rate,qa_pass_rate,export_path,status,notes
+BATCH-ANN-001,CamTraffic-Dataset-v1,team-a,team-b,500,480,920,410,380,0.10,0.97,annotations/exports/BATCH-ANN-001,in_review,example row — replace with real batch

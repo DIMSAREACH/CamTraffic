@@ -1,0 +1,3 @@
+session_id,date,route,province,time_of_day,weather,start_time,end_time,duration_minutes,file_path,resolution,fps,format,operator,notes
+DASH-001,2026-07-08,Monivong Blvd loop,Phnom Penh,morning,sunny,07:10,07:55,45,raw/dashcam/DASH-001.mp4,1920x1080,30,mp4,team-a,example row — replace with real session
+DASH-002,2026-07-08,Russian Blvd to NR4,Phnom Penh,noon,cloudy,12:05,13:20,75,raw/dashcam/DASH-002.mp4,1920x1080,30,mp4,team-a,example row — replace with real session

@@ -1,0 +1,3 @@
+image_id,vehicle_type,plate_type,province,location,date,time,weather,camera,view_angle,distance,source_batch,notes
+CAR_000001,sedan,license_plate_kh_private,Phnom Penh,Monivong Blvd,2026-07-08,08:35,sunny,smartphone,front,close,BATCH-001,example row — replace with real captures
+MOTO_000001,scooter,license_plate_kh_private,Phnom Penh,Russian Blvd,2026-07-08,18:10,cloudy,dashcam,rear,medium,BATCH-001,example row — replace with real captures

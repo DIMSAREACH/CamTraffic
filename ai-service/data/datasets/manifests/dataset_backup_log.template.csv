@@ -1,0 +1,2 @@
+backup_id,backup_date,source_path,destination_path,files_count,bytes_total,checksum_sha256_prefix,verified,operator,notes
+BAK-000001,2026-07-09,ai-service/data/datasets,external-drive:/CamTraffic/datasets-backup-20260709,0,0,,false,operator-name,example row — replace after copying dataset to external storage

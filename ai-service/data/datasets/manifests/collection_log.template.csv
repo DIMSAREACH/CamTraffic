@@ -1,0 +1,2 @@
+batch_id,date,collector,source_id,province,location,device,camera_angle,weather,time_of_day,total_captured,total_selected,notes
+BATCH-001,2026-07-08,team-a,SRC-001,Phnom Penh,Russian Blvd,CamTraffic Cam03,roadside-30deg,sunny,day,1200,840,initial pilot batch

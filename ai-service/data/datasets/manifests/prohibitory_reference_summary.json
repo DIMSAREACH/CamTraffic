@@ -1,0 +1,20 @@
+{
+  "batch_id": "BATCH-REF-PROH-001",
+  "imported_at": "2026-07-08T12:17:57.033187+00:00",
+  "source_dir": "d:\\Year4\\Project Thesis\\Expert System\\Reference(PDF Download)\\Dim Sareach\\Road signs in Cambodia\\1-Prohibitory signs",
+  "imported": 46,
+  "skipped": 0,
+  "class_counts": {
+    "no_entry": 3,
+    "unknown_sign": 31,
+    "parking_prohibited": 6,
+    "no_u_turn": 1,
+    "speed_limit_20": 1,
+    "speed_limit_50": 1,
+    "stop": 3
+  },
+  "raw_dir": "data/datasets/raw/traffic-signs/reference/prohibitory-cambodia",
+  "processed_dir": "data/datasets/processed/traffic-signs/prohibitory-reference",
+  "export_dir": "annotations/exports/BATCH-REF-PROH-001",
+  "note": "Reference catalog images for class bootstrap; supplement with roadside photos for production training."
+}

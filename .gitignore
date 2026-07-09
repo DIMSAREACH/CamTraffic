@@ -1,0 +1,66 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+*.so
+
+# Turbo
+.turbo/
+
+# Environment
+.env
+.env.*
+!.env.example
+**/.env.local
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Testing
+coverage/
+.coverage
+htmlcov/
+.pytest_cache/
+.nyc_output/
+
+# Django
+*.sqlite3
+backend/staticfiles/
+backend/media/
+backend/.venv/
+
+# AI Service
+ai-service/.venv/
+ai-service/models/*.pt
+ai-service/models/*.onnx
+!ai-service/models/.gitkeep
+
+# Python virtual environments
+.venv/
+venv/
+ENV/
+
+# OS
+*.tmp
+*.temp

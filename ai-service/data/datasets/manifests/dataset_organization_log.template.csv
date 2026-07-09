@@ -1,0 +1,4 @@
+timestamp,action,source_path,target_path,reason,operator,notes
+2026-07-08T10:15:00Z,rename,raw/traffic-signs/img_0042.jpg,processed/traffic-signs/STOP_000001.jpg,accepted,team-a,example row
+2026-07-08T10:16:00Z,reject,raw/traffic-signs/img_0099.jpg,,duplicate_hash,team-a,example row
+2026-07-08T10:17:00Z,reject,raw/traffic-signs/img_0110.jpg,,blur_below_threshold,team-a,example row

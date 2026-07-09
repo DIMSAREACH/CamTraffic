@@ -1,0 +1,36 @@
+{
+  "task": 142,
+  "generated_at": "2026-07-09T07:45:00+00:00",
+  "git_repository_detected": false,
+  "status": "ready_for_initial_commit",
+  "note": "Project folder is not a git repository yet. Run git init, then commit the paths below.",
+  "recommended_commit_paths": [
+    "ai-service/data/datasets/protocols/",
+    "ai-service/data/datasets/scripts/",
+    "ai-service/data/datasets/manifests/*.template.*",
+    "ai-service/data/datasets/manifests/final_dataset_review_report.json",
+    "ai-service/data/datasets/manifests/dataset_backup_log.template.csv",
+    "ai-service/data/datasets/manifests/dataset_backup_log.csv",
+    "ai-service/data/datasets/manifests/ocr_manifest.csv",
+    "ai-service/data/datasets/metadata/metadata.csv",
+    "ai-service/data/datasets/labels/",
+    "ai-service/data/datasets/README.md",
+    "ai-service/training/ocr/fill_transcriptions.py",
+    "ai-service/training/ocr/build_ocr_dataset_from_splits.py",
+    "docs/CHECKLIST.md",
+    "docs/phases/10-ai-model-development.md",
+    "scripts/validate-structure.mjs"
+  ],
+  "do_not_commit": [
+    "ai-service/data/datasets/raw/**",
+    "ai-service/data/datasets/processed/**",
+    "ai-service/data/datasets/splits/**",
+    "ai-service/runs/**",
+    "ai-service/data/datasets/manifests/ocr_manifest_plate_number_reference*.csv"
+  ],
+  "suggested_commands": [
+    "git init",
+    "git add ai-service/data/datasets/protocols ai-service/data/datasets/scripts ai-service/data/datasets/manifests/*.template.* ai-service/data/datasets/manifests/final_dataset_review_report.json ai-service/data/datasets/manifests/dataset_backup_log*.csv ai-service/data/datasets/manifests/ocr_manifest.csv ai-service/data/datasets/metadata/metadata.csv ai-service/data/datasets/labels ai-service/data/datasets/README.md docs/CHECKLIST.md docs/phases/10-ai-model-development.md scripts/validate-structure.mjs ai-service/training/ocr/fill_transcriptions.py ai-service/training/ocr/build_ocr_dataset_from_splits.py",
+    "git commit -m \"Complete Task 142 final dataset review artifacts and documentation\""
+  ]
+}

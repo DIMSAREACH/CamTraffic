@@ -1,0 +1,15 @@
+category,vehicle_subtype,target_count,collected_count,accepted_count,front,rear,left_angle,right_angle,close,far,daytime,nighttime,sunny,cloudy,rainy,notes
+private,sedan,250,0,0,0,0,0,0,0,0,0,0,0,0,0,subset of private 1000 target
+private,suv,250,0,0,0,0,0,0,0,0,0,0,0,0,0,
+private,pickup,250,0,0,0,0,0,0,0,0,0,0,0,0,0,
+private,hatchback,250,0,0,0,0,0,0,0,0,0,0,0,0,0,
+motorcycle,small_motorcycle,700,0,0,0,0,0,0,0,0,0,0,0,0,0,subset of motorcycle 2000 target
+motorcycle,large_motorcycle,700,0,0,0,0,0,0,0,0,0,0,0,0,0,
+motorcycle,scooter,600,0,0,0,0,0,0,0,0,0,0,0,0,0,
+commercial,taxi,250,0,0,0,0,0,0,0,0,0,0,0,0,0,subset of commercial 1000 target
+commercial,bus,250,0,0,0,0,0,0,0,0,0,0,0,0,0,
+commercial,truck,250,0,0,0,0,0,0,0,0,0,0,0,0,0,
+commercial,van,250,0,0,0,0,0,0,0,0,0,0,0,0,0,
+government,police,200,0,0,0,0,0,0,0,0,0,0,0,0,0,subset of government 500 target
+government,government_vehicle,200,0,0,0,0,0,0,0,0,0,0,0,0,0,
+government,military_if_allowed,100,0,0,0,0,0,0,0,0,0,0,0,0,0,only if legally permitted

@@ -1,0 +1,7 @@
+metric,target_value,current_value,unit,last_updated,notes
+total_dashcam_hours,50,0,hours,2026-07-08,sum duration_minutes from dashcam_session_log and divide by 60
+morning_sessions,10,0,sessions,2026-07-08,recommended minimum session count
+noon_sessions,10,0,sessions,2026-07-08,
+evening_sessions,10,0,sessions,2026-07-08,
+night_sessions,10,0,sessions,2026-07-08,
+rain_sessions,5,0,sessions,2026-07-08,record only when safe and legal

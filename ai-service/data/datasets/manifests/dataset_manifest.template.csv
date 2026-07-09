@@ -1,0 +1,2 @@
+sample_id,file_path,split,source_id,captured_at,province,sign_class,ocr_target,quality_tag,width,height,notes
+SMP-000001,processed/20260708_phnompenh_cam03_000145.jpg,train,SRC-001,2026-07-08T09:45:10+07:00,Phnom Penh,stop,license_plate_kh_private,clear,1920,1080,good frontal sign

@@ -1,0 +1,3 @@
+sample_id,crop_path,transcription,plate_type,split,source_image,notes
+ocr_000001,data/datasets/processed/ocr/crops/ocr_000001.png,2AB-1234,license_plate_kh_private,train,raw/batch_01/frame_000123.jpg,example row — replace with real annotations
+ocr_000002,data/datasets/processed/ocr/crops/ocr_000002.png,1CD-5678,license_plate_kh_commercial,val,raw/batch_01/frame_000456.jpg,example row — replace with real annotations

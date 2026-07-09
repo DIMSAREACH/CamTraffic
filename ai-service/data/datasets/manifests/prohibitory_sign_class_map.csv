@@ -1,0 +1,47 @@
+source_filename,yolo_class,notes
+Closed for all road users.png,no_entry,Prohibitory — closed to all users
+Closed for all vehicles.png,no_entry,Prohibitory — closed to all vehicles
+End of honking prohibition.png,unknown_sign,Not in current taxonomy
+End of maximum speed limit.png,unknown_sign,End-of restriction variant
+End of overtaking prohibition for trucks.png,unknown_sign,Truck-specific prohibition
+End of overtaking prohibition.png,unknown_sign,End-of restriction variant
+End of prohibition overtaking for trucks.png,unknown_sign,Truck-specific prohibition
+Height limit.png,unknown_sign,Dimensional limit sign
+Length limit.png,unknown_sign,Dimensional limit sign
+Maximum speed limit.png,unknown_sign,Generic max speed (number not fixed)
+Minimum separation distance for cars.png,unknown_sign,Spacing rule
+Minimum separation distance for trucks.png,unknown_sign,Spacing rule
+No animal-drawn carts.png,unknown_sign,Vehicle-class prohibition
+"No bicycles, motorcycles and tricycles.png",unknown_sign,Vehicle-class prohibition
+No bicycles.png,unknown_sign,Vehicle-class prohibition
+No buses.png,unknown_sign,Vehicle-class prohibition
+No cars.png,unknown_sign,Vehicle-class prohibition
+No carts.png,unknown_sign,Vehicle-class prohibition
+No entry.png,no_entry,Direct taxonomy match
+No honking.png,unknown_sign,Horn prohibition
+No left turn.png,unknown_sign,Turn restriction
+No motor vehicles.png,unknown_sign,Vehicle-class prohibition
+No motorcycle-drawn carts.png,unknown_sign,Vehicle-class prohibition
+No motorcycles.png,unknown_sign,Vehicle-class prohibition
+No overtaking for trucks.png,unknown_sign,Overtaking prohibition
+No overtaking.png,unknown_sign,Overtaking prohibition
+No parking from 16th to 31st day of the month.png,parking_prohibited,Time-limited parking ban
+No parking from 1st to 15th day of the month.png,parking_prohibited,Time-limited parking ban
+No parking on even days.png,parking_prohibited,Time-limited parking ban
+No parking on odd days.png,parking_prohibited,Time-limited parking ban
+No parking.png,parking_prohibited,Direct taxonomy match
+No right turn.png,unknown_sign,Turn restriction
+No stopping.png,parking_prohibited,Stopping prohibition (closest class)
+No towed trailers.png,unknown_sign,Vehicle-class prohibition
+No tractors.png,unknown_sign,Vehicle-class prohibition
+No trucks.png,unknown_sign,Vehicle-class prohibition
+No U-turn.png,no_u_turn,Direct taxonomy match
+No vehicles loading inflammable goods.png,unknown_sign,Hazmat prohibition
+Speed limit 20 km-h.png,speed_limit_20,Direct taxonomy match
+Speed limit 50 km-h.png,speed_limit_50,Direct taxonomy match
+Stop at the customs station.png,stop,Stop sign variant
+Stop at the military police station.png,stop,Stop sign variant
+Stop at the police station.png,stop,Stop sign variant
+Total weight limit.png,unknown_sign,Weight limit
+Weight limit on one axle.png,unknown_sign,Weight limit
+Width limit.png,unknown_sign,Dimensional limit sign

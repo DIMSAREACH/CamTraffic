@@ -1,0 +1,18 @@
+{
+  "task": 140,
+  "generated_at": "2026-07-08T12:22:28.781965+00:00",
+  "input_images_dir": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai-service\\data\\datasets\\annotations\\exports\\BATCH-ANN-001\\images",
+  "input_labels_dir": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai-service\\data\\datasets\\annotations\\exports\\BATCH-ANN-001\\labels",
+  "output_dir": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai-service\\data\\datasets\\splits",
+  "seed": 42,
+  "ratios": {
+    "train": 0.7,
+    "val": 0.2,
+    "test": 0.1
+  },
+  "counts": {
+    "train": 1,
+    "val": 0,
+    "test": 0
+  }
+}

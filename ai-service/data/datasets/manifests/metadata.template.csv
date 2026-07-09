@@ -1,0 +1,3 @@
+﻿image_id,province,road,gps,weather,time,camera,category,class,notes
+SIGN_000001,Phnom Penh,Monivong Blvd,"11.5564,104.9282",sunny,08:35,smartphone,traffic_sign,stop,example row — replace with real capture
+VEH_000001,Phnom Penh,Russian Blvd,"11.5678,104.9012",cloudy,18:10,dashcam,vehicle,car_sedan,example row — replace with real capture

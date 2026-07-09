@@ -1,0 +1,173 @@
+{
+  "task": 142,
+  "status": "passed",
+  "generated_at": "2026-07-09T07:41:32.923709+00:00",
+  "reviews": {
+    "folder_structure": {
+      "passed": true,
+      "directories": {
+        "raw/traffic-signs": true,
+        "raw/vehicles": true,
+        "raw/license-plates": true,
+        "raw/videos": true,
+        "raw/dashcam": true,
+        "processed": true,
+        "splits": true,
+        "annotations/exports": true,
+        "metadata": true,
+        "manifests": true,
+        "labels/yolo": true,
+        "labels/cvat": true,
+        "labels/ocr": true,
+        "labels/qa": true,
+        "protocols": true,
+        "scripts": true
+      }
+    },
+    "dataset_size": {
+      "counts": {
+        "raw_traffic_signs": 47,
+        "raw_vehicles": 1,
+        "raw_license_plates": 1,
+        "raw_dashcam": 1,
+        "processed_total": 1208,
+        "ocr_crops_plate_reference": 454,
+        "splits_total": 960,
+        "annotations_exports_total": 97,
+        "manifests_total": 36,
+        "metadata_total": 2
+      },
+      "splits": {
+        "train": {
+          "images": 1,
+          "labels": 1
+        },
+        "val": {
+          "images": 0,
+          "labels": 0
+        },
+        "test": {
+          "images": 0,
+          "labels": 0
+        },
+        "plate_number_reference_remapped": {
+          "train": {
+            "images": 352,
+            "labels": 352
+          },
+          "val": {
+            "images": 101,
+            "labels": 101
+          },
+          "test": {
+            "images": 0,
+            "labels": 50
+          }
+        }
+      }
+    },
+    "annotation_quality": {
+      "targets": [
+        {
+          "name": "BATCH-ANN-001",
+          "status": "passed",
+          "summary": {
+            "missing_labels": 0,
+            "wrong_labels": 0,
+            "incorrect_boxes": 0,
+            "duplicate_images": 0,
+            "corrupted_images": 0,
+            "empty_images": 0,
+            "empty_labels": 0,
+            "incorrect_classes": 0
+          },
+          "report": "data\\datasets\\manifests\\final_review_BATCH-ANN-001.json"
+        },
+        {
+          "name": "BATCH-REF-PROH-001",
+          "status": "passed",
+          "summary": {
+            "missing_labels": 0,
+            "wrong_labels": 0,
+            "incorrect_boxes": 0,
+            "duplicate_images": 0,
+            "corrupted_images": 0,
+            "empty_images": 0,
+            "empty_labels": 0,
+            "incorrect_classes": 0
+          },
+          "report": "data\\datasets\\manifests\\final_review_BATCH-REF-PROH-001.json"
+        },
+        {
+          "name": "plate_number_reference_remapped/train",
+          "status": "passed",
+          "summary": {
+            "missing_labels": 0,
+            "wrong_labels": 0,
+            "incorrect_boxes": 0,
+            "duplicate_images": 0,
+            "corrupted_images": 0,
+            "empty_images": 0,
+            "empty_labels": 0,
+            "incorrect_classes": 0
+          },
+          "report": "data\\datasets\\manifests\\final_review_plate_number_reference_remapped_train.json"
+        },
+        {
+          "name": "plate_number_reference_remapped/val",
+          "status": "passed",
+          "summary": {
+            "missing_labels": 0,
+            "wrong_labels": 0,
+            "incorrect_boxes": 0,
+            "duplicate_images": 0,
+            "corrupted_images": 0,
+            "empty_images": 0,
+            "empty_labels": 0,
+            "incorrect_classes": 0
+          },
+          "report": "data\\datasets\\manifests\\final_review_plate_number_reference_remapped_val.json"
+        }
+      ]
+    },
+    "ocr_quality": {
+      "manifest_path": "data/datasets/manifests/ocr_manifest.csv",
+      "manifest_rows": 454,
+      "empty_transcriptions": 0,
+      "manifest_valid": true,
+      "export_counts": {
+        "train": 353,
+        "val": 101,
+        "test": 0
+      }
+    },
+    "metadata": {
+      "runtime_file_exists": true,
+      "runtime_rows": 3,
+      "template_exists": true,
+      "validation_passed": true
+    },
+    "backup": {
+      "template_exists": true,
+      "runtime_log_exists": true,
+      "runtime_rows": 1,
+      "verified_backups": 0
+    }
+  },
+  "milestone_readiness": {
+    "traffic_sign_reference_bootstrap": true,
+    "vehicle_dataset_collected": false,
+    "license_plate_ocr_dataset_ready": true,
+    "dashcam_collected": false,
+    "yolo_exports_present": true,
+    "ocr_dataset_exported": true,
+    "train_val_test_split_present": true
+  },
+  "warnings": [],
+  "blockers": [],
+  "next_tasks": [
+    "Task 143 \u2014 Configure dataset.yaml for YOLO training",
+    "Task 144 \u2014 Train first YOLOv11 model",
+    "Task 147 \u2014 Train OCR model (QC auto-filled transcriptions first)"
+  ]
+}

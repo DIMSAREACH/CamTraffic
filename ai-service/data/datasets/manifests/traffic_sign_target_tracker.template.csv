@@ -1,0 +1,15 @@
+class_name,target_count,collected_count,accepted_count,front,left,right,close,long,morning,afternoon,evening,night,sunny,cloudy,rain,notes
+speed_limit_20,200,0,0,0,0,0,0,0,0,0,0,0,0,0,0,initialize before first collection run
+speed_limit_30,200,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+speed_limit_40,200,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+speed_limit_50,200,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+speed_limit_60,200,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+no_entry,200,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+stop,200,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+yield,200,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+no_u_turn,200,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+one_way,200,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+parking_prohibited,200,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+pedestrian_crossing,200,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+school_zone,200,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+traffic_light_signal,200,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
