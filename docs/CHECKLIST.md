@@ -2,6 +2,10 @@
 
 > Design and Develop of an AI-Based Traffic Sign Detection and Traffic Law Enforcement System in Cambodia
 
+> **All 160 development tasks complete. 🏆**
+> For the remaining 80 Final Year Project tasks (AI research, testing, deployment, thesis, defense) see:
+> **[CHECKLIST-FYP.md](./CHECKLIST-FYP.md)** — Tasks 161–240
+
 ## Enterprise Architecture
 
 - `frontend-admin` — Super Administrator Portal
