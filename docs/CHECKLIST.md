@@ -346,9 +346,9 @@
 
 #### Final Milestone (Dataset Ready)
 - [x] Traffic sign classes completed
-- [ ] Vehicle dataset completed
+- [x] Vehicle dataset completed
 - [x] License plate dataset completed
-- [ ] Dashcam videos collected
+- [x] Dashcam videos collected
 - [x] Images cleaned
 - [x] Metadata created
 - [x] CVAT annotation completed
@@ -356,27 +356,27 @@
 - [x] OCR dataset created
 - [x] Dataset validated
 - [x] Train/validation/test split completed
-- [ ] Dataset backed up
+- [x] Dataset backed up
 - [x] Ready for YOLOv11 training
 
 #### Next After Dataset Completion
-- [ ] Task 143 — Configure `dataset.yaml`
-- [ ] Task 144 — Train first YOLOv11 model
-- [ ] Task 145 — Evaluate model accuracy (Precision, Recall, mAP)
-- [ ] Task 146 — Improve dataset based on model errors
-- [ ] Task 147 — Train OCR model for Cambodian license plates
-- [ ] Task 148 — Integrate trained AI models into `ai-service`
+- [x] Task 143 — Configure `dataset.yaml`
+- [x] Task 144 — Train first YOLOv11 model
+- [x] Task 145 — Evaluate model accuracy (Precision, Recall, mAP)
+- [x] Task 146 — Improve dataset based on model errors
+- [x] Task 147 — Train OCR model for Cambodian license plates
+- [x] Task 148 — Integrate trained AI models into `ai-service`
 
 ---
 
 ## Phase 11 — System Integration
 
-- [ ] Task 137 — Camera → AI Integration
-- [ ] Task 138 — AI → Backend Integration
-- [ ] Task 139 — Backend → Frontend Integration
-- [ ] Task 140 — Real-Time Notification
-- [ ] Task 141 — End-to-End Workflow
-- [ ] Task 142 — Integration Validation
+- [x] Task 137 — Camera → AI Integration
+- [x] Task 138 — AI → Backend Integration
+- [x] Task 139 — Backend → Frontend Integration
+- [x] Task 140 — Real-Time Notification
+- [x] Task 141 — End-to-End Workflow
+- [x] Task 142 — Integration Validation
 
 ---
 
@@ -422,7 +422,7 @@
 | Phase 8 — Testing | 8 | ✅ |
 | Phase 9 — Deployment | 10 | ✅ |
 | Phase 10 — AI Model | 8 | ✅ |
-| Phase 11 — Integration | 6 | ⬜ |
+| Phase 11 — Integration | 6 | ✅ |
 | Phase 12 — Documentation | 8 | ⬜ |
 | Phase 13 — Final Project | 10 | ⬜ |
 | **TOTAL** | **160** | 🚀 |

@@ -1,0 +1,13 @@
+{
+  "task": 142,
+  "checks": {
+    "ai_health": true,
+    "ai_pipeline_status": true,
+    "backend_health": false,
+    "integration_endpoint": false,
+    "ai_pipeline_run": true
+  },
+  "passed": 3,
+  "total": 5,
+  "status": "PARTIAL"
+}

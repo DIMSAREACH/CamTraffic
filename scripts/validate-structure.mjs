@@ -2080,12 +2080,59 @@ const groups = [
       'docs/phases/10-ai-model-development.md',
       'ai-service/data/datasets/protocols/final-dataset-review.md',
       'ai-service/data/datasets/scripts/final_dataset_review.py',
+      'ai-service/data/datasets/scripts/backup_dataset.py',
+      'ai-service/data/datasets/scripts/import_cambodia_traffic_reference_to_splits.py',
       'ai-service/data/datasets/manifests/dataset_backup_log.template.csv',
       'ai-service/data/datasets/manifests/final_dataset_review_report.json',
+      'ai-service/data/datasets/manifests/final_milestone_report.json',
       'ai-service/data/datasets/manifests/dataset_git_readiness_report.json',
     ],
     dirs: [
       'ai-service/data/datasets/metadata',
+    ],
+  },
+  {
+    name: 'Task 143 — YOLO Dataset Config',
+    files: [
+      'docs/phases/10-ai-model-development.md',
+      'ai-service/training/yolo/dataset.yaml',
+      'ai-service/data/datasets/scripts/build_combined_training_dataset.py',
+      'ai-service/data/datasets/splits/training_combined/build_report.json',
+    ],
+    dirs: [
+      'ai-service/data/datasets/splits/training_combined',
+    ],
+  },
+  {
+    name: 'Task 144–148 — Training, Evaluation, Integration',
+    files: [
+      'docs/phases/10-ai-model-development.md',
+      'ai-service/training/evaluation/analyze_yolo_errors.py',
+      'ai-service/training/integrate/README.md',
+      'ai-service/training/integrate/deploy_models.py',
+      'ai-service/models/model_registry.json',
+    ],
+    dirs: [
+      'ai-service/training/integrate',
+    ],
+  },
+  {
+    name: 'Phase 11 — System Integration',
+    files: [
+      'docs/phases/11-system-integration.md',
+      'backend/apps/integration/__init__.py',
+      'backend/apps/integration/ai_client.py',
+      'backend/apps/integration/detection_service.py',
+      'backend/apps/integration/notification_service.py',
+      'backend/apps/integration/violation_service.py',
+      'backend/apps/integration/tasks.py',
+      'backend/apps/integration/views.py',
+      'backend/apps/integration/urls.py',
+      'backend/apps/integration/README.md',
+      'backend/apps/integration/validate_integration.py',
+    ],
+    dirs: [
+      'backend/apps/integration',
     ],
   },
   {
