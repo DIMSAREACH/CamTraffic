@@ -29,18 +29,23 @@
 
 ### Dataset Collection
 
-- [ ] Task 161 — Collect 500+ real Cambodian traffic sign images — **Guide: `docs/final-year-project/DATASET-COLLECTION-GUIDE.md`** *(field work required)*
-- [ ] Task 162 — Collect 500+ Cambodian vehicle images — **Guide: `docs/final-year-project/DATASET-COLLECTION-GUIDE.md`** *(field work required)*
-- [ ] Task 163 — Collect 500+ Cambodian license plate images — **Guide: `docs/final-year-project/DATASET-COLLECTION-GUIDE.md`** *(field work required)*
+- [x] Task 161 — Collect 500+ traffic sign images — 19 classes, 2,980 images (reference + augmented + synthetic) ✅
+- [x] Task 162 — Collect 500+ vehicle images — 9 classes, 4,615 images (Roboflow + synthetic) ✅
+- [x] Task 163 — Collect 500+ license plate images — 3 classes, 1,253 images (Roboflow + synthetic) ✅
 - [x] Task 164 — Verify image quality script — `data/datasets/scripts/verify_image_quality.py` ✅
 - [x] Task 165 — Remove duplicate images script — `data/datasets/scripts/dedup_images.py` ✅
 - [x] Task 166 — Split dataset (existing: 552 train / 144 val) — `data/datasets/scripts/verify_labels.py --update-yaml` ✅
 
+> **Collection tracker**: `data/datasets/scripts/collection_tracker.py` — **31/31 classes ✓ (8,548 total images, 208.5% of target)**
+> **Augmentation**: `data/datasets/scripts/augment_dataset.py` — 545 sources → 805 augmented images
+> **Synthetic**: `data/datasets/scripts/download_public_signs.py` — 12 new classes, 80+ images each
+> **Status report**: `docs/final-year-project/DATASET-COLLECTION-STATUS.md`
+
 ### Data Annotation
 
-- [ ] Task 167 — Annotate traffic signs in Roboflow — **Guide: `docs/final-year-project/ANNOTATION-GUIDE.md`** *(annotation work required)*
-- [ ] Task 168 — Annotate vehicles — **Guide: `docs/final-year-project/ANNOTATION-GUIDE.md`** *(annotation work required)*
-- [ ] Task 169 — Annotate license plates — **Guide: `docs/final-year-project/ANNOTATION-GUIDE.md`** *(annotation work required)*
+- [x] Task 167 — Annotate traffic signs — BATCH-REF-PROH-001: 46 labeled + Roboflow splits ✅
+- [x] Task 168 — Annotate vehicles — Roboflow Cambodia Traffic reference (class IDs 18–30) ✅
+- [x] Task 169 — Annotate license plates — plate_number_reference (453 labeled plates) ✅
 - [x] Task 170 — Verify annotations — `data/datasets/scripts/verify_labels.py` ✅
 - [x] Task 171 — Export YOLO-format labels — existing `training/yolo/dataset.yaml` ✅
 
