@@ -13,6 +13,9 @@ __pycache__/
 .Python
 *.so
 
+# TypeScript incremental build info
+*.tsbuildinfo
+
 # Turbo
 .turbo/
 

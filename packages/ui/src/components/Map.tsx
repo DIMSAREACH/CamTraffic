@@ -24,11 +24,11 @@ export interface MapProps {
  */
 export function Map({
   center,
-  zoom = 13,
+  zoom: _zoom = 13,
   markers = [],
   height = '400px',
   className,
-  onMarkerClick,
+  onMarkerClick: _onMarkerClick,
 }: MapProps) {
   return (
     <div className={cn('ct-map', className)} style={{ height }}>

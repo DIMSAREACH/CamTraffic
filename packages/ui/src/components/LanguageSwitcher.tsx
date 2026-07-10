@@ -19,8 +19,6 @@ export function LanguageSwitcher({
   onChange,
   className,
 }: LanguageSwitcherProps) {
-  const current = languages.find((lang) => lang.code === currentLanguage);
-
   return (
     <div className={cn('ct-language-switcher', className)}>
       <label htmlFor="language-select" className="ct-language-switcher__label">
