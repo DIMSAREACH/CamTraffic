@@ -1,0 +1,49 @@
+# Git
+.git
+.gitignore
+
+# Dependencies
+node_modules
+**/node_modules
+**/.venv
+**/venv
+
+# Build artifacts
+dist
+**/dist
+build
+**/.turbo
+**/__pycache__
+**/*.py[cod]
+**/*.egg-info
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# IDE & OS
+.idea
+.vscode
+*.swp
+.DS_Store
+Thumbs.db
+
+# Logs & coverage
+*.log
+coverage
+htmlcov
+.pytest_cache
+
+# AI model weights (large files)
+ai-service/models/*.pt
+ai-service/models/*.onnx
+
+# Database volumes (local)
+postgres_data
+
+# Docs & tests (not needed in runtime images)
+docs
+tests
+**/*.md
+!backend/README.md

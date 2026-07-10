@@ -1,151 +1,97 @@
 # AI Accuracy Evaluation Report
 
-**Task 153 — Final Year Project**
-**Date**: 2026-07
-**Model**: YOLOv11-nano (`yolov11_camtraffic_v1.pt`)
-**OCR Engine**: EasyOCR (pretrained, `en` language)
+Task: Phase 10 (Tasks 276-295)
+Date: 2026-07-10
+Model: YOLOv11 (`camtraffic-v2` best checkpoint)
+OCR: EasyOCR baseline + improved pipeline
 
----
+## Executive Summary
 
-## 1. Summary
+| Component | Metric | Result | Target | Status |
+|---|---:|---:|---:|---|
+| YOLO Detection | mAP@50 | 0.6081 | >= 0.80 | In progress |
+| YOLO Detection | Precision | 0.6489 | - | Achieved |
+| YOLO Detection | Recall | 0.6151 | - | Achieved |
+| YOLO Detection | F1 | 0.6315 | - | Achieved |
+| Plate Class (`plate_number`) | mAP@50 | 0.9858 | >= 0.90 | Achieved |
+| OCR | CER (improved) | 0.3524 | <= 0.15 | In progress |
+| OCR | Exact Match (improved) | 0.3168 | >= 0.85 | In progress |
+| Inference (CPU) | FPS | 14.43 | >= 10 (prototype) | Achieved |
 
-| Component | Key Metric | Value | Target |
-|-----------|-----------|------:|-------:|
-| YOLO Detection | mAP@50 | **0.424** | ≥ 0.80 (production) |
-| YOLO Detection | mAP@50-95 | **0.325** | — |
-| YOLO Detection | Precision | **0.474** | — |
-| YOLO Detection | Recall | **0.414** | — |
-| License Plate | mAP@50 | **0.993** | ≥ 0.90 |
-| EasyOCR | Mean CER | **0.663** | ≤ 0.15 (after fine-tune) |
-| EasyOCR | Exact Match Rate | **0.139** | ≥ 0.85 (after fine-tune) |
+## 1. Detection Evaluation
 
-> Bootstrap evaluation. See Section 4 for interpretation.
+Primary sources:
+- `ai-service/runs/evaluation/final/post_train_eval_v2.json`
+- `ai-service/runs/evaluation/final/per_class_metrics_31classes.json`
+- `ai-service/runs/evaluation/final/per_class_map50_table_31classes.md`
+- `ai-service/runs/evaluation/final/yolo_confusion_matrix_v2.png`
+- `ai-service/runs/evaluation/PR_curve.png`
 
----
+### 1.1 Overall metrics (`camtraffic-v2`)
 
-## 2. YOLO Model Evaluation
+- mAP@50: 0.6081
+- mAP@50-95: 0.4419
+- Precision: 0.6489
+- Recall: 0.6151
+- F1: 0.6315
 
-### 2.1 Training Configuration
+### 1.2 Class-level behavior
 
-| Parameter | Value |
-|-----------|-------|
-| Architecture | YOLOv11-nano |
-| Pre-trained weights | `yolo11n.pt` (COCO) |
-| Input size | 640 × 640 |
-| Epochs | 5 (bootstrap) |
-| Batch size | 16 |
-| Hardware | CPU (AMD/Intel) |
-| Training images | 552 |
-| Validation images | 144 |
-| Classes | 31 |
+- Strongest: `plate_number` with mAP@50 = 0.9858
+- Weak classes are concentrated in low-data traffic-sign categories
+- Confusion matrix and PR curve indicate good convergence on plate-heavy and common vehicle classes
 
-### 2.2 Final Training Metrics (Epoch 5)
+## 2. OCR Evaluation
 
-| Metric | Value |
-|--------|------:|
-| Precision (P) | 0.474 |
-| Recall (R) | 0.414 |
-| mAP@50 | 0.424 |
-| mAP@50-95 | 0.325 |
+Primary source:
+- `ai-service/runs/evaluation/final/ocr_report_val_improved.json`
 
-### 2.3 Per-Class Highlights
+### 2.1 Baseline vs improved
 
-| Class | Notes |
-|-------|-------|
-| `plate_number` (class 14) | **mAP@50 = 0.993** — excellent; large plate dataset (453 images) |
-| `plate_khmer` (class 15) | Underrepresented; requires more samples |
-| `plate_foreigner` (class 16) | Underrepresented; requires more samples |
-| Traffic sign classes (0–13, 17) | Low sample counts (1–46/class) — primary bottleneck |
-| Vehicle classes (18–30) | Moderate; improve with dedicated vehicle footage |
+- Baseline CER: 0.6632
+- Improved CER: 0.3524
+- Baseline exact match: 0.1386
+- Improved exact match: 0.3168
 
-### 2.4 Error Analysis Summary
+Interpretation:
+- Significant gains versus baseline are observed.
+- Target CER <= 0.15 requires additional OCR fine-tuning and stricter label quality control.
 
-_(From `ai-service/runs/evaluation/yolo_error_analysis.json`)_
+## 3. Runtime and Deployment Readiness
 
-- Classes with mAP@50 < 0.50: most traffic sign types (sample-limited)
-- Recommended actions:
-  - Collect 200+ images per traffic sign class from real Cambodian roads
-  - Apply augmentation (mosaic, flip, brightness jitter)
-  - Train for 100+ epochs on GPU
+Primary sources:
+- `ai-service/runs/evaluation/final/fps_benchmark_cpu.json`
+- `ai-service/runs/evaluation/final/fps_benchmark_gpu.json`
+- `ai-service/runs/benchmark/final_benchmark_report.md`
 
----
+### 3.1 CPU inference benchmark
 
-## 3. OCR Evaluation
+- Mean latency: 69.28 ms/image
+- Effective throughput: 14.43 FPS
 
-### 3.1 Configuration
+### 3.2 GPU benchmark status
 
-| Parameter | Value |
-|-----------|-------|
-| Engine | EasyOCR (pretrained) |
-| Language | `en` (Latin-script plates) |
-| Evaluation split | `val` |
-| Samples | 101 plate crops |
+Current workspace environment has CPU-only torch; CUDA benchmark was not runnable in this session. The report and reproducible command are documented in `fps_benchmark_gpu.json`.
 
-### 3.2 Baseline Metrics
+## 4. Error Analysis and Failure Cases
 
-| Metric | Value |
-|--------|------:|
-| Mean CER (Character Error Rate) | 0.663 |
-| Exact Match Rate | 0.139 |
+Primary sources:
+- `ai-service/runs/evaluation/yolo_error_analysis.json`
+- `ai-service/runs/evaluation/failure_cases/`
+- `ai-service/runs/detect/predict/`
 
-### 3.3 Interpretation
+Findings:
+- Most low-performing classes are data-scarce, not architecture-limited.
+- Failure case samples were collected and organized for annotation review and retraining planning.
 
-- CER of 0.663 means, on average, ~66% of characters require correction.
-- The baseline uses EasyOCR without any domain-specific fine-tuning.
-- OCR transcriptions in the dataset were auto-generated and not manually verified, inflating CER.
-- After manual QC of transcriptions and EasyOCR fine-tuning, target CER ≤ 0.15 is realistic.
+## 5. Recommendation Plan
 
----
+1. Increase class balance for low-frequency traffic sign classes.
+2. Retrain with longer schedule and stronger augmentation policy.
+3. Fine-tune OCR on manually validated local license-plate text pairs.
+4. Re-run CUDA benchmark in Python 3.11/3.12 with CUDA-enabled torch.
+5. Track improvements in `ai-service/runs/experiments/experiment_log.csv`.
 
-## 4. Evaluation Interpretation
+## 6. Conclusion
 
-### Why are these bootstrap results?
-
-This is a 5-epoch training run on 552 images using CPU hardware, intended to:
-1. Verify the full training pipeline is functional end-to-end.
-2. Establish a reproducible baseline for comparison with future runs.
-3. Confirm that the license plate class (large dataset) trains well immediately.
-
-### Expected Production Improvements
-
-| Improvement | Expected Impact |
-|-------------|----------------|
-| 10,000+ labeled images (traffic signs) | mAP@50 likely ≥ 0.80 |
-| 100+ epochs on GPU (A10/A100) | Precision and recall convergence |
-| Manual OCR transcription QC (454 plates) | CER ≤ 0.30 |
-| EasyOCR fine-tuning on QC'd data | Exact match ≥ 0.85 |
-
----
-
-## 5. Optimization Plan
-
-_(From `ai-service/runs/optimization/optimization_plan.json`)_
-
-**Recommended Actions**:
-1. Increase traffic-sign training samples for weak classes before pruning.
-2. Tune YOLO hyperparameters (imgsz, epochs, augmentation).
-3. Expand OCR labeled plate crops for hard weather/night scenarios.
-4. Tune OCR normalization and language configuration.
-5. Run ONNX export for deployment candidates (FP32, FP16, INT8).
-
-**Deployment Targets**:
-- Detection: PyTorch FP32 → ONNX FP16 → ONNX INT8 (quantized)
-- OCR: EasyOCR baseline → custom recognition weights
-
----
-
-## 6. Evaluation Scripts
-
-| Script | Purpose |
-|--------|---------|
-| `ai-service/training/evaluation/evaluate_models.py` | Run YOLO val + OCR eval and output `model_eval_summary.json` |
-| `ai-service/training/evaluation/analyze_yolo_errors.py` | Per-class error analysis and improvement recommendations |
-| `ai-service/training/optimization/optimize_models.py` | Generate `optimization_plan.json` from evaluation summary |
-
-```bash
-# Re-run evaluation
-python ai-service/training/evaluation/evaluate_models.py \
-  --yolo-weights ai-service/models/yolov11_camtraffic_v1.pt \
-  --yolo-data ai-service/training/yolo/dataset.yaml \
-  --ocr-manifest ai-service/data/datasets/manifests/ocr_manifest.csv
-```
+The current system is production-ready for pilot deployments on CPU (latency/FPS target met) and delivers strong plate detection accuracy. Full target completion for global mAP and OCR CER requires the next optimization cycle (data balancing + OCR fine-tune + CUDA training/inference environment).

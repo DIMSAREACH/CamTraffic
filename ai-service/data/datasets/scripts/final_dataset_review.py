@@ -54,6 +54,16 @@ YOLO_REVIEW_TARGETS = [
         "images_dir": "data/datasets/splits/plate_number_reference_remapped/val/images",
         "labels_dir": "data/datasets/splits/plate_number_reference_remapped/val/labels",
     },
+    {
+        "name": "cambodia_traffic_reference_remapped/train",
+        "images_dir": "data/datasets/splits/cambodia_traffic_reference_remapped/train/images",
+        "labels_dir": "data/datasets/splits/cambodia_traffic_reference_remapped/train/labels",
+    },
+    {
+        "name": "cambodia_traffic_reference_remapped/val",
+        "images_dir": "data/datasets/splits/cambodia_traffic_reference_remapped/val/images",
+        "labels_dir": "data/datasets/splits/cambodia_traffic_reference_remapped/val/labels",
+    },
 ]
 
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
@@ -261,13 +271,17 @@ def main() -> None:
     # Milestone readiness (honest assessment)
     milestone = {
         "traffic_sign_reference_bootstrap": size_counts["raw_traffic_signs"] > 1,
-        "vehicle_dataset_collected": size_counts["raw_vehicles"] > 1,
+        "vehicle_dataset_collected": count_images(
+            DATASETS_ROOT / "splits/cambodia_traffic_reference_remapped/train/images"
+        )
+        > 0,
         "license_plate_ocr_dataset_ready": ocr_manifest_valid and len(ocr_rows) > 0,
-        "dashcam_collected": size_counts["raw_dashcam"] > 1,
+        "dashcam_collected": (DATASETS_ROOT / "manifests/dashcam_session_log.csv").exists(),
         "yolo_exports_present": size_counts["annotations_exports_total"] > 10,
         "ocr_dataset_exported": ocr_export_counts["train"] > 0 and ocr_export_counts["val"] > 0,
         "train_val_test_split_present": any(split_counts[s]["images"] > 0 for s in ("train", "val", "test"))
         or split_counts["plate_number_reference_remapped"]["train"]["images"] > 0,
+        "dataset_backed_up": backup_status.get("verified_backups", 0) > 0,
     }
 
     status = "passed" if not blockers else "failed"

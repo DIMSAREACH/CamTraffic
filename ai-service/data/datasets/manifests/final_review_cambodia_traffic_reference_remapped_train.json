@@ -1,0 +1,18 @@
+{
+  "task": 139,
+  "status": "passed",
+  "generated_at": "2026-07-09T07:58:22.011882+00:00",
+  "images_dir": "data/datasets/splits/cambodia_traffic_reference_remapped/train/images",
+  "labels_dir": "data/datasets/splits/cambodia_traffic_reference_remapped/train/labels",
+  "summary": {
+    "missing_labels": 0,
+    "wrong_labels": 0,
+    "incorrect_boxes": 0,
+    "duplicate_images": 0,
+    "corrupted_images": 0,
+    "empty_images": 0,
+    "empty_labels": 0,
+    "incorrect_classes": 0
+  },
+  "issues": []
+}

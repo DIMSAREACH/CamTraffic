@@ -56,6 +56,9 @@ ai-service/models/*.pt
 ai-service/models/*.onnx
 !ai-service/models/.gitkeep
 
+# Dataset local backups (Task 142 Final Milestone)
+backups/
+
 # Python virtual environments
 .venv/
 venv/

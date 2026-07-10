@@ -1,0 +1,188 @@
+# CamTraffic — Development Docker Compose
+# Usage: docker compose up --build
+# Docs:  deploy/docker/README.md
+
+name: camtraffic
+
+services:
+  # ── Infrastructure ──────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: camtraffic-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-camtraffic_db}
+      POSTGRES_USER: ${POSTGRES_USER:-camtraffic}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-camtraffic}
+    ports:
+      - "${POSTGRES_PORT:-5434}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-camtraffic} -d ${POSTGRES_DB:-camtraffic_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - camtraffic
+
+  redis:
+    image: redis:7-alpine
+    container_name: camtraffic-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - camtraffic
+
+  # ── Backend API ─────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.backend
+    container_name: camtraffic-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      REDIS_HOST: redis
+      REDIS_URL: redis://redis:6379/0
+      CAMTRAFFIC_DOCKER: "true"
+      CAMTRAFFIC_ENV: development
+      DJANGO_SETTINGS_MODULE: config.settings.development
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - camtraffic
+
+  # ── AI Service ──────────────────────────────────────────────────────────────
+  ai-service:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.ai-service
+    container_name: camtraffic-ai-service
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      CAMTRAFFIC_ENV: development
+      AI_SERVICE_URL: http://ai-service:8001
+    ports:
+      - "${AI_SERVICE_PORT:-8001}:8001"
+    volumes:
+      - ./ai-service:/app
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks:
+      - camtraffic
+
+  # ── Frontend Admin ──────────────────────────────────────────────────────────
+  frontend-admin:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.frontend
+      args:
+        APP_DIR: frontend-admin
+        APP_PORT: 5173
+    container_name: camtraffic-frontend-admin
+    restart: unless-stopped
+    entrypoint: ["/entrypoint.sh"]
+    env_file:
+      - .env
+    environment:
+      DOCKER: "true"
+      CAMTRAFFIC_ENV: development
+      APP_DIR: frontend-admin
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+      VITE_AI_SERVICE_URL: ${VITE_AI_SERVICE_URL:-http://localhost:8001}
+    ports:
+      - "${FRONTEND_ADMIN_PORT:-5173}:5173"
+    volumes:
+      - ./frontend-admin:/app/frontend-admin
+      - ./frontend-user/package.json:/app/frontend-user/package.json
+      - ./packages:/app/packages
+      - ./package.json:/app/package.json
+      - ./package-lock.json:/app/package-lock.json
+      - ./turbo.json:/app/turbo.json
+      - ./tsconfig.base.json:/app/tsconfig.base.json
+      - ./deploy/docker/entrypoint-frontend.sh:/entrypoint.sh:ro
+      - frontend_modules:/app/node_modules
+      - frontend_admin_app_modules:/app/frontend-admin/node_modules
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - camtraffic
+
+  # ── Frontend User ───────────────────────────────────────────────────────────
+  frontend-user:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.frontend
+      args:
+        APP_DIR: frontend-user
+        APP_PORT: 5174
+    container_name: camtraffic-frontend-user
+    restart: unless-stopped
+    entrypoint: ["/entrypoint.sh"]
+    env_file:
+      - .env
+    environment:
+      DOCKER: "true"
+      CAMTRAFFIC_ENV: development
+      APP_DIR: frontend-user
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+      VITE_AI_SERVICE_URL: ${VITE_AI_SERVICE_URL:-http://localhost:8001}
+    ports:
+      - "${FRONTEND_USER_PORT:-5174}:5174"
+    volumes:
+      - ./frontend-user:/app/frontend-user
+      - ./frontend-admin/package.json:/app/frontend-admin/package.json
+      - ./packages:/app/packages
+      - ./package.json:/app/package.json
+      - ./package-lock.json:/app/package-lock.json
+      - ./turbo.json:/app/turbo.json
+      - ./tsconfig.base.json:/app/tsconfig.base.json
+      - ./deploy/docker/entrypoint-frontend.sh:/entrypoint.sh:ro
+      - frontend_modules:/app/node_modules
+      - frontend_user_app_modules:/app/frontend-user/node_modules
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - camtraffic
+
+volumes:
+  postgres_data:
+  frontend_modules:
+  frontend_admin_app_modules:
+  frontend_user_app_modules:
+
+networks:
+  camtraffic:
+    driver: bridge

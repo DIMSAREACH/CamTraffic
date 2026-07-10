@@ -1,0 +1,15 @@
+{
+    "status":  "ok",
+    "service":  "backend",
+    "check":  "readiness",
+    "checks":  {
+                   "database":  {
+                                    "status":  "ok",
+                                    "latency_ms":  0.31
+                                },
+                   "redis":  {
+                                 "status":  "ok",
+                                 "latency_ms":  46.06
+                             }
+               }
+}

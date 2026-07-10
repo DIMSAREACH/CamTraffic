@@ -272,6 +272,124 @@ Server-Sent Events stream. Query parameters:
 
 Each event is a `DetectionMonitorSerializer` JSON payload.
 
+## Real Curl Examples (Task 229)
+
+The following examples were captured from the deployed stack at `http://localhost:8080` and saved under `docs/final-year-project/api-examples/`.
+
+### 1) Login and obtain JWT
+
+```bash
+curl -X POST http://localhost:8080/api/v1/auth/login/ \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@camtraffic.kh","password":"admin1234"}'
+```
+
+Example response (trimmed token):
+
+```json
+{
+  "success": true,
+  "data": {
+    "user": {
+      "id": "1",
+      "email": "admin@camtraffic.kh",
+      "role": "super_admin"
+    },
+    "tokens": {
+      "access": "eyJ...",
+      "refresh": "eyJ..."
+    }
+  },
+  "message": "Login successful"
+}
+```
+
+### 2) Get current user profile
+
+```bash
+curl http://localhost:8080/api/v1/auth/me/ \
+  -H "Authorization: Bearer <access_token>"
+```
+
+Example response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "1",
+    "email": "admin@camtraffic.kh",
+    "first_name": "System",
+    "last_name": "Administrator",
+    "role": "super_admin"
+  }
+}
+```
+
+### 3) API readiness health check
+
+```bash
+curl http://localhost:8080/api/v1/health/?full=1 \
+  -H "Authorization: Bearer <access_token>"
+```
+
+Example response:
+
+```json
+{
+  "status": "ok",
+  "service": "backend",
+  "check": "readiness",
+  "checks": {
+    "database": { "status": "ok", "latency_ms": 0.31 },
+    "redis": { "status": "ok", "latency_ms": 46.06 }
+  }
+}
+```
+
+### 4) Dashboard stats (admin)
+
+```bash
+curl http://localhost:8080/api/v1/dashboard/stats/ \
+  -H "Authorization: Bearer <access_token>"
+```
+
+Example response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "total_users": 1,
+    "total_vehicles": 0,
+    "total_cameras": 0,
+    "total_violations": 0,
+    "violations_pending": 0
+  }
+}
+```
+
+### 5) Camera health summary
+
+```bash
+curl http://localhost:8080/api/v1/cameras/health/ \
+  -H "Authorization: Bearer <access_token>"
+```
+
+Example response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "total_cameras": 0,
+    "healthy_cameras": 0,
+    "critical_cameras": 0,
+    "cameras": []
+  }
+}
+```
+
 ## Authentication
 
 All endpoints (except public auth endpoints) require:

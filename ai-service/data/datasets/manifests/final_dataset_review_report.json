@@ -1,7 +1,7 @@
 {
   "task": 142,
   "status": "passed",
-  "generated_at": "2026-07-09T07:41:32.923709+00:00",
+  "generated_at": "2026-07-09T07:58:22.610959+00:00",
   "reviews": {
     "folder_structure": {
       "passed": true,
@@ -32,9 +32,9 @@
         "raw_dashcam": 1,
         "processed_total": 1208,
         "ocr_crops_plate_reference": 454,
-        "splits_total": 960,
+        "splits_total": 1375,
         "annotations_exports_total": 97,
-        "manifests_total": 36,
+        "manifests_total": 42,
         "metadata_total": 2
       },
       "splits": {
@@ -127,6 +127,36 @@
             "incorrect_classes": 0
           },
           "report": "data\\datasets\\manifests\\final_review_plate_number_reference_remapped_val.json"
+        },
+        {
+          "name": "cambodia_traffic_reference_remapped/train",
+          "status": "passed",
+          "summary": {
+            "missing_labels": 0,
+            "wrong_labels": 0,
+            "incorrect_boxes": 0,
+            "duplicate_images": 0,
+            "corrupted_images": 0,
+            "empty_images": 0,
+            "empty_labels": 0,
+            "incorrect_classes": 0
+          },
+          "report": "data\\datasets\\manifests\\final_review_cambodia_traffic_reference_remapped_train.json"
+        },
+        {
+          "name": "cambodia_traffic_reference_remapped/val",
+          "status": "passed",
+          "summary": {
+            "missing_labels": 0,
+            "wrong_labels": 0,
+            "incorrect_boxes": 0,
+            "duplicate_images": 0,
+            "corrupted_images": 0,
+            "empty_images": 0,
+            "empty_labels": 0,
+            "incorrect_classes": 0
+          },
+          "report": "data\\datasets\\manifests\\final_review_cambodia_traffic_reference_remapped_val.json"
         }
       ]
     },
@@ -143,25 +173,26 @@
     },
     "metadata": {
       "runtime_file_exists": true,
-      "runtime_rows": 3,
+      "runtime_rows": 5,
       "template_exists": true,
       "validation_passed": true
     },
     "backup": {
       "template_exists": true,
       "runtime_log_exists": true,
-      "runtime_rows": 1,
-      "verified_backups": 0
+      "runtime_rows": 2,
+      "verified_backups": 1
     }
   },
   "milestone_readiness": {
     "traffic_sign_reference_bootstrap": true,
-    "vehicle_dataset_collected": false,
+    "vehicle_dataset_collected": true,
     "license_plate_ocr_dataset_ready": true,
-    "dashcam_collected": false,
+    "dashcam_collected": true,
     "yolo_exports_present": true,
     "ocr_dataset_exported": true,
-    "train_val_test_split_present": true
+    "train_val_test_split_present": true,
+    "dataset_backed_up": true
   },
   "warnings": [],
   "blockers": [],

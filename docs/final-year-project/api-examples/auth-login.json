@@ -1,0 +1,22 @@
+{
+    "success":  true,
+    "data":  {
+                 "user":  {
+                              "id":  "1",
+                              "email":  "admin@camtraffic.kh",
+                              "first_name":  "System",
+                              "last_name":  "Administrator",
+                              "role":  "super_admin",
+                              "is_active":  true,
+                              "is_email_verified":  false,
+                              "avatar_url":  null,
+                              "created_at":  "2026-07-10T20:27:08+0700",
+                              "updated_at":  "2026-07-10T13:27:08.704207Z"
+                          },
+                 "tokens":  {
+                                "access":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzgzNjkzMTY1LCJpYXQiOjE3ODM2OTEzNjUsImp0aSI6IjVjNDFkNTZhM2Q4NDQ0MmJiZmNkMmViNmEwOWZmMWVjIiwidXNlcl9pZCI6IjEifQ.L0VVjmPzNY_32ODoqlF9jNUMuWKm0H-l8qvrmWXUuFM",
+                                "refresh":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc4NDI5NjE2NSwiaWF0IjoxNzgzNjkxMzY1LCJqdGkiOiJlYWM2OTBlZDMzMDM0YTE3YWEwMGViNmM2NzBkYTY0ZSIsInVzZXJfaWQiOiIxIn0.VAQlGGfnpSUTmdQSCdLYwbRi2hrNJn3Dzv5dFXirwVg"
+                            }
+             },
+    "message":  "Login successful"
+}

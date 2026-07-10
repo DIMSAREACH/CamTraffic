@@ -1,0 +1,2 @@
+sample_id,crop_path,transcription,plate_type,split,source_image,notes
+ocr_000001,D:/Year4/Project Thesis/Expert System/Project/CamTraffic/ai-service/data/datasets/processed/ocr/crops/ocr_000001.png,,license_plate_kh_private,train,D:/Year4/Project Thesis/Expert System/Project/CamTraffic/ai-service/data/datasets/splits/train/images/sample_000001.png,auto-generated crop — add transcription

@@ -167,12 +167,16 @@ Task 142 adds:
 
 - final dataset review protocol (`protocols/final-dataset-review.md`)
 - review utility (`scripts/final_dataset_review.py`)
+- backup utility (`scripts/backup_dataset.py`)
+- vehicle reference import (`scripts/import_cambodia_traffic_reference_to_splits.py`)
 - backup log template (`manifests/dataset_backup_log.template.csv`)
 - review report (`manifests/final_dataset_review_report.json`)
+- milestone report (`manifests/final_milestone_report.json`)
 
 ```bash
 cd ai-service
 python data/datasets/scripts/final_dataset_review.py
+python data/datasets/scripts/backup_dataset.py
 ```
 
 ## Prohibitory reference import (Cambodia catalog)

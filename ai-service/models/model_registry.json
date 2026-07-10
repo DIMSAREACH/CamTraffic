@@ -1,0 +1,8 @@
+{
+  "yolo": {
+    "active_weights": "yolov11_camtraffic_v1.pt",
+    "source_weights": "runs\\detect\\runs\\yolo\\camtraffic-v1\\weights\\best.pt",
+    "deployed_at": "2026-07-09T10:37:59.675452+00:00",
+    "env_var": "AI_YOLO_WEIGHTS"
+  }
+}

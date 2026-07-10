@@ -1,0 +1,12 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/types" },
+    { "path": "./packages/utils" },
+    { "path": "./packages/api" },
+    { "path": "./packages/hooks" },
+    { "path": "./packages/ui" },
+    { "path": "./frontend-admin" },
+    { "path": "./frontend-user" }
+  ]
+}

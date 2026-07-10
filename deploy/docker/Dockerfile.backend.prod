@@ -1,0 +1,29 @@
+FROM python:3.12-slim-bookworm
+
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    DJANGO_SETTINGS_MODULE=config.settings.production
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY backend/requirements.txt backend/requirements.prod.txt /tmp/
+RUN pip install -r /tmp/requirements.prod.txt
+
+COPY backend/ /app/
+COPY deploy/gunicorn/gunicorn.conf.py /app/gunicorn.conf.py
+COPY deploy/docker/entrypoint-backend.prod.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+RUN mkdir -p /app/staticfiles /app/media /app/logs
+
+EXPOSE 8000
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["gunicorn", "config.wsgi:application", "-c", "/app/gunicorn.conf.py"]

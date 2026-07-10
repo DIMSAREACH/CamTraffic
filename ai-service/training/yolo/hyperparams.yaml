@@ -1,0 +1,45 @@
+# CamTraffic — YOLO Hyperparameter Configuration
+# Optimised for Cambodian road conditions: sun glare, wet roads, diverse lighting
+
+# ─── Optimizer ─────────────────────────────────────────────────────────────
+lr0: 0.01           # Initial learning rate (SGD=0.01, Adam=0.001)
+lrf: 0.005          # Final lr = lr0 × lrf (cosine annealing target)
+momentum: 0.937
+weight_decay: 0.0005
+warmup_epochs: 5.0  # Extra warmup for small dataset
+warmup_momentum: 0.8
+warmup_bias_lr: 0.1
+cos_lr: true        # Cosine LR schedule (better convergence)
+
+# ─── Loss weights ──────────────────────────────────────────────────────────
+box: 7.5
+cls: 0.5
+dfl: 1.5
+
+# ─── Augmentation — Cambodia conditions ────────────────────────────────────
+# Colour: handle bright sun, overcast, night, wet-road reflections
+hsv_h: 0.02         # Hue ±2% (sign colours vary by weathering)
+hsv_s: 0.8          # Saturation ±80% (rain desaturation)
+hsv_v: 0.5          # Value ±50% (sun glare / night)
+
+# Geometry: handle dashcam mount angle, perspective, distant signs
+degrees: 5.0        # Rotation ±5° (slight camera tilt)
+translate: 0.1      # Translation ±10%
+scale: 0.6          # Scale ±60% (near/far signs)
+shear: 2.0          # Shear ±2° (perspective distortion)
+perspective: 0.0002 # Perspective warp
+
+# Flip: no vertical flip for traffic signs; horizontal OK for non-asymmetric signs
+flipud: 0.0         # Never flip vertically (directional signs)
+fliplr: 0.3         # 30% horizontal flip
+
+# Advanced augmentation
+mosaic: 1.0         # Mosaic augmentation (critical for small dataset)
+mixup: 0.05         # Light mixup for border cases
+copy_paste: 0.1     # Copy-paste (helps rare classes)
+auto_augment: randaugment
+erasing: 0.3
+
+# ─── Training behaviour ─────────────────────────────────────────────────────
+close_mosaic: 15    # Disable mosaic for last N epochs (fine-tune phase)
+amp: true           # Auto mixed precision (faster on GPU, safe on CPU)

@@ -1,0 +1,10 @@
+# Lightweight dependencies for Docker development (Task 002)
+# Full ML stack (YOLOv11, OpenCV, EasyOCR) is in requirements.txt — Phase 5
+
+fastapi>=0.115,<1.0
+uvicorn[standard]>=0.34,<1.0
+python-dotenv>=1.0,<2.0
+httpx>=0.28,<1.0
+python-multipart>=0.0.20,<1.0
+Pillow>=11.0,<12.0
+numpy>=2.0,<3.0

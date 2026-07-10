@@ -1,0 +1,46 @@
+{
+  "id": "056c2316-aede-4469-99a3-2a2be0465ddb",
+  "created_at": "2026-07-07T13:23:56.271196Z",
+  "camera_id": "CAM-001",
+  "processing": {
+    "original_width": 640,
+    "original_height": 480,
+    "processed_width": 640,
+    "processed_height": 480,
+    "resized": false,
+    "denoised": true,
+    "runtime": "opencv",
+    "processing_ms": 1546.18
+  },
+  "detection": {
+    "detections": [
+      {
+        "class_id": 0,
+        "class_name": "stop",
+        "confidence": 0.91,
+        "bounding_box": {
+          "x1": 262.0,
+          "y1": 197.0,
+          "x2": 377.0,
+          "y2": 283.0
+        },
+        "traffic_sign_code": "P-001"
+      }
+    ],
+    "detection_count": 1,
+    "mode": "mock",
+    "model_path": "D:\\app\\models\\yolov11_traffic_signs_v1.pt",
+    "confidence_threshold": 0.75,
+    "inference_ms": 0.11,
+    "image_width": 640,
+    "image_height": 480
+  },
+  "plate": {
+    "mode": "ocr",
+    "plate_text": "",
+    "confidence": 0.0,
+    "inference_ms": 2243.61
+  },
+  "total_ms": 3792.64,
+  "pipeline_mode": "opencv+mock+ocr"
+}

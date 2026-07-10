@@ -6,8 +6,7 @@ Central documentation for the AI-Based Traffic Sign Detection and Traffic Law En
 
 | Document | Description |
 |----------|-------------|
-| [CHECKLIST.md](./CHECKLIST.md) | 160-task enterprise development checklist ✅ |
-| [CHECKLIST-FYP.md](./CHECKLIST-FYP.md) | 80-task Final Year Project checklist (Tasks 161–240) |
+| [CHECKLIST-MASTER.md](./CHECKLIST-MASTER.md) | Unified enterprise and FYP checklist (Tasks P001-425) ✅ |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | System architecture overview |
 | [FOLDER-MAP.md](./FOLDER-MAP.md) | Folder-to-task mapping index |
 

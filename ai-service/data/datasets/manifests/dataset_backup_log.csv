@@ -1,2 +1,3 @@
 backup_id,backup_date,source_path,destination_path,files_count,bytes_total,checksum_sha256_prefix,verified,operator,notes
 BAK-20260709-001,2026-07-09,ai-service/data/datasets,local-workspace-review,1662,0,,false,system,Initial workspace review backup record — copy to external drive and set verified=true after manual backup
+BAK-20260709-075713,2026-07-09,ai-service/data/datasets,backups\datasets-20260709-075713,184,5122458,4984ad9461ea,true,backup_dataset.py,"Local backup bundle for Final Milestone (configs, manifests, labels, protocols, export batches)"

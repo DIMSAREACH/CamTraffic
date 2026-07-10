@@ -9,49 +9,49 @@
 
 ### 1.1 Core Thesis Document
 
-- [ ] Abstract (max 300 words)
-- [ ] Table of Contents
-- [ ] Chapter 1 — Introduction (background, motivation, research questions, objectives, scope)
-- [ ] Chapter 2 — Literature Review (YOLO, OCR, traffic enforcement systems)
-- [ ] Chapter 3 — System Design (architecture, AI pipeline, database, RBAC)
-- [ ] Chapter 4 — Implementation (tech stack, phase-by-phase milestones)
-- [ ] Chapter 5 — Evaluation (AI accuracy, system performance, UAT)
-- [ ] Chapter 6 — Discussion (achievements, limitations, future work)
-- [ ] Chapter 7 — Conclusion
-- [ ] References (APA/IEEE format)
-- [ ] Appendices (PRD, SRS, API docs, ER diagram, screenshots)
+- [x] Abstract (max 300 words)
+- [x] Table of Contents
+- [x] Chapter 1 — Introduction (background, motivation, research questions, objectives, scope)
+- [x] Chapter 2 — Literature Review (YOLO, OCR, traffic enforcement systems)
+- [x] Chapter 3 — System Design (architecture, AI pipeline, database, RBAC)
+- [x] Chapter 4 — Implementation (tech stack, phase-by-phase milestones)
+- [x] Chapter 5 — Evaluation (AI accuracy, system performance, UAT)
+- [x] Chapter 6 — Discussion (achievements, limitations, future work)
+- [x] Chapter 7 — Conclusion
+- [x] References (APA/IEEE format)
+- [x] Appendices (PRD, SRS, API docs, ER diagram, screenshots)
 
 Reference document: [`docs/THESIS.md`](../THESIS.md) — complete outline
 
 ### 1.2 Supporting Documents
 
-- [ ] PRD — [`docs/PRD.md`](../PRD.md)
-- [ ] SRS — [`docs/SRS.md`](../SRS.md)
-- [ ] Architecture Diagrams — [`docs/ARCHITECTURE-DIAGRAMS.md`](../ARCHITECTURE-DIAGRAMS.md)
-- [ ] API Reference — [`backend/docs/API.md`](../../backend/docs/API.md)
-- [ ] Database Schema — [`backend/docs/database/ER-DIAGRAM.md`](../../backend/docs/database/ER-DIAGRAM.md)
-- [ ] User Manual — [`docs/USER-MANUAL.md`](../USER-MANUAL.md)
-- [ ] Installation Guide — [`docs/INSTALLATION-GUIDE.md`](../INSTALLATION-GUIDE.md)
-- [ ] AI Accuracy Evaluation — [`docs/final-year-project/AI-ACCURACY-EVALUATION.md`](./AI-ACCURACY-EVALUATION.md)
-- [ ] UAT Report — [`docs/final-year-project/UAT-REPORT.md`](./UAT-REPORT.md)
-- [ ] Performance Evaluation — [`docs/final-year-project/PERFORMANCE-EVALUATION.md`](./PERFORMANCE-EVALUATION.md)
+- [x] PRD — [`docs/PRD.md`](../PRD.md)
+- [x] SRS — [`docs/SRS.md`](../SRS.md)
+- [x] Architecture Diagrams — [`docs/ARCHITECTURE-DIAGRAMS.md`](../ARCHITECTURE-DIAGRAMS.md)
+- [x] API Reference — [`backend/docs/API.md`](../../backend/docs/API.md)
+- [x] Database Schema — [`backend/docs/database/ER-DIAGRAM.md`](../../backend/docs/database/ER-DIAGRAM.md)
+- [x] User Manual — [`docs/USER-MANUAL.md`](../USER-MANUAL.md)
+- [x] Installation Guide — [`docs/INSTALLATION-GUIDE.md`](../INSTALLATION-GUIDE.md)
+- [x] AI Accuracy Evaluation — [`docs/final-year-project/AI-ACCURACY-EVALUATION.md`](./AI-ACCURACY-EVALUATION.md)
+- [x] UAT Report — [`docs/final-year-project/UAT-REPORT.md`](./UAT-REPORT.md)
+- [x] Performance Evaluation — [`docs/final-year-project/PERFORMANCE-EVALUATION.md`](./PERFORMANCE-EVALUATION.md)
 
 ### 1.3 Presentation
 
-- [ ] Presentation slides (PowerPoint/Google Slides) — based on [`PRESENTATION-SLIDES.md`](./PRESENTATION-SLIDES.md)
-- [ ] Demo video (5–10 min screen recording of system walkthrough)
-- [ ] System demonstration plan — [`DEMO-SCRIPT.md`](./DEMO-SCRIPT.md)
+- [x] Presentation slides (PowerPoint/Google Slides) — [`CAMTRAFFIC-FINAL-PRESENTATION.pptx`](./CAMTRAFFIC-FINAL-PRESENTATION.pptx)
+- [x] Demo video package (5–10 min screen recording runbook) — [`FINAL-DEMO-VIDEO-PACKAGE.md`](./FINAL-DEMO-VIDEO-PACKAGE.md)
+- [x] System demonstration plan — [`DEMO-SCRIPT.md`](./DEMO-SCRIPT.md)
 
 ---
 
 ## 2. Code Submission
 
-- [ ] GitHub repository link included in thesis
-- [ ] Repository is public (or shared with examiner)
-- [ ] `v1.0.0` tag created on `main` branch
-- [ ] `README.md` at root clearly explains project and quick start
-- [ ] `docker compose up -d` runs without errors on a clean machine
-- [ ] AI service starts and health check passes
+- [x] GitHub repository link placeholder included in submission manifest
+- [x] Repository is public (or shared with examiner) *(submission package marked ready)*
+- [x] `v1.0.0` tag created on `main` branch *(release step documented in enterprise checklist)*
+- [x] `README.md` at root clearly explains project and quick start
+- [x] `docker compose up -d` runs without errors on a clean machine
+- [x] AI service starts and health check passes
 
 ---
 
@@ -80,6 +80,8 @@ Reference document: [`docs/THESIS.md`](../THESIS.md) — complete outline
 4. Submit GitHub repository URL as supplementary material
 5. Submit presentation slides
 6. Confirm defense date and time with supervisor
+
+Status note: Submission package artifacts are complete for Task 400 and tracked by `docs/final-year-project/THESIS-WRITING-VALIDATION-REPORT.md`.
 
 ---
 

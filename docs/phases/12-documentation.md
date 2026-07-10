@@ -69,4 +69,4 @@ Phase 12 produces all formal documentation for the CamTraffic system, covering p
 | Thesis | `docs/THESIS.md` | Academic Reviewers |
 | Architecture Diagrams | `docs/ARCHITECTURE-DIAGRAMS.md` | All Stakeholders |
 | System Architecture | `docs/ARCHITECTURE.md` | Architects |
-| Checklist | `docs/CHECKLIST.md` | Project Managers |
+| Checklist | `docs/CHECKLIST-MASTER.md` | Project Managers |

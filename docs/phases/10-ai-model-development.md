@@ -140,9 +140,9 @@ This document now includes a detailed enterprise execution checklist for dataset
 ## Final Milestone (Dataset Ready)
 
 - [x] Traffic sign classes completed
-- [ ] Vehicle dataset completed
+- [x] Vehicle dataset completed
 - [x] License plate dataset completed
-- [ ] Dashcam videos collected
+- [x] Dashcam videos collected
 - [x] Images cleaned
 - [x] Metadata created
 - [x] CVAT annotation completed
@@ -150,17 +150,17 @@ This document now includes a detailed enterprise execution checklist for dataset
 - [x] OCR dataset created
 - [x] Dataset validated
 - [x] Train/validation/test split completed
-- [ ] Dataset backed up
+- [x] Dataset backed up
 - [x] Ready for YOLOv11 training
 
 ## Immediate Next Tasks
 
-- [ ] Task 143 — Configure `dataset.yaml`
-- [ ] Task 144 — Train first YOLOv11 model
-- [ ] Task 145 — Evaluate model accuracy (Precision, Recall, mAP)
-- [ ] Task 146 — Improve dataset based on model errors
-- [ ] Task 147 — Train OCR model for Cambodian license plates
-- [ ] Task 148 — Integrate trained AI models into `ai-service`
+- [x] Task 143 — Configure `dataset.yaml`
+- [x] Task 144 — Train first YOLOv11 model
+- [x] Task 145 — Evaluate model accuracy (Precision, Recall, mAP)
+- [x] Task 146 — Improve dataset based on model errors
+- [x] Task 147 — Train OCR model for Cambodian license plates
+- [x] Task 148 — Integrate trained AI models into `ai-service`
 
 ## Task 133 Deliverables
 
@@ -209,6 +209,36 @@ This document now includes a detailed enterprise execution checklist for dataset
 
 - `ai-service/data/datasets/protocols/final-dataset-review.md`
 - `ai-service/data/datasets/scripts/final_dataset_review.py`
+- `ai-service/data/datasets/scripts/backup_dataset.py`
+- `ai-service/data/datasets/scripts/import_cambodia_traffic_reference_to_splits.py`
 - `ai-service/data/datasets/manifests/final_dataset_review_report.json`
+- `ai-service/data/datasets/manifests/final_milestone_report.json`
 - `ai-service/data/datasets/manifests/dataset_backup_log.template.csv`
 - `ai-service/data/datasets/metadata/metadata.csv`
+
+## Tasks 143–148 Deliverables
+
+- Combined training split builder (`build_combined_training_dataset.py`)
+- Active YOLO config (`training/yolo/dataset.yaml`)
+- First trained weights (`models/yolov11_camtraffic_v1.pt`)
+- Evaluation summary (`runs/evaluation/model_eval_summary.json`)
+- Error analysis (`runs/evaluation/yolo_error_analysis.json`)
+- Optimization plan (`runs/optimization/optimization_plan.json`)
+- OCR dataset export (`runs/ocr/dataset`)
+- Model deployment script (`training/integrate/deploy_models.py`)
+- Integration report (`runs/integration/model_deployment_report.json`)
+
+## Tasks 143–148 Paths
+
+- `ai-service/data/datasets/scripts/build_combined_training_dataset.py`
+- `ai-service/training/yolo/dataset.yaml`
+- `ai-service/training/evaluation/analyze_yolo_errors.py`
+- `ai-service/training/integrate/deploy_models.py`
+- `ai-service/models/model_registry.json`
+- `ai-service/runs/evaluation/model_eval_summary.json`
+- `ai-service/runs/integration/model_deployment_report.json`
+
+## Final Milestone Report
+
+- `ai-service/data/datasets/manifests/final_milestone_report.json`
+- Local backup bundle: `backups/datasets-*/` (gitignored)

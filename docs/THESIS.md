@@ -7,13 +7,19 @@
 **Supervisor**: [Supervisor Name]
 **Year**: 2026
 
+Detailed Stage 12 chapter deliverables:
+- `docs/final-year-project/thesis/CHAPTER-3-METHODOLOGY.md`
+- `docs/final-year-project/thesis/CHAPTER-4-SYSTEM-DESIGN.md`
+- `docs/final-year-project/thesis/CHAPTER-5-IMPLEMENTATION.md`
+- `docs/final-year-project/thesis/CHAPTER-6-TESTING-EVALUATION.md`
+
 ---
 
 ## Abstract
 
 This thesis presents the design, development, and evaluation of CamTraffic — an AI-powered traffic enforcement system for the Kingdom of Cambodia. The system integrates YOLOv11 real-time object detection and EasyOCR license plate recognition with a full-stack web application to automate the detection of traffic sign violations, identify offending vehicles, issue fines, and notify traffic officers and drivers in real time.
 
-The system addresses the limitations of manual traffic enforcement: low violation detection rates, delayed officer response, and paper-based record management. A custom dataset of Cambodian traffic signs and vehicle types was collected and annotated, and a YOLOv11-nano model was trained and evaluated, achieving mAP@50 of 0.42 after five epochs of bootstrap training on 552 images on CPU hardware.
+The system addresses the limitations of manual traffic enforcement: low violation detection rates, delayed officer response, and paper-based record management. A custom dataset of Cambodian traffic signs, vehicles, and license plates was collected and annotated, and a YOLOv11-nano v2 model was trained and evaluated, achieving mAP@50 of 0.6081, mAP@50-95 of 0.4419, precision of 0.6489, and recall of 0.6151 on the validation set.
 
 The full system is implemented as a monorepo using React/Vite frontends, Django REST API, FastAPI AI service, PostgreSQL, Redis, and Docker. The end-to-end pipeline from camera frame submission to officer notification was validated, and all integration, deployment, and documentation phases were completed.
 
@@ -151,26 +157,26 @@ Full ER diagram: [backend/docs/database/ER-DIAGRAM.md](../backend/docs/database/
 
 ## 5. Evaluation
 
-### 5.1 YOLO Model Results (Bootstrap — 5 epochs, CPU)
+### 5.1 YOLO Model Results (Stage 9 Final Evaluation)
 
 | Metric | Value |
 |--------|-------|
-| mAP@50 | 0.424 |
-| mAP@50-95 | 0.325 |
-| Precision | 0.474 |
-| Recall | 0.414 |
-| License plate (class 14) mAP@50 | 0.993 |
+| mAP@50 | 0.6081 |
+| mAP@50-95 | 0.4419 |
+| Precision | 0.6489 |
+| Recall | 0.6151 |
+| F1 (from P/R) | 0.6315 |
 
-> Note: These are bootstrap results with 5 epochs on 552 images. Production training with 100+ epochs on GPU is expected to yield significantly higher accuracy.
+> Note: These are final Stage 9 results from the v2 training run (50 epochs, CPU). Production training with 100+ epochs on GPU is expected to further improve accuracy toward mAP@50 >= 0.80.
 
 ### 5.2 OCR Baseline Results
 
 | Metric | Value |
 |--------|-------|
-| Mean CER (Character Error Rate) | 0.663 |
-| Exact Match Rate | 0.139 |
+| Mean CER (Character Error Rate) | 0.3524 |
+| Exact Match Rate | 0.3168 |
 
-> Auto-filled transcriptions from EasyOCR require manual QC before fine-tuning.
+> OCR metrics improved from baseline CER 0.6632 and exact match 0.1386 after post-processing enhancements (`_normalize_plate` + substring extraction).
 
 ### 5.3 Integration Validation
 
@@ -238,3 +244,7 @@ CamTraffic demonstrates the feasibility of an AI-driven traffic law enforcement 
 | E | [backend/docs/database/ER-DIAGRAM.md](../backend/docs/database/ER-DIAGRAM.md) — Database Schema |
 | F | [INSTALLATION-GUIDE.md](./INSTALLATION-GUIDE.md) — Installation Instructions |
 | G | [USER-MANUAL.md](./USER-MANUAL.md) — User Manual |
+| H | [final-year-project/thesis/CHAPTER-3-METHODOLOGY.md](./final-year-project/thesis/CHAPTER-3-METHODOLOGY.md) — Detailed Chapter 3 |
+| I | [final-year-project/thesis/CHAPTER-4-SYSTEM-DESIGN.md](./final-year-project/thesis/CHAPTER-4-SYSTEM-DESIGN.md) — Detailed Chapter 4 |
+| J | [final-year-project/thesis/CHAPTER-5-IMPLEMENTATION.md](./final-year-project/thesis/CHAPTER-5-IMPLEMENTATION.md) — Detailed Chapter 5 |
+| K | [final-year-project/thesis/CHAPTER-6-TESTING-EVALUATION.md](./final-year-project/thesis/CHAPTER-6-TESTING-EVALUATION.md) — Detailed Chapter 6 |

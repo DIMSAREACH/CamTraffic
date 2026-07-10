@@ -71,40 +71,86 @@ Default superuser credentials after seed: **admin** / **admin1234** (change imme
 
 ---
 
-## 2. Production Deployment
+## 2. Production Deployment (Ubuntu 22.04 VPS)
 
-### 2.1 SSL/TLS
+### 2.1 Provision the VPS host
 
-Place your SSL certificates in `deploy/nginx/certs/`:
-
-```
-deploy/nginx/certs/
-├── fullchain.pem
-└── privkey.pem
-```
-
-Enable HTTPS in `deploy/nginx/nginx.conf`.
-
-### 2.2 Production Compose Override
+Run on the target server (recommended: >= 4 vCPU, >= 8 GB RAM):
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+sudo ./deploy/scripts/provision_vps_ubuntu.sh
 ```
 
-### 2.3 Environment Variables (Production)
+This installs Docker Engine, Docker Compose plugin, and configures firewall rules for 22/80/443.
+
+### 2.2 Configure production environment
+
+```bash
+cp deploy/env/.env.production.example .env.production
+```
+
+Edit `.env.production` and set at minimum:
 
 ```env
-DJANGO_ENV=production
-DJANGO_DEBUG=false
-DJANGO_ALLOWED_HOSTS=your-domain.com
-DJANGO_SECRET_KEY=<strong-random-key>
-POSTGRES_DB=camtraffic_db
-POSTGRES_USER=camtraffic
 POSTGRES_PASSWORD=<strong-password>
-REDIS_URL=redis://redis:6379/0
-AI_SERVICE_URL=http://ai-service:8001
-AI_DETECTION_MODE=yolo
-AI_YOLO_WEIGHTS=yolov11_camtraffic_v1.pt
+DJANGO_SECRET_KEY=<strong-random-secret>
+DJANGO_ALLOWED_HOSTS=api.camtraffic.kh,admin.camtraffic.kh,app.camtraffic.kh
+VITE_API_URL=https://api.camtraffic.kh
+VITE_AI_SERVICE_URL=https://ai.camtraffic.kh
+```
+
+### 2.3 Configure DNS A records
+
+Point these domains to your VPS public IP:
+
+- `admin.camtraffic.kh`
+- `app.camtraffic.kh`
+- `api.camtraffic.kh`
+- `ai.camtraffic.kh`
+
+### 2.4 Bring up production stack
+
+```bash
+docker compose -f deploy/docker/docker-compose.prod.yml --env-file .env.production up --build -d
+```
+
+Or use the automation script:
+
+```bash
+./deploy/scripts/deploy_production.sh /opt/camtraffic
+```
+
+### 2.5 Run database migration and seed
+
+```bash
+docker compose -f deploy/docker/docker-compose.prod.yml --env-file .env.production exec -T backend python manage.py migrate --noinput
+docker compose -f deploy/docker/docker-compose.prod.yml --env-file .env.production exec -T backend python manage.py seed_database
+```
+
+### 2.6 Obtain SSL certificates (Let's Encrypt)
+
+```bash
+sh deploy/ssl/certbot-init.sh camtraffic.kh admin@camtraffic.kh
+```
+
+Then enable HTTPS server blocks in `deploy/nginx/camtraffic.conf` and restart nginx.
+
+### 2.7 Verify production health
+
+```bash
+./deploy/scripts/healthcheck_production.sh /opt/camtraffic
+```
+
+### 2.8 Configure daily database backup
+
+```bash
+sudo ./deploy/scripts/install_backup_cron.sh /opt/camtraffic /opt/camtraffic/backups "0 2 * * *"
+```
+
+Manual backup test:
+
+```bash
+./deploy/scripts/backup_postgres.sh /opt/camtraffic /opt/camtraffic/backups
 ```
 
 ---
@@ -194,11 +240,16 @@ python backend/apps/integration/validate_integration.py
 
 ## 6. Database Backup
 
+Automated backup uses `pg_dump` from the running PostgreSQL container:
+
 ```bash
-docker compose exec backend python manage.py backup_database
-# or via API:
-curl -X POST http://localhost:8000/api/v1/system/backup/ \
-  -H "Authorization: Bearer <admin-token>"
+./deploy/scripts/backup_postgres.sh /opt/camtraffic /opt/camtraffic/backups
+```
+
+Daily cron setup:
+
+```bash
+sudo ./deploy/scripts/install_backup_cron.sh /opt/camtraffic /opt/camtraffic/backups "0 2 * * *"
 ```
 
 ---

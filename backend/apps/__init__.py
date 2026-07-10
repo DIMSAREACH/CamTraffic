@@ -1,0 +1,1 @@
+"""CamTraffic Django apps package."""

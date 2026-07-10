@@ -1,0 +1,15 @@
+{
+    "success":  true,
+    "data":  {
+                 "total_users":  1,
+                 "total_drivers":  0,
+                 "total_officers":  0,
+                 "total_vehicles":  0,
+                 "total_cameras":  0,
+                 "cameras_online":  0,
+                 "cameras_offline":  0,
+                 "total_violations":  0,
+                 "violations_pending":  0,
+                 "violations_approved":  0
+             }
+}

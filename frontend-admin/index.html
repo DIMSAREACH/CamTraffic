@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <title>CamTraffic Admin</title>
+    <script>
+      (function () {
+        try {
+          var localeKey = 'camtraffic-admin-locale';
+          var storedLocale = localStorage.getItem(localeKey);
+          var locale =
+            storedLocale === 'en' || storedLocale === 'km'
+              ? storedLocale
+              : (navigator.languages || [navigator.language]).some(function (lang) {
+                    return String(lang).toLowerCase().indexOf('km') === 0;
+                  })
+                ? 'km'
+                : 'en';
+          document.documentElement.lang = locale;
+
+          var themeKey = 'camtraffic-admin-theme';
+          var storedTheme = localStorage.getItem(themeKey);
+          var preference =
+            storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system'
+              ? storedTheme
+              : 'system';
+          var mode =
+            preference === 'system'
+              ? window.matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light'
+              : preference;
+          document.documentElement.setAttribute('data-theme', mode);
+          document.documentElement.style.colorScheme = mode;
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

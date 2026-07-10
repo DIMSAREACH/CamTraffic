@@ -1,4 +1,6 @@
 image_id,province,road,gps,weather,time,camera,category,class,notes
 REF-PROH-001,Cambodia,National catalog,"11.5564,104.9282",clear,00:00,reference_catalog,traffic_sign,prohibitory_reference,46 prohibitory reference graphics imported (BATCH-REF-PROH-001)
 PLATE-REF-001,Phnom Penh,Reference dataset,"11.5564,104.9282",clear,00:00,reference_export,license_plate,license_plate_kh_private,453 plate images remapped to class 14 (plate_number_reference_remapped)
+VEH-REF-001,Phnom Penh,Dashcam city tour,"11.5564,104.9282",clear,00:00,dashcam,vehicle,car_sedan,218 vehicle frames imported from Cambodia Traffic reference (cambodia_traffic_reference_remapped)
+DASH-REF-001,Phnom Penh,City tour corridor,"11.5564,104.9282",clear,08:00,dashcam,dashcam_frame,dashcam_frame,Bootstrap dashcam session from reference city-tour footage
 ANN-000001,Phnom Penh,Sample corridor,"11.5564,104.9282",clear,08:35,smartphone,traffic_sign,stop,Smoke-test annotation batch BATCH-ANN-001

@@ -1,0 +1,715 @@
+{
+  "split": "val",
+  "samples": 101,
+  "mean_cer": 0.6632,
+  "exact_match_rate": 0.1386,
+  "details": [
+    {
+      "sample_id": "ocr_000354",
+      "reference": "SNWF287.5260",
+      "hypothesis": "@NGT287-5260",
+      "cer": 0.3333,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000355",
+      "reference": "8319",
+      "hypothesis": "ITIGCT,83192B-8",
+      "cer": 2.75,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000356",
+      "reference": "24",
+      "hypothesis": "\"7NUNOT246528",
+      "cer": 5.5,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000357",
+      "reference": "FLUM",
+      "hypothesis": "FLUM24-9291",
+      "cer": 1.75,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000358",
+      "reference": "2C.1075",
+      "hypothesis": "2C.1075",
+      "cer": 0.0,
+      "exact_match": true
+    },
+    {
+      "sample_id": "ocr_000359",
+      "reference": "28+8059*",
+      "hypothesis": "6N4GIU28+8059*KAMAZNGGKAM",
+      "cer": 2.125,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000360",
+      "reference": "215020|",
+      "hypothesis": "KTHL215020|",
+      "cer": 0.5714,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000361",
+      "reference": "2456432",
+      "hypothesis": "2456432",
+      "cer": 0.0,
+      "exact_match": true
+    },
+    {
+      "sample_id": "ocr_000362",
+      "reference": "24-6892",
+      "hypothesis": "U:24-6892",
+      "cer": 0.2857,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000363",
+      "reference": "24.7449",
+      "hypothesis": "TUUS24.7449",
+      "cer": 0.5714,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000364",
+      "reference": "2096",
+      "hypothesis": "2B-2096",
+      "cer": 0.75,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000365",
+      "reference": "2AC-0297",
+      "hypothesis": "2AC-0297WOT",
+      "cer": 0.375,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000366",
+      "reference": "2AE-3756/",
+      "hypothesis": "DINQ2AE-3756/",
+      "cer": 0.4444,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000367",
+      "reference": "ZAF.7340",
+      "hypothesis": "LLGZAF.7340",
+      "cer": 0.375,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000368",
+      "reference": "2A6.4098]",
+      "hypothesis": "DIG762A6.4098]",
+      "cer": 0.5556,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000369",
+      "reference": "216-8780]",
+      "hypothesis": "6C216-8780]",
+      "cer": 0.2222,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000370",
+      "reference": "2AH:3933",
+      "hypothesis": "QINMDOMEE2AH:3933",
+      "cer": 1.125,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000371",
+      "reference": "J_L",
+      "hypothesis": "H_L",
+      "cer": 0.3333,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000372",
+      "reference": "2AI-4580",
+      "hypothesis": "HINM2AI-4580",
+      "cer": 0.5,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000373",
+      "reference": "2A1-6196",
+      "hypothesis": "NNM2A1-6196",
+      "cer": 0.375,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000374",
+      "reference": "[24J-6490",
+      "hypothesis": "IGI[24J-6490",
+      "cer": 0.3333,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000375",
+      "reference": "@722J-6918",
+      "hypothesis": "@72J-6918",
+      "cer": 0.1,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000376",
+      "reference": "2AK3678|",
+      "hypothesis": "GIRM2AK3678|",
+      "cer": 0.5,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000377",
+      "reference": "PHN0MPEHK",
+      "hypothesis": "JINI2AK:8013PHNOMPEHH",
+      "cer": 1.5556,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000378",
+      "reference": "2A8:48857",
+      "hypothesis": "'BING2A8:4885",
+      "cer": 0.6667,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000379",
+      "reference": "2AP-3523",
+      "hypothesis": "2AP-3523",
+      "cer": 0.0,
+      "exact_match": true
+    },
+    {
+      "sample_id": "ocr_000380",
+      "reference": "\"7745",
+      "hypothesis": "2AP\"7745",
+      "cer": 0.6,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000381",
+      "reference": "2AP:7873",
+      "hypothesis": "QING2AP:7873",
+      "cer": 0.5,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000382",
+      "reference": "NINM",
+      "hypothesis": "NINM2105248]",
+      "cer": 2.0,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000383",
+      "reference": "DINGI",
+      "hypothesis": "DINGI2A_.7144",
+      "cer": 1.6,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000384",
+      "reference": "2A0-8132",
+      "hypothesis": "BICIED2A0-8132",
+      "cer": 0.75,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000385",
+      "reference": "2408865",
+      "hypothesis": "DINET240*8865",
+      "cer": 0.8571,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000386",
+      "reference": "\"4996",
+      "hypothesis": "2AR:4996",
+      "cer": 0.8,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000387",
+      "reference": "241-3898",
+      "hypothesis": "AND241-3898",
+      "cer": 0.375,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000388",
+      "reference": "2AU-9447",
+      "hypothesis": "QNT2AU-9447",
+      "cer": 0.375,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000389",
+      "reference": "\"ZXZ",
+      "hypothesis": "\"ZXZ",
+      "cer": 0.0,
+      "exact_match": true
+    },
+    {
+      "sample_id": "ocr_000390",
+      "reference": "2UZL8L|",
+      "hypothesis": "2UZL8L|",
+      "cer": 0.0,
+      "exact_match": true
+    },
+    {
+      "sample_id": "ocr_000391",
+      "reference": "2AV:9504\"",
+      "hypothesis": "NMIM2AV:9504\"",
+      "cer": 0.4444,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000392",
+      "reference": "2A4-6867",
+      "hypothesis": "DNC2A4-6867",
+      "cer": 0.375,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000393",
+      "reference": "2AX.98464",
+      "hypothesis": "GINM2AX.98464",
+      "cer": 0.4444,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000394",
+      "reference": "2AY.0163",
+      "hypothesis": "QU7D2AY.0163",
+      "cer": 0.5,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000395",
+      "reference": "24Z-5837",
+      "hypothesis": "JM24Z-5837",
+      "cer": 0.25,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000396",
+      "reference": "286.4080:",
+      "hypothesis": "28C.4080:",
+      "cer": 0.1111,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000397",
+      "reference": "2BC-5186",
+      "hypothesis": "2BC-5186TINCW",
+      "cer": 0.625,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000398",
+      "reference": ":28E-02984",
+      "hypothesis": "28E-02984",
+      "cer": 0.1,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000399",
+      "reference": "2BE:0882",
+      "hypothesis": "JING}2BE:0882",
+      "cer": 0.625,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000400",
+      "reference": "2BE:6404]",
+      "hypothesis": "DNMZNNNN2BE:6404]",
+      "cer": 0.8889,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000401",
+      "reference": "2BE-4982",
+      "hypothesis": "{INC2BE-4982",
+      "cer": 0.5,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000402",
+      "reference": "281,848|",
+      "hypothesis": "W1NI281,848|",
+      "cer": 0.5,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000403",
+      "reference": "281.54631",
+      "hypothesis": "281.54631",
+      "cer": 0.0,
+      "exact_match": true
+    },
+    {
+      "sample_id": "ocr_000404",
+      "reference": "2BJ-2827",
+      "hypothesis": "4INM2BJ-2827",
+      "cer": 0.5,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000405",
+      "reference": "287.5486/",
+      "hypothesis": "287.5486|",
+      "cer": 0.1111,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000406",
+      "reference": "28K25367",
+      "hypothesis": "28K25367",
+      "cer": 0.0,
+      "exact_match": true
+    },
+    {
+      "sample_id": "ocr_000407",
+      "reference": "2BK-9417",
+      "hypothesis": "DNM2BK-9417",
+      "cer": 0.375,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000408",
+      "reference": "NINM",
+      "hypothesis": "KLIMER2ACUMMORADALNINM2B83416",
+      "cer": 6.25,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000409",
+      "reference": "288-00837",
+      "hypothesis": "288-00837",
+      "cer": 0.0,
+      "exact_match": true
+    },
+    {
+      "sample_id": "ocr_000410",
+      "reference": "\"2852",
+      "hypothesis": "(2BN\"2852",
+      "cer": 0.8,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000411",
+      "reference": "2BP-4896",
+      "hypothesis": "JINM2BP-4896KHNREFHK",
+      "cer": 1.5,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000412",
+      "reference": "2BP.9895",
+      "hypothesis": "JIND2BP.9895RALACN",
+      "cer": 1.25,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000413",
+      "reference": "2B0.1284",
+      "hypothesis": "HINM2B0.1284",
+      "cer": 0.5,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000414",
+      "reference": "2B0-3170",
+      "hypothesis": "ONM2B0-3170",
+      "cer": 0.375,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000415",
+      "reference": "2BR-0278",
+      "hypothesis": "OACPRKOR2BR-0278",
+      "cer": 1.0,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000416",
+      "reference": "2BS-1605",
+      "hypothesis": "JINM2BS-1605FHYOV",
+      "cer": 1.125,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000417",
+      "reference": "$Q2BS-3290",
+      "hypothesis": "$IQ2BS-3290",
+      "cer": 0.1,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000418",
+      "reference": "2",
+      "hypothesis": "2",
+      "cer": 0.0,
+      "exact_match": true
+    },
+    {
+      "sample_id": "ocr_000419",
+      "reference": "2B1.3987",
+      "hypothesis": "FENCPHNG2B1.3987",
+      "cer": 1.0,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000420",
+      "reference": "2BT-5126",
+      "hypothesis": "4INC2BT-5126",
+      "cer": 0.5,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000421",
+      "reference": "2B1-6322",
+      "hypothesis": "HALAAH2B1-6322",
+      "cer": 0.75,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000422",
+      "reference": "$NQ2BV-4081",
+      "hypothesis": "$NQ2BV-4081PMHCNPEHM",
+      "cer": 0.8182,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000423",
+      "reference": "28474562",
+      "hypothesis": "280174562",
+      "cer": 0.25,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000424",
+      "reference": "2B0-7100",
+      "hypothesis": "#OM2B0-7100",
+      "cer": 0.375,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000425",
+      "reference": "2BY:7183|",
+      "hypothesis": "DINGKHOV=0A42BY:7183|",
+      "cer": 1.3333,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000426",
+      "reference": "21-4404",
+      "hypothesis": "21-4404DINC",
+      "cer": 0.5714,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000427",
+      "reference": "2K-1668",
+      "hypothesis": "GINNTT2K-1668",
+      "cer": 0.8571,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000428",
+      "reference": "22.362",
+      "hypothesis": "27.362",
+      "cer": 0.1667,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000429",
+      "reference": "2P.907",
+      "hypothesis": "2P.907",
+      "cer": 0.0,
+      "exact_match": true
+    },
+    {
+      "sample_id": "ocr_000430",
+      "reference": "206035",
+      "hypothesis": "6L7M]206035",
+      "cer": 0.8333,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000431",
+      "reference": "20.8364",
+      "hypothesis": "DNM20.8364",
+      "cer": 0.4286,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000432",
+      "reference": "'M9U",
+      "hypothesis": "\"M9U",
+      "cer": 0.25,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000433",
+      "reference": "2R.2094",
+      "hypothesis": "2R.2094",
+      "cer": 0.0,
+      "exact_match": true
+    },
+    {
+      "sample_id": "ocr_000434",
+      "reference": "2R-7999",
+      "hypothesis": "6INM2R.7999",
+      "cer": 0.7143,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000435",
+      "reference": "2R-8900",
+      "hypothesis": "JND2R-8900",
+      "cer": 0.4286,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000436",
+      "reference": "[2*4773",
+      "hypothesis": "DING[2T*4773",
+      "cer": 0.7143,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000437",
+      "reference": "I21P5384",
+      "hypothesis": "I215384",
+      "cer": 0.125,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000438",
+      "reference": "23162",
+      "hypothesis": "283162",
+      "cer": 0.2,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000439",
+      "reference": "24I7I09",
+      "hypothesis": "24I.7IO9",
+      "cer": 0.2857,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000440",
+      "reference": "22-1950",
+      "hypothesis": "0TG622-1950",
+      "cer": 0.5714,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000441",
+      "reference": "5288",
+      "hypothesis": "528822755",
+      "cer": 1.25,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000442",
+      "reference": "22.5980",
+      "hypothesis": "JN/22.5980",
+      "cer": 0.4286,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000443",
+      "reference": "JB8508",
+      "hypothesis": "QIOGJB8508",
+      "cer": 0.6667,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000444",
+      "reference": "E-03181",
+      "hypothesis": "EC.03184",
+      "cer": 0.4286,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000445",
+      "reference": "3C-460]",
+      "hypothesis": "3C-460]",
+      "cer": 0.0,
+      "exact_match": true
+    },
+    {
+      "sample_id": "ocr_000446",
+      "reference": "30,8791",
+      "hypothesis": "30,8791",
+      "cer": 0.0,
+      "exact_match": true
+    },
+    {
+      "sample_id": "ocr_000447",
+      "reference": "30-9763",
+      "hypothesis": "JTEIGDQ30-9763",
+      "cer": 1.0,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000448",
+      "reference": "3F-4013",
+      "hypothesis": "DITM3F-4013",
+      "cer": 0.5714,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000449",
+      "reference": "36-9296",
+      "hypothesis": "36-9296",
+      "cer": 0.0,
+      "exact_match": true
+    },
+    {
+      "sample_id": "ocr_000450",
+      "reference": "2AE-7034\"",
+      "hypothesis": "DNM2AE-7034\"",
+      "cer": 0.3333,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000451",
+      "reference": "2AX-0041",
+      "hypothesis": "FINM2AX-0041",
+      "cer": 0.5,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000452",
+      "reference": "24-7875",
+      "hypothesis": "24-7875APN?",
+      "cer": 0.5714,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000453",
+      "reference": "3A06794",
+      "hypothesis": "3A-06794",
+      "cer": 0.1429,
+      "exact_match": false
+    },
+    {
+      "sample_id": "ocr_000454",
+      "reference": "21.3139",
+      "hypothesis": "DUNTA21.3139",
+      "cer": 0.7143,
+      "exact_match": false
+    }
+  ]
+}

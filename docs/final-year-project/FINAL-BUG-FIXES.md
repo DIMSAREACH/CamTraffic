@@ -56,7 +56,7 @@ All required files and directories confirmed present across all 13 phases.
 
 ## 5. Final Pre-Submission Checklist
 
-- [x] All Phase 1–13 tasks marked complete in `CHECKLIST.md`
+- [x] All Phase 1–13 tasks marked complete in `CHECKLIST-MASTER.md`
 - [x] No secrets or credentials in git history
 - [x] `.env.example` files present for all services
 - [x] `docker-compose.yml` builds and starts cleanly

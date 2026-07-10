@@ -1,0 +1,14 @@
+{
+    "success":  true,
+    "data":  {
+                 "total_cameras":  0,
+                 "healthy_cameras":  0,
+                 "warning_cameras":  0,
+                 "critical_cameras":  0,
+                 "unknown_cameras":  0,
+                 "stale_check_cameras":  0,
+                 "cameras":  [
+
+                             ]
+             }
+}

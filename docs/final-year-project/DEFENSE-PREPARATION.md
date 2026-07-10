@@ -92,7 +92,7 @@
 
 **Q: How did you manage a 160-task project alone?**
 
-> "I organized the project into 13 phases with an enterprise checklist in `docs/CHECKLIST.md`. Each phase had clear deliverables and was tracked as a git commit. I used a monorepo (Turborepo) to keep all services in sync and shared packages to avoid duplication."
+> "I organized the project into structured phases with an enterprise checklist in `docs/CHECKLIST-MASTER.md`. Each phase had clear deliverables and was tracked as a git commit. I used a monorepo (Turborepo) to keep all services in sync and shared packages to avoid duplication."
 
 ---
 

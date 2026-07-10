@@ -1,7 +1,7 @@
 {
   "task": 139,
   "status": "passed",
-  "generated_at": "2026-07-09T07:41:30.225867+00:00",
+  "generated_at": "2026-07-09T07:58:18.754137+00:00",
   "images_dir": "data/datasets/annotations/exports/BATCH-REF-PROH-001/images",
   "labels_dir": "data/datasets/annotations/exports/BATCH-REF-PROH-001/labels",
   "summary": {

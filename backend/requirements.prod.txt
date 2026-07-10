@@ -1,0 +1,4 @@
+# Production dependencies — CamTraffic Backend
+-r requirements.txt
+
+gunicorn>=23.0,<24.0

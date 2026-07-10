@@ -1,0 +1,16 @@
+# Task 132 — OCR recognition dataset config (paths relative to ai-service/)
+
+manifest: data/datasets/manifests/ocr_manifest.csv
+output_dir: runs/ocr/dataset
+languages:
+  - en
+train_ratio: 0.75
+val_ratio: 0.15
+# Remaining rows are assigned to test when split column is empty
+seed: 42
+
+# Plate classes exported from YOLO (see labels/yolo/class-map.json)
+plate_class_ids:
+  - 14  # license_plate_kh_private
+  - 15  # license_plate_kh_commercial
+  - 16  # license_plate_kh_government

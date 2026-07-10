@@ -1,0 +1,178 @@
+# CamTraffic — Production Docker Compose (Task 121)
+# Usage:
+#   cp deploy/env/.env.production.example .env.production
+#   docker compose -f deploy/docker/docker-compose.prod.yml --env-file .env.production up --build -d
+
+name: camtraffic-prod
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - camtraffic
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - camtraffic
+
+  backend:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.backend.prod
+    restart: unless-stopped
+    env_file:
+      - ../../.env.production
+    environment:
+      CAMTRAFFIC_ENV: production
+      CAMTRAFFIC_DOCKER: 'true'
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: '5432'
+      REDIS_URL: redis://redis:6379/0
+      DJANGO_SETTINGS_MODULE: config.settings.production
+    volumes:
+      - media_data:/app/media
+      - static_data:/app/staticfiles
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'python', '-c', "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    networks:
+      - camtraffic
+
+  celery-worker:
+    build:
+      context: ../..
+      dockerfile: deploy/celery/Dockerfile.worker
+    restart: unless-stopped
+    env_file:
+      - ../../.env.production
+    environment:
+      CAMTRAFFIC_ENV: production
+      POSTGRES_HOST: postgres
+      REDIS_URL: redis://redis:6379/0
+      DJANGO_SETTINGS_MODULE: config.settings.production
+    depends_on:
+      backend:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - camtraffic
+
+  celery-beat:
+    build:
+      context: ../..
+      dockerfile: deploy/celery/Dockerfile.worker
+    restart: unless-stopped
+    env_file:
+      - ../../.env.production
+    environment:
+      CAMTRAFFIC_ENV: production
+      POSTGRES_HOST: postgres
+      REDIS_URL: redis://redis:6379/0
+      DJANGO_SETTINGS_MODULE: config.settings.production
+    command: ['celery', '-A', 'config', 'beat', '-l', 'info']
+    depends_on:
+      backend:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - camtraffic
+
+  ai-service:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.ai-service.prod
+    restart: unless-stopped
+    env_file:
+      - ../../.env.production
+    environment:
+      CAMTRAFFIC_ENV: production
+    volumes:
+      - ai_models:/app/models
+      - ai_data:/app/data
+    healthcheck:
+      test: ['CMD', 'python', '-c', "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - camtraffic
+
+  nginx:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.nginx.prod
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_AI_SERVICE_URL: ${VITE_AI_SERVICE_URL}
+    restart: unless-stopped
+    ports:
+      - '${NGINX_HTTP_PORT:-80}:80'
+      - '${NGINX_HTTPS_PORT:-443}:443'
+    volumes:
+      - static_data:/var/www/static:ro
+      - media_data:/var/www/media:ro
+      - certbot_www:/var/www/certbot
+      - certbot_certs:/etc/letsencrypt
+    depends_on:
+      backend:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+    networks:
+      - camtraffic
+
+  certbot:
+    image: certbot/certbot:latest
+    profiles: ['ssl']
+    volumes:
+      - certbot_www:/var/www/certbot
+      - certbot_certs:/etc/letsencrypt
+    entrypoint: /bin/sh
+    command: -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h; done"
+
+volumes:
+  postgres_data:
+  redis_data:
+  media_data:
+  static_data:
+  ai_models:
+  ai_data:
+  certbot_www:
+  certbot_certs:
+
+networks:
+  camtraffic:
+    driver: bridge

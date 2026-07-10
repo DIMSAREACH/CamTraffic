@@ -11,8 +11,9 @@
 
 | Portal | URL | For |
 |--------|-----|-----|
-| Admin & Officer Portal | `http://your-domain:5173` | Admins and Officers |
-| Driver Portal | `http://your-domain:5174` | Registered Drivers |
+| Admin Portal | `https://admin.camtraffic.kh` | Super Admin / Admin |
+| Officer & Driver Portal | `https://app.camtraffic.kh` | Officers and Drivers |
+| API Base | `https://api.camtraffic.kh/api/v1/` | API clients |
 
 ### 1.2 Logging In
 
@@ -26,6 +27,19 @@
 ### 1.3 Language
 
 Click the language toggle (🌐) in the top-right corner to switch between **English** and **Khmer**.
+
+### 1.4 Real Screenshots (Deployed Stack)
+
+Captured from the deployed CamTraffic web portal (local production validation run):
+
+![Admin Login](./assets/screenshots/admin-login.png)
+
+![Admin Dashboard](./assets/screenshots/admin-dashboard.png)
+
+Additional capture artifacts:
+- `docs/assets/screenshots/admin-cameras.png`
+- `docs/assets/screenshots/admin-reports.png`
+- `docs/assets/screenshots/admin-monitoring.png`
 
 ---
 
