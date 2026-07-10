@@ -40,8 +40,11 @@ export function Map({
         <p className="ct-map__placeholder-text">
           Map View - Center: {center.lat.toFixed(4)}, {center.lng.toFixed(4)}
         </p>
+        <p className="ct-map__placeholder-info">Zoom: {zoom}</p>
         {markers.length > 0 ? (
-          <p className="ct-map__placeholder-info">{markers.length} markers</p>
+          <p className="ct-map__placeholder-info">
+            {markers.length} markers{onMarkerClick ? ' (click handler attached)' : ''}
+          </p>
         ) : null}
         <small className="ct-map__placeholder-note">
           React Leaflet integration pending

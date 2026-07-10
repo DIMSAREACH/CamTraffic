@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Button, Card, Input, Checkbox, LocaleToggle, ThemeToggle, useTranslation } from '@camtraffic/ui';
+import { Button, Input, Checkbox, LocaleToggle, ThemeToggle, useTranslation } from '@camtraffic/ui';
 
 interface LoginFormProps {
   onSubmit: (email: string, password: string, rememberMe: boolean) => Promise<void>;
@@ -18,15 +18,15 @@ export function LoginForm({ onSubmit, onForgotPassword, isLoading, errorMessage 
 
   const emailError = useMemo(() => {
     if (!touched) return '';
-    if (!email.trim()) return t.validation?.required || 'Email is required.';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return t.validation?.invalidEmail || 'Invalid email format.';
+    if (!email.trim()) return 'Email is required.';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Invalid email format.';
     return '';
   }, [email, touched, t]);
 
   const passwordError = useMemo(() => {
     if (!touched) return '';
-    if (!password.trim()) return t.validation?.required || 'Password is required.';
-    if (password.length < 6) return t.validation?.minLength?.replace('{min}', '6') || 'Password must be at least 6 characters.';
+    if (!password.trim()) return 'Password is required.';
+    if (password.length < 6) return 'Password must be at least 6 characters.';
     return '';
   }, [password, touched, t]);
 

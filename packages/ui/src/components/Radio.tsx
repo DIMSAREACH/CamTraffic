@@ -6,7 +6,7 @@ export interface RadioOption {
   label: string;
 }
 
-export interface RadioGroupProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {
+export interface RadioGroupProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'onChange'> {
   label?: string;
   error?: string;
   hint?: string;

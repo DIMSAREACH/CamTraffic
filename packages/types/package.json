@@ -15,7 +15,7 @@
     "./api/*": "./src/api/*.ts"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --build --force",
     "typecheck": "tsc --noEmit",
     "clean": "rimraf dist"
   },

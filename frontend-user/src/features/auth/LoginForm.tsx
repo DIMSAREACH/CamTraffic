@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { Button, Card, Input, Checkbox, LocaleToggle, ThemeToggle, useTranslation } from '@camtraffic/ui';
+import { Button, Input, Checkbox, LocaleToggle, ThemeToggle, useTranslation } from '@camtraffic/ui';
 
 interface LoginFormProps {
   onSubmit: (email: string, password: string, rememberMe: boolean) => Promise<void>;
@@ -18,15 +18,15 @@ export function LoginForm({ onSubmit, onForgotPassword, isLoading, errorMessage 
 
   const emailError = useMemo(() => {
     if (!touched) return '';
-    if (!email.trim()) return t.validation?.required || 'Email is required.';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return t.validation?.invalidEmail || 'Invalid email format.';
+    if (!email.trim()) return 'Email is required.';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Invalid email format.';
     return '';
   }, [email, touched, t]);
 
   const passwordError = useMemo(() => {
     if (!touched) return '';
-    if (!password.trim()) return t.validation?.required || 'Password is required.';
-    if (password.length < 6) return t.validation?.minLength?.replace('{min}', '6') || 'Password must be at least 6 characters.';
+    if (!password.trim()) return 'Password is required.';
+    if (password.length < 6) return 'Password must be at least 6 characters.';
     return '';
   }, [password, touched, t]);
 
@@ -75,8 +75,8 @@ export function LoginForm({ onSubmit, onForgotPassword, isLoading, errorMessage 
                 <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
                 <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
               </svg>
-              <h3>{t.auth?.officerPortal || 'Traffic Officers'}</h3>
-              <p>{t.auth?.officerWelcome || 'Manage violations, review detections, and enforce traffic laws.'}</p>
+              <h3>Traffic Officers</h3>
+              <p>Manage violations, review detections, and enforce traffic laws.</p>
             </div>
             
             <div className="user-auth-page__role-card">
@@ -85,8 +85,8 @@ export function LoginForm({ onSubmit, onForgotPassword, isLoading, errorMessage 
                 <path d="M12 16v-4"/>
                 <path d="M12 8h.01"/>
               </svg>
-              <h3>{t.auth?.driverPortal || 'Drivers & Citizens'}</h3>
-              <p>{t.auth?.driverWelcome || 'Check violations, submit appeals, and stay informed.'}</p>
+              <h3>Drivers & Citizens</h3>
+              <p>Check violations, submit appeals, and stay informed.</p>
             </div>
           </div>
 
@@ -107,7 +107,7 @@ export function LoginForm({ onSubmit, onForgotPassword, isLoading, errorMessage 
         <div className="user-auth-page__form-container">
           <header className="user-auth-page__form-header">
             <h2>{t.auth.login}</h2>
-            <p>{t.auth?.loginSubtitle || 'Access your account'}</p>
+            <p>Access your account</p>
           </header>
 
           <form className="user-auth-form" onSubmit={handleSubmit} noValidate>
@@ -195,7 +195,7 @@ export function LoginForm({ onSubmit, onForgotPassword, isLoading, errorMessage 
           </form>
 
           <div className="user-auth-page__help">
-            <p>{t.auth?.noAccount || "Don't have an account?"} <a href="/register">{t.auth?.signUp || 'Sign up'}</a></p>
+            <p>Don&apos;t have an account? <a href="/register">Sign up</a></p>
           </div>
         </div>
       </section>
