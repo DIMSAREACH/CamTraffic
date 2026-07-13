@@ -2,11 +2,46 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, generics, status
 from rest_framework.permissions import IsAuthenticated
 
-from core.permissions import IsAdmin
+from django.utils import timezone
+from rest_framework.views import APIView
+
+from core.permissions import IsAdmin, IsPoliceOrAdmin
 from core.responses import error_response, success_response
 
 from .models import Camera, Road
 from .serializers import CameraSerializer, RoadSerializer
+
+
+class CameraLiveStatusView(APIView):
+    """Polling endpoint for live dashboard camera health (Task 303)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        qs = Camera.objects.select_related('road').order_by('road__name', 'name')
+        status_filter = request.query_params.get('status')
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+        cameras = [
+            {
+                'id': str(c.id),
+                'name': c.name,
+                'code': c.code,
+                'status': c.status,
+                'road': c.road.name if c.road_id else '',
+                'last_ping': c.last_ping.isoformat() if c.last_ping else None,
+                'detection_count_today': c.detection_count_today,
+                'frame_source_url': c.frame_source_url,
+            }
+            for c in qs[:100]
+        ]
+        active = sum(1 for c in cameras if c['status'] == 'active')
+        offline = sum(1 for c in cameras if c['status'] in ('offline', 'inactive'))
+        return success_response({
+            'cameras': cameras,
+            'summary': {'total': len(cameras), 'active': active, 'offline': offline},
+            'polled_at': timezone.now().isoformat(),
+        })
 
 
 class RoadListCreateView(generics.ListCreateAPIView):
@@ -64,9 +99,14 @@ class RoadDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class CameraListCreateView(generics.ListCreateAPIView):
-    permission_classes = [IsAuthenticated, IsAdmin]
+    permission_classes = [IsAuthenticated, IsPoliceOrAdmin]
     serializer_class = CameraSerializer
     queryset = Camera.objects.select_related('road').all()
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsAuthenticated(), IsAdmin()]
+        return super().get_permissions()
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['road', 'camera_type', 'status', 'road__city']
     search_fields = ['name', 'code', 'model', 'road__name']
@@ -90,9 +130,14 @@ class CameraListCreateView(generics.ListCreateAPIView):
 
 
 class CameraDetailView(generics.RetrieveUpdateDestroyAPIView):
-    permission_classes = [IsAuthenticated, IsAdmin]
+    permission_classes = [IsAuthenticated, IsPoliceOrAdmin]
     serializer_class = CameraSerializer
     queryset = Camera.objects.select_related('road').all()
+
+    def get_permissions(self):
+        if self.request.method in ('PUT', 'PATCH', 'DELETE'):
+            return [IsAuthenticated(), IsAdmin()]
+        return super().get_permissions()
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()

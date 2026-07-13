@@ -1,0 +1,173 @@
+# CamTraffic — production stack (8 services)
+# Usage:
+#   cp deploy/env/.env.production.example deploy/env/.env.production
+#   npm run docker:prod:up
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-camtraffic_db}
+      POSTGRES_USER: ${DB_USER:-camtraffic}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-camtraffic} -d ${DB_NAME:-camtraffic_db}']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.backend.prod
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+    restart: unless-stopped
+    env_file:
+      - ../env/.env.production
+    environment:
+      DOCKER: '1'
+      USE_SQLITE: 'False'
+      USE_REDIS: 'True'
+      DB_HOST: postgres
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      DJANGO_LOG_LEVEL: ${DJANGO_LOG_LEVEL:-INFO}
+    volumes:
+      - media:/app/backend/media
+      - app_logs:/app/backend/logs
+      - backups:/app/backend/backups
+      - ../../ai/weights:/app/ai/weights:ro
+    expose:
+      - '8000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             gunicorn -c /app/deploy/gunicorn/gunicorn.conf.py camtraffic.wsgi:application"
+
+  celery-worker:
+    build:
+      context: ../..
+      dockerfile: deploy/celery/Dockerfile.worker
+    restart: unless-stopped
+    env_file:
+      - ../env/.env.production
+    environment:
+      DOCKER: '1'
+      USE_SQLITE: 'False'
+      USE_REDIS: 'True'
+      DB_HOST: postgres
+      CELERY_BROKER_URL: redis://redis:6379/1
+      DJANGO_LOG_LEVEL: ${DJANGO_LOG_LEVEL:-INFO}
+    volumes:
+      - media:/app/backend/media
+      - app_logs:/app/backend/logs
+      - ../../ai/weights:/app/ai/weights:ro
+    depends_on:
+      backend:
+        condition: service_started
+      redis:
+        condition: service_healthy
+
+  celery-beat:
+    build:
+      context: ../..
+      dockerfile: deploy/celery/Dockerfile.worker
+    restart: unless-stopped
+    env_file:
+      - ../env/.env.production
+    environment:
+      DOCKER: '1'
+      USE_SQLITE: 'False'
+      DB_HOST: postgres
+      CELERY_BROKER_URL: redis://redis:6379/1
+    command: celery -A camtraffic beat -l info
+    depends_on:
+      redis:
+        condition: service_healthy
+      celery-worker:
+        condition: service_started
+
+  ai-worker:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.ai-service.prod
+    restart: unless-stopped
+    env_file:
+      - ../env/.env.production
+    environment:
+      DOCKER: '1'
+      USE_SQLITE: 'False'
+      USE_REDIS: 'True'
+      DB_HOST: postgres
+      CELERY_BROKER_URL: redis://redis:6379/1
+      DJANGO_LOG_LEVEL: ${DJANGO_LOG_LEVEL:-INFO}
+    volumes:
+      - media:/app/backend/media
+      - app_logs:/app/backend/logs
+      - ../../ai/weights:/app/ai/weights:ro
+    depends_on:
+      backend:
+        condition: service_started
+      redis:
+        condition: service_healthy
+
+  nginx:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.nginx.prod
+      args:
+        VITE_API_URL: https://${DOMAIN_API:-api.camtraffic.store}/api
+    restart: unless-stopped
+    ports:
+      - '${HTTP_PORT:-80}:80'
+      - '${HTTPS_PORT:-443}:443'
+    environment:
+      DOMAIN_WWW: ${DOMAIN_WWW:-www.camtraffic.store}
+      DOMAIN_ADMIN: ${DOMAIN_ADMIN:-admin.camtraffic.store}
+      DOMAIN_USER: ${DOMAIN_USER:-app.camtraffic.store}
+      DOMAIN_API: ${DOMAIN_API:-api.camtraffic.store}
+    volumes:
+      - certbot_www:/var/www/certbot
+      - certbot_certs:/etc/letsencrypt
+    depends_on:
+      backend:
+        condition: service_started
+
+  certbot:
+    image: certbot/certbot:latest
+    profiles: ['ssl']
+    volumes:
+      - certbot_www:/var/www/certbot
+      - certbot_certs:/etc/letsencrypt
+    entrypoint: /bin/sh
+    command: -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot; sleep 12h; done"
+
+volumes:
+  pgdata:
+  redisdata:
+  media:
+  app_logs:
+  backups:
+  certbot_www:
+  certbot_certs:

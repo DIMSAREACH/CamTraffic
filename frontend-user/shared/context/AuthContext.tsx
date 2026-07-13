@@ -1,13 +1,8 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, type ReactNode } from 'react';
+import { useAuthStore } from '@camtraffic/store';
+import { AUTH_SESSION_EXPIRED } from '@camtraffic/store';
 import type { User, AuthResponse, LoginOptions } from '../types';
 import { authAPI } from '../services/api';
-import {
-  clearAuthSession,
-  loadAuthSession,
-  saveAuthSession,
-  saveAuthUser,
-} from '@shared/utils/authStorage';
-import { AUTH_SESSION_EXPIRED } from '@shared/utils/authEvents';
 
 interface AuthContextType {
   user: User | null;
@@ -22,34 +17,24 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const user = useAuthStore((s) => s.user);
+  const token = useAuthStore((s) => s.token);
+  const isLoading = useAuthStore((s) => s.isLoading);
+  const hydrated = useAuthStore((s) => s.hydrated);
+  const hydrate = useAuthStore((s) => s.hydrate);
+  const setSession = useAuthStore((s) => s.setSession);
+  const clearSession = useAuthStore((s) => s.clearSession);
+  const updateUser = useAuthStore((s) => s.updateUser);
 
   useEffect(() => {
-    const session = loadAuthSession();
-    if (session) {
-      setToken(session.token);
-      setUser(session.user);
-    }
-    setIsLoading(false);
-  }, []);
+    if (!hydrated) hydrate();
+  }, [hydrate, hydrated]);
 
   useEffect(() => {
-    const onSessionExpired = () => {
-      setToken(null);
-      setUser(null);
-      clearAuthSession();
-    };
+    const onSessionExpired = () => clearSession();
     window.addEventListener(AUTH_SESSION_EXPIRED, onSessionExpired);
     return () => window.removeEventListener(AUTH_SESSION_EXPIRED, onSessionExpired);
-  }, []);
-
-  const setSession = (response: AuthResponse, remember = true) => {
-    setToken(response.access);
-    setUser(response.user);
-    saveAuthSession(response, remember);
-  };
+  }, [clearSession]);
 
   const login = async (
     email: string,
@@ -66,14 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await authAPI.logout();
     } catch { /* ignore */ }
-    setToken(null);
-    setUser(null);
-    clearAuthSession();
-  };
-
-  const updateUser = (updated: User) => {
-    setUser(updated);
-    saveAuthUser(updated);
+    clearSession();
   };
 
   return (
@@ -88,3 +66,5 @@ export function useAuth() {
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');
   return ctx;
 }
+
+export { useAuthStore };

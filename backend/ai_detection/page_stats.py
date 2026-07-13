@@ -5,6 +5,7 @@ from pathlib import Path
 from django.conf import settings
 from django.db.models import Avg, Count
 
+from core.media_urls import api_media_url
 from traffic_signs.models import TrafficSign
 
 from .models import AIDetectionLog
@@ -133,9 +134,7 @@ def get_ai_detection_page_stats(user, request=None):
     sample_signs = []
     for sign in signs.order_by('-image', 'sign_code')[:20]:
         meta = CATEGORY_UI.get(sign.category, CATEGORY_UI['warning'])
-        image_url = ''
-        if sign.image:
-            image_url = request.build_absolute_uri(sign.image.url) if request else sign.image.url
+        image_url = api_media_url(request, sign.image) if sign.image else ''
         sample_signs.append({
             'id': sign.id,
             'sign_name': sign.sign_name,

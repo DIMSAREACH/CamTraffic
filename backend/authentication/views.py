@@ -16,6 +16,7 @@ from .password_reset import PasswordResetError, request_password_reset
 from .serializers import (
     ChangePasswordSerializer,
     CustomTokenObtainPairSerializer,
+    EmailVerifyConfirmSerializer,
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
     RegisterSerializer,
@@ -26,6 +27,7 @@ User = get_user_model()
 
 class LoginView(TokenObtainPairView):
     permission_classes = [AllowAny]
+    throttle_classes = []
     serializer_class = CustomTokenObtainPairSerializer
 
     def post(self, request, *args, **kwargs):
@@ -158,3 +160,36 @@ class PasswordResetConfirmView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return success_response(message='Password reset successful')
+
+
+class EmailVerifySendView(APIView):
+    """Resend email verification link to the authenticated user."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        if user.email_verified:
+            return success_response(message='Email is already verified.')
+        from .email_verification import request_email_verification
+
+        try:
+            request_email_verification(user)
+        except ValueError as exc:
+            return error_response(str(exc), status_code=status.HTTP_400_BAD_REQUEST)
+        except Exception:
+            logging.getLogger(__name__).exception('Email verification send failed')
+            return error_response(
+                'Could not send the verification email. Please try again later.',
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        return success_response(message=f'Verification link sent to {user.email}.')
+
+
+class EmailVerifyConfirmView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = EmailVerifyConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return success_response(message='Email verified successfully')

@@ -1,23 +1,32 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router';
 import { Shield } from 'lucide-react';
 import { AdminSidebar } from '@admin/layout/AdminSidebar';
 import { Navbar } from '@shared/layout/Navbar';
+import { SkipToMainLink } from '@shared/components/a11y/SkipToMainLink';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { useSidebarState } from '@shared/hooks/useSidebarState';
 import { useLiveData } from '@shared/hooks/useLiveData';
 import { getUserDevUrl } from '@shared/utils/portal';
 import { notificationsAPI } from '@shared/services/api';
+import { AdminFooter } from '@admin/layout/AdminFooter';
 import { cn } from '@shared/components/ui/utils';
 
 export function AdminLayout() {
   const { user, isLoading } = useAuth();
-  const { locale } = useLanguage();
+  const { locale, t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const { collapsed, mobileOpen, toggleCollapsed, openMobile, closeMobile } = useSidebarState('admin');
   const [unreadCount, setUnreadCount] = useState(0);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const mobileDrawerRef = useRef<HTMLDivElement>(null);
+
+  const closeMobileWithFocus = useCallback(() => {
+    closeMobile();
+    requestAnimationFrame(() => menuButtonRef.current?.focus());
+  }, [closeMobile]);
 
   useEffect(() => {
     if (!isLoading && !user) navigate('/');
@@ -50,11 +59,17 @@ export function AdminLayout() {
   useEffect(() => {
     if (!mobileOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeMobile();
+      if (e.key === 'Escape') closeMobileWithFocus();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [mobileOpen, closeMobile]);
+  }, [mobileOpen, closeMobileWithFocus]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const firstLink = mobileDrawerRef.current?.querySelector<HTMLElement>('a[href], button:not([disabled])');
+    firstLink?.focus();
+  }, [mobileOpen]);
 
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? 'hidden' : '';
@@ -94,8 +109,10 @@ export function AdminLayout() {
         collapsed && 'app-shell--sidebar-collapsed',
       )}
     >
+      <SkipToMainLink />
       <div className="hidden lg:flex flex-shrink-0 h-full">
         <AdminSidebar
+          key={locale}
           collapsed={collapsed}
           onToggle={toggleCollapsed}
           unreadCount={unreadCount}
@@ -109,12 +126,20 @@ export function AdminLayout() {
         <button
           type="button"
           className="sidebar-mobile-backdrop"
-          aria-label="Close menu"
+          aria-label={t('sidebar.closeMenu')}
           tabIndex={mobileOpen ? 0 : -1}
-          onClick={closeMobile}
+          onClick={closeMobileWithFocus}
         />
-        <div className="sidebar-mobile-drawer">
+        <div
+          id="mobile-sidebar-drawer"
+          ref={mobileDrawerRef}
+          className="sidebar-mobile-drawer"
+          role="dialog"
+          aria-modal={mobileOpen}
+          aria-label={t('sidebar.main')}
+        >
           <AdminSidebar
+            key={locale}
             collapsed={false}
             onToggle={closeMobile}
             unreadCount={unreadCount}
@@ -129,18 +154,21 @@ export function AdminLayout() {
           sidebarCollapsed={collapsed}
           onSidebarToggle={toggleCollapsed}
           onMobileMenuOpen={openMobile}
+          mobileMenuButtonRef={menuButtonRef}
+          mobileMenuOpen={mobileOpen}
         />
-        <main className={cn('flex-1 min-h-0', isCamerasPage ? 'overflow-hidden' : 'overflow-y-auto')}>
+        <main id="main-content" className="flex-1 min-h-0 overflow-y-auto" tabIndex={-1}>
           <div
             className={cn(
               'app-dashboard app-dashboard--admin relative',
-              isCamerasPage ? 'app-dashboard--cameras-route h-full' : '',
+              isCamerasPage ? 'app-dashboard--cameras-route' : '',
               isProfilePage ? 'app-dashboard--profile-route' : 'p-5 lg:p-6',
             )}
           >
             <Outlet key={locale} />
           </div>
         </main>
+        <AdminFooter />
       </div>
     </div>
   );

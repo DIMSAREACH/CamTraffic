@@ -10,15 +10,17 @@ export function DetectionDisplayImage({
   alt,
   variant,
   className = '',
+  fill = false,
 }: {
   src: string;
   alt: string;
   variant: Variant;
   className?: string;
+  fill?: boolean;
 }) {
   const [sharpSrc, setSharpSrc] = useState<string | null>(null);
   const imgClass =
-    `${variant === 'result' ? 'ai-detect-result-img' : 'ai-detect-preview-img'} ${className}`.trim();
+    `${variant === 'result' ? 'ai-detect-result-img' : 'ai-detect-preview-img'}${fill ? ' ai-detect-preview-img--fill' : ''} ${className}`.trim();
 
   useEffect(() => {
     let cancelled = false;
@@ -96,7 +98,7 @@ export function DetectionDisplayImage({
         decoding="sync"
         draggable={false}
         className={imgClass}
-        style={{ maxHeight: MAX_HEIGHT[variant] }}
+        style={fill ? undefined : { maxHeight: MAX_HEIGHT[variant] }}
       />
     </div>
   );

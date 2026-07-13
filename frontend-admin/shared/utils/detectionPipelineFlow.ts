@@ -24,12 +24,18 @@ export interface DetectionFlowSource {
   confidence?: number;
   detected_plate?: string;
   plate_confidence?: number;
-  vehicles?: Array<{ track_id?: number; label?: string; confidence?: number }>;
+  plate_province_en?: string;
+  plate_province_km?: string;
+  processing_time?: number;
+  vehicle_count?: number;
+  vehicles?: Array<{ track_id?: number; label?: string; confidence?: number; vehicle_type?: string }>;
+  plate_ocr_details?: Array<{ text: string; confidence: number; region?: string }>;
   violation_evaluation?: {
     is_violation?: boolean;
     title?: string;
+    violation_type?: string;
   };
-  violation?: { id?: number };
+  violation?: { id?: number; vehicle_plate?: string };
   log_id?: number;
   vehicle_snapshot?: string;
   plate_snapshot?: string;
@@ -40,6 +46,41 @@ export interface DetectionFlowSource {
     detail_km?: string;
     confidence?: number;
   }>;
+}
+
+const API_STEP_TO_FLOW_INDEX: Record<string, number> = {
+  upload: 0,
+  sign_detect: 1,
+  vehicle_detect: 2,
+  show_vehicle: 2,
+  plate_detect: 3,
+  plate_ocr: 3,
+  show_plate: 3,
+  violation_check: 4,
+  evidence_capture: 5,
+  save_record: 6,
+};
+
+const PIPELINE_PROGRESS_TARGETS = [10, 22, 36, 50, 64, 76, 90, 100];
+
+/** Jump progress to match completed backend pipeline steps after /ai/detect/ returns. */
+export function progressFromPipeline(pipeline: DetectionFlowSource['pipeline']): number {
+  if (!pipeline?.length) return 12;
+  let maxIndex = 0;
+  for (const step of pipeline) {
+    if (step.status === 'complete' || step.status === 'empty' || step.status === 'failed' || step.status === 'skipped') {
+      const idx = API_STEP_TO_FLOW_INDEX[step.id];
+      if (idx != null) maxIndex = Math.max(maxIndex, idx);
+    }
+  }
+  return PIPELINE_PROGRESS_TARGETS[Math.min(maxIndex, PIPELINE_PROGRESS_TARGETS.length - 1)] ?? 12;
+}
+
+export function pipelineStepById(
+  pipeline: DetectionFlowSource['pipeline'],
+  id: string,
+) {
+  return pipeline?.find((step) => step.id === id);
 }
 
 function pipelineById(pipeline: DetectionFlowSource['pipeline']) {
@@ -53,7 +94,8 @@ function pipelineById(pipeline: DetectionFlowSource['pipeline']) {
 function mapApiStatus(status: string | undefined): PipelineStepStatus {
   if (status === 'complete') return 'complete';
   if (status === 'failed') return 'failed';
-  if (status === 'skipped' || status === 'empty') return 'empty';
+  if (status === 'skipped') return 'skipped';
+  if (status === 'empty') return 'empty';
   if (status === 'active') return 'active';
   return 'pending';
 }
@@ -85,8 +127,6 @@ export function buildLoadingFlowSteps(progress: number): FlowStepView[] {
     detail_km: index < activeIndex ? 'រួចរាល់' : index === activeIndex ? 'កំពុងដំណើរការ…' : '',
   }));
 }
-
-const PIPELINE_PROGRESS_TARGETS = [10, 22, 36, 50, 64, 76, 90, 100];
 
 export function stepProgressWithinActive(globalProgress: number): {
   activeIndex: number;

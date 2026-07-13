@@ -1,0 +1,319 @@
+﻿/* ═══════════════════════════════════════════════════════════════
+   Portal colorful polish — vibrant heroes, KPI cards & panels
+   Restores dashboard-grade color across all management pages
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Colorful hero (match Admin Dashboard welcome banner) ───── */
+.enforcement-page {
+  --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #1e1b4b 48%, #134e4a 100%);
+}
+
+.enforcement-page__hero {
+  background: var(--enforcement-hero-bg) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.16);
+}
+
+html.dark .enforcement-page__hero {
+  background: var(--enforcement-hero-bg) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.38);
+}
+
+.enforcement-page__hero::after {
+  content: '';
+  position: absolute;
+  bottom: -45%;
+  left: 12%;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.2) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.enforcement-page__hero-glow--primary {
+  width: 18rem !important;
+  height: 18rem !important;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.3) 0%, transparent 70%) !important;
+}
+
+.enforcement-page__hero-glow--secondary {
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.22) 0%, transparent 70%) !important;
+}
+
+/* Default eyebrow — brand blue (enforcement pages override below) */
+.enforcement-page__eyebrow {
+  color: rgba(147, 197, 253, 0.95);
+}
+
+.enforcement-page__eyebrow-icon {
+  background: rgba(37, 99, 235, 0.22);
+  color: #93c5fd;
+  border: 1px solid rgba(147, 197, 253, 0.18);
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.18);
+}
+
+/* ── Colorful stat grid tray ─────────────────────────────────── */
+.enforcement-page__stat-grid {
+  padding: 1rem;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, #eef2ff 0%, #f0f9ff 42%, #ecfeff 100%);
+  border: 1px solid rgba(37, 99, 235, 0.12);
+  box-shadow: 0 10px 30px rgba(37, 99, 235, 0.07);
+}
+
+html.dark .enforcement-page__stat-grid {
+  background: linear-gradient(135deg, rgba(30, 27, 75, 0.55) 0%, rgba(15, 23, 42, 0.72) 100%);
+  border-color: rgba(96, 165, 250, 0.14);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+/* ── Tinted gradient stat cards ──────────────────────────────── */
+.enforcement-page__stat-card--violet {
+  background: linear-gradient(145deg, #ffffff 0%, #f5f3ff 100%) !important;
+  border-color: rgba(139, 92, 246, 0.22) !important;
+}
+
+.enforcement-page__stat-card--blue {
+  background: linear-gradient(145deg, #ffffff 0%, #eff6ff 100%) !important;
+  border-color: rgba(37, 99, 235, 0.2) !important;
+}
+
+.enforcement-page__stat-card--teal {
+  background: linear-gradient(145deg, #ffffff 0%, #ecfeff 100%) !important;
+  border-color: rgba(6, 182, 212, 0.2) !important;
+}
+
+.enforcement-page__stat-card--amber {
+  background: linear-gradient(145deg, #ffffff 0%, #fffbeb 100%) !important;
+  border-color: rgba(245, 158, 11, 0.22) !important;
+}
+
+.enforcement-page__stat-card--emerald {
+  background: linear-gradient(145deg, #ffffff 0%, #ecfdf5 100%) !important;
+  border-color: rgba(16, 185, 129, 0.2) !important;
+}
+
+.enforcement-page__stat-card--rose {
+  background: linear-gradient(145deg, #ffffff 0%, #fff1f2 100%) !important;
+  border-color: rgba(244, 63, 94, 0.2) !important;
+}
+
+.enforcement-page__stat-card--slate {
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%) !important;
+  border-color: rgba(100, 116, 139, 0.18) !important;
+}
+
+html.dark .enforcement-page__stat-card--violet {
+  background: linear-gradient(145deg, rgba(30, 27, 75, 0.65) 0%, rgba(46, 16, 101, 0.45) 100%) !important;
+  border-color: rgba(167, 139, 250, 0.22) !important;
+}
+
+html.dark .enforcement-page__stat-card--blue {
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 58, 138, 0.35) 100%) !important;
+  border-color: rgba(96, 165, 250, 0.22) !important;
+}
+
+html.dark .enforcement-page__stat-card--teal {
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.85) 0%, rgba(8, 145, 178, 0.28) 100%) !important;
+  border-color: rgba(34, 211, 238, 0.22) !important;
+}
+
+html.dark .enforcement-page__stat-card--amber {
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.85) 0%, rgba(180, 83, 9, 0.28) 100%) !important;
+  border-color: rgba(251, 191, 36, 0.22) !important;
+}
+
+html.dark .enforcement-page__stat-card--emerald {
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.85) 0%, rgba(5, 150, 105, 0.28) 100%) !important;
+  border-color: rgba(52, 211, 153, 0.22) !important;
+}
+
+html.dark .enforcement-page__stat-card--rose {
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.85) 0%, rgba(190, 18, 60, 0.28) 100%) !important;
+  border-color: rgba(251, 113, 133, 0.22) !important;
+}
+
+html.dark .enforcement-page__stat-card--slate {
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.88) 0%, rgba(51, 65, 85, 0.42) 100%) !important;
+  border-color: rgba(148, 163, 184, 0.24) !important;
+}
+
+.enforcement-page__stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 2px 4px rgba(15, 23, 42, 0.05),
+    0 12px 28px rgba(37, 99, 235, 0.1) !important;
+}
+
+html.dark .enforcement-page__stat-card:hover {
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.2),
+    0 12px 28px rgba(0, 0, 0, 0.32) !important;
+}
+
+.enforcement-page__stat-card--active {
+  box-shadow:
+    0 0 0 1px rgba(37, 99, 235, 0.14),
+    0 12px 32px rgba(37, 99, 235, 0.16) !important;
+}
+
+/* ── Panels — gradient top accent ────────────────────────────── */
+.enforcement-page__panel {
+  position: relative;
+  overflow: hidden;
+}
+
+.enforcement-page__panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #2563eb, #06b6d4, #8b5cf6);
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+/* ── Per-page hero accents ───────────────────────────────────── */
+.enforcement-page--fines,
+.enforcement-page--violations {
+  --enforcement-hero-bg: linear-gradient(135deg, #1a0a0a 0%, #450a0a 45%, #1e1b4b 100%);
+}
+
+.enforcement-page--fines .enforcement-page__eyebrow,
+.enforcement-page--violations .enforcement-page__eyebrow {
+  color: rgba(252, 165, 165, 0.95);
+}
+
+.enforcement-page--fines .enforcement-page__eyebrow-icon,
+.enforcement-page--violations .enforcement-page__eyebrow-icon {
+  background: rgba(239, 68, 68, 0.22);
+  color: #fca5a5;
+  border-color: rgba(252, 165, 165, 0.2);
+  box-shadow: 0 6px 18px rgba(239, 68, 68, 0.2);
+}
+
+.enforcement-page--vehicles,
+.enforcement-page--unknown {
+  --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #064e3b 48%, #1e1b4b 100%);
+}
+
+.enforcement-page--vehicles .enforcement-page__eyebrow,
+.enforcement-page--unknown .enforcement-page__eyebrow {
+  color: rgba(110, 231, 183, 0.95);
+}
+
+.enforcement-page--vehicles .enforcement-page__eyebrow-icon,
+.enforcement-page--unknown .enforcement-page__eyebrow-icon {
+  background: rgba(16, 185, 129, 0.22);
+  color: #6ee7b7;
+  border-color: rgba(110, 231, 183, 0.2);
+}
+
+.enforcement-page--users,
+.enforcement-page--roles,
+.enforcement-page--drivers,
+.enforcement-page--officers {
+  --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #2e1065 48%, #1e1b4b 100%);
+}
+
+.enforcement-page--users .enforcement-page__eyebrow,
+.enforcement-page--roles .enforcement-page__eyebrow,
+.enforcement-page--drivers .enforcement-page__eyebrow,
+.enforcement-page--officers .enforcement-page__eyebrow {
+  color: rgba(196, 181, 253, 0.98);
+}
+
+.enforcement-page--users .enforcement-page__eyebrow-icon,
+.enforcement-page--roles .enforcement-page__eyebrow-icon,
+.enforcement-page--drivers .enforcement-page__eyebrow-icon,
+.enforcement-page--officers .enforcement-page__eyebrow-icon {
+  background: rgba(139, 92, 246, 0.24);
+  color: #c4b5fd;
+  border-color: rgba(196, 181, 253, 0.2);
+}
+
+.enforcement-page--reports {
+  --enforcement-hero-bg: linear-gradient(135deg, #1a1208 0%, #451a03 42%, #1e1b4b 100%);
+}
+
+.enforcement-page--ai-dashboard,
+.enforcement-page--ai-center,
+.enforcement-page--ai-logs {
+  --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #312e81 48%, #0c4a6e 100%);
+}
+
+.enforcement-page--ai-dashboard .enforcement-page__eyebrow,
+.enforcement-page--ai-center .enforcement-page__eyebrow,
+.enforcement-page--ai-logs .enforcement-page__eyebrow {
+  color: rgba(165, 180, 252, 0.98);
+}
+
+.enforcement-page--ai-dashboard .enforcement-page__eyebrow-icon,
+.enforcement-page--ai-center .enforcement-page__eyebrow-icon,
+.enforcement-page--ai-logs .enforcement-page__eyebrow-icon {
+  background: rgba(99, 102, 241, 0.24);
+  color: #a5b4fc;
+  border-color: rgba(165, 180, 252, 0.2);
+}
+
+.enforcement-page--camera-locations,
+.enforcement-page--roads {
+  --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #1e3a8a 48%, #134e4a 100%);
+}
+
+.enforcement-page--appeals {
+  --enforcement-hero-bg: linear-gradient(135deg, #1a1208 0%, #78350f 42%, #1e1b4b 100%);
+}
+
+.enforcement-page--appeals .enforcement-page__eyebrow {
+  color: rgba(252, 211, 77, 0.95);
+}
+
+.enforcement-page--appeals .enforcement-page__eyebrow-icon {
+  background: rgba(245, 158, 11, 0.22);
+  color: #fcd34d;
+  border-color: rgba(252, 211, 77, 0.2);
+}
+
+.enforcement-page--profile {
+  --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #0c4a6e 48%, #1e1b4b 100%);
+}
+
+.enforcement-page--notifications {
+  --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #1e3a8a 48%, #312e81 100%);
+}
+
+.enforcement-page--evidence,
+.enforcement-page--audit {
+  --enforcement-hero-bg: linear-gradient(135deg, #0f172a 0%, #334155 48%, #1e1b4b 100%);
+}
+
+.enforcement-page--settings,
+.enforcement-page--backup {
+  --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #1e293b 48%, #1e1b4b 100%);
+}
+
+/* ── App shell — richer page background ──────────────────────── */
+:root {
+  --app-shell-bg: linear-gradient(160deg, #e8eef8 0%, #eef2ff 38%, #ecfeff 72%, #f0f4fa 100%);
+}
+
+.app-shell {
+  background: var(--app-shell-bg);
+}
+
+/* ── Secondary dashboard cards ───────────────────────────────── */
+.app-dashboard .admin-dashboard-secondary,
+.app-dashboard .dashboard-stat-card {
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+}
+
+.app-dashboard .admin-dashboard-chart,
+.app-dashboard .dashboard-chart-card {
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.07);
+}

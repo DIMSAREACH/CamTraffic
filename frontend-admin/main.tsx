@@ -6,6 +6,7 @@ import App from './App';
 import { initAppearanceFromStorage } from '@shared/context/AppearanceContext';
 import '@shared/styles/index.css';
 import '@shared/styles/auth.css';
+import '@shared/styles/ai-detection-center.css';
 
 initAppearanceFromStorage();
 

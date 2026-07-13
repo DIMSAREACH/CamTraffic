@@ -1,19 +1,19 @@
-import { Upload, Camera, ArrowRight, Image as ImageIcon, Film } from 'lucide-react';
+import { Upload, Camera, ArrowRight, Sparkles } from 'lucide-react';
 import { LiveWebcamPanel } from '@shared/components/ai/LiveWebcamPanel';
 import { DemoObservedActionSelect } from '@shared/components/ai/DemoObservedActionSelect';
 import { DetectionDisplayImage } from '@shared/components/ai/DetectionDisplayImage';
 import { DetectionPanelHeader, DetectionPanelBody } from '@shared/components/ai/DetectionPanelHeader';
-import { DETECTION_HEADER_GRADIENTS } from '@shared/components/ai/detectionHeaderGradients';
+import { DETECTION_HEADER_GRADIENTS, DETECTION_HEADER_ICON_ACCENTS } from '@shared/components/ai/detectionHeaderGradients';
 import { useLanguage } from '@shared/context/LanguageContext';
 import type { DetectPipelineOptions } from '@shared/constants/observedActions';
 import type { WebcamDetectionResult } from '@shared/hooks/useWebcamDetection';
 import { DEFAULT_PAGE_STATS, resolveSampleSignImage } from '@shared/constants/defaultPageStats';
+import { signDisplayNames } from '@shared/utils/signDisplayNames';
 import type { AIDetectionPageStats, AIDetectionSampleSign } from '@shared/types';
 
-function demoFileLabel(sign: AIDetectionSampleSign): string {
-  const base = sign.sign_code?.trim() || sign.label?.trim() || 'sample';
-  const safe = base.replace(/\s+/g, '_').toLowerCase();
-  return `${safe}.jpg`;
+function demoSignTitle(sign: AIDetectionSampleSign): string {
+  const { en, km } = signDisplayNames(sign);
+  return en || km || sign.sign_code || sign.label;
 }
 
 export function PipelineInputPanel({
@@ -77,6 +77,8 @@ export function PipelineInputPanel({
     <div className={`detection-input-panel rounded-2xl border shadow-sm overflow-hidden flex flex-col${compact ? ' detection-input-panel--compact' : ''}${fillHeight ? ' h-full' : ''}`}>
       <DetectionPanelHeader
         gradient={DETECTION_HEADER_GRADIENTS.upload}
+        icon={inputMode === 'webcam' ? Camera : Upload}
+        iconAccentColor={DETECTION_HEADER_ICON_ACCENTS.upload}
         title={t('aiDetection.inputPanelTitle')}
         subtitle={t('aiDetection.inputPanelSubtitle')}
         footer={
@@ -92,7 +94,7 @@ export function PipelineInputPanel({
                   disabled={detecting}
                   className={`ai-detection-panel-header__tab${active ? ' is-active' : ''}`}
                 >
-                  <Icon size={16} />
+                  <Icon size={16} strokeWidth={2.25} />
                   {mode === 'upload' ? t('aiDetection.tabUploadFile') : t('aiDetection.tabLiveWebcam')}
                 </button>
               );
@@ -148,7 +150,7 @@ export function PipelineInputPanel({
                 ) : (
                   <div className="detection-input-panel__dropzone-empty">
                     <div className="detection-input-panel__dropzone-icon">
-                      <Upload size={32} strokeWidth={1.75} />
+                      <Upload size={34} strokeWidth={2.25} />
                     </div>
                     <p className="detection-input-panel__dropzone-title">{t('aiDetection.inputPanelDropTitle')}</p>
                     <p className="detection-input-panel__dropzone-hint">{t('aiDetection.dropFormats')}</p>
@@ -175,7 +177,7 @@ export function PipelineInputPanel({
                       type="button"
                       onClick={onResetFile}
                       className="detection-input-panel__file-clear"
-                      aria-label="Remove file"
+                      aria-label={t('a11y.removeFile')}
                     >
                       ✕
                     </button>
@@ -184,39 +186,52 @@ export function PipelineInputPanel({
               )}
 
               {!detecting && (
-                <div>
-                  <p className="detection-input-panel__demo-label">{t('aiDetection.quickDemoFiles')}</p>
+                <div className="detection-input-panel__demo-section">
+                  <div className="detection-input-panel__demo-head">
+                    <span className="detection-input-panel__demo-head-icon" aria-hidden>
+                      <Sparkles size={14} strokeWidth={2.25} />
+                    </span>
+                    <p className="detection-input-panel__demo-label">{t('aiDetection.quickDemoFiles')}</p>
+                  </div>
                   {showDemoSkeleton ? (
-                    <div className="detection-input-panel__demo-row">
-                      {[...Array(3)].map((_, i) => (
-                        <div
-                          key={i}
-                          className="detection-input-panel__demo-file"
-                          style={{ opacity: 0.35, pointerEvents: 'none' }}
-                        >
-                          <Film size={15} className="detection-input-panel__demo-file-icon" />
-                          <span className="animate-pulse">…</span>
+                    <div className="detection-input-panel__demo-grid">
+                      {[...Array(6)].map((_, i) => (
+                        <div key={i} className="detection-input-panel__demo-chip is-skeleton">
+                          <span className="detection-input-panel__demo-chip-thumb animate-pulse" />
+                          <span className="detection-input-panel__demo-chip-code animate-pulse">···</span>
                         </div>
                       ))}
                     </div>
                   ) : demoSigns.length > 0 ? (
-                    <div className="detection-input-panel__demo-row">
-                      {demoSigns.map((s, i) => (
-                        <button
-                          key={s.id}
-                          type="button"
-                          onClick={() => onSampleSign(s)}
-                          disabled={detecting}
-                          className="detection-input-panel__demo-file"
-                        >
-                          {i === 0 ? (
-                            <Film size={15} className="detection-input-panel__demo-file-icon" />
-                          ) : (
-                            <ImageIcon size={15} className="detection-input-panel__demo-file-icon" />
-                          )}
-                          <span>{demoFileLabel(s)}</span>
-                        </button>
-                      ))}
+                    <div className="detection-input-panel__demo-grid">
+                      {demoSigns.map((s) => {
+                        const thumb = resolveSampleSignImage(s.image, s.sign_code);
+                        const accent = s.color || '#3B82F6';
+                        return (
+                          <button
+                            key={s.id}
+                            type="button"
+                            title={demoSignTitle(s)}
+                            onClick={() => onSampleSign(s)}
+                            disabled={detecting}
+                            className="detection-input-panel__demo-chip"
+                            style={{
+                              ['--demo-accent' as string]: accent,
+                            }}
+                          >
+                            <span className="detection-input-panel__demo-chip-thumb">
+                              {thumb ? (
+                                <img src={thumb} alt="" className="detection-input-panel__demo-chip-img" />
+                              ) : (
+                                <span className="detection-input-panel__demo-chip-fallback">{s.label}</span>
+                              )}
+                            </span>
+                            <span className="detection-input-panel__demo-chip-code">
+                              {s.sign_code || s.label}
+                            </span>
+                          </button>
+                        );
+                      })}
                     </div>
                   ) : (
                     <p className="detection-input-panel__empty-hint">{t('aiDetection.catalogEmpty')}</p>

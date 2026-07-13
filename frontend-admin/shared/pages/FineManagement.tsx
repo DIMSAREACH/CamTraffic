@@ -3,7 +3,7 @@ import { usePagination } from '@shared/hooks/usePagination';
 import { TablePagination } from '@shared/components/ui/TablePagination';
 import {
   Search, Plus, Eye, CheckCircle, XCircle, Clock, AlertTriangle,
-  MapPin, FileText,
+  MapPin, FileText, User, Hash, Car, BadgeCheck, CreditCard, Pencil, Trash2,
 } from 'lucide-react';
 import { RielIcon } from '@shared/components/RielIcon';
 import { Button } from '@shared/components/ui/button';
@@ -12,11 +12,13 @@ import { Label } from '@shared/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@shared/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@shared/components/ui/table';
+import { TableEmptyState } from '@shared/components/ui/TableEmptyState';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
-import { formatAppCurrency, khrToUsd } from '@shared/i18n/localeFormat';
+import { formatAppCurrency, khrToUsd, usdToKhr } from '@shared/i18n/localeFormat';
 import { useLiveData } from '@shared/hooks/useLiveData';
 import { finesAPI } from '@shared/services/api';
+import { FinesTabs } from '@shared/components/fines/FinesTabs';
 import { toast } from 'sonner';
 import type { Fine } from '@shared/types';
 
@@ -49,6 +51,12 @@ const STATUS_STYLE: Record<string, {
     bg: 'rgba(100,116,139,0.1)',
     color: '#475569',
     gradient: 'linear-gradient(135deg, #64748B, #475569)',
+  },
+  disputed: {
+    icon: <AlertTriangle size={11} />,
+    bg: 'rgba(139,92,246,0.1)',
+    color: '#7C3AED',
+    gradient: 'linear-gradient(135deg, #8B5CF6, #7C3AED)',
   },
 };
 
@@ -110,14 +118,30 @@ export function FineManagement() {
   const [statusFilter, setStatusFilter] = useState<StatusTab>('all');
   const [selected, setSelected] = useState<Fine | null>(null);
   const [issueFineOpen, setIssueFineOpen] = useState(false);
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [paymentForm, setPaymentForm] = useState({
+    payment_method: 'aba',
+    payment_reference: '',
+    screenshot: null as File | null,
+  });
   const [issuing, setIssuing] = useState(false);
   const [fineForm, setFineForm] = useState({
     driver_license: '', vehicle_plate: '', reason: '', amount: '', location: '',
   });
   const [searchResult, setSearchResult] = useState<{ driver: { id: number; full_name: string } | null }>({ driver: null });
+  const [editFine, setEditFine] = useState<Fine | null>(null);
+  const [deleteFine, setDeleteFine] = useState<Fine | null>(null);
+  const [editForm, setEditForm] = useState({ reason: '', amount: '', location: '', vehicle_plate: '' });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const canIssue = user?.role === 'admin' || user?.role === 'police';
   const canManage = canIssue;
+  const isDriver = user?.role === 'driver';
+  const isAdmin = user?.role === 'admin';
+
+  const canEditFine = (row: Fine) => canManage && ['pending', 'overdue', 'disputed'].includes(row.status);
+  const canDeleteFine = (row: Fine) => isAdmin && row.status !== 'paid';
 
   const loadFines = useCallback(async (silent = false) => {
     if (!user) return;
@@ -167,7 +191,7 @@ export function FineManagement() {
     [fines],
   );
 
-  const handleStatusUpdate = async (id: number, status: Fine['status']) => {
+  const handleStatusUpdate = async (id: string, status: Fine['status']) => {
     try {
       const updated = await finesAPI.updateStatus(id, status);
       setFines((prev) => prev.map((f) => (f.id === id ? updated : f)));
@@ -186,6 +210,30 @@ export function FineManagement() {
     } else {
       setSearchResult({ driver: null });
       toast.error(t('fines.toastDriverNotFound'));
+    }
+  };
+
+  const handlePayment = async () => {
+    if (!selected || !paymentForm.payment_reference.trim()) {
+      toast.error(t('fines.toastFillRequired'));
+      return;
+    }
+    setPaying(true);
+    try {
+      const fd = new FormData();
+      fd.append('payment_method', paymentForm.payment_method);
+      fd.append('payment_reference', paymentForm.payment_reference.trim());
+      if (paymentForm.screenshot) fd.append('payment_screenshot', paymentForm.screenshot);
+      const updated = await finesAPI.submitPayment(selected.id, fd);
+      setFines((prev) => prev.map((f) => (f.id === updated.id ? updated : f)));
+      setSelected(updated);
+      toast.success(t('fines.toastPaid'));
+      setPaymentOpen(false);
+      setPaymentForm({ payment_method: 'aba', payment_reference: '', screenshot: null });
+    } catch {
+      toast.error(t('fines.toastPayFail'));
+    } finally {
+      setPaying(false);
     }
   };
 
@@ -216,6 +264,53 @@ export function FineManagement() {
     }
   };
 
+  const openEditFine = (row: Fine) => {
+    setEditFine(row);
+    setEditForm({
+      reason: row.reason,
+      amount: String(usdToKhr(row.amount)),
+      location: row.location,
+      vehicle_plate: row.vehicle_plate,
+    });
+  };
+
+  const handleEditFine = async () => {
+    if (!editFine || !editForm.reason.trim() || !editForm.amount || !editForm.location.trim()) {
+      toast.error(t('fines.toastFillRequired'));
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      const updated = await finesAPI.update(editFine.id, {
+        reason: editForm.reason.trim(),
+        amount: khrToUsd(parseFloat(editForm.amount)),
+        location: editForm.location.trim(),
+        vehicle_plate: editForm.vehicle_plate.trim(),
+      });
+      setFines((prev) => prev.map((f) => (f.id === updated.id ? updated : f)));
+      if (selected?.id === updated.id) setSelected(updated);
+      setEditFine(null);
+      toast.success(t('fines.toastUpdated'));
+    } catch {
+      toast.error(t('fines.toastUpdateFail'));
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleDeleteFine = async () => {
+    if (!deleteFine) return;
+    try {
+      await finesAPI.delete(deleteFine.id);
+      setFines((prev) => prev.filter((f) => f.id !== deleteFine.id));
+      if (selected?.id === deleteFine.id) setSelected(null);
+      setDeleteFine(null);
+      toast.success(t('fines.toastDeleted'));
+    } catch {
+      toast.error(t('fines.toastDeleteFail'));
+    }
+  };
+
   return (
     <div className="enforcement-page enforcement-page--fines dashboard-page--fines">
       {/* Hero */}
@@ -242,6 +337,8 @@ export function FineManagement() {
           )}
         </div>
       </div>
+
+      {isDriver && <FinesTabs active="manage" />}
 
       {/* Stats */}
       <div className="enforcement-page__stat-grid enforcement-page__stat-grid--four">
@@ -324,20 +421,25 @@ export function FineManagement() {
       {/* Table */}
       <div className="enforcement-page__panel enforcement-page__panel--fines">
         <div className="overflow-x-auto">
-          <Table className="enforcement-page__table">
+          <Table className="enforcement-page__table mgmt-table__grid fines-table__grid">
+            <colgroup>
+              <col className="fines-table__col fines-table__col--driver" />
+              <col className="fines-table__col fines-table__col--vehicle" />
+              <col className="fines-table__col fines-table__col--violation" />
+              <col className="fines-table__col fines-table__col--amount" />
+              <col className="fines-table__col fines-table__col--date" />
+              <col className="fines-table__col fines-table__col--status" />
+              <col className="fines-table__col fines-table__col--actions" />
+            </colgroup>
             <TableHeader>
               <TableRow className="enforcement-page__table-head">
-                {[
-                  t('fines.colDriver'),
-                  t('fines.colVehicle'),
-                  t('fines.colViolation'),
-                  t('fines.colAmount'),
-                  t('fines.colDate'),
-                  t('fines.colStatus'),
-                  t('fines.colActions'),
-                ].map((h) => (
-                  <TableHead key={h} className="enforcement-page__th text-left">{h}</TableHead>
-                ))}
+                <TableHead className="enforcement-page__th fines-table__th fines-table__th--driver text-left">{t('fines.colDriver')}</TableHead>
+                <TableHead className="enforcement-page__th fines-table__th fines-table__th--vehicle text-left">{t('fines.colVehicle')}</TableHead>
+                <TableHead className="enforcement-page__th fines-table__th fines-table__th--violation text-left">{t('fines.colViolation')}</TableHead>
+                <TableHead className="enforcement-page__th fines-table__th fines-table__th--amount text-left">{t('fines.colAmount')}</TableHead>
+                <TableHead className="enforcement-page__th fines-table__th fines-table__th--date text-left">{t('fines.colDate')}</TableHead>
+                <TableHead className="enforcement-page__th fines-table__th fines-table__th--status text-left">{t('fines.colStatus')}</TableHead>
+                <TableHead className="enforcement-page__th fines-table__th fines-table__th--actions text-left">{t('fines.colActions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -352,68 +454,113 @@ export function FineManagement() {
                   </TableRow>
                 ))
               ) : filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-16">
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="enforcement-page__empty-icon enforcement-page__empty-icon--blue">
-                        <FileText size={28} />
-                      </div>
-                      <div>
-                        <p className="enforcement-page__empty-title">{t('fines.empty')}</p>
-                        <p className="enforcement-page__empty-subtitle">{t('fines.emptyHint')}</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                <TableEmptyState
+                  colSpan={7}
+                  tone="blue"
+                  icon={<FileText size={28} />}
+                  title={t('fines.empty')}
+                  subtitle={t('fines.emptyHint')}
+                  action={
+                    canIssue
+                      ? { label: t('fines.issueFine'), onClick: () => setIssueFineOpen(true), icon: <Plus size={15} /> }
+                      : undefined
+                  }
+                />
               ) : pagination.pageItems.map((row) => {
                 const st = getStatusMeta(row.status);
                 return (
-                  <TableRow key={row.id} className="enforcement-page__table-row">
-                    <TableCell className="py-3.5">
-                      <div className="flex items-center gap-2.5">
-                        <div className="enforcement-page__avatar enforcement-page__avatar--driver">
+                  <TableRow key={row.id} className="enforcement-page__table-row fines-table__row">
+                    <TableCell className="fines-table__td fines-table__td--driver">
+                      <div className="fines-table__driver">
+                        <div className="enforcement-page__avatar enforcement-page__avatar--driver fines-table__avatar">
                           {initials(row.driver_name)}
                         </div>
-                        <div>
-                          <p className="enforcement-page__cell-primary">{row.driver_name}</p>
-                          <p className="enforcement-page__cell-mono">{row.driver_license}</p>
+                        <div className="fines-table__driver-copy min-w-0">
+                          <p className="fines-table__driver-name">{row.driver_name}</p>
+                          <p className="fines-table__driver-license">{row.driver_license}</p>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <span className="enforcement-page__code-pill">{row.vehicle_plate}</span>
+                    <TableCell className="fines-table__td fines-table__td--vehicle">
+                      <span className="fines-table__plate">{row.vehicle_plate || '—'}</span>
                     </TableCell>
-                    <TableCell className="max-w-[180px]">
-                      <p className="enforcement-page__cell-primary truncate" title={formatFineReason(row.reason)}>{formatFineReason(row.reason)}</p>
-                      <p className="enforcement-page__location-meta">
-                        <MapPin size={9} /> {row.location}
-                      </p>
+                    <TableCell className="fines-table__td fines-table__td--violation">
+                      <div className="fines-table__violation">
+                        <p className="fines-table__violation-title" title={formatFineReason(row.reason)}>
+                          {formatFineReason(row.reason)}
+                        </p>
+                        <p className="fines-table__violation-location" title={row.location}>
+                          <MapPin size={11} strokeWidth={2.25} aria-hidden />
+                          <span>{row.location}</span>
+                        </p>
+                      </div>
                     </TableCell>
-                    <TableCell>
-                      <span className="enforcement-page__amount">{formatAppCurrency(locale, row.amount)}</span>
+                    <TableCell className="fines-table__td fines-table__td--amount">
+                      <span className="fines-table__amount">{formatAppCurrency(locale, row.amount)}</span>
                     </TableCell>
-                    <TableCell>
-                      <span className="enforcement-page__cell-secondary">
+                    <TableCell className="fines-table__td fines-table__td--date">
+                      <time className="fines-table__date" dateTime={row.created_at}>
                         {new Date(row.created_at).toLocaleDateString(dateLocale)}
-                      </span>
+                      </time>
                     </TableCell>
-                    <TableCell>
-                      <span className="enforcement-page__badge" style={{ background: st.bg, color: st.color }}>
+                    <TableCell className="fines-table__td fines-table__td--status">
+                      <span className="fines-table__status enforcement-page__badge" style={{ background: st.bg, color: st.color }}>
                         {st.icon}{st.label}
                       </span>
                     </TableCell>
-                    <TableCell>
-                      <div className="enforcement-page__table-actions">
-                        <button type="button" className="enforcement-page__action-btn" onClick={() => setSelected(row)}>
-                          <Eye size={12} /> {t('fines.view')}
+                    <TableCell className="fines-table__td fines-table__td--actions">
+                      <div className="fines-table__actions">
+                        <button
+                          type="button"
+                          className="fines-table__icon-btn fines-table__icon-btn--view"
+                          onClick={() => setSelected(row)}
+                          title={t('fines.view')}
+                          aria-label={t('fines.view')}
+                        >
+                          <Eye size={16} strokeWidth={2.35} />
                         </button>
+                        {canEditFine(row) ? (
+                          <button
+                            type="button"
+                            className="fines-table__icon-btn fines-table__icon-btn--edit"
+                            onClick={() => openEditFine(row)}
+                            title={t('fines.editFine')}
+                            aria-label={t('common.edit')}
+                          >
+                            <Pencil size={16} strokeWidth={2.35} />
+                          </button>
+                        ) : null}
+                        {canDeleteFine(row) ? (
+                          <button
+                            type="button"
+                            className="fines-table__icon-btn fines-table__icon-btn--delete"
+                            onClick={() => setDeleteFine(row)}
+                            title={t('common.delete')}
+                            aria-label={t('common.delete')}
+                          >
+                            <Trash2 size={16} strokeWidth={2.35} />
+                          </button>
+                        ) : null}
                         {canManage && row.status === 'pending' && (
                           <button
                             type="button"
-                            className="enforcement-page__action-btn enforcement-page__action-btn--success"
+                            className="fines-table__icon-btn fines-table__icon-btn--paid"
                             onClick={() => handleStatusUpdate(row.id, 'paid')}
+                            title={t('fines.markPaid')}
+                            aria-label={t('fines.markPaid')}
                           >
-                            {t('fines.markPaid')}
+                            <BadgeCheck size={16} strokeWidth={2.35} />
+                          </button>
+                        )}
+                        {isDriver && (row.status === 'pending' || row.status === 'overdue') && (
+                          <button
+                            type="button"
+                            className="fines-table__icon-btn fines-table__icon-btn--pay"
+                            onClick={() => { setSelected(row); setPaymentOpen(true); }}
+                            title={t('fines.payNow')}
+                            aria-label={t('fines.payNow')}
+                          >
+                            <CreditCard size={16} strokeWidth={2.35} />
                           </button>
                         )}
                       </div>
@@ -425,78 +572,203 @@ export function FineManagement() {
           </Table>
         </div>
 
-        <TablePagination pagination={pagination} label="fines" />
+        <TablePagination pagination={pagination} labelKey="pagination.label.fines" />
       </div>
 
       {/* Detail dialog */}
-      <Dialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
-        <DialogContent className="max-w-md">
+      <Dialog open={!!selected && !paymentOpen} onOpenChange={(open) => !open && setSelected(null)}>
+        <DialogContent accent="blue" className="fines-view-dialog max-w-[56rem] sm:max-w-[56rem] p-0 gap-0 overflow-hidden">
           {selected && (() => {
             const st = getStatusMeta(selected.status);
-            const detailRows = [
-              { label: t('fines.colDriver'), value: selected.driver_name },
-              { label: t('fines.licenseNo'), value: selected.driver_license },
-              { label: t('fines.vehiclePlate'), value: selected.vehicle_plate },
-              { label: t('fines.issuedBy'), value: selected.police_name },
-              { label: t('fines.colViolation'), value: formatFineReason(selected.reason) },
-              { label: t('fines.colAmount'), value: formatAppCurrency(locale, selected.amount) },
-              { label: t('fines.location'), value: selected.location },
-              { label: t('fines.dateIssued'), value: new Date(selected.created_at).toLocaleString(dateLocale) },
+            const detailCards = [
+              { key: 'license', label: t('fines.licenseNo'), value: selected.driver_license, icon: Hash, tone: 'blue' as const },
+              { key: 'plate', label: t('fines.vehiclePlate'), value: selected.vehicle_plate, icon: Car, tone: 'teal' as const },
+              { key: 'issuer', label: t('fines.issuedBy'), value: selected.police_name, icon: User, tone: 'amber' as const },
+              { key: 'violation', label: t('fines.colViolation'), value: formatFineReason(selected.reason), icon: AlertTriangle, tone: 'violet' as const },
+              { key: 'issued', label: t('fines.dateIssued'), value: new Date(selected.created_at).toLocaleString(dateLocale), icon: Clock, tone: 'indigo' as const },
               ...(selected.paid_at
-                ? [{ label: t('fines.datePaid'), value: new Date(selected.paid_at).toLocaleString(dateLocale) }]
+                ? [{ key: 'paid', label: t('fines.datePaid'), value: new Date(selected.paid_at).toLocaleString(dateLocale), icon: CheckCircle, tone: 'green' as const }]
                 : []),
             ];
+
             return (
-              <>
-                <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2.5">
-                    <div className="enforcement-page__dialog-icon enforcement-page__dialog-icon--primary">
-                      <FileText size={15} />
-                    </div>
-                    <span className="enforcement-page__dialog-title">
-                      {t('fines.fineDetails')} — #{selected.id}
-                    </span>
-                  </DialogTitle>
-                </DialogHeader>
-
-                <div className="enforcement-page__status-banner" style={{ background: st.bg }}>
-                  <span className="enforcement-page__detail-label">{t('fines.currentStatus')}</span>
-                  <span
-                    className="enforcement-page__badge"
-                    style={{ background: st.bg, color: st.color, border: `1px solid ${st.color}30` }}
-                  >
-                    {st.icon}{st.label}
-                  </span>
-                </div>
-
-                <div className="enforcement-page__detail-grid">
-                  {detailRows.map((item) => (
-                    <div key={item.label} className="enforcement-page__detail-row">
-                      <span className="enforcement-page__detail-label">{item.label}</span>
-                      <span className="enforcement-page__detail-value">{item.value}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {canManage && selected.status !== 'paid' && selected.status !== 'dismissed' && (
-                  <div className="enforcement-page__dialog-actions">
-                    <button type="button" className="enforcement-page__btn-success" onClick={() => handleStatusUpdate(selected.id, 'paid')}>
-                      <CheckCircle size={14} /> {t('fines.markPaidDialog')}
-                    </button>
-                    <button type="button" className="enforcement-page__btn-outline" onClick={() => handleStatusUpdate(selected.id, 'dismissed')}>
-                      <XCircle size={14} /> {t('fines.dismiss')}
-                    </button>
+              <div className="fines-view-dialog__shell">
+                <div className="fines-view-dialog__header">
+                  <div className="fines-view-dialog__header-icon">
+                    <FileText size={18} />
                   </div>
-                )}
-              </>
+                  <div className="fines-view-dialog__header-copy">
+                    <h2 className="fines-view-dialog__header-title">
+                      {t('fines.fineDetails')} — #{selected.id}
+                    </h2>
+                    <p className="fines-view-dialog__header-meta">
+                      {new Date(selected.created_at).toLocaleString(dateLocale)}
+                      <span aria-hidden> · </span>
+                      {selected.location}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="fines-view-dialog__summary">
+                  <div className="fines-view-dialog__summary-top">
+                    <span className="fines-view-dialog__driver">{selected.driver_name || '—'}</span>
+                    <span
+                      className="fines-view-dialog__status-badge"
+                      style={{ background: st.bg, color: st.color, borderColor: `${st.color}35` }}
+                    >
+                      {st.icon}
+                      {st.label}
+                    </span>
+                    <span className="fines-view-dialog__amount-chip">
+                      <RielIcon size={14} />
+                      {formatAppCurrency(locale, selected.amount)}
+                    </span>
+                  </div>
+                  <div className="fines-view-dialog__summary-meta">
+                    <span className="fines-view-dialog__violation-chip">
+                      <AlertTriangle size={13} />
+                      {formatFineReason(selected.reason)}
+                    </span>
+                    <span className="fines-view-dialog__location-chip">
+                      <MapPin size={13} />
+                      {selected.location}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="fines-view-dialog__body">
+                  <div className="fines-view-dialog__cards">
+                    {detailCards.map((card) => {
+                      const CardIcon = card.icon;
+                      return (
+                        <div
+                          key={card.key}
+                          className={`fines-view-dialog__card fines-view-dialog__card--${card.tone}`}
+                        >
+                          <div className={`fines-view-dialog__card-icon fines-view-dialog__card-icon--${card.tone}`}>
+                            <CardIcon size={15} />
+                          </div>
+                          <div className="fines-view-dialog__card-copy">
+                            <span className="fines-view-dialog__card-label">{card.label}</span>
+                            <span className={`fines-view-dialog__card-value${card.key === 'license' || card.key === 'plate' ? ' fines-view-dialog__card-value--mono' : ''}`}>
+                              {card.value || '—'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    <div className="fines-view-dialog__card fines-view-dialog__card--location fines-view-dialog__card--wide">
+                      <div className="fines-view-dialog__card-icon fines-view-dialog__card-icon--teal">
+                        <MapPin size={15} />
+                      </div>
+                      <div className="fines-view-dialog__card-copy">
+                        <span className="fines-view-dialog__card-label">{t('fines.location')}</span>
+                        <span className="fines-view-dialog__card-value">{selected.location || '—'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="fines-view-dialog__footer">
+                  <div className="fines-view-dialog__footer-actions">
+                    {isDriver && (selected.status === 'pending' || selected.status === 'overdue') ? (
+                      <Button
+                        className="fines-view-dialog__btn fines-view-dialog__btn--pay"
+                        onClick={() => setPaymentOpen(true)}
+                      >
+                        {t('fines.payFine')}
+                      </Button>
+                    ) : null}
+                    {canManage && selected.status !== 'paid' && selected.status !== 'dismissed' ? (
+                      <>
+                        <Button
+                          size="sm"
+                          className="fines-view-dialog__btn fines-view-dialog__btn--paid"
+                          onClick={() => handleStatusUpdate(selected.id, 'paid')}
+                        >
+                          <CheckCircle size={14} /> {t('fines.markPaidDialog')}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="fines-view-dialog__btn fines-view-dialog__btn--dismiss"
+                          onClick={() => handleStatusUpdate(selected.id, 'dismissed')}
+                        >
+                          <XCircle size={14} /> {t('fines.dismiss')}
+                        </Button>
+                      </>
+                    ) : null}
+                    {canEditFine(selected) ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="fines-view-dialog__btn"
+                        onClick={() => { openEditFine(selected); setSelected(null); }}
+                      >
+                        <Pencil size={14} /> {t('fines.editFine')}
+                      </Button>
+                    ) : null}
+                    {canDeleteFine(selected) ? (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="fines-view-dialog__btn"
+                        onClick={() => setDeleteFine(selected)}
+                      >
+                        <Trash2 size={14} /> {t('common.delete')}
+                      </Button>
+                    ) : null}
+                  </div>
+                  <Button variant="outline" className="fines-view-dialog__close-btn" onClick={() => setSelected(null)}>
+                    {t('vehicles.close')}
+                  </Button>
+                </div>
+              </div>
             );
           })()}
         </DialogContent>
       </Dialog>
 
+      <Dialog open={paymentOpen} onOpenChange={setPaymentOpen}>
+        <DialogContent accent="success" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t('fines.payFine')}</DialogTitle>
+          </DialogHeader>
+          {selected && (
+            <div className="ct-dialog-form">
+              <p className="text-sm text-[color:var(--dialog-subtitle-fg)]">{formatFineReason(selected.reason)} — {formatAppCurrency(locale, selected.amount)}</p>
+              <div className="ct-dialog-field">
+                <Label>{t('fines.paymentMethod')}</Label>
+                <Select value={paymentForm.payment_method} onValueChange={(v) => setPaymentForm((f) => ({ ...f, payment_method: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(['aba', 'wing', 'acleda', 'bank_transfer'] as const).map((m) => (
+                      <SelectItem key={m} value={m}>{t(`fines.methods.${m}`)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="ct-dialog-field">
+                <Label>{t('fines.paymentReference')}</Label>
+                <Input value={paymentForm.payment_reference} onChange={(e) => setPaymentForm((f) => ({ ...f, payment_reference: e.target.value }))} />
+              </div>
+              <div className="ct-dialog-field">
+                <Label>{t('fines.paymentScreenshot')}</Label>
+                <Input type="file" accept="image/*" onChange={(e) => setPaymentForm((f) => ({ ...f, screenshot: e.target.files?.[0] ?? null }))} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPaymentOpen(false)}>{t('fines.cancel')}</Button>
+            <Button onClick={handlePayment} disabled={paying}>{t('fines.payNow')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Issue fine dialog */}
       <Dialog open={issueFineOpen} onOpenChange={setIssueFineOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent accent="blue" className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2.5">
               <div className="enforcement-page__dialog-icon enforcement-page__dialog-icon--brand">
@@ -505,13 +777,13 @@ export function FineManagement() {
               <span className="enforcement-page__dialog-title">{t('fines.issueNewFine')}</span>
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 py-2">
-            <div>
+          <div className="ct-dialog-form">
+            <div className="ct-dialog-field">
               <Label className="enforcement-page__form-label">
                 {t('fines.driverLicense')} *{' '}
                 <span className="enforcement-page__form-hint">{t('fines.lookupRequired')}</span>
               </Label>
-              <div className="flex gap-2 mt-1">
+              <div className="flex gap-2">
                 <Input
                   placeholder={t('fines.licensePlaceholder')}
                   value={fineForm.driver_license}
@@ -524,19 +796,18 @@ export function FineManagement() {
                 <p className="enforcement-page__form-success">✓ {searchResult.driver.full_name}</p>
               )}
             </div>
-            <div>
+            <div className="ct-dialog-field">
               <Label className="enforcement-page__form-label">{t('fines.vehiclePlateLabel')}</Label>
               <Input
-                className="mt-1"
                 placeholder={t('fines.platePlaceholder')}
                 value={fineForm.vehicle_plate}
                 onChange={(e) => setFineForm((f) => ({ ...f, vehicle_plate: e.target.value }))}
               />
             </div>
-            <div>
+            <div className="ct-dialog-field">
               <Label className="enforcement-page__form-label">{t('fines.violationLabel')} *</Label>
               <Select onValueChange={(v) => setFineForm((f) => ({ ...f, reason: v }))}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder={t('fines.selectViolation')} /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t('fines.selectViolation')} /></SelectTrigger>
                 <SelectContent>
                   {VIOLATION_REASONS.map((reason) => (
                     <SelectItem key={reason.key} value={reason.value}>
@@ -546,11 +817,10 @@ export function FineManagement() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
+            <div className="ct-dialog-field-grid">
+              <div className="ct-dialog-field">
                 <Label className="enforcement-page__form-label">{t('fines.amountLabel')} *</Label>
                 <Input
-                  className="mt-1"
                   type="number"
                   min="0"
                   step="100"
@@ -559,10 +829,9 @@ export function FineManagement() {
                   onChange={(e) => setFineForm((f) => ({ ...f, amount: e.target.value }))}
                 />
               </div>
-              <div>
+              <div className="ct-dialog-field">
                 <Label className="enforcement-page__form-label">{t('fines.locationLabel')} *</Label>
                 <Input
-                  className="mt-1"
                   placeholder={t('fines.locationPlaceholder')}
                   value={fineForm.location}
                   onChange={(e) => setFineForm((f) => ({ ...f, location: e.target.value }))}
@@ -584,6 +853,68 @@ export function FineManagement() {
                 </>
               )}
             </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editFine} onOpenChange={(open) => !open && setEditFine(null)}>
+        <DialogContent accent="blue" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t('fines.editTitle')}</DialogTitle>
+          </DialogHeader>
+          <div className="ct-dialog-form">
+            <div className="ct-dialog-field">
+              <Label>{t('fines.vehiclePlateLabel')}</Label>
+              <Input
+                value={editForm.vehicle_plate}
+                onChange={(e) => setEditForm((f) => ({ ...f, vehicle_plate: e.target.value }))}
+              />
+            </div>
+            <div className="ct-dialog-field">
+              <Label>{t('fines.violationLabel')} *</Label>
+              <Input
+                value={editForm.reason}
+                onChange={(e) => setEditForm((f) => ({ ...f, reason: e.target.value }))}
+              />
+            </div>
+            <div className="ct-dialog-field-grid">
+              <div className="ct-dialog-field">
+                <Label>{t('fines.amountLabel')} *</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="100"
+                  value={editForm.amount}
+                  onChange={(e) => setEditForm((f) => ({ ...f, amount: e.target.value }))}
+                />
+              </div>
+              <div className="ct-dialog-field">
+                <Label>{t('fines.locationLabel')} *</Label>
+                <Input
+                  value={editForm.location}
+                  onChange={(e) => setEditForm((f) => ({ ...f, location: e.target.value }))}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditFine(null)}>{t('fines.cancel')}</Button>
+            <Button onClick={() => void handleEditFine()} disabled={savingEdit}>
+              {savingEdit ? t('common.saving') : t('common.save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!deleteFine} onOpenChange={(open) => !open && setDeleteFine(null)}>
+        <DialogContent accent="danger" className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t('fines.deleteTitle')}</DialogTitle>
+          </DialogHeader>
+          <p className="ct-dialog-message">{t('fines.deleteConfirm', { id: String(deleteFine?.id ?? '') })}</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteFine(null)}>{t('fines.cancel')}</Button>
+            <Button variant="destructive" onClick={() => void handleDeleteFine()}>{t('common.delete')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

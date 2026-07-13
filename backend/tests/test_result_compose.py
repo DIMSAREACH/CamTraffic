@@ -72,6 +72,26 @@ class ResultComposeTest(SimpleTestCase):
         self.assertIn('2A-1234', payload['description'])
         self.assertIn('2A-1234', notification_message(payload))
 
+    def test_vehicle_mode_when_unknown_sign_has_high_confidence(self):
+        sign = {
+            'sign_name': 'ស្លាកមិនស្គាល់',
+            'sign_name_en': 'Unknown sign',
+            'confidence': 59.6,
+            'description': 'Could not detect a traffic sign clearly.',
+            'guidance': 'Try again',
+            'class_key': '',
+        }
+        vehicles = [{
+            'vehicle_type': 'car',
+            'label': 'Car',
+            'confidence': 59.6,
+            'bbox': {'x1': 0.1, 'y1': 0.1, 'x2': 0.9, 'y2': 0.9},
+        }]
+        payload = compose_detection_payload(sign, vehicles)
+        self.assertEqual(payload['detection_mode'], 'vehicle')
+        self.assertEqual(payload['display_title_en'], 'Car')
+        self.assertEqual(payload['display_confidence'], 59.6)
+
     def test_no_sign_mode_without_vehicles(self):
         sign = {
             'sign_name': 'ស្លាកមិនស្គាល់',

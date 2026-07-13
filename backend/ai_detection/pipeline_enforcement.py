@@ -160,9 +160,33 @@ def apply_pipeline_enforcement(
         out['violation_error'] = 'Only police or admin can create violation records'
         return out
 
+    camera_id = _request_value(request, 'camera_id')
+    camera = None
+    if camera_id:
+        try:
+            from infrastructure.models import Camera
+            camera = Camera.objects.filter(pk=camera_id).first()
+        except (TypeError, ValueError):
+            camera = None
+
     driver_id = _request_value(request, 'driver_id')
     driver = resolve_driver(driver_id=driver_id, plate_result=plate_result)
     if not driver:
+        detected_plate = (plate_result or {}).get('plate') or payload.get('detected_plate') or ''
+        if detected_plate and not (plate_result or {}).get('matched_vehicle'):
+            try:
+                from unknown_vehicles.services import queue_unknown_vehicle
+
+                unknown = queue_unknown_vehicle(
+                    plate_detected=detected_plate,
+                    camera=camera,
+                    violation_type=evaluation.get('violation_type', ''),
+                    ai_confidence_score=(plate_result or {}).get('confidence'),
+                )
+                if unknown:
+                    out['unknown_vehicle_id'] = str(unknown.id)
+            except Exception:
+                logger.exception('Failed to queue unknown vehicle for plate %s', detected_plate)
         out['violation_error'] = 'No driver linked — register plate in Vehicles or pass driver_id'
         return out
 
@@ -181,16 +205,7 @@ def apply_pipeline_enforcement(
         )
 
     location = str(_request_value(request, 'location', '')).strip()
-    camera_id = _request_value(request, 'camera_id')
     vehicle = resolve_vehicle(plate_result=plate_result, vehicles=vehicles)
-
-    camera = None
-    if camera_id:
-        try:
-            from infrastructure.models import Camera
-            camera = Camera.objects.filter(pk=int(camera_id)).first()
-        except (TypeError, ValueError):
-            camera = None
 
     try:
         violation = create_violation_record(
@@ -213,6 +228,9 @@ def apply_pipeline_enforcement(
         )
         out['pipeline_enforcement']['plate_evidence_saved'] = bool(log.plate_snapshot)
         out['pipeline_enforcement']['vehicle_evidence_saved'] = bool(log.vehicle_snapshot)
+        from notifications.services import notify_driver_violation
+
+        notify_driver_violation(driver, violation)
     except Exception:
         logger.exception('Failed to create violation for log %s', log.id)
         out['violation_error'] = 'Failed to save violation record'

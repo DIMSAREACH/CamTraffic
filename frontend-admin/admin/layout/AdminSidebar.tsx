@@ -2,7 +2,8 @@ import { Link, useLocation } from 'react-router';
 import {
   LayoutDashboard, Car, Users, FileText, Camera,
   BookOpen, BarChart3, Bell, User, LogOut, Shield,
-  Activity, Zap, X, Cctv, AlertTriangle, Archive,
+  Activity, X, Cctv, AlertTriangle, Archive, Scale, ShieldAlert,
+  KeyRound, Building2, Database, Route, MapPin, Gauge,
 } from 'lucide-react';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
@@ -27,23 +28,34 @@ interface AdminSidebarProps {
 
 const ADMIN_NAV: NavItem[] = [
   { labelKey: 'sidebar.nav.dashboard', path: '/admin/dashboard', icon: <LayoutDashboard size={18} strokeWidth={1.75} />, section: 'main' },
-  { labelKey: 'sidebar.nav.aiDetection', path: '/admin/ai-detection', icon: <Camera size={18} strokeWidth={1.75} />, section: 'main' },
+  { labelKey: 'sidebar.nav.aiDashboard', path: '/admin/ai-dashboard', icon: <Gauge size={18} strokeWidth={1.75} />, section: 'main' },
+  { labelKey: 'sidebar.nav.aiDetectionCenter', path: '/admin/ai-detection', icon: <Camera size={18} strokeWidth={1.75} />, section: 'main' },
   { labelKey: 'sidebar.nav.cameras', path: '/admin/cameras', icon: <Cctv size={18} strokeWidth={1.75} />, section: 'main' },
+  { labelKey: 'sidebar.nav.cameraLocations', path: '/admin/camera-locations', icon: <MapPin size={18} strokeWidth={1.75} />, section: 'main' },
   { labelKey: 'sidebar.nav.trafficSigns', path: '/admin/signs', icon: <BookOpen size={18} strokeWidth={1.75} />, section: 'main' },
   { labelKey: 'sidebar.nav.fineManagement', path: '/admin/fines', icon: <FileText size={18} strokeWidth={1.75} />, section: 'manage' },
   { labelKey: 'sidebar.nav.violationManagement', path: '/admin/violations', icon: <AlertTriangle size={18} strokeWidth={1.75} />, section: 'manage' },
+  { labelKey: 'sidebar.nav.appeals', path: '/admin/appeals', icon: <Scale size={18} strokeWidth={1.75} />, section: 'manage' },
   { labelKey: 'sidebar.nav.allVehicles', path: '/admin/vehicles', icon: <Car size={18} strokeWidth={1.75} />, section: 'manage' },
+  { labelKey: 'sidebar.nav.vehicleOwners', path: '/admin/vehicle-owners', icon: <Users size={18} strokeWidth={1.75} />, section: 'manage' },
+  { labelKey: 'sidebar.nav.unknownVehicles', path: '/admin/unknown-vehicles', icon: <Car size={18} strokeWidth={1.75} />, section: 'manage' },
   { labelKey: 'sidebar.nav.detectionLogs', path: '/admin/ai-logs', icon: <Activity size={18} strokeWidth={1.75} />, section: 'manage' },
   { labelKey: 'sidebar.nav.evidenceArchive', path: '/admin/evidence', icon: <Archive size={18} strokeWidth={1.75} />, section: 'manage' },
+  { labelKey: 'sidebar.nav.auditLogs', path: '/admin/audit-logs', icon: <ShieldAlert size={18} strokeWidth={1.75} />, section: 'manage' },
   { labelKey: 'sidebar.nav.userManagement', path: '/admin/users', icon: <Users size={18} strokeWidth={1.75} />, section: 'manage' },
+  { labelKey: 'sidebar.nav.roles', path: '/admin/roles', icon: <KeyRound size={18} strokeWidth={1.75} />, section: 'manage' },
+  { labelKey: 'sidebar.nav.officers', path: '/admin/officers', icon: <Building2 size={18} strokeWidth={1.75} />, section: 'manage' },
+  { labelKey: 'sidebar.nav.drivers', path: '/admin/drivers', icon: <Car size={18} strokeWidth={1.75} />, section: 'manage' },
+  { labelKey: 'sidebar.nav.roads', path: '/admin/roads', icon: <Route size={18} strokeWidth={1.75} />, section: 'manage' },
   { labelKey: 'sidebar.nav.reports', path: '/admin/reports', icon: <BarChart3 size={18} strokeWidth={1.75} />, section: 'manage' },
+  { labelKey: 'sidebar.nav.backupRestore', path: '/admin/backup-restore', icon: <Database size={18} strokeWidth={1.75} />, section: 'manage' },
   { labelKey: 'sidebar.nav.notifications', path: '/admin/notifications', icon: <Bell size={18} strokeWidth={1.75} />, section: 'account' },
   { labelKey: 'sidebar.nav.myProfile', path: '/admin/profile', icon: <User size={18} strokeWidth={1.75} />, section: 'account' },
 ];
 
 export function AdminSidebar({ collapsed, onToggle, unreadCount = 0, isMobile = false }: AdminSidebarProps) {
   const { user, logout } = useAuth();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const location = useLocation();
   const expanded = isMobile || !collapsed;
 
@@ -130,24 +142,35 @@ export function AdminSidebar({ collapsed, onToggle, unreadCount = 0, isMobile = 
 
       <div className="sidebar-bottom">
         {user && (
-          <div className="sidebar-user-card sidebar-fade-when-collapsed">
-            <div className="flex items-center gap-3">
-              <NavbarProfileAvatar
-                initials={initials}
-                alt={user.full_name}
-                profileImage={user.profile_image}
-                gradient={avatarGradient}
-                size="xs"
-                showStatus={false}
-              />
-              <div className="min-w-0 flex-1">
-                <p className="sidebar-user-card__name truncate">{user.full_name}</p>
-                <p className="sidebar-user-card__role text-violet-300 flex items-center gap-1">
-                  <Shield size={10} />
-                  {t('sidebar.systemAdmin')}
+          <div className="sidebar-user-section sidebar-fade-when-collapsed">
+            <p className="sidebar-user-section__label">{t('sidebar.user')}</p>
+            <div className="sidebar-user-section__divider" aria-hidden />
+            <div className="sidebar-user-card" data-role="admin">
+              <div className="sidebar-user-card__top">
+                <NavbarProfileAvatar
+                  initials={initials}
+                  alt={user.full_name}
+                  profileImage={user.profile_image}
+                  gradient={avatarGradient}
+                  size="sm"
+                  showStatus={false}
+                />
+                <div className="sidebar-user-card__identity min-w-0 flex-1">
+                  <p className="sidebar-user-card__name truncate" title={user.full_name}>
+                    {user.full_name}
+                  </p>
+                  <span className="sidebar-user-card__role-badge">
+                    <Shield size={11} aria-hidden />
+                    {t('sidebar.systemAdmin')}
+                  </span>
+                </div>
+              </div>
+              <div className="sidebar-user-card__email-block">
+                <span className="sidebar-user-card__field-label">{t('users.email')}</span>
+                <p className="sidebar-user-card__email truncate" title={user.email}>
+                  {user.email}
                 </p>
               </div>
-              <Zap size={12} className="text-slate-500 flex-shrink-0" />
             </div>
           </div>
         )}

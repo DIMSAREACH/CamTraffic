@@ -156,6 +156,11 @@
   justify-content: flex-end;
 }
 
+html.dark .profile-crop-dialog__zoom-icon,
+html.dark .profile-crop-dialog__hint {
+  color: var(--muted-foreground);
+}
+
 .profile-crop-dialog__btn {
   display: inline-flex;
   align-items: center;
@@ -171,6 +176,11 @@
   color: #64748b;
   background: transparent;
   border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+html.dark .profile-crop-dialog__btn--ghost {
+  color: var(--muted-foreground);
+  border-color: rgba(148, 163, 184, 0.35);
 }
 
 .profile-crop-dialog__btn--primary {

@@ -2,7 +2,6 @@
 
 from django.db import migrations, models
 import django.db.models.deletion
-import uuid
 
 
 class Migration(migrations.Migration):
@@ -21,16 +20,6 @@ class Migration(migrations.Migration):
             model_name='aidetectionlog',
             name='matched_vehicle',
             field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='detection_matches', to='vehicles.vehicle'),
-        ),
-        migrations.AlterField(
-            model_name='aidetectionlog',
-            name='id',
-            field=models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False),
-        ),
-        migrations.AlterField(
-            model_name='vehicletrackinglog',
-            name='id',
-            field=models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False),
         ),
         migrations.AddIndex(
             model_name='aidetectionlog',

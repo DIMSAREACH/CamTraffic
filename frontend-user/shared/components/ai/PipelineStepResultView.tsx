@@ -6,6 +6,7 @@ import { resolvePipelineVehicle } from '@shared/utils/pipelineVehicle';
 import type { FlowStepId } from '@shared/utils/detectionPipelineFlow';
 import type { PipelineStep } from '@shared/components/ai/DetectionPipelineFlow';
 import type { AIDetectionLog } from '@shared/types';
+import { getProfileImageUrl } from '@shared/utils/profileImage';
 
 interface ResultLike {
   sign_name?: string;
@@ -169,13 +170,13 @@ export function PipelineStepResultView({
           {result?.vehicle_snapshot && (
             <LightCard accent="#F97316">
               <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">{t('aiDetection.vehicleEvidence')}</p>
-              <img src={result.vehicle_snapshot} alt="" className="w-full rounded-lg max-h-36 object-contain bg-muted" />
+                <img src={getProfileImageUrl(result.vehicle_snapshot) || result.vehicle_snapshot} alt="" className="w-full rounded-lg max-h-36 object-contain bg-muted" />
             </LightCard>
           )}
           {result?.plate_snapshot && (
             <LightCard accent="#F97316">
               <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">{t('aiDetection.plateEvidence')}</p>
-              <img src={result.plate_snapshot} alt="" className="w-full rounded-lg max-h-36 object-contain bg-muted" />
+                <img src={getProfileImageUrl(result.plate_snapshot) || result.plate_snapshot} alt="" className="w-full rounded-lg max-h-36 object-contain bg-muted" />
             </LightCard>
           )}
           {!result?.vehicle_snapshot && !result?.plate_snapshot && (

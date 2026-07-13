@@ -1,0 +1,86 @@
+{
+  "generated_at": "2026-07-11T20:41:56.212167+00:00",
+  "combined_model_classes": 31,
+  "traffic_signs_labeled": {
+    "full_236_class": 2840,
+    "production_10_class": 123
+  },
+  "exports": {
+    "BATCH-REF-VEH-PLATE-001": {
+      "images": 100,
+      "by_class": {
+        "20": 14,
+        "19": 86
+      }
+    },
+    "BATCH-ROBO-PLATE-001": {
+      "images": 453,
+      "by_class": {
+        "0": 432,
+        "1": 22
+      }
+    },
+    "BATCH-ROBO-VEH-001": {
+      "images": 196,
+      "by_class": {
+        "3": 117,
+        "1": 800,
+        "2": 424,
+        "4": 355,
+        "0": 92
+      }
+    },
+    "BATCH-SIGNS-DATASET10": {
+      "images": 123,
+      "by_class": {
+        "9": 12,
+        "5": 12,
+        "0": 12,
+        "1": 12,
+        "4": 12,
+        "2": 12,
+        "3": 12,
+        "6": 12,
+        "7": 12,
+        "8": 15
+      }
+    }
+  },
+  "splits": {
+    "cambodia_traffic_reference_remapped": {
+      "images": 121,
+      "by_class": {
+        "9": 12,
+        "5": 12,
+        "0": 12,
+        "1": 12,
+        "4": 12,
+        "2": 12,
+        "3": 12,
+        "6": 12,
+        "7": 12,
+        "8": 13
+      }
+    },
+    "cambodia_vehicle_reference_remapped": {
+      "images": 196,
+      "by_class": {
+        "3": 117,
+        "1": 800,
+        "2": 424,
+        "4": 355,
+        "0": 92
+      }
+    },
+    "plate_number_reference_remapped": {
+      "images": 453,
+      "by_class": {
+        "0": 432,
+        "1": 22
+      }
+    }
+  },
+  "ocr_transcriptions": 503,
+  "vehicles_pending_cvat": 218,
+  "batch_log_entries": 6
+}

@@ -192,3 +192,26 @@ class ChangePasswordSerializer(serializers.Serializer):
         user = self.context['request'].user
         validate_strong_password(value, user=user, field_name='new_password')
         return value
+
+
+class EmailVerifyConfirmSerializer(serializers.Serializer):
+    uid = serializers.CharField()
+    token = serializers.CharField()
+
+    def validate(self, attrs):
+        try:
+            uid = force_str(urlsafe_base64_decode(attrs['uid']))
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            raise serializers.ValidationError('Invalid verification link.')
+        if not default_token_generator.check_token(user, attrs['token']):
+            raise serializers.ValidationError('Invalid or expired token.')
+        attrs['user'] = user
+        return attrs
+
+    def save(self):
+        user = self.validated_data['user']
+        if not user.email_verified:
+            user.email_verified = True
+            user.save(update_fields=['email_verified', 'updated_at'])
+        return user

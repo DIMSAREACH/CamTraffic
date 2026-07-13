@@ -1,4 +1,5 @@
 import { Volume2, Square } from 'lucide-react';
+import { useLanguage } from '@shared/context/LanguageContext';
 
 type SpeakButtonProps = {
   isActive: boolean;
@@ -11,18 +12,20 @@ type SpeakButtonProps = {
 export function SpeakButton({
   isActive,
   onClick,
-  label = 'Listen',
+  label,
   size = 'sm',
   className = '',
 }: SpeakButtonProps) {
+  const { t } = useLanguage();
+  const listenLabel = label ?? t('aiDetection.listen');
   const dim = size === 'md' ? 'w-9 h-9' : 'w-7 h-7';
   const icon = size === 'md' ? 16 : 13;
 
   return (
     <button
       type="button"
-      title={isActive ? 'Stop' : label}
-      aria-label={isActive ? 'Stop speaking' : label}
+      title={isActive ? t('a11y.stopSpeaking') : listenLabel}
+      aria-label={isActive ? t('a11y.stopSpeaking') : listenLabel}
       onClick={onClick}
       className={`${dim} rounded-lg flex items-center justify-center flex-shrink-0 transition-all cursor-pointer border ${className} ${
         isActive

@@ -1,0 +1,177 @@
+{
+  "batch_id": "BATCH-REF-PROH-001",
+  "description": "Cambodia prohibitory reference signs (P_* YOLO classes)",
+  "generated_at": "2026-07-11T20:10:04.346614+00:00",
+  "target_signs": 46,
+  "classes_in_yaml": 33,
+  "classes_with_images": 30,
+  "total_images": 396,
+  "validated": true,
+  "classes": [
+    {
+      "class_name": "P_END_OF_HONKING_PROHIBITION",
+      "image_count": 12,
+      "status": "present"
+    },
+    {
+      "class_name": "P_END_OF_MAXIMUM_SPEED_LIMIT",
+      "image_count": 12,
+      "status": "present"
+    },
+    {
+      "class_name": "P_END_OF_OVERTAKING_PROHIBITION",
+      "image_count": 24,
+      "status": "present"
+    },
+    {
+      "class_name": "P_END_OF_OVERTAKING_PROHIBITION_FOR_TRUCKS",
+      "image_count": 0,
+      "status": "missing"
+    },
+    {
+      "class_name": "P_END_OF_PROHIBITION_OVERTAKING_FOR_TRUCKS",
+      "image_count": 12,
+      "status": "present"
+    },
+    {
+      "class_name": "P_MAXIMUM_SPEED_LIMIT",
+      "image_count": 12,
+      "status": "present"
+    },
+    {
+      "class_name": "P_MINIMUM_SEPARATION_DISTANCE_FOR_CARS",
+      "image_count": 12,
+      "status": "present"
+    },
+    {
+      "class_name": "P_MINIMUM_SEPARATION_DISTANCE_FOR_TRUCKS",
+      "image_count": 12,
+      "status": "present"
+    },
+    {
+      "class_name": "P_NO_ANIMAL_DRAWN_CARTS",
+      "image_count": 12,
+      "status": "present"
+    },
+    {
+      "class_name": "P_NO_BICYCLES",
+      "image_count": 24,
+      "status": "present"
+    },
+    {
+      "class_name": "P_NO_BICYCLES_MOTORCYCLES_AND_TRICYCLES",
+      "image_count": 0,
+      "status": "missing"
+    },
+    {
+      "class_name": "P_NO_BUSES",
+      "image_count": 12,
+      "status": "present"
+    },
+    {
+      "class_name": "P_NO_CARS",
+      "image_count": 12,
+      "status": "present"
+    },
+    {
+      "class_name": "P_NO_CARTS",
+      "image_count": 12,
+      "status": "present"
+    },
+    {
+      "class_name": "P_NO_HONKING",
+      "image_count": 12,
+      "status": "present"
+    },
+    {
+      "class_name": "P_NO_MOTORCYCLES",
+      "image_count": 12,
+      "status": "present"
+    },
+    {
+      "class_name": "P_NO_MOTORCYCLE_DRAWN_CARTS",
+      "image_count": 12,
+      "status": "present"
+    },
+    {
+      "class_name": "P_NO_MOTOR_VEHICLES",
+      "image_count": 12,
+      "status": "present"
+    },
+    {
+      "class_name": "P_NO_OVERTAKING",
+      "image_count": 24,
+      "status": "present"
+    },
+    {
+      "class_name": "P_NO_OVERTAKING_FOR_TRUCKS",
+      "image_count": 0,
+      "status": "missing"
+    },
+    {
+      "class_name": "P_NO_PARKING_FROM_16TH_TO_31ST_DAY_OF_THE",
+      "image_count": 12,
+      "status": "present"
+    },
+    {
+      "class_name": "P_NO_PARKING_FROM_1ST_TO_15TH_DAY_OF_THE_M",
+      "image_count": 12,
+      "status": "present"
+    },
+    {
+      "class_name": "P_NO_PARKING_ON_EVEN_DAYS",
+      "image_count": 12,
+      "status": "present"
+    },
+    {
+      "class_name": "P_NO_PARKING_ON_ODD_DAYS",
+      "image_count": 12,
+      "status": "present"
+    },
+    {
+      "class_name": "P_NO_TOWED_TRAILERS",
+      "image_count": 12,
+      "status": "present"
+    },
+    {
+      "class_name": "P_NO_TRACTORS",
+      "image_count": 12,
+      "status": "present"
+    },
+    {
+      "class_name": "P_NO_TRUCKS",
+      "image_count": 12,
+      "status": "present"
+    },
+    {
+      "class_name": "P_NO_VEHICLES_LOADING_INFLAMMABLE_GOODS",
+      "image_count": 12,
+      "status": "present"
+    },
+    {
+      "class_name": "P_SPEED_LIMIT_20_KM_H",
+      "image_count": 12,
+      "status": "present"
+    },
+    {
+      "class_name": "P_SPEED_LIMIT_50_KM_H",
+      "image_count": 12,
+      "status": "present"
+    },
+    {
+      "class_name": "P_STOP_AT_THE_CUSTOMS_STATION",
+      "image_count": 12,
+      "status": "present"
+    },
+    {
+      "class_name": "P_STOP_AT_THE_MILITARY_POLICE_STATION",
+      "image_count": 12,
+      "status": "present"
+    },
+    {
+      "class_name": "P_STOP_AT_THE_POLICE_STATION",
+      "image_count": 12,
+      "status": "present"
+    }
+  ]
+}

@@ -116,7 +116,7 @@ class Command(BaseCommand):
             try:
                 driver_profile = fine.driver.driver_profile
             except Driver.DoesNotExist:
-                license_no = (fine.driver.license_no or '').strip() or f'DRV-{fine.driver.id:05d}'
+                license_no = (fine.driver.license_no or '').strip() or f'DRV-{str(fine.driver.id)[:8]}'
                 driver_profile = Driver.objects.create(
                     user=fine.driver,
                     license_no=license_no,
@@ -128,7 +128,7 @@ class Command(BaseCommand):
                 officer_profile, _ = Officer.objects.get_or_create(
                     user=fine.police,
                     defaults={
-                        'badge_no': f'BADGE-{fine.police.id:05d}',
+                        'badge_no': f'BADGE-{str(fine.police.id)[:8]}',
                         'rank': 'Officer',
                         'department': 'Traffic Police',
                         'status': 'active',

@@ -15,7 +15,7 @@
   --form-surface: #f8f7ff;
   --form-border:  #ddd6fe;
   --form-text:    #1e1033;
-  --form-muted:   #6b7280;
+  --form-muted:   #475569;
   --form-focus:   #7c3aed;
 }
 
@@ -25,10 +25,10 @@ html.dark {
   --form-surface: #172033;
   --form-border:  rgba(255, 255, 255, 0.08);
   --form-text:    #f8fafc;
-  --form-muted:   #94a3b8;
+  --form-muted:   #cbd5e1;
   --dm-text:      #f8fafc;
-  --dm-text2:     #94a3b8;
-  --dm-text3:     #64748b;
+  --dm-text2:     #cbd5e1;
+  --dm-text3:     #94a3b8;
   --dm-border:    rgba(255, 255, 255, 0.08);
   --dm-input:     #172033;
   --dm-surface:   #243044;
@@ -136,7 +136,7 @@ html.dark {
   min-width: 95px;
 }
 .stat-chip-value { font-size: 1.5rem; font-weight: 800; color: var(--auth-light); display: block; line-height: 1; margin-bottom: .3rem; }
-.stat-chip-label { font-size: .78rem; font-weight: 500; color: rgba(255,255,255,.42); letter-spacing: .03em; }
+.stat-chip-label { font-size: .78rem; font-weight: 500; color: rgba(255,255,255,.68); letter-spacing: .03em; }
 
 /* feature list */
 .feat-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 1rem; }
@@ -146,8 +146,8 @@ html.dark {
 
 /* footer */
 .auth-left-foot { margin-top: auto; padding-top: 2.5rem; display: flex; align-items: center; justify-content: space-between; }
-.auth-left-foot span { font-size: .75rem; color: rgba(255,255,255,.25); }
-.status-dot-row { display: flex; align-items: center; gap: .5rem; font-size: .75rem; color: rgba(255,255,255,.35); }
+.auth-left-foot span { font-size: .75rem; color: rgba(255,255,255,.58); }
+.status-dot-row { display: flex; align-items: center; gap: .5rem; font-size: .75rem; color: rgba(255,255,255,.72); }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #34d399; box-shadow: 0 0 8px rgba(52,211,153,.7); animation: pulse-dot 2.2s ease-in-out infinite; }
 @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
 
@@ -1258,7 +1258,7 @@ html.dark .admin-portal-hint-link {
   border-radius: 9px;
   font-size: .93rem;
   font-weight: 600;
-  color: #6b7280;
+  color: #4b5563;
   cursor: pointer;
   transition: background .18s, color .18s, box-shadow .18s;
   font-family: inherit;
@@ -1358,6 +1358,7 @@ html.dark .admin-portal-hint-link {
   text-decoration: none;
 }
 .up-register-line a:hover { text-decoration: underline; }
+.up-register-line--muted { color: #7c7394; font-size: .85rem; line-height: 1.45; }
 
 /* ═══════════════════════════════════════════════════════════
    ADMIN PORTAL — city-background, teal/cyan theme overrides
@@ -1544,9 +1545,9 @@ html.dark .admin-portal-hint-link {
 
 /* Forgot password link — teal */
 .ap-card .forgot-link {
-  color: #0284c7 !important;
+  color: #0369a1 !important;
 }
-.ap-card .forgot-link:hover { color: #0369a1 !important; }
+.ap-card .forgot-link:hover { color: #075985 !important; }
 
 /* Field focus ring — teal */
 .ap-card .lf-field:focus-within {

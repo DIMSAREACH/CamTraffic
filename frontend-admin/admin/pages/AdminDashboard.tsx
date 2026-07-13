@@ -1,14 +1,11 @@
-import { useState, useEffect, type ReactNode } from 'react';
+import { type ReactNode, useEffect } from 'react';
 import { Users, Car, FileText, Camera, TrendingUp, AlertTriangle, Clock, ArrowUpRight, ArrowDownRight, Shield, RefreshCw } from 'lucide-react';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from 'recharts';
-import { dashboardAPI } from '@shared/services/api';
-import {
-  getSampleAdminDashboard,
-  mergeDashboardStats,
-} from '@shared/services/sampleDataFallback';
+import { useAdminDashboardStats, useCameraLiveStatus } from '@shared/hooks/queries/useDashboardQueries';
+import { EMPTY_DASHBOARD_STATS } from '@shared/constants/emptyDashboard';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { formatAppDate, greetingKey, formatRevenue } from '@shared/i18n/localeFormat';
@@ -118,29 +115,22 @@ function StatCard({ title, value, sub, icon, gradient, glow, trend }: {
   );
 }
 
-function SecondaryCard({ label, value, icon, bg, color, accent }: {
-  label: string; value: string | number; icon: ReactNode; bg: string; color: string; accent: string;
+function SecondaryCard({ label, value, sub, icon, bg, color, accent }: {
+  label: string; value: string | number; sub?: string; icon: ReactNode; bg: string; color: string; accent: string;
 }) {
   return (
     <div
-      className="admin-dashboard-secondary bg-white rounded-2xl p-4 shadow-sm flex items-center gap-3.5 transition-all"
+      className="admin-dashboard-secondary rounded-2xl p-4 flex items-center gap-3.5 transition-all"
       style={{ border: `1px solid ${accent}22`, borderTop: `3px solid ${accent}` }}
-      onMouseEnter={e => {
-        (e.currentTarget as HTMLElement).style.boxShadow = `0 8px 28px ${accent}28`;
-        (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
-      }}
-      onMouseLeave={e => {
-        (e.currentTarget as HTMLElement).style.boxShadow = '';
-        (e.currentTarget as HTMLElement).style.transform = '';
-      }}
     >
       <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm"
         style={{ background: bg, color }}>
         {icon}
       </div>
-      <div>
+      <div className="min-w-0">
         <p className="dashboard-stat__value">{typeof value === 'number' ? value.toLocaleString() : value}</p>
         <p className="dashboard-stat__label mt-0.5">{label}</p>
+        {sub ? <p className="dashboard-stat__sub mt-0.5">{sub}</p> : null}
       </div>
     </div>
   );
@@ -181,38 +171,34 @@ const DASH_CACHE_KEY = 'camtraffic_admin_dashboard_v2';
 export function AdminDashboard() {
   const { user } = useAuth();
   const { t, locale } = useLanguage();
-  const [stats, setStats] = useState<DashboardStats>(() => getSampleAdminDashboard());
-  const [loading, setLoading] = useState(false);
-  const [loadError, setLoadError] = useState(false);
+  const {
+    data: rawStats,
+    isLoading,
+    isError,
+    isFetching,
+    refetch,
+  } = useAdminDashboardStats();
+  const { data: cameraLive } = useCameraLiveStatus();
   const now = new Date();
   const chartYear = now.getFullYear();
 
-  const loadStats = (silent = false) => {
-    if (!silent) {
-      setLoading(true);
-      setLoadError(false);
-    }
-    dashboardAPI
-      .getAdminStats()
-      .then((s) => {
-        const normalized = mergeDashboardStats(normalizeAdminStats(s));
-        setStats(normalized);
-        setLoadError(false);
-        try { localStorage.setItem(DASH_CACHE_KEY, JSON.stringify(normalized)); } catch { /* ignore */ }
-      })
-      .catch(() => {
-        setStats(getSampleAdminDashboard());
-        setLoadError(false);
-        if (!silent) {
-          toast.message('Showing demo dashboard data.');
-        }
-      })
-      .finally(() => { if (!silent) setLoading(false); });
-  };
+  const stats = normalizeAdminStats(rawStats ?? EMPTY_DASHBOARD_STATS);
+  const cameraSummary = cameraLive?.summary ?? { active: 0, offline: 0, total: 0 };
 
   useEffect(() => {
-    loadStats(true);
-  }, []);
+    if (!rawStats || isError) return;
+    try {
+      localStorage.setItem(DASH_CACHE_KEY, JSON.stringify(stats));
+    } catch { /* ignore */ }
+  }, [rawStats, isError, stats]);
+
+  useEffect(() => {
+    if (isError) {
+      toast.error(t('dashboard.loadErrorTitle'));
+    }
+  }, [isError, t]);
+
+  const loading = isLoading && !rawStats;
 
   if (loading) {
     return (
@@ -251,9 +237,9 @@ export function AdminDashboard() {
   const C = DASHBOARD_PALETTE;
 
   return (
-    <div className="dashboard-home space-y-5">
+    <div className="dashboard-home admin-dashboard-page space-y-5">
       {/* Welcome banner */}
-      <div className="dashboard-welcome--hero admin-dashboard-hero relative overflow-hidden rounded-3xl p-6" style={{ background: 'linear-gradient(135deg, #0B1220 0%, #1E1B4B 45%, #134E4A 100%)', border: '1px solid rgba(255,255,255,0.08)' }}>
+      <div className="dashboard-welcome--hero admin-dashboard-hero relative overflow-hidden rounded-3xl p-6 lg:p-7" style={{ background: 'linear-gradient(135deg, #0B1220 0%, #1E1B4B 45%, #134E4A 100%)', border: '1px solid rgba(255,255,255,0.08)' }}>
         {C.map((c, i) => (
           <div
             key={c.name}
@@ -287,7 +273,17 @@ export function AdminDashboard() {
             </p>
             </div>
           </div>
-          <div className="flex gap-3 flex-wrap">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <button
+              type="button"
+              onClick={() => { void refetch(); }}
+              disabled={isFetching}
+              className="admin-dashboard-refresh inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold text-white/90 transition-colors"
+            >
+              <RefreshCw size={14} />
+              {t('dashboard.refreshData')}
+            </button>
+            <div className="flex gap-3 flex-wrap">
             {[
               { label: t('dashboard.systemStatus'), value: t('dashboard.statusOnline'), color: C[3].solid },
               { label: t('dashboard.aiModel'), value: t('dashboard.aiModelValue'), color: C[2].solid },
@@ -302,6 +298,7 @@ export function AdminDashboard() {
                 <p className="dashboard-welcome__status-value">{s.value}</p>
               </div>
             ))}
+            </div>
           </div>
         </div>
       </div>
@@ -326,12 +323,27 @@ export function AdminDashboard() {
           trend={stats.trends?.revenue} />
       </div>
 
-      {/* Secondary stats — remaining 3 + wrap */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <SecondaryCard label={t('dashboard.registeredVehicles')} value={stats.total_vehicles} icon={<Car size={17} />} bg={C[6].soft} color={C[6].solid} accent={C[6].solid} />
-        <SecondaryCard label={t('dashboard.totalTrafficSigns')} value={stats.total_signs ?? 0} icon={<Shield size={17} />} bg={C[3].soft} color={C[3].solid} accent={C[3].solid} />
-        <SecondaryCard label={t('dashboard.totalViolations')} value={stats.total_violations ?? 0} icon={<AlertTriangle size={17} />} bg={C[4].soft} color={C[4].solid} accent={C[4].solid} />
-        <SecondaryCard label={t('dashboard.pendingViolations')} value={stats.pending_violations ?? 0} icon={<Clock size={17} />} bg={C[5].soft} color={C[5].solid} accent={C[5].solid} />
+      {/* Operations overview */}
+      <div>
+        <div className="admin-dashboard-section-head mb-3">
+          <h2 className="admin-dashboard-section-head__title">{t('dashboard.operationsOverview')}</h2>
+          <p className="admin-dashboard-section-head__subtitle">{t('dashboard.operationsOverviewSub')}</p>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
+          <SecondaryCard label={t('dashboard.registeredVehicles')} value={stats.total_vehicles} icon={<Car size={17} />} bg={C[6].soft} color={C[6].solid} accent={C[6].solid} />
+          <SecondaryCard label={t('dashboard.totalTrafficSigns')} value={stats.total_signs ?? 0} icon={<Shield size={17} />} bg={C[3].soft} color={C[3].solid} accent={C[3].solid} />
+          <SecondaryCard label={t('dashboard.totalViolations')} value={stats.total_violations ?? 0} icon={<AlertTriangle size={17} />} bg={C[4].soft} color={C[4].solid} accent={C[4].solid} />
+          <SecondaryCard label={t('dashboard.pendingViolations')} value={stats.pending_violations ?? 0} icon={<Clock size={17} />} bg={C[5].soft} color={C[5].solid} accent={C[5].solid} />
+          <SecondaryCard
+            label={t('dashboard.liveCameras')}
+            value={cameraSummary.total > 0 ? `${cameraSummary.active}/${cameraSummary.total}` : '—'}
+            sub={cameraSummary.total > 0 ? t('dashboard.liveCamerasSub', { offline: cameraSummary.offline }) : t('dashboard.liveCamerasEmpty')}
+            icon={<Camera size={17} />}
+            bg={C[2].soft}
+            color={C[2].solid}
+            accent={C[2].solid}
+          />
+        </div>
       </div>
 
       {/* Charts row 1 */}
@@ -353,7 +365,7 @@ export function AdminDashboard() {
                   <XAxis dataKey="month" tick={chartAxisTick} axisLine={false} tickLine={false} />
                   <YAxis tick={chartAxisTick} axisLine={false} tickLine={false} />
                   <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
-                  <Area type="monotone" dataKey="count" name="Fines" stroke={C[5].solid} fill="url(#fineGrad)" strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: C[5].dark }} />
+                  <Area type="monotone" dataKey="count" name={t('dashboard.chartLegendFines')} stroke={C[5].solid} fill="url(#fineGrad)" strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: C[5].dark }} />
                 </AreaChart>
               </ResponsiveContainer>
             )}
@@ -389,7 +401,7 @@ export function AdminDashboard() {
                 <XAxis type="number" tick={chartAxisTick} axisLine={false} tickLine={false} />
                 <YAxis dataKey="reason" type="category" tick={chartCategoryTick} axisLine={false} tickLine={false} width={95} />
                 <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
-                <Bar dataKey="count" name="Count" radius={[0, 6, 6, 0]}>
+                <Bar dataKey="count" name={t('dashboard.chartLegendCount')} radius={[0, 6, 6, 0]}>
                   {topViolationChart.map((_, i) => <Cell key={i} fill={CHART_SERIES[i % CHART_SERIES.length]} />)}
                 </Bar>
               </BarChart>
@@ -407,7 +419,7 @@ export function AdminDashboard() {
                 <XAxis dataKey="month" tick={chartAxisTick} axisLine={false} tickLine={false} />
                 <YAxis tick={chartAxisTick} axisLine={false} tickLine={false} />
                 <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
-                <Bar dataKey="count" name="Detections" radius={[6, 6, 0, 0]} maxBarSize={36}>
+                <Bar dataKey="count" name={t('dashboard.chartLegendDetections')} radius={[6, 6, 0, 0]} maxBarSize={36}>
                   {stats.monthly_detections.map((_, i) => (
                     <Cell key={i} fill={CHART_SERIES[i % CHART_SERIES.length]} />
                   ))}
@@ -433,7 +445,7 @@ export function AdminDashboard() {
                 <XAxis dataKey="month" tick={chartAxisTick} axisLine={false} tickLine={false} />
                 <YAxis tick={chartAxisTick} axisLine={false} tickLine={false} />
                 <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
-                <Area type="monotone" dataKey="count" name="Violations" stroke={C[4].solid} fill="url(#violationGrad)" strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: C[4].dark }} />
+                <Area type="monotone" dataKey="count" name={t('dashboard.chartLegendViolations')} stroke={C[4].solid} fill="url(#violationGrad)" strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: C[4].dark }} />
               </AreaChart>
             </ResponsiveContainer>
           )}

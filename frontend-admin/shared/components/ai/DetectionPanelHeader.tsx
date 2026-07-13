@@ -8,6 +8,7 @@ export function DetectionPanelHeader({
   highlight,
   icon: Icon,
   accentColor,
+  iconAccentColor,
   gradient,
   size = 'default',
   end,
@@ -20,6 +21,8 @@ export function DetectionPanelHeader({
   highlight?: React.ReactNode;
   icon?: LucideIcon;
   accentColor?: string;
+  /** Colored stroke when the icon sits on a light badge (AI page gradient headers) */
+  iconAccentColor?: string;
   gradient?: string;
   size?: 'default' | 'hero';
   end?: React.ReactNode;
@@ -45,7 +48,18 @@ export function DetectionPanelHeader({
       <div className="ai-detection-panel-header__row relative">
         {Icon && (
           <div className="ai-detection-panel-header__icon" style={iconStyle}>
-            <Icon size={size === 'hero' ? 20 : 18} strokeWidth={2} color={isGradient ? 'white' : undefined} />
+            <Icon
+              size={size === 'hero' ? 22 : 18}
+              strokeWidth={2.25}
+              className="ai-detection-panel-header__icon-svg"
+              style={
+                isGradient
+                  ? { color: iconAccentColor ?? '#ffffff' }
+                  : accentColor
+                    ? { color: accentColor }
+                    : undefined
+              }
+            />
           </div>
         )}
         <div className="ai-detection-panel-header__text min-w-0 flex-1">

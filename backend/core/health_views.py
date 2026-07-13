@@ -1,0 +1,48 @@
+"""Lightweight health probes for Docker, CI, and uptime monitoring."""
+from django.db import connection
+from rest_framework import status
+from rest_framework.permissions import AllowAny
+from rest_framework.views import APIView
+
+from core.responses import error_response, success_response
+from config.monitoring import get_system_status
+
+
+class HealthView(APIView):
+    permission_classes = [AllowAny]
+    throttle_classes = []
+
+    def get(self, request):
+        return success_response({
+            'status': 'ok',
+            'service': 'camtraffic-api',
+        })
+
+
+class HealthReadyView(APIView):
+    permission_classes = [AllowAny]
+    throttle_classes = []
+
+    def get(self, request):
+        try:
+            connection.ensure_connection()
+            with connection.cursor() as cursor:
+                cursor.execute('SELECT 1')
+        except Exception as exc:
+            return error_response(
+                f'Database unavailable: {exc}',
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        return success_response({
+            'status': 'ready',
+            'database': 'ok',
+        })
+
+
+class MonitoringStatusView(APIView):
+    """Extended system status for ops dashboards."""
+    permission_classes = [AllowAny]
+    throttle_classes = []
+
+    def get(self, request):
+        return success_response(get_system_status())

@@ -12,6 +12,7 @@ frontend/.env
 frontend-admin/.env
 frontend-user/.env
 backend/.env
+deploy/env/.env.production
 
 # Django
 backend/db.sqlite3
@@ -27,7 +28,14 @@ __pycache__/
 # AI (large files — train locally or use releases)
 ai/weights/
 ai/dataset/
+ai/datasets/raw/**
+!ai/datasets/raw/**/
+!ai/datasets/raw/**/README.md
+!ai/datasets/raw/import_log.csv
+ai/datasets/processed/
 *.pt
+CamTraffic-best_v2.zip
+CamTraffic-best_*.zip
 
 # OS / IDE
 .DS_Store

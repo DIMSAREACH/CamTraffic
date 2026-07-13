@@ -2,13 +2,48 @@
   "name": "camtraffic",
   "private": true,
   "description": "CamTraffic — AI traffic sign detection & enforcement (Cambodia)",
+  "workspaces": [
+    "frontend-admin",
+    "frontend-user",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "npx --yes concurrently -k -n user,admin -c blue,magenta \"npm run dev:user\" \"npm run dev:admin\"",
+    "dev:clean": "node scripts/clear-vite-cache.mjs && npm run dev",
     "dev:user": "npm run dev --prefix frontend-user",
     "dev:admin": "npm run dev --prefix frontend-admin",
     "build": "npm run build:user && npm run build:admin",
+    "build:turbo": "turbo run build",
     "build:user": "npm run build --prefix frontend-user",
     "build:admin": "npm run build --prefix frontend-admin",
-    "install:frontends": "npm install --prefix frontend-user && npm install --prefix frontend-admin"
+    "install:frontends": "npm install --prefix frontend-user && npm install --prefix frontend-admin",
+    "validate:structure": "node scripts/validate-structure.mjs",
+    "validate:env": "node scripts/validate-env.mjs",
+    "validate:production-data": "node scripts/validate-production-data-mode.mjs",
+    "verify:phase1": "node scripts/validate-production-data-mode.mjs && python backend/scripts/verify_phase1.py",
+    "sync:shared:check": "node scripts/sync-shared-check.mjs",
+    "setup:env": "node scripts/setup-env.mjs",
+    "scaffold:folders": "node scripts/scaffold-folders.mjs",
+    "validate:all": "npm run validate:structure && npm run validate:env && npm run build && npm run test:backend",
+    "validate:system": "node scripts/validate-full-system.mjs",
+    "seed:demo": "python backend/manage.py seed_demo",
+    "seed:production": "python backend/manage.py seed_production",
+    "audit:api": "python backend/manage.py audit_api_permissions",
+    "test:backend": "cd backend && python manage.py test --noinput",
+    "test:backend:phase12": "cd backend && python manage.py test tests.backend tests.api.test_health_auth_users tests.integration tests.security -v 2 --noinput --keepdb",
+    "test:frontend-admin": "npm run test --prefix frontend-admin",
+    "test:frontend-user": "npm run test --prefix frontend-user",
+    "test:frontend": "npm run test:frontend-admin && npm run test:frontend-user",
+    "test:e2e": "node scripts/run-e2e.mjs",
+    "benchmark:health": "node tests/performance/health-benchmark.mjs",
+    "docker:prod:up": "node scripts/docker-prod.mjs up",
+    "docker:prod:down": "node scripts/docker-prod.mjs down",
+    "docker:prod:logs": "node scripts/docker-prod.mjs logs",
+    "docker:prod:restart": "node scripts/docker-prod.mjs restart",
+    "docker:prod:ps": "node scripts/docker-prod.mjs ps"
+  },
+  "devDependencies": {
+    "prettier": "^3.4.0",
+    "turbo": "^2.3.0"
   }
 }

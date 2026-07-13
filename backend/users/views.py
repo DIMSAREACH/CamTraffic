@@ -59,9 +59,14 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
         return UserSerializer
 
     def get_permissions(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return [IsAuthenticated()]
         if self.request.method == 'GET':
             return [IsAuthenticated()]
-        if self.request.user.role == 'admin' or self.kwargs.get('pk') == self.request.user.id:
+        user = self.request.user
+        if not user.is_authenticated:
+            return [IsAuthenticated()]
+        if user.role == 'admin' or self.kwargs.get('pk') == user.id:
             return [IsAuthenticated()]
         return [IsAuthenticated(), IsAdmin()]
 

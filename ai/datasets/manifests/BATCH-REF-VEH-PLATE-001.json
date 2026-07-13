@@ -1,0 +1,28 @@
+{
+  "batch_id": "BATCH-REF-VEH-PLATE-001",
+  "source": "D:\\Year4\\Project Thesis\\Expert System\\Reference(PDF Download)\\Dim Sareach\\Vichicle Detect",
+  "imported_at": "2026-07-11T20:32:06+00:00",
+  "status": "reference_complete",
+  "license_plates": {
+    "total": 50,
+    "by_class": {
+      "private": 43,
+      "commercial": 7,
+      "government": 0
+    },
+    "unique_source_images": 50,
+    "deduped": true
+  },
+  "vehicles": {
+    "total": 22,
+    "location": "raw/vehicles/urban/",
+    "note": "Phnom Penh street frames; CVAT vehicle-type labeling in Phase 8"
+  },
+  "bulk_import": {
+    "vehicles_target": 4615,
+    "plates_target": 1253,
+    "tool": "ai/scripts/import_roboflow_zip.py",
+    "note": "Drop Roboflow Cambodia Traffic / plate_number_reference ZIP when available"
+  },
+  "metadata_csv": "ai/datasets/processed/metadata/BATCH-REF-VEH-PLATE-001.csv"
+}

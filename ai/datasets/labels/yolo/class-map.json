@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "generated_at": "2026-07-11T20:25:18.023744+00:00",
+  "nc": 31,
+  "names": {
+    "0": "NO_ENTRY",
+    "1": "NO_LEFT_TURN",
+    "2": "NO_RIGHT_TURN",
+    "3": "NO_U_TURN",
+    "4": "NO_PARKING",
+    "5": "M_STOP",
+    "6": "P_SPEED_LIMIT_20_KM_H",
+    "7": "P_SPEED_LIMIT_50_KM_H",
+    "8": "W_PEDESTRIAN_CROSSING",
+    "9": "I_ONE_WAY_TRAFFIC",
+    "10": "sedan",
+    "11": "suv",
+    "12": "pickup",
+    "13": "motorcycle",
+    "14": "scooter",
+    "15": "bus",
+    "16": "truck",
+    "17": "van",
+    "18": "taxi",
+    "19": "plate_private",
+    "20": "plate_commercial",
+    "21": "plate_government",
+    "22": "NO_STOPPING",
+    "23": "M_YIELD_GIVE_WAY",
+    "24": "M_PRIORITY_ROAD",
+    "25": "P_NO_OVERTAKING",
+    "26": "P_MAXIMUM_SPEED_LIMIT",
+    "27": "W_CROSSROAD",
+    "28": "HEIGHT_LIMIT",
+    "29": "M_SLOW_DOWN",
+    "30": "ROAD_CLOSED_ALL_VEHICLES"
+  },
+  "groups": {
+    "traffic_sign": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30
+    ],
+    "vehicle": [
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18
+    ],
+    "license_plate": [
+      19,
+      20,
+      21
+    ]
+  },
+  "plate_folder_to_class_id": {
+    "private": 19,
+    "commercial": 20,
+    "government": 21
+  },
+  "vehicle_class_ids": [
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18
+  ]
+}

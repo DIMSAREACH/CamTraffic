@@ -1,6 +1,7 @@
 import { CamTrafficBrand } from './CamTrafficBrand';
 import { CamTrafficLogo } from './CamTrafficLogo';
 import { SidebarLayoutIcon } from './SidebarLayoutIcon';
+import { useLanguage } from '@shared/context/LanguageContext';
 import { cn } from '@shared/components/ui/utils';
 
 type SidebarVariant = 'user' | 'admin';
@@ -26,7 +27,10 @@ export function SidebarBrandToggle({
   isMobile = false,
   homePath,
 }: SidebarBrandToggleProps) {
+  const { t } = useLanguage();
   const home = homePath ?? DEFAULT_HOME[variant];
+  const openLabel = t('sidebar.openSidebar');
+  const collapseLabel = t('sidebar.collapseSidebar');
 
   if (isMobile) {
     return (
@@ -42,8 +46,6 @@ export function SidebarBrandToggle({
     );
   }
 
-  const collapseLabel = 'Collapse sidebar';
-
   /* Collapsed rail: click logo to expand (hover shows panel icon) */
   if (collapsed) {
     return (
@@ -51,9 +53,9 @@ export function SidebarBrandToggle({
         type="button"
         className="sidebar-brand-toggle sidebar-brand-toggle--collapsed sidebar-rail-toggle sidebar-header-rail"
         onClick={onToggle}
-        aria-label="Open sidebar"
-        title="Open sidebar"
-        data-tooltip="Open sidebar"
+        aria-label={openLabel}
+        title={openLabel}
+        data-tooltip={openLabel}
       >
         <span className="sidebar-brand-toggle__layer sidebar-brand-toggle__layer--logo">
           <CamTrafficLogo size={36} className="sidebar-brand__mark" />

@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { usePagination } from '@shared/hooks/usePagination';
 import { TablePagination } from '@shared/components/ui/TablePagination';
 import {
-  Plus, Search, Edit, Trash2, ToggleLeft, ToggleRight, Users, Shield, Car,
-  BadgeCheck, UserPlus, Pencil, AlertCircle, CheckCircle, XCircle, Trash,
+  Plus, Search, Trash2, ToggleLeft, ToggleRight, Users, Shield, Car,
+  BadgeCheck, UserPlus, Pencil, AlertCircle, CheckCircle, XCircle, Trash, Eye,
 } from 'lucide-react';
 import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
@@ -11,6 +11,8 @@ import { Label } from '@shared/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@shared/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@shared/components/ui/table';
+import { TableEmptyState } from '@shared/components/ui/TableEmptyState';
+import { EntityDetailField, EntityViewDialog } from '@shared/components/admin/EntityViewDialog';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { usersAPI } from '@shared/services/api';
 import { getPasswordValidationError, isStrongPassword, PASSWORD_REQUIREMENTS } from '@shared/utils/passwordPolicy';
@@ -25,6 +27,17 @@ const ROLE_META: Record<UserRole, { labelKey: string; icon: React.ReactNode; col
 };
 
 const FILTER_TABS = ['all', 'admin', 'police', 'driver'] as const;
+
+const USER_TABLE_COLUMNS = [
+  { labelKey: 'users.colUser', className: 'users-page__col--user' },
+  { labelKey: 'users.colEmail', className: 'users-page__col--email' },
+  { labelKey: 'users.colRole', className: '' },
+  { labelKey: 'users.colPhone', className: '' },
+  { labelKey: 'users.colLicense', className: '' },
+  { labelKey: 'users.colJoined', className: '' },
+  { labelKey: 'users.colStatus', className: '' },
+  { labelKey: 'users.colActions', className: 'users-page__col--actions' },
+] as const;
 type FilterTab = typeof FILTER_TABS[number];
 
 const STAT_CARDS = [
@@ -88,6 +101,7 @@ export function UsersPage() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [deleteUser, setDeleteUser] = useState<User | null>(null);
+  const [viewUser, setViewUser] = useState<User | null>(null);
 
   const loadUsers = async () => {
     setLoading(true);
@@ -280,15 +294,15 @@ export function UsersPage() {
 
       <div className="enforcement-page__panel enforcement-page__panel--users">
         <div className="overflow-x-auto">
-          <Table className="enforcement-page__table">
+          <Table className="enforcement-page__table mgmt-table__grid">
             <TableHeader>
               <TableRow className="enforcement-page__table-head">
-                {[t('users.colUser'), t('users.colRole'), t('users.colPhone'), t('users.colLicense'), t('users.colJoined'), t('users.colStatus'), t('users.colActions')].map((h, index) => (
+                {USER_TABLE_COLUMNS.map((col) => (
                   <TableHead
-                    key={h}
-                    className={`enforcement-page__th text-left${index === 0 ? ' users-page__col--user' : ''}`}
+                    key={col.labelKey}
+                    className={`enforcement-page__th text-left${col.className ? ` ${col.className}` : ''}`}
                   >
-                    {h}
+                    {t(col.labelKey)}
                   </TableHead>
                 ))}
               </TableRow>
@@ -297,37 +311,34 @@ export function UsersPage() {
               {loading ? (
                 [...Array(5)].map((_, i) => (
                   <TableRow key={i}>
-                    {[...Array(7)].map((__, j) => (
+                    {[...Array(USER_TABLE_COLUMNS.length)].map((__, j) => (
                       <TableCell key={j}><div className="enforcement-page__skeleton users-page__skeleton" /></TableCell>
                     ))}
                   </TableRow>
                 ))
               ) : filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-16">
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="enforcement-page__empty-icon enforcement-page__empty-icon--violet">
-                        <Users size={28} />
-                      </div>
-                      <div>
-                        <p className="enforcement-page__empty-title">{t('users.empty')}</p>
-                        <p className="enforcement-page__empty-subtitle">{t('users.emptyHint')}</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                <TableEmptyState
+                  colSpan={USER_TABLE_COLUMNS.length}
+                  tone="violet"
+                  icon={<Users size={28} />}
+                  title={t('users.empty')}
+                  subtitle={t('users.emptyHint')}
+                  action={{ label: t('users.addUser'), onClick: openAdd, icon: <Plus size={15} /> }}
+                />
               ) : pagination.pageItems.map((u) => {
                 const rm = ROLE_META[u.role];
                 return (
                   <TableRow key={u.id} className={`enforcement-page__table-row${!u.is_active ? ' users-page__row--inactive' : ''}`}>
-                    <TableCell className="py-4 users-page__col--user">
+                    <TableCell className="users-page__col--user">
                       <div className="users-page__user-cell">
                         <UserAvatar name={u.full_name} profileImage={u.profile_image} accent={rm.color} />
-                        <div className="users-page__user-copy">
-                          <p className="enforcement-page__cell-primary users-page__truncate" title={u.full_name}>{u.full_name}</p>
-                          <p className="enforcement-page__cell-mono users-page__truncate" title={u.email}>{u.email}</p>
-                        </div>
+                        <span className="enforcement-page__cell-primary users-page__truncate" title={u.full_name}>
+                          {u.full_name}
+                        </span>
                       </div>
+                    </TableCell>
+                    <TableCell className="users-page__col--email">
+                      <span className="enforcement-page__cell-body users-page__truncate" title={u.email}>{u.email}</span>
                     </TableCell>
                     <TableCell>
                       <span className="enforcement-page__badge" style={{ background: rm.bg, color: rm.color }}>
@@ -349,16 +360,43 @@ export function UsersPage() {
                         {u.is_active ? t('users.active') : t('users.inactive')}
                       </span>
                     </TableCell>
-                    <TableCell>
-                      <div className="enforcement-page__table-actions users-page__actions">
-                        <button type="button" className="users-page__action-btn users-page__action-btn--edit" onClick={() => openEdit(u)} aria-label={t('common.edit')}>
-                          <Edit size={13} />
+                    <TableCell className="users-page__col--actions">
+                      <div className="users-page__actions" role="group" aria-label={t('users.colActions')}>
+                        <button
+                          type="button"
+                          className="users-page__action-btn users-page__action-btn--view"
+                          onClick={() => setViewUser(u)}
+                          aria-label={t('common.view')}
+                          title={t('common.view')}
+                        >
+                          <Eye size={16} strokeWidth={2.35} />
                         </button>
-                        <button type="button" className="users-page__action-btn users-page__action-btn--toggle" onClick={() => handleToggle(u)} aria-label={t('users.toggleStatus')}>
-                          {u.is_active ? <ToggleRight size={13} /> : <ToggleLeft size={13} />}
+                        <button
+                          type="button"
+                          className="users-page__action-btn users-page__action-btn--edit"
+                          onClick={() => openEdit(u)}
+                          aria-label={t('common.edit')}
+                          title={t('common.edit')}
+                        >
+                          <Pencil size={16} strokeWidth={2.35} />
                         </button>
-                        <button type="button" className="users-page__action-btn users-page__action-btn--delete" onClick={() => setDeleteUser(u)} aria-label={t('common.delete')}>
-                          <Trash2 size={13} />
+                        <button
+                          type="button"
+                          className="users-page__action-btn users-page__action-btn--delete"
+                          onClick={() => setDeleteUser(u)}
+                          aria-label={t('common.delete')}
+                          title={t('common.delete')}
+                        >
+                          <Trash2 size={16} strokeWidth={2.35} />
+                        </button>
+                        <button
+                          type="button"
+                          className="users-page__action-btn users-page__action-btn--toggle"
+                          onClick={() => handleToggle(u)}
+                          aria-label={t('users.toggleStatus')}
+                          title={t('users.toggleStatus')}
+                        >
+                          {u.is_active ? <ToggleRight size={16} strokeWidth={2.35} /> : <ToggleLeft size={16} strokeWidth={2.35} />}
                         </button>
                       </div>
                     </TableCell>
@@ -368,40 +406,42 @@ export function UsersPage() {
             </TableBody>
           </Table>
         </div>
-        <TablePagination pagination={pagination} label="users" />
+        <TablePagination pagination={pagination} labelKey="pagination.label.users" />
       </div>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="users-page__dialog max-w-md p-0 gap-0 overflow-hidden rounded-2xl border-0">
-          <div className="users-page__dialog-header">
-            <div className="users-page__dialog-icon">
-              {editUser ? <Pencil size={16} /> : <UserPlus size={16} />}
-            </div>
-            <DialogTitle className="users-page__dialog-title">
-              {editUser ? t('users.editUser') : t('users.addUser')}
+        <DialogContent accent="violet" className="max-w-md sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2.5">
+              <div className="enforcement-page__dialog-icon enforcement-page__dialog-icon--violet">
+                {editUser ? <Pencil size={15} /> : <UserPlus size={15} />}
+              </div>
+              <span className="enforcement-page__dialog-title">
+                {editUser ? t('users.editUser') : t('users.addUser')}
+              </span>
             </DialogTitle>
-          </div>
-          <div className="users-page__dialog-body space-y-3">
-            <div>
+          </DialogHeader>
+
+          <div className="ct-dialog-form">
+            <div className="ct-dialog-field">
               <Label className="enforcement-page__form-label">{t('users.fullName')} *</Label>
-              <Input className="mt-1" value={form.full_name} onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))} />
+              <Input value={form.full_name} onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))} />
             </div>
-            <div>
+            <div className="ct-dialog-field">
               <Label className="enforcement-page__form-label">{t('users.email')} *</Label>
-              <Input className="mt-1" type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
+              <Input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
             </div>
             {!editUser && (
-              <div>
+              <div className="ct-dialog-field">
                 <Label className="enforcement-page__form-label">{t('users.password')} *</Label>
                 <Input
-                  className="mt-1"
                   type="password"
                   value={form.password}
                   onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
                   placeholder={t('users.passwordHint')}
                 />
                 {form.password.length > 0 && (
-                  <ul className="mt-2 space-y-0.5">
+                  <ul className="ct-dialog-hint-list">
                     {PASSWORD_REQUIREMENTS.map((r) => (
                       <li key={r.key} className="enforcement-page__cell-secondary" style={{ color: r.test(form.password) ? '#059669' : undefined }}>
                         {r.test(form.password) ? '✓' : '○'} {r.label}
@@ -411,10 +451,10 @@ export function UsersPage() {
                 )}
               </div>
             )}
-            <div>
+            <div className="ct-dialog-field">
               <Label className="enforcement-page__form-label">{t('users.role')}</Label>
               <Select value={form.role} onValueChange={(v) => setForm((f) => ({ ...f, role: v as UserRole }))}>
-                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="admin"><span className="flex items-center gap-2"><Shield size={14} /> {t('users.roleAdmin')}</span></SelectItem>
                   <SelectItem value="police"><span className="flex items-center gap-2"><BadgeCheck size={14} /> {t('users.rolePolice')}</span></SelectItem>
@@ -422,22 +462,23 @@ export function UsersPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
+            <div className="ct-dialog-field-grid">
+              <div className="ct-dialog-field">
                 <Label className="enforcement-page__form-label">{t('users.phone')}</Label>
-                <Input className="mt-1" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
+                <Input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
               </div>
-              <div>
+              <div className="ct-dialog-field">
                 <Label className="enforcement-page__form-label">{t('users.licenseNo')}</Label>
-                <Input className="mt-1" value={form.license_no} onChange={(e) => setForm((f) => ({ ...f, license_no: e.target.value }))} />
+                <Input value={form.license_no} onChange={(e) => setForm((f) => ({ ...f, license_no: e.target.value }))} />
               </div>
             </div>
-            <div>
+            <div className="ct-dialog-field">
               <Label className="enforcement-page__form-label">{t('users.address')}</Label>
-              <Input className="mt-1" value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} />
+              <Input value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} />
             </div>
           </div>
-          <DialogFooter className="users-page__dialog-footer">
+
+          <DialogFooter>
             <Button variant="outline" onClick={() => setModalOpen(false)}>{t('users.cancel')}</Button>
             <button type="button" className="enforcement-page__btn-violet" onClick={handleSave} disabled={saving}>
               {saving ? t('users.saving') : editUser ? t('users.saveChanges') : t('users.createUser')}
@@ -447,18 +488,20 @@ export function UsersPage() {
       </Dialog>
 
       <Dialog open={!!deleteUser} onOpenChange={() => setDeleteUser(null)}>
-        <DialogContent className="users-page__dialog users-page__dialog--danger max-w-sm p-0 gap-0 overflow-hidden rounded-2xl border-0">
-          <div className="users-page__dialog-header users-page__dialog-header--danger">
-            <div className="users-page__dialog-icon users-page__dialog-icon--danger">
-              <Trash size={16} />
-            </div>
-            <DialogTitle className="users-page__dialog-title">{t('users.deleteTitle')}</DialogTitle>
-          </div>
-          <p className="users-page__dialog-body enforcement-page__cell-body flex items-start gap-2">
+        <DialogContent accent="danger" className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2.5">
+              <div className="enforcement-page__dialog-icon enforcement-page__dialog-icon--danger">
+                <Trash size={15} />
+              </div>
+              <span className="enforcement-page__dialog-title">{t('users.deleteTitle')}</span>
+            </DialogTitle>
+          </DialogHeader>
+          <p className="ct-dialog-message enforcement-page__cell-body flex items-start gap-2">
             <AlertCircle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
             <span>{t('users.deleteConfirm', { name: deleteUser?.full_name ?? '' })}</span>
           </p>
-          <DialogFooter className="users-page__dialog-footer">
+          <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteUser(null)}>{t('users.cancel')}</Button>
             <Button onClick={handleDelete} variant="destructive" className="gap-2">
               <Trash2 size={15} /> {t('common.delete')}
@@ -466,6 +509,27 @@ export function UsersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <EntityViewDialog
+        open={!!viewUser}
+        onOpenChange={(open) => !open && setViewUser(null)}
+        title={t('users.viewTitle')}
+        accent="violet"
+        onEdit={viewUser ? () => openEdit(viewUser) : undefined}
+      >
+        {viewUser ? (
+          <>
+            <EntityDetailField label={t('users.fullName')} value={viewUser.full_name} />
+            <EntityDetailField label={t('users.email')} value={viewUser.email} />
+            <EntityDetailField label={t('users.role')} value={roleLabel(viewUser.role)} />
+            <EntityDetailField label={t('users.phone')} value={viewUser.phone || '—'} />
+            <EntityDetailField label={t('users.licenseNo')} value={viewUser.license_no || '—'} />
+            <EntityDetailField label={t('users.address')} value={viewUser.address || '—'} />
+            <EntityDetailField label={t('users.colJoined')} value={new Date(viewUser.created_at).toLocaleDateString()} />
+            <EntityDetailField label={t('users.colStatus')} value={viewUser.is_active ? t('users.active') : t('users.inactive')} />
+          </>
+        ) : null}
+      </EntityViewDialog>
     </div>
   );
 }

@@ -1,0 +1,9 @@
+{
+  "dataset": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cambodia_vehicle_reference_remapped",
+  "data_yaml": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cambodia_vehicle_reference_remapped\\data.yaml",
+  "images": 196,
+  "classes": 5,
+  "errors": [],
+  "warnings": [],
+  "ok": true
+}

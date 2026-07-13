@@ -1,0 +1,6 @@
+# 31-class combined detection (signs + vehicles + plates)
+path: ../../datasets/splits/training_combined
+train: images/train
+val: images/val
+test: images/test
+nc: 31

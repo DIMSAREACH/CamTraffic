@@ -1,7 +1,8 @@
 /**
- * Demo sample data when the live API returns empty lists or zero dashboard stats
- * (e.g. fresh Docker DB without seed_data). Used by api.ts when VITE_USE_MOCK=false.
+ * Demo sample data when the live API returns empty lists or zero dashboard stats.
+ * Only active when VITE_USE_SAMPLE_FALLBACK=true in development (see shared/config/dataMode.ts).
  */
+import { USE_SAMPLE_FALLBACK } from '@shared/config/dataMode';
 import catalog from '@shared/data/traffic_sign_catalog_10.json';
 import { mergePageStatsWithDefaults } from '@shared/constants/defaultPageStats';
 import type {
@@ -21,6 +22,7 @@ import type {
   Camera,
   Road,
 } from '@shared/types';
+import { EMPTY_DASHBOARD_STATS, EMPTY_DRIVER_STATS, EMPTY_POLICE_STATS } from '@shared/constants/emptyDashboard';
 import {
   mockAILogs,
   mockCameras,
@@ -54,6 +56,7 @@ const CATALOG_CATEGORY: Record<string, SignCategory> = {
 };
 
 export function withListFallback<T>(live: T[], sample: T[]): T[] {
+  if (!USE_SAMPLE_FALLBACK) return live;
   return live.length > 0 ? live : sample;
 }
 
@@ -62,40 +65,40 @@ export const DEMO_DRIVER_LABEL = 'Demo Driver';
 export const DEMO_DRIVER_LICENSE = 'DRV-DEMO-001';
 
 export const DEMO_DRIVER_FINES: Fine[] = [
-  { id: 1001, driver_id: 4, driver_name: DEMO_DRIVER_LABEL, driver_license: DEMO_DRIVER_LICENSE, police_id: 2, police_name: 'Dara Chan', amount: 100, reason: 'Speeding (80km/h in 60km/h zone)', status: 'pending', location: 'Russian Blvd, Phnom Penh', vehicle_plate: '2AK 7788', created_at: '2026-06-15T14:20:00Z' },
-  { id: 1002, driver_id: 4, driver_name: DEMO_DRIVER_LABEL, driver_license: DEMO_DRIVER_LICENSE, police_id: 9, police_name: 'Bora Keo', amount: 10, reason: 'No Helmet (Motorcycle)', status: 'overdue', location: 'Street 271, Sen Sok, Phnom Penh', vehicle_plate: '1PP 4455', created_at: '2026-05-28T16:45:00Z' },
-  { id: 1003, driver_id: 4, driver_name: DEMO_DRIVER_LABEL, driver_license: DEMO_DRIVER_LICENSE, police_id: 3, police_name: 'Srey Neang', amount: 25, reason: 'No Seatbelt', status: 'paid', location: 'Norodom Blvd, Phnom Penh', vehicle_plate: '2AK 7788', created_at: '2026-05-20T09:15:00Z', paid_at: '2026-05-21T10:00:00Z' },
-  { id: 1004, driver_id: 4, driver_name: DEMO_DRIVER_LABEL, driver_license: DEMO_DRIVER_LICENSE, police_id: 2, police_name: 'Dara Chan', amount: 50, reason: 'Running Red Light', status: 'paid', location: 'Monivong Blvd & Street 214, Phnom Penh', vehicle_plate: '2AA 1234', created_at: '2026-04-10T10:30:00Z', paid_at: '2026-04-12T14:00:00Z' },
-  { id: 1005, driver_id: 4, driver_name: DEMO_DRIVER_LABEL, driver_license: DEMO_DRIVER_LICENSE, police_id: 3, police_name: 'Srey Neang', amount: 15, reason: 'Illegal Parking', status: 'paid', location: 'Near Central Market, Phnom Penh', vehicle_plate: '2AA 1234', created_at: '2026-04-05T13:00:00Z', paid_at: '2026-04-06T09:00:00Z' },
-  { id: 1006, driver_id: 4, driver_name: DEMO_DRIVER_LABEL, driver_license: DEMO_DRIVER_LICENSE, police_id: 2, police_name: 'Dara Chan', amount: 30, reason: 'No U-Turn at R1-03', status: 'pending', location: 'Sihanouk Blvd, Phnom Penh', vehicle_plate: '2AA 1234', created_at: '2026-06-10T08:30:00Z' },
-  { id: 1007, driver_id: 4, driver_name: DEMO_DRIVER_LABEL, driver_license: DEMO_DRIVER_LICENSE, police_id: 2, police_name: 'Dara Chan', amount: 25, reason: 'Failure to Stop at Stop Sign (M-032)', status: 'pending', location: 'Confederation de la Russie Blvd, Phnom Penh', vehicle_plate: '2AK 7788', created_at: '2026-06-08T11:00:00Z' },
-  { id: 1008, driver_id: 4, driver_name: DEMO_DRIVER_LABEL, driver_license: DEMO_DRIVER_LICENSE, police_id: 9, police_name: 'Bora Keo', amount: 20, reason: 'Speed Limit 20 km/h Exceeded', status: 'dismissed', location: 'Chroy Changvar, Phnom Penh', vehicle_plate: '1PP 4455', created_at: '2026-03-22T07:45:00Z' },
+  { id: '1001', driver_id: '4', driver_name: DEMO_DRIVER_LABEL, driver_license: DEMO_DRIVER_LICENSE, police_id: 2, police_name: 'Dara Chan', amount: 100, reason: 'Speeding (80km/h in 60km/h zone)', status: 'pending', location: 'Russian Blvd, Phnom Penh', vehicle_plate: '2AK 7788', created_at: '2026-06-15T14:20:00Z' },
+  { id: '1002', driver_id: '4', driver_name: DEMO_DRIVER_LABEL, driver_license: DEMO_DRIVER_LICENSE, police_id: 9, police_name: 'Bora Keo', amount: 10, reason: 'No Helmet (Motorcycle)', status: 'overdue', location: 'Street 271, Sen Sok, Phnom Penh', vehicle_plate: '1PP 4455', created_at: '2026-05-28T16:45:00Z' },
+  { id: '1003', driver_id: '4', driver_name: DEMO_DRIVER_LABEL, driver_license: DEMO_DRIVER_LICENSE, police_id: 3, police_name: 'Srey Neang', amount: 25, reason: 'No Seatbelt', status: 'paid', location: 'Norodom Blvd, Phnom Penh', vehicle_plate: '2AK 7788', created_at: '2026-05-20T09:15:00Z', paid_at: '2026-05-21T10:00:00Z' },
+  { id: '1004', driver_id: '4', driver_name: DEMO_DRIVER_LABEL, driver_license: DEMO_DRIVER_LICENSE, police_id: 2, police_name: 'Dara Chan', amount: 50, reason: 'Running Red Light', status: 'paid', location: 'Monivong Blvd & Street 214, Phnom Penh', vehicle_plate: '2AA 1234', created_at: '2026-04-10T10:30:00Z', paid_at: '2026-04-12T14:00:00Z' },
+  { id: '1005', driver_id: '4', driver_name: DEMO_DRIVER_LABEL, driver_license: DEMO_DRIVER_LICENSE, police_id: 3, police_name: 'Srey Neang', amount: 15, reason: 'Illegal Parking', status: 'paid', location: 'Near Central Market, Phnom Penh', vehicle_plate: '2AA 1234', created_at: '2026-04-05T13:00:00Z', paid_at: '2026-04-06T09:00:00Z' },
+  { id: '1006', driver_id: '4', driver_name: DEMO_DRIVER_LABEL, driver_license: DEMO_DRIVER_LICENSE, police_id: 2, police_name: 'Dara Chan', amount: 30, reason: 'No U-Turn at R1-03', status: 'pending', location: 'Sihanouk Blvd, Phnom Penh', vehicle_plate: '2AA 1234', created_at: '2026-06-10T08:30:00Z' },
+  { id: '1007', driver_id: '4', driver_name: DEMO_DRIVER_LABEL, driver_license: DEMO_DRIVER_LICENSE, police_id: 2, police_name: 'Dara Chan', amount: 25, reason: 'Failure to Stop at Stop Sign (M-032)', status: 'pending', location: 'Confederation de la Russie Blvd, Phnom Penh', vehicle_plate: '2AK 7788', created_at: '2026-06-08T11:00:00Z' },
+  { id: '1008', driver_id: '4', driver_name: DEMO_DRIVER_LABEL, driver_license: DEMO_DRIVER_LICENSE, police_id: 9, police_name: 'Bora Keo', amount: 20, reason: 'Speed Limit 20 km/h Exceeded', status: 'dismissed', location: 'Chroy Changvar, Phnom Penh', vehicle_plate: '1PP 4455', created_at: '2026-03-22T07:45:00Z' },
 ];
 
 export const DEMO_DRIVER_VEHICLES: Vehicle[] = [
-  { id: 1001, owner_id: 4, owner_name: DEMO_DRIVER_LABEL, plate_number: '2AA 1234', vehicle_type: 'car', model: 'Toyota Camry 2022', color: 'Silver', year: 2022, created_at: '2024-02-05T08:00:00Z' },
-  { id: 1002, owner_id: 4, owner_name: DEMO_DRIVER_LABEL, plate_number: '2AK 7788', vehicle_type: 'car', model: 'Toyota Hilux 2023', color: 'White', year: 2023, created_at: '2025-11-12T08:00:00Z' },
-  { id: 1003, owner_id: 4, owner_name: DEMO_DRIVER_LABEL, plate_number: '1PP 4455', vehicle_type: 'motorcycle', model: 'Honda PCX 160', color: 'Grey', year: 2024, created_at: '2026-01-08T08:00:00Z' },
+  { id: '1001', owner_id: 4, owner_name: DEMO_DRIVER_LABEL, plate_number: '2AA 1234', vehicle_type: 'car', model: 'Toyota Camry 2022', color: 'Silver', year: 2022, created_at: '2024-02-05T08:00:00Z' },
+  { id: '1002', owner_id: 4, owner_name: DEMO_DRIVER_LABEL, plate_number: '2AK 7788', vehicle_type: 'car', model: 'Toyota Hilux 2023', color: 'White', year: 2023, created_at: '2025-11-12T08:00:00Z' },
+  { id: '1003', owner_id: 4, owner_name: DEMO_DRIVER_LABEL, plate_number: '1PP 4455', vehicle_type: 'motorcycle', model: 'Honda PCX 160', color: 'Grey', year: 2024, created_at: '2026-01-08T08:00:00Z' },
 ];
 
 export const DEMO_DRIVER_DETECTIONS: AIDetectionLog[] = [
-  { id: 1001, user_id: 4, user_name: DEMO_DRIVER_LABEL, uploaded_image: 'sign_001.jpg', detected_sign: 'Stop Sign (M-032)', confidence: 98.9, description: 'Octagonal red STOP sign with white lettering.', guidance: 'Come to a complete stop at the marked line.', created_at: '2026-06-17T12:00:00Z' },
-  { id: 1002, user_id: 4, user_name: DEMO_DRIVER_LABEL, uploaded_image: 'sign_002.jpg', detected_sign: 'No Entry (R1-04)', confidence: 96.2, description: 'Round red sign with horizontal white bar.', guidance: 'Do not enter this road. Find an alternative route.', created_at: '2026-06-16T11:30:00Z' },
-  { id: 1003, user_id: 4, user_name: DEMO_DRIVER_LABEL, uploaded_image: 'sign_003.jpg', detected_sign: 'Speed Limit 40 km/h', confidence: 99.1, description: 'Round white sign with red border showing 40.', guidance: 'Reduce your speed to 40 km/h or below.', created_at: '2026-06-15T09:45:00Z' },
-  { id: 1004, user_id: 4, user_name: DEMO_DRIVER_LABEL, uploaded_image: 'sign_004.jpg', detected_sign: 'Pedestrian Crossing (W-040)', confidence: 94.7, description: 'Triangular warning sign with walking figure.', guidance: 'Slow down and watch for pedestrians.', created_at: '2026-06-14T14:20:00Z' },
-  { id: 1005, user_id: 4, user_name: DEMO_DRIVER_LABEL, uploaded_image: 'sign_005.jpg', detected_sign: 'No Parking (R2-10)', confidence: 97.8, description: 'Blue sign with red crossed-out P.', guidance: 'Parking is not allowed here.', created_at: '2026-06-13T16:00:00Z' },
-  { id: 1006, user_id: 4, user_name: DEMO_DRIVER_LABEL, uploaded_image: 'sign_006.jpg', detected_sign: 'One Way Traffic (I-064)', confidence: 97.2, description: 'Blue rectangular one-way direction sign.', guidance: 'Follow the one-way direction indicated.', created_at: '2026-06-12T10:40:00Z' },
-  { id: 1007, user_id: 4, user_name: DEMO_DRIVER_LABEL, uploaded_image: 'sign_007.jpg', detected_sign: 'No Left Turn (R1-01)', confidence: 95.8, description: 'Left-turn arrow crossed by red slash.', guidance: 'Do not turn left at this intersection.', created_at: '2026-06-11T09:10:00Z' },
-  { id: 1008, user_id: 4, user_name: DEMO_DRIVER_LABEL, uploaded_image: 'sign_008.jpg', detected_sign: 'Speed Limit 50 km/h (P-030)', confidence: 98.6, description: 'Mandatory 50 km/h speed limit sign.', guidance: 'Do not exceed 50 km/h.', created_at: '2026-06-10T08:05:00Z' },
+  { id: '1001', user_id: 4, user_name: DEMO_DRIVER_LABEL, uploaded_image: 'sign_001.jpg', detected_sign: 'Stop Sign (M-032)', confidence: 98.9, description: 'Octagonal red STOP sign with white lettering.', guidance: 'Come to a complete stop at the marked line.', created_at: '2026-06-17T12:00:00Z' },
+  { id: '1002', user_id: 4, user_name: DEMO_DRIVER_LABEL, uploaded_image: 'sign_002.jpg', detected_sign: 'No Entry (R1-04)', confidence: 96.2, description: 'Round red sign with horizontal white bar.', guidance: 'Do not enter this road. Find an alternative route.', created_at: '2026-06-16T11:30:00Z' },
+  { id: '1003', user_id: 4, user_name: DEMO_DRIVER_LABEL, uploaded_image: 'sign_003.jpg', detected_sign: 'Speed Limit 40 km/h', confidence: 99.1, description: 'Round white sign with red border showing 40.', guidance: 'Reduce your speed to 40 km/h or below.', created_at: '2026-06-15T09:45:00Z' },
+  { id: '1004', user_id: 4, user_name: DEMO_DRIVER_LABEL, uploaded_image: 'sign_004.jpg', detected_sign: 'Pedestrian Crossing (W-040)', confidence: 94.7, description: 'Triangular warning sign with walking figure.', guidance: 'Slow down and watch for pedestrians.', created_at: '2026-06-14T14:20:00Z' },
+  { id: '1005', user_id: 4, user_name: DEMO_DRIVER_LABEL, uploaded_image: 'sign_005.jpg', detected_sign: 'No Parking (R2-10)', confidence: 97.8, description: 'Blue sign with red crossed-out P.', guidance: 'Parking is not allowed here.', created_at: '2026-06-13T16:00:00Z' },
+  { id: '1006', user_id: 4, user_name: DEMO_DRIVER_LABEL, uploaded_image: 'sign_006.jpg', detected_sign: 'One Way Traffic (I-064)', confidence: 97.2, description: 'Blue rectangular one-way direction sign.', guidance: 'Follow the one-way direction indicated.', created_at: '2026-06-12T10:40:00Z' },
+  { id: '1007', user_id: 4, user_name: DEMO_DRIVER_LABEL, uploaded_image: 'sign_007.jpg', detected_sign: 'No Left Turn (R1-01)', confidence: 95.8, description: 'Left-turn arrow crossed by red slash.', guidance: 'Do not turn left at this intersection.', created_at: '2026-06-11T09:10:00Z' },
+  { id: '1008', user_id: 4, user_name: DEMO_DRIVER_LABEL, uploaded_image: 'sign_008.jpg', detected_sign: 'Speed Limit 50 km/h (P-030)', confidence: 98.6, description: 'Mandatory 50 km/h speed limit sign.', guidance: 'Do not exceed 50 km/h.', created_at: '2026-06-10T08:05:00Z' },
 ];
 
 export const DEMO_DRIVER_NOTIFICATIONS: Notification[] = [
-  { id: 1001, user_id: 4, title: 'Fine Payment Reminder', message: 'You have $155 USD in outstanding fines. Pay before the due date to avoid penalties.', is_read: false, type: 'fine', created_at: '2026-06-18T08:00:00Z' },
-  { id: 1002, user_id: 4, title: 'AI Detection Complete', message: 'Stop Sign (M-032) detected with 98.9% confidence near Monivong Blvd.', is_read: false, type: 'detection', created_at: '2026-06-17T12:05:00Z' },
-  { id: 1003, user_id: 4, title: 'New Fine Issued', message: 'A fine of $100 USD has been issued for speeding on Russian Blvd.', is_read: false, type: 'fine', created_at: '2026-06-15T14:25:00Z' },
-  { id: 1004, user_id: 4, title: 'Vehicle Registration Verified', message: 'Your Toyota Hilux (2AK 7788) registration has been verified.', is_read: true, type: 'system', created_at: '2026-06-10T09:30:00Z' },
-  { id: 1005, user_id: 4, title: 'Welcome to CamTraffic', message: 'Your driver account is active. Explore AI sign detection and pay fines online.', is_read: true, type: 'system', created_at: '2026-06-01T08:00:00Z' },
-  { id: 1006, user_id: 4, title: 'Traffic Alert', message: 'Heavy congestion reported on Russian Blvd. Plan extra travel time.', is_read: false, type: 'alert', created_at: '2026-06-19T07:00:00Z' },
+  { id: '1001', user_id: 4, title: 'Fine Payment Reminder', message: 'You have $155 USD in outstanding fines. Pay before the due date to avoid penalties.', is_read: false, type: 'fine', created_at: '2026-06-18T08:00:00Z' },
+  { id: '1002', user_id: 4, title: 'AI Detection Complete', message: 'Stop Sign (M-032) detected with 98.9% confidence near Monivong Blvd.', is_read: false, type: 'detection', created_at: '2026-06-17T12:05:00Z' },
+  { id: '1003', user_id: 4, title: 'New Fine Issued', message: 'A fine of $100 USD has been issued for speeding on Russian Blvd.', is_read: false, type: 'fine', created_at: '2026-06-15T14:25:00Z' },
+  { id: '1004', user_id: 4, title: 'Vehicle Registration Verified', message: 'Your Toyota Hilux (2AK 7788) registration has been verified.', is_read: true, type: 'system', created_at: '2026-06-10T09:30:00Z' },
+  { id: '1005', user_id: 4, title: 'Welcome to CamTraffic', message: 'Your driver account is active. Explore AI sign detection and pay fines online.', is_read: true, type: 'system', created_at: '2026-06-01T08:00:00Z' },
+  { id: '1006', user_id: 4, title: 'Traffic Alert', message: 'Heavy congestion reported on Russian Blvd. Plan extra travel time.', is_read: false, type: 'alert', created_at: '2026-06-19T07:00:00Z' },
 ];
 
 const RECENT_LIST_SIZE = 5;
@@ -141,8 +144,8 @@ export function getSampleTrafficSigns(): TrafficSign[] {
 
 export const SAMPLE_VIOLATIONS: TrafficViolation[] = [
   {
-    id: 1,
-    driver_id: 4,
+    id: '1',
+    driver_id: '4',
     driver_name: 'Kosal Pich',
     driver_license: 'DL-KH-2024-001234',
     officer_name: 'Dara Chan',
@@ -156,14 +159,14 @@ export const SAMPLE_VIOLATIONS: TrafficViolation[] = [
     description: 'Vehicle failed to come to a complete stop at M-032 Stop sign.',
     evidence_image: '/demo-signs/stop.png',
     status: 'confirmed',
-    ai_detection_log: 1,
-    fine_id: 10,
+    ai_detection_log: '1',
+    fine_id: '10',
     created_at: '2024-04-10T10:20:00Z',
     updated_at: '2024-04-10T10:20:00Z',
   },
   {
-    id: 2,
-    driver_id: 5,
+    id: '2',
+    driver_id: '5',
     driver_name: 'Vanna Sok',
     driver_license: 'DL-KH-2024-002345',
     officer_name: 'Srey Neang',
@@ -181,8 +184,8 @@ export const SAMPLE_VIOLATIONS: TrafficViolation[] = [
     updated_at: '2024-04-08T14:35:00Z',
   },
   {
-    id: 3,
-    driver_id: 7,
+    id: '3',
+    driver_id: '7',
     driver_name: 'Ratana Heng',
     driver_license: 'DL-KH-2024-004567',
     officer_name: 'Bora Keo',
@@ -200,8 +203,8 @@ export const SAMPLE_VIOLATIONS: TrafficViolation[] = [
     updated_at: '2024-04-05T09:05:00Z',
   },
   {
-    id: 4,
-    driver_id: 10,
+    id: '4',
+    driver_id: '10',
     driver_name: 'Chenda Ros',
     driver_license: 'DL-KH-2024-006789',
     officer_name: 'Dara Chan',
@@ -219,8 +222,8 @@ export const SAMPLE_VIOLATIONS: TrafficViolation[] = [
     updated_at: '2024-04-01T11:35:00Z',
   },
   {
-    id: 5,
-    driver_id: 4,
+    id: '5',
+    driver_id: '4',
     driver_name: 'Kosal Pich',
     driver_license: 'DL-KH-2024-001234',
     officer_name: 'Dara Chan',
@@ -238,8 +241,8 @@ export const SAMPLE_VIOLATIONS: TrafficViolation[] = [
     updated_at: '2026-06-08T11:05:00Z',
   },
   {
-    id: 6,
-    driver_id: 5,
+    id: '6',
+    driver_id: '5',
     driver_name: 'Vanna Sok',
     driver_license: 'DL-KH-2024-002345',
     officer_name: 'Srey Neang',
@@ -257,8 +260,8 @@ export const SAMPLE_VIOLATIONS: TrafficViolation[] = [
     updated_at: '2026-06-14T08:05:00Z',
   },
   {
-    id: 7,
-    driver_id: 7,
+    id: '7',
+    driver_id: '7',
     driver_name: 'Ratana Heng',
     driver_license: 'DL-KH-2024-004567',
     officer_name: 'Bora Keo',
@@ -276,8 +279,8 @@ export const SAMPLE_VIOLATIONS: TrafficViolation[] = [
     updated_at: '2026-05-15T13:05:00Z',
   },
   {
-    id: 8,
-    driver_id: 10,
+    id: '8',
+    driver_id: '10',
     driver_name: 'Chenda Ros',
     driver_license: 'DL-KH-2024-006789',
     officer_name: 'Dara Chan',
@@ -298,7 +301,7 @@ export const SAMPLE_VIOLATIONS: TrafficViolation[] = [
 
 export const SAMPLE_VIOLATION_RULES: ViolationRule[] = [
   {
-    id: 1,
+    id: '1',
     sign_class_key: 'M_STOP',
     prohibited_action: 'ENTER',
     violation_type: 'NO_STOP',
@@ -308,7 +311,7 @@ export const SAMPLE_VIOLATION_RULES: ViolationRule[] = [
     is_active: true,
   },
   {
-    id: 2,
+    id: '2',
     sign_class_key: 'NO_LEFT_TURN',
     prohibited_action: 'LEFT_TURN',
     violation_type: 'NO_LEFT_TURN',
@@ -318,7 +321,7 @@ export const SAMPLE_VIOLATION_RULES: ViolationRule[] = [
     is_active: true,
   },
   {
-    id: 3,
+    id: '3',
     sign_class_key: 'NO_ENTRY',
     prohibited_action: 'ENTER',
     violation_type: 'NO_ENTRY',
@@ -328,7 +331,7 @@ export const SAMPLE_VIOLATION_RULES: ViolationRule[] = [
     is_active: true,
   },
   {
-    id: 4,
+    id: '4',
     sign_class_key: 'NO_PARKING',
     prohibited_action: 'PARKING',
     violation_type: 'NO_PARKING',
@@ -340,11 +343,12 @@ export const SAMPLE_VIOLATION_RULES: ViolationRule[] = [
 ];
 
 export function getSampleEvidenceArchive(): EvidenceArchiveItem[] {
+  if (!USE_SAMPLE_FALLBACK) return [];
   return [
     {
       id: 'sample-det-1',
       source_type: 'detection',
-      source_id: 1,
+      source_id: '1',
       title: 'Stop Sign — M-032',
       plate: '2AA 1234',
       location: 'Monivong Blvd, Phnom Penh',
@@ -356,7 +360,7 @@ export function getSampleEvidenceArchive(): EvidenceArchiveItem[] {
     {
       id: 'sample-vio-1',
       source_type: 'violation',
-      source_id: 2,
+      source_id: '2',
       title: 'No Left Turn — R1-01',
       plate: '1CC 9012',
       location: 'Russian Blvd, Phnom Penh',
@@ -368,7 +372,7 @@ export function getSampleEvidenceArchive(): EvidenceArchiveItem[] {
     {
       id: 'sample-fine-1',
       source_type: 'fine',
-      source_id: 1,
+      source_id: '1',
       title: 'Red Light Violation',
       plate: '2AA 1234',
       location: 'Monivong Blvd & Street 214',
@@ -380,7 +384,7 @@ export function getSampleEvidenceArchive(): EvidenceArchiveItem[] {
     {
       id: 'sample-det-2',
       source_type: 'detection',
-      source_id: 3,
+      source_id: '3',
       title: 'Speed Limit 50 — P-030',
       plate: '1CC 9012',
       location: 'Airport Road, Phnom Penh',
@@ -392,7 +396,7 @@ export function getSampleEvidenceArchive(): EvidenceArchiveItem[] {
     {
       id: 'sample-det-3',
       source_type: 'detection',
-      source_id: 4,
+      source_id: '4',
       title: 'Pedestrian Crossing — W-040',
       plate: '2EE 7890',
       location: 'Norodom Blvd, Phnom Penh',
@@ -404,7 +408,7 @@ export function getSampleEvidenceArchive(): EvidenceArchiveItem[] {
     {
       id: 'sample-vio-2',
       source_type: 'violation',
-      source_id: 3,
+      source_id: '3',
       title: 'No Entry — R1-04',
       plate: '2EE 7890',
       location: 'Street 271, Sen Sok',
@@ -416,7 +420,7 @@ export function getSampleEvidenceArchive(): EvidenceArchiveItem[] {
     {
       id: 'sample-det-4',
       source_type: 'detection',
-      source_id: 4,
+      source_id: '4',
       title: 'No Parking — R2-10',
       plate: '2AK 7788',
       location: 'Central Market, Phnom Penh',
@@ -428,7 +432,7 @@ export function getSampleEvidenceArchive(): EvidenceArchiveItem[] {
     {
       id: 'sample-vio-3',
       source_type: 'violation',
-      source_id: 5,
+      source_id: '5',
       title: 'No Stop — M-032',
       plate: '2AA 1234',
       location: 'Confederation de la Russie Blvd',
@@ -440,7 +444,7 @@ export function getSampleEvidenceArchive(): EvidenceArchiveItem[] {
     {
       id: 'sample-fine-2',
       source_type: 'fine',
-      source_id: 1001,
+      source_id: '1001',
       title: 'Speeding Violation',
       plate: '2AK 7788',
       location: 'Russian Blvd, Phnom Penh',
@@ -452,7 +456,7 @@ export function getSampleEvidenceArchive(): EvidenceArchiveItem[] {
     {
       id: 'sample-det-5',
       source_type: 'detection',
-      source_id: 5,
+      source_id: '5',
       title: 'One Way Traffic — I-064',
       plate: '1PP 4455',
       location: 'Chroy Changvar, Phnom Penh',
@@ -464,7 +468,7 @@ export function getSampleEvidenceArchive(): EvidenceArchiveItem[] {
     {
       id: 'sample-det-6',
       source_type: 'detection',
-      source_id: 6,
+      source_id: '6',
       title: 'No Left Turn — R1-01',
       plate: '2AA 1234',
       location: 'Monivong Blvd, Phnom Penh',
@@ -476,7 +480,7 @@ export function getSampleEvidenceArchive(): EvidenceArchiveItem[] {
     {
       id: 'sample-vio-4',
       source_type: 'violation',
-      source_id: 8,
+      source_id: '8',
       title: 'No U-Turn — R1-03',
       plate: '3FF 2345',
       location: 'Sihanouk Blvd, Phnom Penh',
@@ -488,7 +492,7 @@ export function getSampleEvidenceArchive(): EvidenceArchiveItem[] {
     {
       id: 'sample-det-7',
       source_type: 'detection',
-      source_id: 7,
+      source_id: '7',
       title: 'Speed Limit 20 — P-029',
       plate: '1PP 4455',
       location: 'School zone, Sen Sok',
@@ -518,11 +522,13 @@ function hasChartSeries<T extends { count?: number }>(rows: T[] | undefined): bo
 }
 
 export function getSampleAdminDashboard(): DashboardStats {
+  if (!USE_SAMPLE_FALLBACK) return { ...EMPTY_DASHBOARD_STATS };
   return { ...mockDashboardStats };
 }
 
 /** Fill demo dashboard when enforcement data is missing; patch empty chart series otherwise. */
 export function mergeDashboardStats(live: DashboardStats): DashboardStats {
+  if (!USE_SAMPLE_FALLBACK) return live;
   const sample = getSampleAdminDashboard();
 
   if (!hasEnforcementData(live)) {
@@ -582,10 +588,12 @@ export type PoliceDashboardStats = {
 };
 
 export function getSampleDriverStats(driverId: string | number = 4): DriverDashboardStats {
+  if (!USE_SAMPLE_FALLBACK) return { ...EMPTY_DRIVER_STATS };
   return sampleDriverStats(driverId);
 }
 
 export function getSamplePoliceStats(policeId: string | number = 2): PoliceDashboardStats {
+  if (!USE_SAMPLE_FALLBACK) return { ...EMPTY_POLICE_STATS };
   return samplePoliceStats(policeId);
 }
 
@@ -616,6 +624,7 @@ function samplePoliceStats(policeId: string | number): PoliceDashboardStats {
 }
 
 export function mergeDriverStats(live: DriverDashboardStats, driverId: string | number): DriverDashboardStats {
+  if (!USE_SAMPLE_FALLBACK) return live;
   const sample = sampleDriverStats(driverId);
   const empty = live.total_fines === 0
     && live.vehicles === 0
@@ -634,6 +643,7 @@ export function mergeDriverStats(live: DriverDashboardStats, driverId: string | 
 }
 
 export function mergePoliceStats(live: PoliceDashboardStats, policeId: string | number): PoliceDashboardStats {
+  if (!USE_SAMPLE_FALLBACK) return live;
   const empty = live.total_issued === 0 && !live.recent?.length;
   if (empty) return samplePoliceStats(policeId);
   const sample = samplePoliceStats(policeId);
@@ -672,6 +682,7 @@ export function sampleNotificationsForUser(userId: string | number): Notificatio
 }
 
 export function mergeProfileOverview(live: ProfileOverview): ProfileOverview {
+  if (!USE_SAMPLE_FALLBACK) return live;
   if (live.activity.length > 0) return live;
   const now = new Date().toISOString();
   return {

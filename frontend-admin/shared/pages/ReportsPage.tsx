@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   BarChart3, Download, TrendingUp, FileText, Users, Camera, PieChart as PieChartIcon,
   BarChart2, LineChart as LineChartIcon, AlertCircle, RefreshCw, Shield, Car, BadgeCheck,
-  MapPin, Activity, Gauge, Layers, Database, Archive, HardDrive, FileJson, Settings2,
-  Cpu, Loader2, Lock,
+  MapPin, Activity, Gauge, Layers, Database, HardDrive, FileJson, Settings2,
+  Cpu, Loader2, Lock, FileSpreadsheet, Calendar, ArrowDownToLine,
+  Package, Upload,
 } from 'lucide-react';
 import { Button } from '@shared/components/ui/button';
 import {
@@ -15,7 +16,7 @@ import { useLanguage } from '@shared/context/LanguageContext';
 import { formatAppCurrency, formatChartAxisCurrency, formatRevenue } from '@shared/i18n/localeFormat';
 import { useLiveData } from '@shared/hooks/useLiveData';
 import { dashboardAPI } from '@shared/services/api';
-import { getSampleAdminDashboard, mergeDashboardStats } from '@shared/services/sampleDataFallback';
+import { EMPTY_DASHBOARD_STATS } from '@shared/constants/emptyDashboard';
 import { toast } from 'sonner';
 import type { DashboardStats } from '@shared/types';
 import {
@@ -26,14 +27,23 @@ import {
   chartTooltipStyle,
   chartAxisTick,
 } from '@shared/constants/chartPalette';
+import {
+  ReportsAdminExtras,
+  ReportsDriverAnalyticsPanel,
+  ReportsHeatmapPanel,
+  ReportsOfficerPerformancePanel,
+} from '@shared/components/admin/ReportsAdvancedAnalytics';
 
-type ReportTab = 'overview' | 'fines' | 'detections' | 'users';
+type ReportTab = 'overview' | 'fines' | 'detections' | 'users' | 'heatmap' | 'officers' | 'drivers';
 
 const TABS: { key: ReportTab; labelKey: string; gradient: string }[] = [
   { key: 'overview', labelKey: 'reports.tabOverview', gradient: 'linear-gradient(135deg, #D97706, #F59E0B)' },
   { key: 'fines', labelKey: 'reports.tabFines', gradient: 'linear-gradient(135deg, #EF4444, #DC2626)' },
   { key: 'detections', labelKey: 'reports.tabDetections', gradient: 'linear-gradient(135deg, #8B5CF6, #7C3AED)' },
   { key: 'users', labelKey: 'reports.tabUsers', gradient: 'linear-gradient(135deg, #2563EB, #1D4ED8)' },
+  { key: 'heatmap', labelKey: 'reports.tabHeatmap', gradient: 'linear-gradient(135deg, #F43F5E, #E11D48)' },
+  { key: 'officers', labelKey: 'reports.tabOfficers', gradient: 'linear-gradient(135deg, #0EA5E9, #0284C7)' },
+  { key: 'drivers', labelKey: 'reports.tabDrivers', gradient: 'linear-gradient(135deg, #14B8A6, #0D9488)' },
 ];
 
 const MAIN_STATS = [
@@ -159,7 +169,7 @@ function TopLocationsPanel({
 export function ReportsPage() {
   const { t, locale } = useLanguage();
   const { user } = useAuth();
-  const [stats, setStats] = useState<DashboardStats>(() => getSampleAdminDashboard());
+  const [stats, setStats] = useState<DashboardStats>(() => ({ ...EMPTY_DASHBOARD_STATS }));
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [tab, setTab] = useState<ReportTab>('overview');
@@ -184,11 +194,11 @@ export function ReportsPage() {
         : dashboardAPI.getPoliceReportStats();
 
     request
-      .then((s) => setStats(mergeDashboardStats(s)))
+      .then((s) => setStats(s))
       .catch(() => {
-        setStats(getSampleAdminDashboard());
-        setLoadError(false);
-        if (!silent) toast.message(t('reports.demoData') || 'Showing demo report data.');
+        setStats({ ...EMPTY_DASHBOARD_STATS });
+        setLoadError(true);
+        if (!silent) toast.error(t('dashboard.loadErrorTitle'));
       })
       .finally(() => {
         if (!silent) setLoading(false);
@@ -324,54 +334,6 @@ export function ReportsPage() {
             <p className="enforcement-page__subtitle">
               {t('pages.reports.heroSubtitle', { year: reportYear })}
             </p>
-          </div>
-          <div className="flex flex-col sm:flex-row sm:items-end gap-3">
-            <div className="flex gap-2">
-              <label className="flex flex-col gap-1 text-[11px] font-semibold text-muted-foreground">
-                {t('reports.exportMonth')}
-                <select
-                  value={reportMonth}
-                  onChange={(e) => setReportMonth(Number(e.target.value))}
-                  className="rounded-lg border border-border bg-background px-2.5 py-2 text-[13px] min-w-[5.5rem]"
-                >
-                  {monthOptions.map((m) => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1 text-[11px] font-semibold text-muted-foreground">
-                {t('reports.exportYear')}
-                <select
-                  value={reportYear}
-                  onChange={(e) => setReportYear(Number(e.target.value))}
-                  className="rounded-lg border border-border bg-background px-2.5 py-2 text-[13px] min-w-[5.5rem]"
-                >
-                  {yearOptions.map((y) => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                className="enforcement-page__hero-btn enforcement-page__hero-btn--amber"
-                onClick={handleExport}
-                disabled={exporting}
-              >
-                <Download size={16} />
-                {exporting ? t('reports.exporting') : t('pages.reports.exportPdf')}
-              </button>
-              <button
-                type="button"
-                className="enforcement-page__hero-btn"
-                onClick={() => void handleExportExcel()}
-                disabled={exportingExcel}
-              >
-                <Download size={16} />
-                {exportingExcel ? t('reports.exporting') : t('pages.reports.exportExcel')}
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -859,103 +821,181 @@ export function ReportsPage() {
         </div>
       )}
 
-      {user?.role === 'admin' && (
-        <section className="reports-page__backup" aria-labelledby="system-backup-title">
-          <div className="reports-page__backup-glow reports-page__backup-glow--primary" aria-hidden />
-          <div className="reports-page__backup-glow reports-page__backup-glow--secondary" aria-hidden />
-          <div className="reports-page__backup-grid-bg" aria-hidden />
+      {tab === 'heatmap' && <ReportsHeatmapPanel />}
+      {tab === 'officers' && <ReportsOfficerPerformancePanel />}
+      {tab === 'drivers' && <ReportsDriverAnalyticsPanel />}
 
-          <div className="reports-page__backup-inner">
-            <header className="reports-page__backup-header">
-              <p className="reports-page__backup-eyebrow">{t('reports.systemBackupEyebrow')}</p>
-              <div className="reports-page__backup-title-row">
-                <div className="reports-page__backup-hero-icon">
-                  <Archive size={18} strokeWidth={2.2} />
+      <section className="reports-page__data-ops" aria-labelledby="data-ops-title">
+        <div className="reports-page__data-ops-glow reports-page__data-ops-glow--amber" aria-hidden />
+        <div className="reports-page__data-ops-glow reports-page__data-ops-glow--blue" aria-hidden />
+
+        <div className="reports-page__data-ops-inner">
+          <header className="reports-page__data-ops-head">
+            <p className="reports-page__data-ops-eyebrow">{t('reports.dataOpsEyebrow')}</p>
+            <h2 id="data-ops-title" className="reports-page__data-ops-title">{t('reports.dataOpsTitle')}</h2>
+            <p className="reports-page__data-ops-desc">{t('reports.dataOpsDesc')}</p>
+          </header>
+
+          <div className={`reports-page__data-ops-grid${user.role === 'admin' ? ' reports-page__data-ops-grid--split' : ''}`}>
+            <article className="reports-page__io-panel reports-page__io-panel--export">
+              <div className="reports-page__io-panel-head">
+                <div className="reports-page__io-panel-icon reports-page__io-panel-icon--amber">
+                  <ArrowDownToLine size={17} strokeWidth={2.2} />
                 </div>
-                <div className="reports-page__backup-title-copy">
-                  <div className="reports-page__backup-title-line">
-                    <h2 id="system-backup-title" className="reports-page__backup-title">
-                      {t('reports.systemBackup')}
-                    </h2>
-                    <span className="reports-page__backup-badge">{t('reports.systemBackupAdminBadge')}</span>
-                  </div>
-                  <p className="reports-page__backup-desc">{t('reports.systemBackupDesc')}</p>
+                <div>
+                  <h3 className="reports-page__io-panel-title">{t('reports.exportOutputTitle')}</h3>
+                  <p className="reports-page__io-panel-sub">
+                    {user.role === 'admin' ? t('reports.reportSummaryScopeAdmin') : t('reports.reportSummaryScopePolice')}
+                  </p>
                 </div>
               </div>
-            </header>
 
-            <div className="reports-page__backup-body">
-              <div className="reports-page__backup-chips" role="list">
-                {[
-                  { icon: Database, label: t('reports.systemBackupChipDb'), tone: 'blue' },
-                  { icon: HardDrive, label: t('reports.systemBackupChipMedia'), tone: 'violet' },
-                  { icon: FileJson, label: t('reports.systemBackupChipJson'), tone: 'teal' },
-                  { icon: Settings2, label: t('reports.systemBackupChipConfig'), tone: 'amber' },
-                ].map(({ icon: Icon, label, tone }) => (
-                  <div
-                    key={label}
-                    className={`reports-page__backup-chip reports-page__backup-chip--${tone}`}
-                    role="listitem"
-                  >
-                    <span className="reports-page__backup-chip-icon">
-                      <Icon size={13} strokeWidth={2.2} />
-                    </span>
-                    <span>{label}</span>
-                  </div>
-                ))}
-                {includeWeights && (
-                  <div
-                    className="reports-page__backup-chip reports-page__backup-chip--rose reports-page__backup-chip--active"
-                    role="listitem"
-                  >
-                    <span className="reports-page__backup-chip-icon">
-                      <Cpu size={13} strokeWidth={2.2} />
-                    </span>
-                    <span>{t('reports.systemBackupChipWeights')}</span>
-                  </div>
-                )}
+              <div className="reports-page__io-toolbar">
+                <Calendar size={14} />
+                <label className="reports-page__io-field">
+                  <span>{t('reports.exportMonth')}</span>
+                  <select value={reportMonth} onChange={(e) => setReportMonth(Number(e.target.value))}>
+                    {monthOptions.map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="reports-page__io-field">
+                  <span>{t('reports.exportYear')}</span>
+                  <select value={reportYear} onChange={(e) => setReportYear(Number(e.target.value))}>
+                    {yearOptions.map((y) => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </label>
               </div>
 
-              <aside className="reports-page__backup-console">
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={includeWeights}
-                  className={`reports-page__backup-toggle${includeWeights ? ' reports-page__backup-toggle--on' : ''}`}
-                  onClick={() => setIncludeWeights((v) => !v)}
-                  disabled={backingUp}
-                >
-                  <span className="reports-page__backup-toggle-icon">
+              <div className="reports-page__io-cards">
+                <div className="reports-page__io-card reports-page__io-card--pdf">
+                  <div className="reports-page__io-card-top">
+                    <span className="reports-page__io-card-icon"><FileText size={18} /></span>
+                    <span className="reports-page__io-format">{t('reports.outputFormatPdf')}</span>
+                  </div>
+                  <h4 className="reports-page__io-card-title">{t('pages.reports.exportPdf')}</h4>
+                  <p className="reports-page__io-card-desc">{t('reports.reportSummaryPdfHint')}</p>
+                  <ul className="reports-page__io-includes">
+                    <li>{t('reports.reportSummaryChipOverview')}</li>
+                    <li>{t('reports.reportSummaryChipMonthly')}</li>
+                    <li>{t('reports.reportSummaryChipViolations')}</li>
+                  </ul>
+                  <button
+                    type="button"
+                    className="reports-page__io-card-btn reports-page__io-card-btn--amber"
+                    onClick={() => void handleExport()}
+                    disabled={exporting}
+                  >
+                    {exporting ? <Loader2 size={15} className="reports-page__io-spinner" /> : <Download size={15} />}
+                    {exporting ? t('reports.exporting') : t('reports.outputActionExport')}
+                  </button>
+                </div>
+
+                <div className="reports-page__io-card reports-page__io-card--excel">
+                  <div className="reports-page__io-card-top">
+                    <span className="reports-page__io-card-icon"><FileSpreadsheet size={18} /></span>
+                    <span className="reports-page__io-format">{t('reports.outputFormatExcel')}</span>
+                  </div>
+                  <h4 className="reports-page__io-card-title">{t('pages.reports.exportExcel')}</h4>
+                  <p className="reports-page__io-card-desc">{t('reports.reportSummaryExcelHint')}</p>
+                  <ul className="reports-page__io-includes">
+                    <li>{t('reports.reportSummaryChipViolations')}</li>
+                    <li>{t('reports.reportSummaryChipReasons')}</li>
+                    <li>{t('reports.reportSummaryPeriod')}</li>
+                  </ul>
+                  <button
+                    type="button"
+                    className="reports-page__io-card-btn reports-page__io-card-btn--blue"
+                    onClick={() => void handleExportExcel()}
+                    disabled={exportingExcel}
+                  >
+                    {exportingExcel ? <Loader2 size={15} className="reports-page__io-spinner" /> : <Download size={15} />}
+                    {exportingExcel ? t('reports.exporting') : t('reports.outputActionExport')}
+                  </button>
+                </div>
+              </div>
+            </article>
+
+            {user.role === 'admin' && (
+              <article className="reports-page__io-panel reports-page__io-panel--backup">
+                <div className="reports-page__io-panel-head">
+                  <div className="reports-page__io-panel-icon reports-page__io-panel-icon--blue">
+                    <Package size={17} strokeWidth={2.2} />
+                  </div>
+                  <div>
+                    <h3 className="reports-page__io-panel-title">{t('reports.backupOutputTitle')}</h3>
+                    <p className="reports-page__io-panel-sub">{t('reports.systemBackupAdminBadge')}</p>
+                  </div>
+                </div>
+
+                <p className="reports-page__io-bundle-label">{t('reports.backupBundleTitle')}</p>
+                <ul className="reports-page__io-bundle">
+                  {[
+                    { icon: Database, label: t('reports.systemBackupChipDb'), desc: t('reports.backupChipDbDesc'), optional: false },
+                    { icon: HardDrive, label: t('reports.systemBackupChipMedia'), desc: t('reports.backupChipMediaDesc'), optional: false },
+                    { icon: FileJson, label: t('reports.systemBackupChipJson'), desc: t('reports.backupChipJsonDesc'), optional: false },
+                    { icon: Settings2, label: t('reports.systemBackupChipConfig'), desc: t('reports.backupChipConfigDesc'), optional: false },
+                    { icon: Cpu, label: t('reports.systemBackupChipWeights'), desc: t('reports.backupChipWeightsDesc'), optional: true, active: includeWeights },
+                  ].map(({ icon: Icon, label, desc, optional, active }) => (
+                    <li
+                      key={label}
+                      className={`reports-page__io-bundle-row${active ? ' reports-page__io-bundle-row--active' : ''}${optional && !active ? ' reports-page__io-bundle-row--muted' : ''}`}
+                    >
+                      <span className="reports-page__io-bundle-icon"><Icon size={15} /></span>
+                      <span className="reports-page__io-bundle-copy">
+                        <strong>{label}</strong>
+                        <span>{desc}</span>
+                      </span>
+                      <span className="reports-page__io-bundle-tag">
+                        {optional ? (active ? t('reports.backupBundleIncluded') : t('reports.backupBundleOptional')) : t('reports.backupBundleIncluded')}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="reports-page__io-backup-actions">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={includeWeights}
+                    className={`reports-page__io-toggle${includeWeights ? ' reports-page__io-toggle--on' : ''}`}
+                    onClick={() => setIncludeWeights((v) => !v)}
+                    disabled={backingUp}
+                  >
                     <Cpu size={14} />
-                  </span>
-                  <span className="reports-page__backup-toggle-copy">
-                    <span className="reports-page__backup-toggle-label">{t('reports.systemBackupIncludeWeights')}</span>
-                    <span className="reports-page__backup-toggle-hint">{t('reports.systemBackupWeightsHint')}</span>
-                  </span>
-                  <span className="reports-page__backup-toggle-track" aria-hidden>
-                    <span className="reports-page__backup-toggle-thumb" />
-                  </span>
-                </button>
+                    <span>{t('reports.systemBackupIncludeWeights')}</span>
+                    <span className="reports-page__io-toggle-track" aria-hidden>
+                      <span className="reports-page__io-toggle-thumb" />
+                    </span>
+                  </button>
 
-                <button
-                  type="button"
-                  className={`reports-page__backup-btn${backingUp ? ' reports-page__backup-btn--loading' : ''}`}
-                  onClick={() => void handleSystemBackup()}
-                  disabled={backingUp}
-                >
-                  {backingUp ? <Loader2 size={16} className="reports-page__backup-btn-spinner" /> : <Download size={16} />}
-                  <span>{backingUp ? t('reports.exporting') : t('reports.systemBackupDownload')}</span>
-                </button>
+                  <button
+                    type="button"
+                    className={`reports-page__io-card-btn reports-page__io-card-btn--blue reports-page__io-card-btn--full${backingUp ? ' reports-page__io-card-btn--loading' : ''}`}
+                    onClick={() => void handleSystemBackup()}
+                    disabled={backingUp}
+                  >
+                    {backingUp ? <Loader2 size={15} className="reports-page__io-spinner" /> : <Upload size={15} />}
+                    <span className="reports-page__io-format-pill">{t('reports.outputFormatZip')}</span>
+                    {backingUp ? t('reports.exporting') : t('reports.systemBackupDownload')}
+                  </button>
 
-                <p className="reports-page__backup-secure">
-                  <Lock size={12} strokeWidth={2.2} />
-                  {t('reports.systemBackupSecureNote')}
-                </p>
-              </aside>
-            </div>
+                  <p className="reports-page__io-note">
+                    <Lock size={12} />
+                    {t('reports.systemBackupSecureNote')}
+                  </p>
+                  <p className="reports-page__io-note reports-page__io-note--cli">{t('reports.backupRestoreCli')}</p>
+                </div>
+              </article>
+            )}
           </div>
-        </section>
-      )}
+        </div>
+      </section>
+
+      <ReportsAdminExtras isAdmin={user?.role === 'admin'} />
     </div>
   );
 }

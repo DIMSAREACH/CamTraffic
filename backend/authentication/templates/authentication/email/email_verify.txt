@@ -1,0 +1,9 @@
+Hi {{ name }},
+
+Please verify your CamTraffic email address by opening this link:
+
+{{ verify_link }}
+
+If you did not create a CamTraffic account, you can ignore this message.
+
+— CamTraffic

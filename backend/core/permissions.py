@@ -44,3 +44,26 @@ class IsOwnerOrAdmin(BasePermission):
             return True
         owner_id = getattr(obj, 'owner_id', None) or getattr(obj, 'user_id', None) or getattr(obj, 'driver_id', None)
         return owner_id == request.user.id
+
+
+# RBAC factories (database roles + permissions)
+from rbac.permissions import (  # noqa: E402
+    HasRBACPermission,
+    HasRBACRole,
+    user_has_rbac_permission,
+    user_has_rbac_role,
+)
+
+__all__ = [
+    'IsAdmin',
+    'IsPolice',
+    'IsDriver',
+    'IsOfficer',
+    'IsCitizen',
+    'IsPoliceOrAdmin',
+    'IsOwnerOrAdmin',
+    'HasRBACRole',
+    'HasRBACPermission',
+    'user_has_rbac_role',
+    'user_has_rbac_permission',
+]

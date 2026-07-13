@@ -1,27 +1,21 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { usePagination } from '@shared/hooks/usePagination';
 import { TablePagination } from '@shared/components/ui/TablePagination';
-import { Car, Plus, Trash2, Search, Truck, Bike } from 'lucide-react';
+import { Car, Plus, Trash2, Search, Truck, Bike, Eye, Hash, Palette, Calendar, User, Bus, Pencil } from 'lucide-react';
 import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
 import { Label } from '@shared/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@shared/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@shared/components/ui/table';
+import { EmptyStatePanel, TableEmptyState } from '@shared/components/ui/TableEmptyState';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { useLiveData } from '@shared/hooks/useLiveData';
 import { vehiclesAPI } from '@shared/services/api';
+import { getVehicleImageUrl, getVehicleStockImage } from '@shared/utils/vehicleImage';
 import { toast } from 'sonner';
 import type { Vehicle } from '@shared/types';
-
-const TYPE_ICON: Record<string, string> = {
-  car: '🚗',
-  motorcycle: '🏍️',
-  truck: '🚚',
-  bus: '🚌',
-  'tuk-tuk': '🛺',
-};
 
 const VEHICLE_TYPES = ['car', 'motorcycle', 'truck', 'bus', 'tuk-tuk'] as const;
 type VehicleType = typeof VEHICLE_TYPES[number];
@@ -44,6 +38,13 @@ const STAT_CARDS = [
   { key: 'commercial', labelKey: 'vehicles.statCommercial', icon: Truck, variant: 'slate', filterable: false },
 ] as const;
 
+function vehicleTypeIcon(type: string) {
+  if (type === 'motorcycle') return Bike;
+  if (type === 'truck') return Truck;
+  if (type === 'bus') return Bus;
+  return Car;
+}
+
 function initials(name: string) {
   return name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'DR';
 }
@@ -58,6 +59,27 @@ function getColorDot(color: string) {
   return '#D1D5DB';
 }
 
+function VehiclePhoto({ vehicle, className }: { vehicle: Vehicle; className?: string }) {
+  const fallback = getVehicleStockImage(vehicle.vehicle_type, vehicle.id);
+  const [src, setSrc] = useState(() => getVehicleImageUrl(vehicle));
+
+  useEffect(() => {
+    setSrc(getVehicleImageUrl(vehicle));
+  }, [vehicle.id, vehicle.registration_photo, vehicle.vehicle_type]);
+
+  return (
+    <img
+      src={src}
+      alt={vehicle.model}
+      className={className}
+      loading="lazy"
+      onError={() => {
+        if (src !== fallback) setSrc(fallback);
+      }}
+    />
+  );
+}
+
 export function VehiclesPage() {
   const { t, locale } = useLanguage();
   const dateLocale = locale === 'km' ? 'km-KH' : 'en-US';
@@ -69,6 +91,9 @@ export function VehiclesPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [editVehicle, setEditVehicle] = useState<Vehicle | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [viewVehicle, setViewVehicle] = useState<Vehicle | null>(null);
   const [form, setForm] = useState({
     plate_number: '',
     vehicle_type: '',
@@ -79,6 +104,15 @@ export function VehiclesPage() {
 
   const isDriver = user?.role === 'driver';
   const typeLabel = (type: string) => t(`vehicles.types.${type === 'tuk-tuk' ? 'tukTuk' : type}`);
+  const renderTypeLabel = (type: string, iconSize = 12) => {
+    const TypeIcon = vehicleTypeIcon(type);
+    return (
+      <span className="inline-flex items-center gap-1">
+        <TypeIcon size={iconSize} aria-hidden />
+        {typeLabel(type)}
+      </span>
+    );
+  };
 
   const loadVehicles = useCallback(async (silent = false) => {
     if (!user) return;
@@ -157,6 +191,41 @@ export function VehiclesPage() {
       loadVehicles();
     } catch {
       toast.error(t('vehicles.toastRemoveFail'));
+    }
+  };
+
+  const openEdit = (vehicle: Vehicle) => {
+    setEditVehicle(vehicle);
+    setForm({
+      plate_number: vehicle.plate_number,
+      vehicle_type: vehicle.vehicle_type,
+      model: vehicle.model,
+      color: vehicle.color,
+      year: String(vehicle.year),
+    });
+  };
+
+  const handleEdit = async () => {
+    if (!editVehicle || !form.plate_number || !form.vehicle_type || !form.model || !form.color) {
+      toast.error(t('vehicles.toastFillRequired'));
+      return;
+    }
+    setEditing(true);
+    try {
+      await vehiclesAPI.update(editVehicle.id, {
+        plate_number: form.plate_number,
+        vehicle_type: form.vehicle_type as Vehicle['vehicle_type'],
+        model: form.model,
+        color: form.color,
+        year: parseInt(form.year, 10),
+      });
+      toast.success(t('vehicles.toastUpdated'));
+      setEditVehicle(null);
+      loadVehicles();
+    } catch {
+      toast.error(t('vehicles.toastUpdateFail'));
+    } finally {
+      setEditing(false);
     }
   };
 
@@ -276,45 +345,68 @@ export function VehiclesPage() {
         loading ? (
           <div className="enforcement-page__vehicle-grid">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="enforcement-page__vehicle-card enforcement-page__skeleton" style={{ height: '10rem' }} />
+              <div key={i} className="enforcement-page__vehicle-card enforcement-page__skeleton" style={{ height: '14.5rem' }} />
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="enforcement-page__panel enforcement-page__panel--vehicles">
-            <div className="flex flex-col items-center gap-3 py-16">
-              <div className="enforcement-page__empty-icon enforcement-page__empty-icon--teal">
-                <Car size={28} />
-              </div>
-              <div className="text-center">
-                <p className="enforcement-page__empty-title">{search ? t('vehicles.empty') : t('vehicles.emptyDriver')}</p>
-                <p className="enforcement-page__empty-subtitle">{t('vehicles.emptyHint')}</p>
-              </div>
-              {!search && (
-                <button type="button" className="enforcement-page__hero-btn enforcement-page__hero-btn--teal" onClick={() => setAddOpen(true)}>
-                  <Plus size={14} /> {t('vehicles.addFirst')}
-                </button>
-              )}
-            </div>
-          </div>
+          <EmptyStatePanel
+            className="enforcement-page__panel enforcement-page__panel--vehicles"
+            tone="teal"
+            icon={<Car size={28} />}
+            title={search ? t('vehicles.empty') : t('vehicles.emptyDriver')}
+            subtitle={t('vehicles.emptyHint')}
+            action={
+              !search
+                ? { label: t('vehicles.addFirst'), onClick: () => setAddOpen(true), icon: <Plus size={14} /> }
+                : undefined
+            }
+          />
         ) : (
           <div className="enforcement-page__vehicle-grid">
-            {pagination.pageItems.map((v) => {
+            {filtered.map((v) => {
               const meta = getTypeMeta(v.vehicle_type);
               return (
                 <div key={v.id} className="enforcement-page__vehicle-card">
-                  <div className="enforcement-page__vehicle-card-top">
-                    <span className="enforcement-page__vehicle-icon">{TYPE_ICON[v.vehicle_type] || '🚗'}</span>
-                    <button type="button" className="enforcement-page__icon-btn enforcement-page__icon-btn--delete" onClick={() => setDeleteId(v.id)}>
-                      <Trash2 size={15} />
-                    </button>
+                  <div className="enforcement-page__vehicle-media">
+                    <VehiclePhoto vehicle={v} className="enforcement-page__vehicle-photo" />
+                    <div className="enforcement-page__vehicle-media-overlay" aria-hidden />
+                    <span
+                      className="enforcement-page__vehicle-type-badge"
+                      style={{ background: meta.bg, color: meta.color, borderColor: `${meta.color}30` }}
+                    >
+                      {typeLabel(v.vehicle_type)}
+                    </span>
+                    <div className="enforcement-page__vehicle-media-actions">
+                      <button
+                        type="button"
+                        className="vehicles-page__action-btn vehicles-page__action-btn--view"
+                        onClick={() => setViewVehicle(v)}
+                        aria-label={t('vehicles.view')}
+                      >
+                        <Eye size={15} />
+                      </button>
+                      {(isDriver || user?.role === 'admin' || user?.role === 'police') && (
+                        <button
+                          type="button"
+                          className="vehicles-page__action-btn vehicles-page__action-btn--edit"
+                          onClick={() => openEdit(v)}
+                          aria-label={t('common.edit')}
+                        >
+                          <Pencil size={15} />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="vehicles-page__action-btn vehicles-page__action-btn--delete"
+                        onClick={() => setDeleteId(v.id)}
+                        aria-label={t('vehicles.remove')}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
                   </div>
                   <div className="enforcement-page__vehicle-card-body">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="enforcement-page__code-pill">{v.plate_number}</span>
-                      <span className="enforcement-page__badge" style={{ background: meta.bg, color: meta.color }}>
-                        {typeLabel(v.vehicle_type)}
-                      </span>
-                    </div>
+                    <span className="enforcement-page__code-pill">{v.plate_number}</span>
                     <p className="enforcement-page__cell-primary mt-2">{v.model}</p>
                     <div className="enforcement-page__vehicle-meta">
                       <span className="enforcement-page__color-dot" style={{ backgroundColor: getColorDot(v.color) }} />
@@ -329,7 +421,7 @@ export function VehiclesPage() {
       ) : (
         <div className="enforcement-page__panel enforcement-page__panel--vehicles">
           <div className="overflow-x-auto">
-            <Table className="enforcement-page__table">
+            <Table className="enforcement-page__table mgmt-table__grid">
               <TableHeader>
                 <TableRow className="enforcement-page__table-head">
                   {tableHeaders.map((h) => (
@@ -347,19 +439,13 @@ export function VehiclesPage() {
                     </TableRow>
                   ))
                 ) : filtered.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={tableHeaders.length} className="text-center py-16">
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="enforcement-page__empty-icon enforcement-page__empty-icon--teal">
-                          <Car size={28} />
-                        </div>
-                        <div>
-                          <p className="enforcement-page__empty-title">{t('vehicles.empty')}</p>
-                          <p className="enforcement-page__empty-subtitle">{t('vehicles.emptyHint')}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                  <TableEmptyState
+                    colSpan={tableHeaders.length}
+                    tone="teal"
+                    icon={<Car size={28} />}
+                    title={t('vehicles.empty')}
+                    subtitle={t('vehicles.emptyHint')}
+                  />
                 ) : pagination.pageItems.map((row) => {
                   const meta = getTypeMeta(row.vehicle_type);
                   return (
@@ -369,7 +455,7 @@ export function VehiclesPage() {
                       </TableCell>
                       <TableCell>
                         <span className="enforcement-page__badge" style={{ background: meta.bg, color: meta.color }}>
-                          {TYPE_ICON[row.vehicle_type]} {typeLabel(row.vehicle_type)}
+                          {renderTypeLabel(row.vehicle_type)}
                         </span>
                       </TableCell>
                       <TableCell><span className="enforcement-page__cell-primary">{row.model}</span></TableCell>
@@ -396,9 +482,34 @@ export function VehiclesPage() {
                         </span>
                       </TableCell>
                       <TableCell>
-                        <button type="button" className="enforcement-page__icon-btn enforcement-page__icon-btn--delete" onClick={() => setDeleteId(row.id)}>
-                          <Trash2 size={14} />
-                        </button>
+                        <div className="enforcement-page__table-actions vehicles-page__actions">
+                          <button
+                            type="button"
+                            className="vehicles-page__action-btn vehicles-page__action-btn--view"
+                            onClick={() => setViewVehicle(row)}
+                            aria-label={t('vehicles.view')}
+                          >
+                            <Eye size={13} />
+                          </button>
+                          {(isDriver || user?.role === 'admin' || user?.role === 'police') && (
+                            <button
+                              type="button"
+                              className="vehicles-page__action-btn vehicles-page__action-btn--edit"
+                              onClick={() => openEdit(row)}
+                              aria-label={t('common.edit')}
+                            >
+                              <Pencil size={13} />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className="vehicles-page__action-btn vehicles-page__action-btn--delete"
+                            onClick={() => setDeleteId(row.id)}
+                            aria-label={t('vehicles.remove')}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -407,7 +518,7 @@ export function VehiclesPage() {
             </Table>
           </div>
 
-          <TablePagination pagination={pagination} label="vehicles" />
+          <TablePagination pagination={pagination} labelKey="pagination.label.vehicles" />
         </div>
       )}
 
@@ -438,7 +549,7 @@ export function VehiclesPage() {
                 <SelectContent>
                   {VEHICLE_TYPES.map((type) => (
                     <SelectItem key={type} value={type}>
-                      {TYPE_ICON[type]} {typeLabel(type)}
+                      {renderTypeLabel(type, 14)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -491,6 +602,156 @@ export function VehiclesPage() {
               )}
             </button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editVehicle !== null} onOpenChange={(open) => !open && setEditVehicle(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="enforcement-page__dialog-title">{t('vehicles.editTitle')}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <Label className="enforcement-page__form-label">{t('vehicles.plateLabel')} *</Label>
+              <Input className="mt-1" value={form.plate_number} onChange={(e) => setForm((f) => ({ ...f, plate_number: e.target.value }))} />
+            </div>
+            <div>
+              <Label className="enforcement-page__form-label">{t('vehicles.typeLabel')} *</Label>
+              <Select value={form.vehicle_type} onValueChange={(v) => setForm((f) => ({ ...f, vehicle_type: v }))}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {VEHICLE_TYPES.map((type) => (
+                    <SelectItem key={type} value={type}>{renderTypeLabel(type, 14)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="enforcement-page__form-label">{t('vehicles.modelLabel')} *</Label>
+              <Input className="mt-1" value={form.model} onChange={(e) => setForm((f) => ({ ...f, model: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="enforcement-page__form-label">{t('vehicles.colorLabel')} *</Label>
+                <Input className="mt-1" value={form.color} onChange={(e) => setForm((f) => ({ ...f, color: e.target.value }))} />
+              </div>
+              <div>
+                <Label className="enforcement-page__form-label">{t('vehicles.yearLabel')}</Label>
+                <Input className="mt-1" type="number" value={form.year} onChange={(e) => setForm((f) => ({ ...f, year: e.target.value }))} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditVehicle(null)}>{t('vehicles.cancel')}</Button>
+            <Button onClick={() => void handleEdit()} disabled={editing}>{editing ? t('common.saving') : t('common.save')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={viewVehicle !== null} onOpenChange={(open) => !open && setViewVehicle(null)}>
+        <DialogContent accent="teal" className="vehicles-view-dialog max-w-lg p-0 gap-0 overflow-hidden">
+          {viewVehicle ? (() => {
+            const meta = getTypeMeta(viewVehicle.vehicle_type);
+            const TypeIcon = vehicleTypeIcon(viewVehicle.vehicle_type);
+            return (
+              <div className="vehicles-view-dialog__shell">
+                <div className="vehicles-view-dialog__hero">
+                  <VehiclePhoto vehicle={viewVehicle} className="vehicles-view-dialog__hero-photo" />
+                  <div className="vehicles-view-dialog__hero-overlay" aria-hidden />
+                  <span
+                    className="vehicles-view-dialog__type-badge vehicles-view-dialog__type-badge--hero"
+                    style={{ background: meta.bg, color: meta.color, borderColor: `${meta.color}30` }}
+                  >
+                    <TypeIcon size={14} />
+                    {typeLabel(viewVehicle.vehicle_type)}
+                  </span>
+                </div>
+
+                <div className="vehicles-view-dialog__header">
+                  <div className="vehicles-view-dialog__header-icon">
+                    <Car size={18} />
+                  </div>
+                  <div className="vehicles-view-dialog__header-copy">
+                    <h2 className="vehicles-view-dialog__header-title">{t('vehicles.viewTitle')}</h2>
+                    <p className="vehicles-view-dialog__header-meta">
+                      {t('vehicles.colRegistered')}
+                      <span aria-hidden> · </span>
+                      {new Date(viewVehicle.created_at).toLocaleDateString(dateLocale)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="vehicles-view-dialog__summary">
+                  <div className="vehicles-view-dialog__summary-top">
+                    <span className="vehicles-view-dialog__plate">{viewVehicle.plate_number}</span>
+                  </div>
+                  <p className="vehicles-view-dialog__model">{viewVehicle.model}</p>
+                  <p className="vehicles-view-dialog__year">{viewVehicle.year}</p>
+                </div>
+
+                <div className="vehicles-view-dialog__cards">
+                  <div className="vehicles-view-dialog__card vehicles-view-dialog__card--color">
+                    <div className="vehicles-view-dialog__card-icon vehicles-view-dialog__card-icon--color">
+                      <Palette size={15} />
+                    </div>
+                    <div className="vehicles-view-dialog__card-copy">
+                      <span className="vehicles-view-dialog__card-label">{t('vehicles.colColor')}</span>
+                      <div className="vehicles-view-dialog__color-row">
+                        <span
+                          className="vehicles-view-dialog__color-swatch"
+                          style={{ backgroundColor: getColorDot(viewVehicle.color) }}
+                        />
+                        <span className="vehicles-view-dialog__card-value">{viewVehicle.color}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="vehicles-view-dialog__card vehicles-view-dialog__card--year">
+                    <div className="vehicles-view-dialog__card-icon vehicles-view-dialog__card-icon--year">
+                      <Calendar size={15} />
+                    </div>
+                    <div className="vehicles-view-dialog__card-copy">
+                      <span className="vehicles-view-dialog__card-label">{t('vehicles.colYear')}</span>
+                      <span className="vehicles-view-dialog__card-value">{viewVehicle.year}</span>
+                    </div>
+                  </div>
+
+                  {!isDriver ? (
+                    <div className="vehicles-view-dialog__card vehicles-view-dialog__card--owner vehicles-view-dialog__card--wide">
+                      <div className="vehicles-view-dialog__card-icon vehicles-view-dialog__card-icon--owner">
+                        <User size={15} />
+                      </div>
+                      <div className="vehicles-view-dialog__card-copy">
+                        <span className="vehicles-view-dialog__card-label">{t('vehicles.colOwner')}</span>
+                        <div className="vehicles-view-dialog__owner-row">
+                          <div className="vehicles-view-dialog__owner-avatar">{initials(viewVehicle.owner_name)}</div>
+                          <span className="vehicles-view-dialog__card-value">{viewVehicle.owner_name}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className={`vehicles-view-dialog__card vehicles-view-dialog__card--plate${!isDriver ? '' : ' vehicles-view-dialog__card--wide'}`}>
+                    <div className="vehicles-view-dialog__card-icon vehicles-view-dialog__card-icon--plate">
+                      <Hash size={15} />
+                    </div>
+                    <div className="vehicles-view-dialog__card-copy">
+                      <span className="vehicles-view-dialog__card-label">{t('vehicles.colPlate')}</span>
+                      <span className="vehicles-view-dialog__card-value vehicles-view-dialog__card-value--mono">
+                        {viewVehicle.plate_number}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="vehicles-view-dialog__footer">
+                  <Button variant="outline" className="vehicles-view-dialog__close-btn" onClick={() => setViewVehicle(null)}>
+                    {t('vehicles.close')}
+                  </Button>
+                </div>
+              </div>
+            );
+          })() : null}
         </DialogContent>
       </Dialog>
 

@@ -1,155 +1,120 @@
 # CamTraffic
 
-**AI-Based Traffic Sign Detection and Traffic Law Enforcement System in Cambodia**
+**AI-Based Traffic Sign Detection and Traffic Law Enforcement System** — Cambodia thesis project.
 
-Final-year thesis project: an intelligent transportation platform with role-based access for **Administrator**, **Traffic Police**, and **Drivers**. Automates Cambodian traffic sign detection (YOLOv8), vehicle tracking (ByteTrack), license plate OCR (EasyOCR), violation evaluation (rule engine), evidence capture, and fine management.
+Detect traffic signs and license plates with YOLO + OCR, manage violations, fines, and appeals through admin and user web portals.
 
----
+## Quick start
 
-## Stack
+### Prerequisites
 
-| Layer | Technology |
-| --- | --- |
-| **Frontend** | React 18, TypeScript, Vite, Tailwind CSS 4, Axios, React Router |
-| **Backend** | Python 3.10+, Django 4.2, Django REST Framework, SimpleJWT |
-| **Database** | PostgreSQL (production) · SQLite (local dev) |
-| **AI / CV** | YOLOv8, OpenCV, EasyOCR, ByteTrack, optional Gemini Vision |
-| **Deployment** | Gunicorn + Nginx (documented) · Docker planned |
+- Node.js 20+
+- Python 3.11+
+- PostgreSQL 16 (or SQLite for quick dev)
+- Redis (optional — Celery)
 
-**Portals:** Admin `:5174` · User (police + driver) `:5173`
+### 1. Environment
 
----
-
-## Documents (read these first)
-
-| File | Purpose |
-| --- | --- |
-| [PRD.md](PRD.md) | Product requirements — objectives, roles, functional requirements |
-| [PLAN.md](PLAN.md) | 12-month implementation, QA, deployment, and rollout plan |
-| [TASKS.md](TASKS.md) | Development checklist — Phase 1–16 with checkboxes (~53% done) |
-| [SYSTEM_FLOW.md](SYSTEM_FLOW.md) | End-to-end workflow — camera → AI → violation → fine |
-| [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md) | Tables, columns, relationships |
-| [API_SPEC.md](API_SPEC.md) | REST API endpoints and request/response formats |
-| [TECH_STACK.md](TECH_STACK.md) | Technology choices and repo layout |
-| [docs/architecture/](docs/architecture/README.md) | **Professional structure** — folder layout, backend/frontend architecture, DB design, roadmap |
-
-**Extended docs:** [docs/ERD.md](docs/ERD.md) · [docs/API.md](docs/API.md) · [DEMO_SCRIPT.md](DEMO_SCRIPT.md) · [TASK.md](TASK.md) (detailed defense tracker)
-
----
-
-## Goal
-
-Build a production-ready traffic law enforcement platform with:
-
-- Admin Dashboard — analytics, users, signs, cameras, AI logs, reports
-- Officer Dashboard — live detection, violation review, fine issuance, evidence
-- Citizen Dashboard — vehicles, fines, notifications, sign learning
-- AI Traffic Sign Detection — 10-class Cambodian YOLO model + optional Gemini hybrid
-- License Plate Recognition — Latin plates with province lookup
-- Fine Management — create, status workflow, PDF export
-- Appeals System — planned (Phase 9)
-- Real-Time Monitoring — browser webcam + IP camera snapshot poll
-
----
-
-## Repository Layout
-
-```text
-CamTraffic/
-├── backend/              # Django REST API + AI detection pipeline
-├── frontend-admin/       # Admin portal (:5174)
-├── frontend-user/        # Police + driver portal (:5173)
-├── ai/                   # Dataset, weights (best.pt), training scripts
-├── docs/                 # Thesis chapters, ERD, deployment guides
-├── scripts/              # Defense demo, audit, screenshot tools
-├── PRD.md
-├── TASKS.md
-├── SYSTEM_FLOW.md
-├── DATABASE_SCHEMA.md
-├── API_SPEC.md
-└── TECH_STACK.md
+```bash
+node scripts/setup-env.mjs
+# Edit backend/.env, frontend-admin/.env, frontend-user/.env
 ```
 
----
-
-## Quick Start
-
-### Backend
+### 2. Backend
 
 ```bash
 cd backend
 python -m venv venv
-venv\Scripts\activate          # Windows
+venv\Scripts\activate
 pip install -r requirements.txt
-copy .env.example .env           # USE_SQLITE=True by default
 python manage.py migrate
-python manage.py create_admin
 python manage.py runserver
 ```
 
-### Frontend (both portals)
+### 3. Frontends
 
 ```bash
 npm run install:frontends
 npm run dev
 ```
 
-| Portal | URL |
-| --- | --- |
-| User (driver / police) | http://localhost:5173 |
-| Admin | http://localhost:5174 |
+- **User portal:** http://localhost:5173  
+- **Admin portal:** http://localhost:5174  
+- **API:** http://localhost:8000/api/
 
-### Tests
+### Docker (full stack)
 
 ```bash
-cd backend
-python manage.py test
+docker compose up -d --build
 ```
 
----
+## Monorepo layout
 
-## For AI Coding Agents
+| Path | Description |
+|------|-------------|
+| `backend/` | Django REST API + AI pipeline |
+| `frontend-admin/` | Administrator portal |
+| `frontend-user/` | Police & driver portal |
+| `packages/` | Shared `@camtraffic/*` libraries |
+| `ai/` | Weights, dataset, training |
+| `deploy/` | Production Docker & scripts |
+| `tests/` | E2E, integration, performance |
+| `docs/` | PRD, SRS, thesis, checklist |
 
-Use this prompt to continue development:
+See [`docs/FOLDER-MAP.md`](docs/FOLDER-MAP.md) for the full tree.
 
-```text
-Read README.md, PRD.md, TASKS.md, SYSTEM_FLOW.md, DATABASE_SCHEMA.md, TECH_STACK.md,
-and docs/architecture/ (folder structure, backend/frontend architecture, DB design, roadmap).
+## Scripts
 
-This is an existing CamTraffic codebase (~53% complete). Do not rebuild from scratch.
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Both frontends |
+| `npm run build` | Production builds |
+| `npm run validate:all` | Build + backend tests |
+| `npm run test:backend:phase12` | Phase 12 backend test suite |
+| `npm run test:frontend` | Vitest (both portals) |
+| `npm run test:e2e` | Playwright E2E (4 scenarios) |
+| `npm run docker:prod:up` | Production Docker stack |
+| `node scripts/validate-structure.mjs` | Check required paths |
+| `node scripts/validate-env.mjs` | Check `.env.example` keys |
+| `npm run seed:demo` | Demo accounts + sample data |
+| `npm run validate:system` | Full validation (structure, tests) |
 
-Continue from TASKS.md — pick the next unchecked high-priority item and implement it using:
-- React + TailwindCSS (frontend-admin + frontend-user)
-- Django REST Framework (backend/)
-- PostgreSQL (migrations in backend/*/migrations/)
-- YOLOv8 + EasyOCR (ai_detection app)
+## Testing
 
-Match existing code conventions. Run tests after changes.
+```bash
+npm run test:backend:phase12
+npm run test:frontend
+npm run test:e2e
 ```
 
-**Suggested build order for new features:**
+## Production deployment
 
-1. Database model + migration
-2. Serializer + view + URL
-3. Frontend API client + page/component
-4. Test in `backend/tests/`
+See [`deploy/README.md`](deploy/README.md) and [`docs/INSTALLATION-GUIDE.md`](docs/INSTALLATION-GUIDE.md).
 
----
+```bash
+npm run docker:prod:up
+```
 
-## Current Status (~53%)
+## Health checks
 
-| Complete | In Progress | Not Started |
-| --- | --- | --- |
-| Auth (JWT, OAuth, RBAC) | KYC, payment receipts | Appeals system |
-| 10-class YOLO sign model | RTSP, camera heartbeat | Docker / CI/CD |
-| Violation rule engine | Khmer plate OCR | Redis cache |
-| Fine management + PDF | Maps / heatmaps | AI model admin UI |
-| Dual React dashboards | Daily/weekly reports | Audit logs |
+- `GET /health/` — liveness  
+- `GET /health/ready/` — database ready  
+- `GET /health/status/` — extended monitoring  
 
-See [TASKS.md](TASKS.md) for the full checklist.
+## Documentation
 
----
+- [`docs/README.md`](docs/README.md) — documentation index  
+- [`docs/CHECKLIST.md`](docs/CHECKLIST.md) — 440-task master checklist (440/440 done)  
+- [`docs/INSTALLATION-GUIDE.md`](docs/INSTALLATION-GUIDE.md) — setup guide  
+- [`docs/final-year-project/thesis/`](docs/final-year-project/thesis/) — thesis chapters  
+- [`docs/final-year-project/DEMO-SCRIPT.md`](docs/final-year-project/DEMO-SCRIPT.md) — defense demo  
+
+## Version
+
+**v1.0.0** — Thesis release (July 2026). See [`docs/final-year-project/VERSION-TAG-RELEASE-NOTES.md`](docs/final-year-project/VERSION-TAG-RELEASE-NOTES.md).
 
 ## License
 
-Academic / thesis project — CamTraffic © 2024–2026
+[MIT License](LICENSE) — source code and repository documentation.
+
+The written thesis submitted to your university may be subject to separate academic copyright terms.

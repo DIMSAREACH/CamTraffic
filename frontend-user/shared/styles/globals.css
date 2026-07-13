@@ -14,6 +14,31 @@ body,
 * {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Pointer cursor for all clickable actions app-wide */
+button:not(:disabled):not([disabled]),
+input[type='button']:not(:disabled),
+input[type='submit']:not(:disabled),
+input[type='reset']:not(:disabled),
+[role='button']:not([aria-disabled='true']),
+[data-slot='button']:not(:disabled),
+[class*='__hero-btn']:not(:disabled),
+[class*='__btn-']:not(:disabled),
+[class*='__action-btn']:not(:disabled),
+[class*='__icon-btn']:not(:disabled),
+[class*='__filter-btn']:not(:disabled),
+[class*='__view-btn']:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled,
+button[disabled],
+[data-slot='button']:disabled,
+[class*='__hero-btn']:disabled,
+[class*='__btn-']:disabled {
+  cursor: not-allowed;
 }
 
 .recharts-tooltip-cursor,
@@ -107,6 +132,13 @@ html.dark ::-webkit-scrollbar-thumb:hover {
 /* Gradient text */
 .gradient-text {
   background: linear-gradient(135deg, #2563EB 0%, #06B6D4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+html.dark .gradient-text {
+  background: linear-gradient(135deg, #60a5fa 0%, #22d3ee 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

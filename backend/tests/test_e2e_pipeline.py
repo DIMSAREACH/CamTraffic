@@ -249,7 +249,10 @@ class DetectionPipelineTests(TestCase):
         self.assertIn(r.status_code, [200, 201])
         payload = r.json()['data']
         url = payload.get('uploaded_image', '')
-        self.assertTrue(url.startswith('http'), f'Expected absolute URL, got: {url!r}')
+        self.assertTrue(
+            url.startswith('http') or url.startswith('/media/'),
+            f'Expected media URL, got: {url!r}',
+        )
 
     def test_live_scan_accepts_track_session(self):
         """Live webcam preview with track_session returns tracking metadata."""

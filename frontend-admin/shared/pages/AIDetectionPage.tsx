@@ -31,7 +31,7 @@ import { DetectionDisplayImage } from '@shared/components/ai/DetectionDisplayIma
 import { PipelineInputPanel } from '@shared/components/ai/PipelineInputPanel';
 import { PIPELINE_ANIM } from '@shared/components/ai/DetectionPipelineFlow';
 import { DetectionPanelHeader, DetectionPanelBody } from '@shared/components/ai/DetectionPanelHeader';
-import { DETECTION_HEADER_GRADIENTS } from '@shared/components/ai/detectionHeaderGradients';
+import { DETECTION_HEADER_GRADIENTS, DETECTION_HEADER_ICON_ACCENTS } from '@shared/components/ai/detectionHeaderGradients';
 import { PipelineStepProcessingPanel } from '@shared/components/ai/PipelineStepProcessingPanel';
 import { STEP_META } from '@shared/components/ai/DetectionPipelineFlow';
 import { stepProgressWithinActive } from '@shared/utils/detectionPipelineFlow';
@@ -40,10 +40,12 @@ import {
   buildLoadingFlowSteps,
   animatePipelineToComplete,
   resolveFlowStepsFromResult,
+  progressFromPipeline,
 } from '@shared/utils/detectionPipelineFlow';
+import type { DetectionFlowSource } from '@shared/utils/detectionPipelineFlow';
 import { detectionHero, heroSpeechText, heroTitleSpeech, logDisplay, logDisplayColor, isUsefulDetectionResult, normalizeDetectionSign } from '@shared/utils/detectionDisplay';
 import { resolvePipelineVehicle } from '@shared/utils/pipelineVehicle';
-import { getProfileImageUrl } from '@shared/utils/profileImage';
+import { getProfileImageUrl, normalizeDetectionMedia } from '@shared/utils/profileImage';
 import { toast } from 'sonner';
 import {
   DEFAULT_PAGE_STATS,
@@ -158,6 +160,14 @@ function formatScans(n: number) {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
   return String(n);
 }
+
+function isAuthApiError(message: string): boolean {
+  return /session expired|log in again|unauthorized/i.test(message);
+}
+
+function isBackendConnectivityError(message: string): boolean {
+  return /backend unavailable|cannot reach|network error|503|502|504|busy|econnreset/i.test(message);
+}
 /* ─────────────────────────────────────────────────────────
    Small reusable sub-components
 ───────────────────────────────────────────────────────── */
@@ -187,14 +197,15 @@ function AwaitingCard({
 }) {
   const { t, AWAIT_STEPS } = useAIDetectionCopy();
   const awaitStats = [
-    { v: formatPct(pageStats.stats.accuracy_avg), l: t('aiDetection.avgConfidenceShort'), c: '#8B5CF6', bg: 'rgba(139,92,246,0.10)' },
-    { v: formatSpeed(pageStats.stats.avg_speed_sec), l: t('aiDetection.avgSpeedShort'), c: '#06B6D4', bg: 'rgba(6,182,212,0.10)' },
-    { v: String(pageStats.model.sign_classes), l: t('aiDetection.signCatalog'), c: '#10B981', bg: 'rgba(16,185,129,0.10)' },
+    { v: formatPct(pageStats.stats.accuracy_avg), l: t('aiDetection.avgConfidenceShort'), c: '#8B5CF6', bg: 'rgba(139,92,246,0.10)', Icon: Target },
+    { v: formatSpeed(pageStats.stats.avg_speed_sec), l: t('aiDetection.avgSpeedShort'), c: '#06B6D4', bg: 'rgba(6,182,212,0.10)', Icon: Clock },
+    { v: String(pageStats.model.sign_classes), l: t('aiDetection.signCatalog'), c: '#10B981', bg: 'rgba(16,185,129,0.10)', Icon: Signpost },
     {
       v: pageStats.model.training_images > 0 ? formatScans(pageStats.model.training_images) : '—',
       l: t('aiDetection.datasetImages'),
       c: '#F59E0B',
       bg: 'rgba(245,158,11,0.10)',
+      Icon: ImageIcon,
     },
   ];
 
@@ -203,6 +214,7 @@ function AwaitingCard({
       <DetectionPanelHeader
         gradient={DETECTION_HEADER_GRADIENTS.awaiting}
         icon={Eye}
+        iconAccentColor={DETECTION_HEADER_ICON_ACCENTS.awaiting}
         title={t('aiDetection.awaitingTitle')}
         subtitle={t('aiDetection.awaitingDesc')}
       />
@@ -212,17 +224,17 @@ function AwaitingCard({
             <div className="space-y-2.5">
               {AWAIT_STEPS.map((s, i) => (
                 <div key={s.label}
-                  className="flex items-center gap-3 p-3.5 rounded-xl border border-border/70 transition-colors hover:bg-muted/40"
-                  style={{ background: `${s.color}06` }}>
-                  <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                  className="ai-detection-await-step flex items-center gap-3 p-3.5 rounded-xl border transition-colors hover:bg-muted/40"
+                  style={{ background: `${s.color}08`, borderColor: `${s.color}28` }}>
+                  <div className="ai-detection-await-step__icon w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                     style={{ background: `${s.color}18`, border: `1px solid ${s.color}35` }}>
-                    <s.icon size={14} style={{ color: s.color }} />
+                    <s.icon size={16} strokeWidth={2.25} style={{ color: s.color }} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="dashboard-text__title leading-tight">{s.label}</p>
-                    <p className="dashboard-text__caption mt-0.5 leading-snug">{s.desc}</p>
+                    <p className="ai-detection-await-step__title dashboard-text__title leading-tight">{s.label}</p>
+                    <p className="ai-detection-await-step__desc dashboard-text__caption mt-0.5 leading-snug">{s.desc}</p>
                   </div>
-                  <span className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-black text-white"
+                  <span className="ai-detection-await-step__num w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-[11px] font-black text-white"
                     style={{ background: `linear-gradient(135deg, ${s.color}, ${s.color}CC)` }}>
                     {i + 1}
                   </span>
@@ -230,14 +242,18 @@ function AwaitingCard({
               ))}
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2.5">
               {awaitStats.map(s => (
                 <div key={s.l}
-                  className="rounded-xl px-3 py-2.5 border border-border/60"
-                  style={{ background: s.bg }}>
-                  <p className="dashboard-text__metric"
+                  className="ai-detection-await-stat rounded-xl px-3.5 py-3 border"
+                  style={{ background: s.bg, borderColor: `${s.c}30` }}>
+                  <div className="ai-detection-await-stat__icon-wrap"
+                    style={{ background: `${s.c}18`, border: `1px solid ${s.c}35` }}>
+                    <s.Icon size={15} strokeWidth={2.25} style={{ color: s.c }} />
+                  </div>
+                  <p className="ai-detection-await-stat__value dashboard-text__metric"
                     style={{ color: s.c }}>{s.v}</p>
-                  <p className="text-[10px] text-muted-foreground mt-1 leading-tight">{s.l}</p>
+                  <p className="ai-detection-await-stat__label text-[11px] font-semibold text-muted-foreground mt-1 leading-tight">{s.l}</p>
                 </div>
               ))}
             </div>
@@ -304,13 +320,24 @@ function ResultCard({
   const hero = detectionHero(result, speechLocale);
   const voice = detectionDisplayText(result, speechLocale);
   const displayName = hero.title;
-  const sc = hero.mode === 'vehicle' ? '#3B82F6' : hero.mode === 'plate' ? '#0EA5E9' : hero.mode === 'unknown_sign' ? '#F97316' : hero.mode === 'no_sign' ? '#F59E0B' : getSignColor(displayName);
+  const sc = logDisplayColor(hero.mode);
   const cc = confColor(hero.confidence);
   const cg = confGrad(hero.confidence);
   const imageSrc = preview || result.uploaded_image || null;
-  const speakLine = (text: string, id: string) => speak(text, id);
+  const autoSpeakTimerRef = useRef<number | null>(null);
+  const userSpokeRef = useRef(false);
+  const speakLine = (text: string, id: string, voiceLang: 'km' | 'en' = speechLocale) => {
+    userSpokeRef.current = true;
+    if (autoSpeakTimerRef.current != null) {
+      window.clearTimeout(autoSpeakTimerRef.current);
+      autoSpeakTimerRef.current = null;
+    }
+    void speak(text, id, voiceLang);
+  };
 
-  const fullSpeech = heroSpeechText(result, speechLocale);
+  const fullSpeechKm = heroSpeechText(result, 'km');
+  const fullSpeechEn = heroSpeechText(result, 'en');
+  const fullSpeech = speechLocale === 'en' ? fullSpeechEn : fullSpeechKm;
   const titleSpeech = heroTitleSpeech(result, speechLocale);
   const pipelineVehicle = resolvePipelineVehicle(result, speechLocale);
   const violationEval = result.violation_evaluation;
@@ -319,13 +346,27 @@ function ResultCard({
 
   const autoSpokenRef = useRef<string | null>(null);
   useEffect(() => {
+    userSpokeRef.current = false;
     const key =
       result.log_id != null
         ? `log-${result.log_id}`
         : `${hero.mode}-${result.sign_code || result.sign_name}-${hero.confidence}`;
     if (autoSpokenRef.current === key) return;
     autoSpokenRef.current = key;
-    speak(fullSpeech, 'auto');
+    if (autoSpeakTimerRef.current != null) {
+      window.clearTimeout(autoSpeakTimerRef.current);
+    }
+    autoSpeakTimerRef.current = window.setTimeout(() => {
+      autoSpeakTimerRef.current = null;
+      if (userSpokeRef.current) return;
+      void speak(fullSpeech, 'auto', speechLocale, { auto: true });
+    }, 400);
+    return () => {
+      if (autoSpeakTimerRef.current != null) {
+        window.clearTimeout(autoSpeakTimerRef.current);
+        autoSpeakTimerRef.current = null;
+      }
+    };
   }, [result, speechLocale, speak, fullSpeech, hero.mode, hero.confidence]);
 
   const R = 42;
@@ -337,6 +378,7 @@ function ResultCard({
       <DetectionPanelHeader
         gradient={DETECTION_HEADER_GRADIENTS.result}
         icon={CheckCircle}
+        iconAccentColor={DETECTION_HEADER_ICON_ACCENTS.result}
         title={t('aiDetection.resultTitle')}
         end={
           <>
@@ -372,10 +414,23 @@ function ResultCard({
                 className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2 px-3 py-2 rounded-xl backdrop-blur-md"
                 style={{ background: 'rgba(15,23,42,0.72)', border: '1px solid rgba(255,255,255,0.1)' }}
               >
-                <span className="text-[14px] font-bold text-white truncate">{displayName}</span>
-                <span className="text-[12px] font-black flex-shrink-0" style={{ color: cc }}>
-                  {hero.confidence.toFixed(1)}%
-                </span>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-white/70 truncate">
+                    {hero.mode === 'vehicle'
+                      ? t('aiDetection.pipeline.showVehicle')
+                      : hero.mode === 'plate'
+                        ? t('aiDetection.pipeline.showPlate')
+                        : hero.mode === 'sign'
+                          ? t('aiDetection.signDetected')
+                          : t('aiDetection.resultTitle')}
+                  </p>
+                  <span className="text-[14px] font-bold text-white truncate block">{displayName}</span>
+                </div>
+                {hero.confidence > 0 && (
+                  <span className="text-[12px] font-black flex-shrink-0" style={{ color: cc }}>
+                    {hero.confidence.toFixed(1)}%
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -422,7 +477,7 @@ function ResultCard({
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
                   {t('aiDetection.vehicleEvidence')}
                 </p>
-                <img src={result.vehicle_snapshot} alt={t('aiDetection.vehicleEvidence')} className="w-full rounded-xl object-contain max-h-28 bg-muted" />
+                <img src={getProfileImageUrl(result.vehicle_snapshot) || result.vehicle_snapshot} alt={t('aiDetection.vehicleEvidence')} className="w-full rounded-xl object-contain max-h-28 bg-muted" />
               </div>
             )}
             {result.plate_snapshot && (
@@ -430,7 +485,7 @@ function ResultCard({
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
                   {t('aiDetection.plateEvidence')}
                 </p>
-                <img src={result.plate_snapshot} alt={t('aiDetection.plateEvidence')} className="w-full rounded-xl object-contain max-h-28 bg-muted" />
+                <img src={getProfileImageUrl(result.plate_snapshot) || result.plate_snapshot} alt={t('aiDetection.plateEvidence')} className="w-full rounded-xl object-contain max-h-28 bg-muted" />
               </div>
             )}
           </div>
@@ -548,7 +603,7 @@ function ResultCard({
                           : t('aiDetection.listenSign')
                   }
                   isActive={speakingId === 'sign-name'}
-                  onClick={() => speakLine(titleSpeech, 'sign-name')}
+                  onClick={() => speakLine(titleSpeech, 'sign-name', speechLocale)}
                 />
               </div>
               {hero.mode === 'vehicle' && result.display_title_en && speechLocale === 'km' && (
@@ -692,22 +747,47 @@ function ResultCard({
           </div>
         </div>
 
-        {/* ── Listen: full sign + guidance (voice) ── */}
-        <button
-          type="button"
-          onClick={() => speakLine(fullSpeech, 'full')}
-          className={`w-full py-3 px-4 rounded-xl flex items-center justify-center gap-2.5 text-[13px] font-bold transition-all cursor-pointer border ${
-            speakingId === 'full'
-              ? 'bg-violet-500/15 border-violet-400/50 text-violet-700 dark:text-violet-200'
-              : 'bg-gradient-to-r from-violet-500/10 to-cyan-500/10 border-violet-300/30 text-foreground hover:from-violet-500/15'
-          }`}
-        >
-          {speakingId === 'full' ? (
-            <><Square size={15} fill="currentColor" /> {t('aiDetection.stopSpeaking')}</>
-          ) : (
-            <><Volume2 size={15} /> {t('aiDetection.listenFull')}</>
-          )}
-        </button>
+        {/* ── Listen: Khmer + English neural voices ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => speakLine(fullSpeechKm, 'full-km', 'km')}
+            className={`py-3 px-3 rounded-xl flex flex-col items-center justify-center gap-1 text-[12px] font-bold transition-all cursor-pointer border ${
+              speakingId === 'full-km'
+                ? 'bg-violet-500/15 border-violet-400/50 text-violet-700 dark:text-violet-200'
+                : 'bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 border-violet-300/30 text-foreground hover:from-violet-500/15'
+            }`}
+          >
+            <span className="flex items-center gap-2">
+              {speakingId === 'full-km' ? (
+                <Square size={14} fill="currentColor" />
+              ) : (
+                <Volume2 size={14} />
+              )}
+              <span>{speakingId === 'full-km' ? t('aiDetection.stopSpeaking') : t('aiDetection.listenFullKm')}</span>
+            </span>
+            <span className="text-[10px] font-semibold text-muted-foreground">{t('aiDetection.listenVoiceKhmer')}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => speakLine(fullSpeechEn, 'full-en', 'en')}
+            className={`py-3 px-3 rounded-xl flex flex-col items-center justify-center gap-1 text-[12px] font-bold transition-all cursor-pointer border ${
+              speakingId === 'full-en'
+                ? 'bg-cyan-500/15 border-cyan-400/50 text-cyan-700 dark:text-cyan-200'
+                : 'bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border-cyan-300/30 text-foreground hover:from-cyan-500/15'
+            }`}
+          >
+            <span className="flex items-center gap-2">
+              {speakingId === 'full-en' ? (
+                <Square size={14} fill="currentColor" />
+              ) : (
+                <Volume2 size={14} />
+              )}
+              <span>{speakingId === 'full-en' ? t('aiDetection.stopSpeaking') : t('aiDetection.listenFullEn')}</span>
+            </span>
+            <span className="text-[10px] font-semibold text-muted-foreground">{t('aiDetection.listenVoiceEnglish')}</span>
+          </button>
+        </div>
 
         {/* ── Description + Guidance ── */}
         <div className="grid grid-cols-1 gap-4">
@@ -724,7 +804,7 @@ function ResultCard({
               <SpeakButton
                 label={t('aiDetection.readDescription')}
                 isActive={speakingId === 'desc'}
-                onClick={() => speakLine(hero.description, 'desc')}
+                onClick={() => speakLine(hero.description, 'desc', speechLocale)}
               />
             </div>
             <div className="px-4 py-4 bg-blue-50/50 dark:bg-blue-950/20">
@@ -745,7 +825,7 @@ function ResultCard({
               <SpeakButton
                 label={t('aiDetection.readGuidance')}
                 isActive={speakingId === 'guide'}
-                onClick={() => speakLine(hero.guidance, 'guide')}
+                onClick={() => speakLine(hero.guidance, 'guide', speechLocale)}
               />
             </div>
             <div className="px-4 py-4 bg-amber-50/60 dark:bg-amber-950/20">
@@ -802,7 +882,7 @@ function RecentDetectionThumb({
   const hero = logDisplay(log, speechLocale);
   const [imgFailed, setImgFailed] = useState(false);
   const src = getProfileImageUrl(log.uploaded_image);
-  const FallbackIcon = mode === 'vehicle' ? Car : mode === 'plate' ? Hash : (mode === 'no_sign' || mode === 'unknown_sign') ? AlertCircle : Signpost;
+  const FallbackIcon = mode === 'vehicle' ? Car : mode === 'plate' ? Hash : (mode === 'no_sign' || mode === 'unknown_sign') ? AlertCircle : Camera;
 
   if (src && !imgFailed) {
     return (
@@ -810,7 +890,7 @@ function RecentDetectionThumb({
         src={src}
         alt={hero.title}
         title={hero.title}
-        className="w-11 h-11 rounded-xl object-cover flex-shrink-0 bg-muted ring-1 ring-border/80"
+        className="ai-detection-recent-thumb ai-detection-recent-thumb--photo"
         style={{ boxShadow: `0 0 0 1.5px ${accent}30` }}
         onError={() => setImgFailed(true)}
       />
@@ -819,10 +899,10 @@ function RecentDetectionThumb({
 
   return (
     <div
-      className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
-      style={{ background: `${accent}18`, border: `1.5px solid ${accent}35` }}
+      className="ai-detection-recent-thumb ai-detection-recent-thumb--fallback"
+      style={{ background: `${accent}18`, borderColor: `${accent}35` }}
     >
-      <FallbackIcon size={14} style={{ color: accent }} />
+      <FallbackIcon size={18} strokeWidth={2.25} className="ai-detection-recent-thumb__icon" style={{ color: accent }} />
     </div>
   );
 }
@@ -853,6 +933,7 @@ function RecentDetectionsCard({
       <DetectionPanelHeader
         gradient={DETECTION_HEADER_GRADIENTS.recent}
         icon={BarChart2}
+        iconAccentColor={DETECTION_HEADER_ICON_ACCENTS.recent}
         title={t('aiDetection.recentTitle')}
         subtitle={t('aiDetection.recentSubtitle')}
         end={
@@ -916,7 +997,13 @@ function RecentDetectionsCard({
   );
 }
 
-function ProcessingStageCard({ progress }: { progress: number }) {
+function ProcessingStageCard({
+  progress,
+  liveSource,
+}: {
+  progress: number;
+  liveSource?: DetectionFlowSource | null;
+}) {
   const { t } = useLanguage();
   const { activeIndex, overallPct } = stepProgressWithinActive(progress);
   const meta = STEP_META[activeIndex];
@@ -928,6 +1015,7 @@ function ProcessingStageCard({ progress }: { progress: number }) {
       <DetectionPanelHeader
         gradient={meta.grad}
         icon={StepIcon}
+        iconAccentColor={meta.color}
         eyebrow={t('aiDetection.flow.stepOf')
           .replace('{current}', String(activeIndex + 1))
           .replace('{total}', String(STEP_META.length))}
@@ -944,7 +1032,7 @@ function ProcessingStageCard({ progress }: { progress: number }) {
         }
       />
       <CardBody floating className="flex flex-col flex-1 min-h-0 ai-detection-processing-body">
-        <PipelineStepProcessingPanel progress={progress} />
+        <PipelineStepProcessingPanel progress={progress} liveSource={liveSource} />
       </CardBody>
     </CardWrap>
   );
@@ -954,11 +1042,12 @@ function ModelInfoCard({ pageStats }: { pageStats: AIDetectionPageStats }) {
   const { t } = useAIDetectionCopy();
   const status = modelStatusLabel(pageStats.model.mode, t);
   const rows = [
-    { label: t('aiDetection.model'), value: pageStats.model.name },
-    { label: t('aiDetection.signCatalog'), value: String(pageStats.model.sign_classes) },
+    { label: t('aiDetection.model'), value: pageStats.model.name, Icon: Cpu },
+    { label: t('aiDetection.signCatalog'), value: String(pageStats.model.sign_classes), Icon: Layers },
     {
       label: t('aiDetection.datasetImages'),
       value: pageStats.model.training_images > 0 ? formatScans(pageStats.model.training_images) : '—',
+      Icon: ImageIcon,
     },
   ];
 
@@ -967,6 +1056,7 @@ function ModelInfoCard({ pageStats }: { pageStats: AIDetectionPageStats }) {
       <DetectionPanelHeader
         gradient={DETECTION_HEADER_GRADIENTS.model}
         icon={Cpu}
+        iconAccentColor={DETECTION_HEADER_ICON_ACCENTS.model}
         eyebrow={t('aiDetection.model')}
         highlight={pageStats.model.name}
         subtitle={
@@ -978,8 +1068,13 @@ function ModelInfoCard({ pageStats }: { pageStats: AIDetectionPageStats }) {
       <CardBody>
         <div className="divide-y divide-border px-4 sm:px-5 pb-1">
           {rows.map((r) => (
-            <div key={r.label} className="flex items-center justify-between px-4 py-3">
-              <span className="text-xs text-muted-foreground">{r.label}</span>
+            <div key={r.label} className="flex items-center justify-between gap-3 px-4 py-3">
+              <span className="flex items-center gap-2 text-xs text-muted-foreground min-w-0">
+                <span className="ai-detection-model-row__icon">
+                  <r.Icon size={14} strokeWidth={2.25} />
+                </span>
+                {r.label}
+              </span>
               <span className="text-xs font-bold text-foreground">{r.value}</span>
             </div>
           ))}
@@ -999,6 +1094,7 @@ function CategoryStatsCard({ categories }: { categories: AIDetectionPageStats['c
       <DetectionPanelHeader
         gradient={DETECTION_HEADER_GRADIENTS.catalog}
         icon={Shield}
+        iconAccentColor={DETECTION_HEADER_ICON_ACCENTS.catalog}
         eyebrow={t('aiDetection.signCatalog')}
         highlight={String(total)}
         subtitle={t('aiDetection.detected')}
@@ -1040,6 +1136,7 @@ function HowItWorksCard() {
       <DetectionPanelHeader
         gradient={DETECTION_HEADER_GRADIENTS.flow}
         icon={Zap}
+        iconAccentColor={DETECTION_HEADER_ICON_ACCENTS.flow}
         eyebrow={t('aiDetection.flow.title')}
         highlight={`${STEPS.length} Stages`}
         subtitle={t('aiDetection.heroSubtitle')}
@@ -1048,9 +1145,9 @@ function HowItWorksCard() {
         <div className="divide-y divide-border px-4 sm:px-5 pb-1">
           {STEPS.slice(0, 5).map((s) => (
             <div key={s.n} className="flex items-center gap-3 px-4 py-3">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+              <div className="ai-detection-flow-step__icon flex items-center justify-center flex-shrink-0"
                 style={{ background: `${s.color}18`, border: `1.5px solid ${s.color}35` }}>
-                <span style={{ fontSize: 11, fontWeight: 800, color: s.color }}>{s.n}</span>
+                <s.icon size={16} strokeWidth={2.25} style={{ color: s.color }} />
               </div>
               <div>
                 <p className="text-xs font-semibold leading-tight text-foreground">{s.title}</p>
@@ -1088,6 +1185,7 @@ export function AIDetectionPage() {
   const [pageStats, setPageStats] = useState<AIDetectionPageStats>(DEFAULT_PAGE_STATS);
   const [loadingStats, setLoadingStats] = useState(true);
   const [statsError, setStatsError] = useState<string | null>(null);
+  const [pipelineLive, setPipelineLive] = useState<DetectionFlowSource | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const lastTrainedAtRef = useRef<number | null>(null);
   const lastWebcamToastRef = useRef('');
@@ -1118,24 +1216,58 @@ export function AIDetectionPage() {
   }, [progress]);
 
   const refreshPageData = useCallback(async () => {
-    try {
-      const [logs, stats] = await Promise.all([
-        aiAPI.getLogs(),
-        aiAPI.getPageStats(),
-      ]);
-      setRecentLogs(logs.slice(0, 7));
-      setPageStats(mergePageStatsWithDefaults(stats));
-      setStatsError(null);
-    } catch (err) {
+    setLoadingLogs(true);
+    setLoadingStats(true);
+    const [logsResult, statsResult] = await Promise.allSettled([
+      aiAPI.getLogs(),
+      aiAPI.getPageStats(),
+    ]);
+
+    let statsFailed = false;
+    let logsFailed = false;
+
+    if (logsResult.status === 'fulfilled') {
+      setRecentLogs(logsResult.value.slice(0, 7));
+    } else {
       setRecentLogs([]);
-      setPageStats(DEFAULT_PAGE_STATS);
-      const msg = err instanceof Error ? err.message : 'Backend unavailable';
-      setStatsError(msg);
-      toast.error(t('aiDetection.toast.statsUnavailable') || 'Cannot load AI stats — is the backend running on port 8000?');
-    } finally {
-      setLoadingLogs(false);
-      setLoadingStats(false);
+      logsFailed = true;
     }
+
+    if (statsResult.status === 'fulfilled') {
+      setPageStats(mergePageStatsWithDefaults(statsResult.value));
+      setStatsError(null);
+    } else {
+      statsFailed = true;
+      const msg = statsResult.reason instanceof Error
+        ? statsResult.reason.message
+        : 'Backend unavailable';
+
+      if (isAuthApiError(msg)) {
+        setStatsError(null);
+      } else if (statsResult.status === 'rejected') {
+        setPageStats(DEFAULT_PAGE_STATS);
+        if (isBackendConnectivityError(msg)) {
+          setStatsError(msg);
+          toast.error(t('aiDetection.toast.statsUnavailable') || 'Cannot load AI stats — is the backend running on port 8000?');
+        } else {
+          setStatsError(msg);
+        }
+      } else {
+        setStatsError(null);
+      }
+    }
+
+    if (!statsFailed && logsFailed) {
+      const msg = logsResult.status === 'rejected' && logsResult.reason instanceof Error
+        ? logsResult.reason.message
+        : '';
+      if (msg && isBackendConnectivityError(msg) && !isAuthApiError(msg)) {
+        setStatsError(msg);
+      }
+    }
+
+    setLoadingLogs(false);
+    setLoadingStats(false);
   }, [t]);
 
   const refreshPageDataDebounced = useCallback(async (force = false) => {
@@ -1202,6 +1334,7 @@ export function AIDetectionPage() {
     detectRunRef.current = runId;
     setDetecting(true);
     setResult(null);
+    setPipelineLive(null);
     startProgressAnimation();
 
     try {
@@ -1217,6 +1350,12 @@ export function AIDetectionPage() {
       });
       if (runId !== detectRunRef.current) return;
 
+      const normalized = normalizeDetectionMedia(res);
+      setPipelineLive(normalized);
+      const jump = progressFromPipeline(normalized.pipeline);
+      setProgress((p) => Math.max(p, jump));
+      progressRef.current = Math.max(progressRef.current, jump);
+
       stopProgressAnimation();
       await animatePipelineToComplete(
         setProgress,
@@ -1228,7 +1367,8 @@ export function AIDetectionPage() {
 
       setDetecting(false);
       setProgress(100);
-      setResult(normalizeDetectionSign(res));
+      setResult(normalizeDetectionSign(normalized));
+      setPipelineLive(null);
 
       const heroToast = detectionHero(res, locale === 'en' ? 'en' : 'km');
       if (res.violation?.id) {
@@ -1252,6 +1392,7 @@ export function AIDetectionPage() {
       stopProgressAnimation();
       setProgress(0);
       setDetecting(false);
+      setPipelineLive(null);
       const msg = err instanceof Error ? err.message : t('aiDetection.toast.detectFailed');
       toast.error(msg || t('aiDetection.toast.detectFailed'));
     } finally {
@@ -1318,7 +1459,7 @@ export function AIDetectionPage() {
     stopProgressAnimation();
     setDetecting(false);
     if (preview?.startsWith('blob:')) URL.revokeObjectURL(preview);
-    setFile(null); setPreview(null); setResult(null); setProgress(0);
+    setFile(null); setPreview(null); setResult(null); setProgress(0); setPipelineLive(null);
     if (inputRef.current) inputRef.current.value = '';
   };
 
@@ -1334,7 +1475,7 @@ export function AIDetectionPage() {
     const toastKey = `${heroToast.title}-${heroToast.confidence.toFixed(0)}`;
     const skipToast = opts?.quiet || toastKey === lastWebcamToastRef.current;
 
-    setResult(normalizeDetectionSign(res));
+    setResult(normalizeDetectionSign(normalizeDetectionMedia(res)));
     if (res.uploaded_image) {
       if (preview?.startsWith('blob:') && preview !== res.uploaded_image) {
         URL.revokeObjectURL(preview);
@@ -1410,42 +1551,39 @@ export function AIDetectionPage() {
           value: formatPct(displayStats.stats.accuracy_avg),
           sub: t('aiDetection.scans').replace('{count}', formatScans(displayStats.stats.total_scans)),
           Icon: Target,
-          grad: 'linear-gradient(135deg,#134E4A 0%,#0D9488 100%)',
         },
         {
           label: t('aiDetection.scansLabel'),
           value: formatScans(displayStats.stats.total_scans),
           sub: t('aiDetection.avgConfidence').replace('Avg ', '') + ` ${formatPct(displayStats.stats.accuracy_avg)}`,
           Icon: Activity,
-          grad: 'linear-gradient(135deg,#881337 0%,#F43F5E 100%)',
         },
         {
           label: t('aiDetection.signCatalog'),
           value: String(displayStats.model.sign_classes),
           sub: `${displayStats.model.name} · ${displayStats.model.version}`,
           Icon: Layers,
-          grad: 'linear-gradient(135deg,#2D1B69 0%,#7C3AED 100%)',
         },
         {
           label: t('aiDetection.avgSpeed'),
           value: formatSpeed(displayStats.stats.avg_speed_sec),
           sub: t('aiDetection.perDetection'),
           Icon: Cpu,
-          grad: 'linear-gradient(135deg,#92400E 0%,#F59E0B 100%)',
         },
       ];
 
+  const kpiKeys = ['accuracy', 'scans', 'catalog', 'speed'] as const;
+
   return (
-    <div className="dashboard-home dashboard-page--ai w-full min-h-full space-y-5">
+    <div className="dashboard-home dashboard-page--ai ai-detection-page w-full min-h-full space-y-5">
         {statsError && (
           <div className="flex items-center justify-between gap-3 p-4 rounded-2xl border border-amber-300 bg-amber-50 text-amber-900">
             <div className="flex items-center gap-3 min-w-0">
               <AlertCircle size={20} className="flex-shrink-0 text-amber-600" />
               <div className="min-w-0">
-                <p className="text-sm font-semibold">Backend not connected</p>
+                <p className="text-sm font-semibold">{t('aiDetection.backendNotConnected')}</p>
                 <p className="text-xs mt-0.5 text-amber-800/80 truncate">
-                  Start Docker (<code className="text-[11px]">docker compose --env-file .env.docker up -d</code>) or run{' '}
-                  <code className="text-[11px]">python manage.py runserver</code> in <code className="text-[11px]">backend/</code>.
+                  {t('aiDetection.backendNotConnectedHint')}
                 </p>
               </div>
             </div>
@@ -1457,16 +1595,17 @@ export function AIDetectionPage() {
               }}
               className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold border border-amber-400 bg-white hover:bg-amber-100 flex-shrink-0 cursor-pointer"
             >
-              <RefreshCw size={14} /> Retry
+              <RefreshCw size={14} /> {t('dashboard.retry')}
             </button>
           </div>
         )}
         {/* Hero */}
-        <div className="ai-detection-page-hero rounded-2xl border shadow-lg overflow-hidden">
+        <div className="ai-detection-page-hero ai-detection-page-hero--banner rounded-2xl border shadow-lg overflow-hidden">
           <DetectionPanelHeader
             gradient={DETECTION_HEADER_GRADIENTS.hero}
             size="hero"
             icon={Camera}
+            iconAccentColor={DETECTION_HEADER_ICON_ACCENTS.hero}
             eyebrow={t('aiDetection.heroEyebrow')}
             title={t('aiDetection.heroTitle')}
             subtitle={t('aiDetection.heroSubtitle')}
@@ -1495,24 +1634,22 @@ export function AIDetectionPage() {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {kpiCards.map((s) => (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 ai-detection-kpi-grid">
+            {kpiCards.map((s, i) => (
               <div
                 key={s.label}
-                className="relative overflow-hidden rounded-2xl p-5 flex flex-col justify-between shadow-sm"
-                style={{ background: s.grad, minHeight: 108 }}
+                className={`ai-detection-kpi ai-detection-kpi--${kpiKeys[i]}`}
               >
-                <div className="absolute -bottom-6 -right-6 w-28 h-28 rounded-full pointer-events-none"
-                  style={{ background: 'rgba(255,255,255,0.07)' }} />
-                <div className="flex items-center justify-between relative">
-                  <p className="text-xs font-bold text-white/70">{s.label}</p>
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.18)' }}>
-                    <s.Icon size={16} color="white" />
+                <div className="ai-detection-kpi__glow" aria-hidden />
+                <div className="ai-detection-kpi__head">
+                  <p className="ai-detection-kpi__label">{s.label}</p>
+                  <div className="ai-detection-kpi__icon">
+                    <s.Icon size={18} color="white" strokeWidth={2.25} />
                   </div>
                 </div>
-                <div className="relative">
-                  <p className="text-2xl font-black text-white mt-2">{s.value}</p>
-                  <p className="text-xs text-white/55 mt-1">{s.sub}</p>
+                <div className="ai-detection-kpi__body">
+                  <p className="ai-detection-kpi__value">{s.value}</p>
+                  <p className="ai-detection-kpi__sub">{s.sub}</p>
                 </div>
               </div>
             ))}
@@ -1538,7 +1675,7 @@ export function AIDetectionPage() {
               {pipelineInputPanel}
               <div className="min-h-0 flex flex-col h-full flex-1">
                 {detecting ? (
-                  <ProcessingStageCard progress={progress} />
+                  <ProcessingStageCard progress={progress} liveSource={pipelineLive} />
                 ) : (
                   <AwaitingCard pageStats={displayStats} onSampleClick={handleSampleSign} />
                 )}

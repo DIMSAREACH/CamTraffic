@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { EvidenceArchiveItem } from '@shared/types';
 
 type SourceType = EvidenceArchiveItem['source_type'];
@@ -9,6 +10,8 @@ type EvidenceSignImageProps = {
   className?: string;
   imgClassName?: string;
   loading?: 'lazy' | 'eager';
+  /** Full photo preview — no sign plate frame (dialogs / lightbox). */
+  plain?: boolean;
 };
 
 function usesUploadedSignMatte(src: string, sourceType: SourceType): boolean {
@@ -23,7 +26,30 @@ export function EvidenceSignImage({
   className = '',
   imgClassName = '',
   loading,
+  plain = false,
 }: EvidenceSignImageProps) {
+  const [broken, setBroken] = useState(false);
+
+  if (!src || broken) {
+    return (
+      <div className={`evidence-archive-sign-frame evidence-archive-sign-frame--empty ${className}`.trim()} aria-hidden>
+        <span className="evidence-archive-sign-frame__missing">—</span>
+      </div>
+    );
+  }
+
+  if (plain || sourceType !== 'detection') {
+    return (
+      <img
+        src={src}
+        alt={alt}
+        className={imgClassName || className}
+        loading={loading}
+        onError={() => setBroken(true)}
+      />
+    );
+  }
+
   if (sourceType === 'detection') {
     const matte = usesUploadedSignMatte(src, sourceType);
     return (
@@ -34,6 +60,7 @@ export function EvidenceSignImage({
           alt={alt}
           className={`evidence-archive-sign-frame__img${matte ? ' evidence-archive-sign-frame__img--matte' : ''} ${imgClassName}`.trim()}
           loading={loading}
+          onError={() => setBroken(true)}
         />
       </div>
     );
@@ -45,6 +72,7 @@ export function EvidenceSignImage({
       alt={alt}
       className={imgClassName || className}
       loading={loading}
+      onError={() => setBroken(true)}
     />
   );
 }

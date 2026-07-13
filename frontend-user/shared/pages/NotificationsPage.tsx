@@ -9,6 +9,7 @@ import { useLiveData } from '@shared/hooks/useLiveData';
 import { notificationsAPI } from '@shared/services/api';
 import { toast } from 'sonner';
 import type { Notification, NotificationType } from '@shared/types';
+import { NotificationTemplatesManagementPanel } from '@shared/components/admin/NotificationTemplatesManagementPanel';
 import { DASHBOARD_PALETTE } from '@shared/constants/chartPalette';
 import type { CSSProperties } from 'react';
 
@@ -583,6 +584,8 @@ export function NotificationsPage() {
           )}
         </div>
       </div>
+
+      {user?.role === 'admin' && <NotificationTemplatesManagementPanel />}
     </div>
   );
 }

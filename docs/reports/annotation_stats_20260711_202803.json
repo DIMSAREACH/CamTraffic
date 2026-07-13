@@ -1,0 +1,59 @@
+{
+  "generated_at": "2026-07-11T20:28:03.575931+00:00",
+  "combined_model_classes": 31,
+  "traffic_signs_labeled": {
+    "full_236_class": 2840,
+    "production_10_class": 123
+  },
+  "exports": {
+    "BATCH-REF-VEH-PLATE-001": {
+      "images": 100,
+      "by_class": {
+        "20": 14,
+        "19": 86
+      }
+    },
+    "BATCH-SIGNS-DATASET10": {
+      "images": 123,
+      "by_class": {
+        "9": 12,
+        "5": 12,
+        "0": 12,
+        "1": 12,
+        "4": 12,
+        "2": 12,
+        "3": 12,
+        "6": 12,
+        "7": 12,
+        "8": 15
+      }
+    }
+  },
+  "splits": {
+    "cambodia_traffic_reference_remapped": {
+      "images": 121,
+      "by_class": {
+        "9": 12,
+        "5": 12,
+        "0": 12,
+        "1": 12,
+        "4": 12,
+        "2": 12,
+        "3": 12,
+        "6": 12,
+        "7": 12,
+        "8": 13
+      }
+    },
+    "plate_number_reference_remapped": {
+      "images": 100,
+      "by_class": {
+        "1": 14,
+        "0": 86
+      }
+    }
+  },
+  "ocr_transcriptions": 50,
+  "vehicles_pending_cvat": 44,
+  "batch_log_entries": 4
+}

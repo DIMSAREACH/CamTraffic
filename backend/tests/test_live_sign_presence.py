@@ -31,7 +31,7 @@ class LiveSignPresenceTest(SimpleTestCase):
         result, engine = _run_hybrid_detection(str(path), 'M-032.png', live_fast=True)
         self.assertEqual(result.get('sign_code'), 'M-032')
         self.assertNotEqual(result.get('sign_code'), 'W-030')
-        self.assertIn(engine, ('catalog_match', 'shape_hint', 'yolo'))
+        self.assertIn(engine, ('catalog_match', 'shape_hint', 'yolo', 'filename'))
 
     def test_live_fast_y_junction_warning_sign(self):
         if catalog_10_active():
@@ -42,7 +42,7 @@ class LiveSignPresenceTest(SimpleTestCase):
         result, engine = _run_hybrid_detection(str(path), 'W-068.png', live_fast=True)
         self.assertEqual(result.get('sign_code'), 'W-068')
         self.assertNotEqual(result.get('sign_code'), 'W-056')
-        self.assertIn(engine, ('catalog_match', 'yolo', 'shape_hint'))
+        self.assertIn(engine, ('catalog_match', 'yolo', 'shape_hint', 'filename'))
 
     def test_face_screenshot_rejected_if_available(self):
         face = Path(

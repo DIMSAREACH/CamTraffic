@@ -1,0 +1,103 @@
+# Task070 — AI Settings
+
+| Field | Value |
+|-------|-------|
+| **Phase** | Phase 5 — AI Module |
+| **Status** | 🔄 In Progress / Partial |
+| **Checklist** | [`docs/CHECKLIST.md`](../CHECKLIST.md) |
+
+---
+
+## Objective
+
+Implement **AI Settings** for CamTraffic (AI-based traffic sign detection and traffic law enforcement in Cambodia).
+
+> Fill in detailed requirements before starting. Expand sections from [`TASK-TEMPLATE.md`](TASK-TEMPLATE.md).
+
+---
+
+## Business Requirements
+
+- [ ] TBD
+
+---
+
+## Functional Requirements
+
+- [ ] TBD
+
+---
+
+## Technical Requirements
+
+- [ ] TBD
+
+---
+
+## Database Changes
+
+| Table / Model | Change |
+|---------------|--------|
+| TBD | |
+
+---
+
+## Backend Work
+
+- [ ] TBD
+
+---
+
+## Frontend Work
+
+- [ ] TBD
+
+---
+
+## UI/UX Requirements
+
+- [ ] TBD
+
+---
+
+## API Requirements
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| TBD | | |
+
+---
+
+## Acceptance Criteria
+
+- [ ] TBD
+
+---
+
+## Testing Checklist
+
+- [ ] Unit tests
+- [ ] API tests
+- [ ] Manual UI verification
+
+---
+
+## Cursor AI Prompt
+
+```text
+Context: CamTraffic — AI traffic sign detection & enforcement (Cambodia).
+Task: Task070 — AI Settings
+Phase: Phase 5 — AI Module
+
+Read docs/tasks/Task070.md and docs/CHECKLIST.md.
+Implement only this task. Match existing conventions in backend/, frontend-admin/, frontend-user/, ai/.
+When done, update docs/CHECKLIST.md checkbox for Task070 and list files changed.
+```
+
+---
+
+## Notes / Implementation Log
+
+| Date | Note |
+|------|------|
+| | |

@@ -9,14 +9,18 @@ VEHICLE_LABELS_KM = {
 
 
 def _is_unknown_sign(sign_result: dict) -> bool:
+    if sign_result.get('detection_mode') == 'no_sign':
+        return True
     if sign_result.get('class_key'):
         return False
-    confidence = float(sign_result.get('confidence') or 0)
     sign_en = (sign_result.get('sign_name_en') or '').strip().lower()
-    sign_km = sign_result.get('sign_name_km') or sign_result.get('sign_name') or ''
-    if confidence >= 10:
-        return False
-    return sign_en in ('unknown sign', '') or sign_km == 'ស្លាកមិនស្គាល់'
+    sign_km = (sign_result.get('sign_name_km') or sign_result.get('sign_name') or '').strip()
+    if sign_en == 'unknown sign' or sign_km == 'ស្លាកមិនស្គាល់':
+        return True
+    # Low-confidence empty label only — do not treat high-confidence junk as a real sign.
+    if not sign_en and not sign_km:
+        return float(sign_result.get('confidence') or 0) < 10
+    return False
 
 
 def _apply_plate_fields(payload: dict, plate_result: dict | None) -> None:

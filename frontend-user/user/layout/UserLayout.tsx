@@ -1,22 +1,31 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router';
 import { Shield } from 'lucide-react';
 import { UserSidebar } from '@user/layout/UserSidebar';
 import { Navbar } from '@shared/layout/Navbar';
+import { SkipToMainLink } from '@shared/components/a11y/SkipToMainLink';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { useSidebarState } from '@shared/hooks/useSidebarState';
 import { useLiveData } from '@shared/hooks/useLiveData';
 import { notificationsAPI } from '@shared/services/api';
+import { isUserPortalRouteAllowed, USER_PORTAL_ROUTES } from '@shared/constants/portalRoutes';
 import { cn } from '@shared/components/ui/utils';
 
 export function UserLayout() {
   const { user, isLoading } = useAuth();
-  const { locale } = useLanguage();
+  const { locale, t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const { collapsed, mobileOpen, toggleCollapsed, openMobile, closeMobile } = useSidebarState('user');
   const [unreadCount, setUnreadCount] = useState(0);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const mobileDrawerRef = useRef<HTMLDivElement>(null);
+
+  const closeMobileWithFocus = useCallback(() => {
+    closeMobile();
+    requestAnimationFrame(() => menuButtonRef.current?.focus());
+  }, [closeMobile]);
 
   useEffect(() => {
     if (!isLoading && !user) navigate('/');
@@ -27,6 +36,14 @@ export function UserLayout() {
       navigate('/', { replace: true });
     }
   }, [user, isLoading, navigate]);
+
+  useEffect(() => {
+    if (!isLoading && user && user.role !== 'admin') {
+      if (!isUserPortalRouteAllowed(user.role, location.pathname)) {
+        navigate(USER_PORTAL_ROUTES.dashboard, { replace: true });
+      }
+    }
+  }, [user, isLoading, location.pathname, navigate]);
 
   useEffect(() => {
     if (!user) return;
@@ -49,11 +66,17 @@ export function UserLayout() {
   useEffect(() => {
     if (!mobileOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeMobile();
+      if (e.key === 'Escape') closeMobileWithFocus();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [mobileOpen, closeMobile]);
+  }, [mobileOpen, closeMobileWithFocus]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const firstLink = mobileDrawerRef.current?.querySelector<HTMLElement>('a[href], button:not([disabled])');
+    firstLink?.focus();
+  }, [mobileOpen]);
 
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? 'hidden' : '';
@@ -88,8 +111,10 @@ export function UserLayout() {
         collapsed && 'app-shell--sidebar-collapsed',
       )}
     >
+      <SkipToMainLink />
       <div className="hidden lg:flex flex-shrink-0 h-full">
         <UserSidebar
+          key={locale}
           collapsed={collapsed}
           onToggle={toggleCollapsed}
           unreadCount={unreadCount}
@@ -103,12 +128,20 @@ export function UserLayout() {
         <button
           type="button"
           className="sidebar-mobile-backdrop"
-          aria-label="Close menu"
+          aria-label={t('sidebar.closeMenu')}
           tabIndex={mobileOpen ? 0 : -1}
-          onClick={closeMobile}
+          onClick={closeMobileWithFocus}
         />
-        <div className="sidebar-mobile-drawer">
+        <div
+          id="mobile-sidebar-drawer"
+          ref={mobileDrawerRef}
+          className="sidebar-mobile-drawer"
+          role="dialog"
+          aria-modal={mobileOpen}
+          aria-label={t('sidebar.main')}
+        >
           <UserSidebar
+            key={locale}
             collapsed={false}
             onToggle={closeMobile}
             unreadCount={unreadCount}
@@ -123,8 +156,10 @@ export function UserLayout() {
           sidebarCollapsed={collapsed}
           onSidebarToggle={toggleCollapsed}
           onMobileMenuOpen={openMobile}
+          mobileMenuButtonRef={menuButtonRef}
+          mobileMenuOpen={mobileOpen}
         />
-        <main className="flex-1 overflow-y-auto">
+        <main id="main-content" className="flex-1 overflow-y-auto" tabIndex={-1}>
           <div className={cn('app-dashboard relative app-dashboard--user', isProfilePage ? 'app-dashboard--profile-route' : 'p-5 lg:p-6')}>
             <Outlet key={locale} />
           </div>

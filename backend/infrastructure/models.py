@@ -39,6 +39,35 @@ class Road(TimeStampedUUIDModel):
         return self.name
 
 
+class PoliceStation(TimeStampedUUIDModel):
+    """Traffic police station / precinct."""
+
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('inactive', 'Inactive'),
+    ]
+
+    name = models.CharField(max_length=200)
+    code = models.CharField(max_length=50, unique=True)
+    city = models.CharField(max_length=100, blank=True)
+    region = models.CharField(max_length=100, blank=True)
+    address = models.TextField(blank=True)
+    phone = models.CharField(max_length=30, blank=True)
+    latitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+
+    class Meta:
+        db_table = 'police_stations'
+        ordering = ['name']
+        indexes = [
+            models.Index(fields=['status', 'city'], name='idx_station_status_city'),
+        ]
+
+    def __str__(self):
+        return self.name
+
+
 class Camera(TimeStampedUUIDModel):
     """Physical camera unit — PRD table `cameras`."""
 

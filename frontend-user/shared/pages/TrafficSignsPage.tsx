@@ -565,23 +565,22 @@ function SignsTable({
   const thStyle = { textTransform: 'none' as const, letterSpacing: '0.04em', fontSize: 'var(--db-font-sm)' };
 
   return (
-    <div
-      className="dashboard-signs-table rounded-xl overflow-hidden w-full"
-      style={{ border: '1px solid rgba(37,99,235,0.08)', background: 'var(--card)' }}
-    >
-      <Table>
+    <div className="dashboard-signs-table dashboard-signs-table__shell rounded-xl overflow-hidden w-full">
+      <Table className="dashboard-signs-table__grid">
+        <colgroup>
+          <col className="dashboard-signs-table__col dashboard-signs-table__col--image" />
+          <col className="dashboard-signs-table__col dashboard-signs-table__col--sign" />
+          <col className="dashboard-signs-table__col dashboard-signs-table__col--category" />
+          <col className="dashboard-signs-table__col dashboard-signs-table__col--description" />
+          <col className="dashboard-signs-table__col dashboard-signs-table__col--action" />
+        </colgroup>
         <TableHeader>
-          <TableRow
-            style={{
-              background: 'rgba(248,250,252,0.95)',
-              borderBottom: '1px solid rgba(37,99,235,0.1)',
-            }}
-          >
-            <TableHead className={`${thClass} w-[88px]`} style={thStyle}>{labels.image}</TableHead>
-            <TableHead className={thClass} style={thStyle}>{labels.sign}</TableHead>
-            <TableHead className={`${thClass} w-[130px] hidden lg:table-cell`} style={thStyle}>{labels.category}</TableHead>
-            <TableHead className={`${thClass} hidden md:table-cell`} style={thStyle}>{labels.description}</TableHead>
-            <TableHead className={`${thClass} w-[1%] text-right whitespace-nowrap`} style={thStyle}>{labels.action}</TableHead>
+          <TableRow className="dashboard-signs-table__head-row">
+            <TableHead className={`${thClass} dashboard-signs-table__th dashboard-signs-table__th--image text-center`} style={thStyle}>{labels.image}</TableHead>
+            <TableHead className={`${thClass} dashboard-signs-table__th dashboard-signs-table__th--sign`} style={thStyle}>{labels.sign}</TableHead>
+            <TableHead className={`${thClass} dashboard-signs-table__th dashboard-signs-table__th--category hidden lg:table-cell`} style={thStyle}>{labels.category}</TableHead>
+            <TableHead className={`${thClass} dashboard-signs-table__th dashboard-signs-table__th--description hidden md:table-cell`} style={thStyle}>{labels.description}</TableHead>
+            <TableHead className={`${thClass} dashboard-signs-table__th dashboard-signs-table__th--action text-center`} style={thStyle}>{labels.action}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -640,11 +639,8 @@ function SignTableRow({
   };
 
   return (
-              <TableRow
-                className="transition-colors"
-                style={{ borderBottom: '1px solid rgba(37,99,235,0.06)' }}
-              >
-                <TableCell className="py-3 px-3 align-middle">
+              <TableRow className="dashboard-signs-table__row transition-colors">
+                <TableCell className="dashboard-signs-table__td dashboard-signs-table__td--image py-3 px-4 align-middle text-center">
                   <div className="signs-table-img-wrap mx-auto">
                     <SignImage
                       sign={sign}
@@ -657,25 +653,25 @@ function SignTableRow({
                     />
                   </div>
                 </TableCell>
-                <TableCell className="py-3 px-3 align-middle min-w-[160px]">
+                <TableCell className="dashboard-signs-table__td dashboard-signs-table__td--sign py-3 px-4 align-middle whitespace-normal">
                   <SignNameLabels sign={sign} size="sm" />
                   <CategoryBadge category={sign.category} className="mt-1.5 lg:hidden px-2.5 py-0.5">
                     {categoryLabel}
                   </CategoryBadge>
                 </TableCell>
-                <TableCell className="py-3 px-3 align-middle hidden lg:table-cell">
+                <TableCell className="dashboard-signs-table__td dashboard-signs-table__td--category py-3 px-4 align-middle hidden lg:table-cell">
                   <CategoryBadge category={sign.category} className="px-2.5 py-1">
                     {categoryLabel}
                   </CategoryBadge>
                 </TableCell>
-                <TableCell className="py-3 px-3 align-middle hidden md:table-cell max-w-[280px]">
-                  <p className="dashboard-text__caption line-clamp-2" style={{ color: 'var(--muted-foreground)' }}>
+                <TableCell className="dashboard-signs-table__td dashboard-signs-table__td--description py-3 px-4 align-middle hidden md:table-cell whitespace-normal">
+                  <p className="dashboard-signs-table__desc dashboard-text__caption line-clamp-3">
                     {sign.description}
                   </p>
                 </TableCell>
-                <TableCell className="py-3 px-3 align-middle text-right w-[1%] whitespace-nowrap">
+                <TableCell className="dashboard-signs-table__td dashboard-signs-table__td--action py-3 px-4 align-middle text-center whitespace-nowrap">
                   <div
-                    className="signs-row-actions inline-flex items-center justify-end gap-1"
+                    className="signs-row-actions inline-flex items-center justify-center gap-1.5"
                     role="group"
                     aria-label={labels.action}
                   >
@@ -723,8 +719,8 @@ function SignTableRow({
 
 function SignsTableSkeleton({ rows = 8 }: { rows?: number }) {
   return (
-    <div className="rounded-xl overflow-hidden w-full" style={{ border: '1px solid rgba(37,99,235,0.08)' }}>
-      <div className="px-4 py-3 border-b" style={{ background: 'rgba(248,250,252,0.9)', borderColor: 'rgba(37,99,235,0.08)' }}>
+    <div className="dashboard-signs-table__shell rounded-xl overflow-hidden w-full">
+      <div className="dashboard-signs-table__skeleton-head px-4 py-3 border-b">
         <div className="h-3 w-3/4 max-w-md rounded animate-pulse" style={{ background: 'rgba(37,99,235,0.08)' }} />
       </div>
       <div className="divide-y divide-border/40">
@@ -925,7 +921,6 @@ export function TrafficSignsPage() {
 
         <div className="relative p-5 lg:p-6">
           <div className="flex items-start justify-between flex-wrap gap-4">
-            {/* Left — title */}
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -941,37 +936,18 @@ export function TrafficSignsPage() {
                 {(canManage ? t('pages.signs.manageSubtitle') : t('pages.signs.subtitle')).replace('{count}', String(signs.length))}
               </p>
             </div>
-
-            {/* Right — mini KPI pills */}
-            <div className="flex flex-wrap gap-2.5 self-center">
-              {CAT_KEYS.map(cat => {
-                const c = CAT[cat];
-                const active = category === cat;
-                return (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => setCategory(cat === category ? 'all' : cat)}
-                    className="px-3.5 py-2 rounded-xl text-center transition-all cursor-pointer"
-                    style={active
-                      ? { background: c.gradient, boxShadow: `0 4px 16px ${c.glow}`, transform: 'translateY(-1px)' }
-                      : { background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }
-                    }
-                  >
-                    <p className="dashboard-kpi__label" style={{ color: active ? 'rgba(255,255,255,0.8)' : 'rgba(148,163,184,0.75)' }}>
-                      {catLabel(cat)}
-                    </p>
-                    <p className="dashboard-text__metric text-white mt-0.5">{counts[cat]}</p>
-                  </button>
-                );
-              })}
-            </div>
           </div>
         </div>
       </div>
 
-      {/* ── CATEGORY FILTER CARDS ── */}
+      {/* ── SIGN CATEGORIES ── */}
       <div className="signs-category-tray">
+        <div className="signs-category-tray__head">
+          <div className="signs-category-tray__head-icon">
+            <BookOpen size={17} />
+          </div>
+          <h2 className="signs-category-tray__title">{t('signCategories.title')}</h2>
+        </div>
         <div className="signs-category-grid">
           {CAT_KEYS.map(cat => {
             const c = CAT[cat];
@@ -1106,23 +1082,20 @@ export function TrafficSignsPage() {
               <p className="dashboard-text__caption mt-1">{t('pages.signs.noResultsHint')}</p>
             </div>
           ) : viewMode === 'grid' ? (
-            <>
-              <div className="signs-card-grid">
-                {pagination.pageItems.map(sign => (
-                  <div key={sign.id} className="signs-card-grid__slot min-w-0">
-                    <SignCardItem
-                      sign={sign}
-                      categoryLabel={catLabel(sign.category)}
-                      onSelect={() => openSignDetail(sign)}
-                      canManage={canManage}
-                      onEdit={() => openEdit(sign)}
-                      onDelete={() => setDeleteTarget(sign)}
-                    />
-                  </div>
-                ))}
-              </div>
-              <div className="px-4"><TablePagination pagination={pagination} label="signs" /></div>
-            </>
+            <div className="signs-card-grid">
+              {pagination.pageItems.map(sign => (
+                <div key={sign.id} className="signs-card-grid__slot min-w-0">
+                  <SignCardItem
+                    sign={sign}
+                    categoryLabel={catLabel(sign.category)}
+                    onSelect={() => openSignDetail(sign)}
+                    canManage={canManage}
+                    onEdit={() => openEdit(sign)}
+                    onDelete={() => setDeleteTarget(sign)}
+                  />
+                </div>
+              ))}
+            </div>
           ) : (
             <div className="mx-4">
             <SignsTable
@@ -1143,10 +1116,15 @@ export function TrafficSignsPage() {
                 delete: t('common.delete'),
               }}
             />
-            <TablePagination pagination={pagination} label="signs" />
             </div>
           )}
         </div>
+
+        {!loading && filtered.length > 0 && (
+          <footer className="signs-catalog-footer flex-shrink-0">
+            <TablePagination pagination={pagination} labelKey="pagination.label.signs" variant="footer" />
+          </footer>
+        )}
       </section>
 
       {/* ── DETAIL MODAL ── */}

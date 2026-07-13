@@ -1,0 +1,158 @@
+{
+  "dataset": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\raw\\license_plates",
+  "fraction": 0.1,
+  "classes": 50,
+  "total_samples": 50,
+  "samples": {
+    "PLATE_COMMERCIAL_000001": [
+      "commercial/PLATE_COMMERCIAL_000001.jpg"
+    ],
+    "PLATE_COMMERCIAL_000002": [
+      "commercial/PLATE_COMMERCIAL_000002.jpg"
+    ],
+    "PLATE_COMMERCIAL_000003": [
+      "commercial/PLATE_COMMERCIAL_000003.jpg"
+    ],
+    "PLATE_COMMERCIAL_000004": [
+      "commercial/PLATE_COMMERCIAL_000004.jpg"
+    ],
+    "PLATE_COMMERCIAL_000005": [
+      "commercial/PLATE_COMMERCIAL_000005.jpg"
+    ],
+    "PLATE_COMMERCIAL_000006": [
+      "commercial/PLATE_COMMERCIAL_000006.jpg"
+    ],
+    "PLATE_COMMERCIAL_000007": [
+      "commercial/PLATE_COMMERCIAL_000007.jpg"
+    ],
+    "PLATE_PRIVATE_000001": [
+      "private/PLATE_PRIVATE_000001.jpg"
+    ],
+    "PLATE_PRIVATE_000002": [
+      "private/PLATE_PRIVATE_000002.jpg"
+    ],
+    "PLATE_PRIVATE_000003": [
+      "private/PLATE_PRIVATE_000003.jpg"
+    ],
+    "PLATE_PRIVATE_000004": [
+      "private/PLATE_PRIVATE_000004.jpg"
+    ],
+    "PLATE_PRIVATE_000005": [
+      "private/PLATE_PRIVATE_000005.jpg"
+    ],
+    "PLATE_PRIVATE_000006": [
+      "private/PLATE_PRIVATE_000006.jpg"
+    ],
+    "PLATE_PRIVATE_000007": [
+      "private/PLATE_PRIVATE_000007.jpg"
+    ],
+    "PLATE_PRIVATE_000008": [
+      "private/PLATE_PRIVATE_000008.jpg"
+    ],
+    "PLATE_PRIVATE_000009": [
+      "private/PLATE_PRIVATE_000009.jpg"
+    ],
+    "PLATE_PRIVATE_000010": [
+      "private/PLATE_PRIVATE_000010.jpg"
+    ],
+    "PLATE_PRIVATE_000011": [
+      "private/PLATE_PRIVATE_000011.jpg"
+    ],
+    "PLATE_PRIVATE_000012": [
+      "private/PLATE_PRIVATE_000012.jpg"
+    ],
+    "PLATE_PRIVATE_000013": [
+      "private/PLATE_PRIVATE_000013.jpg"
+    ],
+    "PLATE_PRIVATE_000014": [
+      "private/PLATE_PRIVATE_000014.jpg"
+    ],
+    "PLATE_PRIVATE_000015": [
+      "private/PLATE_PRIVATE_000015.jpg"
+    ],
+    "PLATE_PRIVATE_000016": [
+      "private/PLATE_PRIVATE_000016.jpg"
+    ],
+    "PLATE_PRIVATE_000017": [
+      "private/PLATE_PRIVATE_000017.jpg"
+    ],
+    "PLATE_PRIVATE_000018": [
+      "private/PLATE_PRIVATE_000018.jpg"
+    ],
+    "PLATE_PRIVATE_000019": [
+      "private/PLATE_PRIVATE_000019.jpg"
+    ],
+    "PLATE_PRIVATE_000020": [
+      "private/PLATE_PRIVATE_000020.jpg"
+    ],
+    "PLATE_PRIVATE_000021": [
+      "private/PLATE_PRIVATE_000021.jpg"
+    ],
+    "PLATE_PRIVATE_000022": [
+      "private/PLATE_PRIVATE_000022.jpg"
+    ],
+    "PLATE_PRIVATE_000023": [
+      "private/PLATE_PRIVATE_000023.jpg"
+    ],
+    "PLATE_PRIVATE_000024": [
+      "private/PLATE_PRIVATE_000024.jpg"
+    ],
+    "PLATE_PRIVATE_000025": [
+      "private/PLATE_PRIVATE_000025.jpg"
+    ],
+    "PLATE_PRIVATE_000026": [
+      "private/PLATE_PRIVATE_000026.jpg"
+    ],
+    "PLATE_PRIVATE_000027": [
+      "private/PLATE_PRIVATE_000027.jpg"
+    ],
+    "PLATE_PRIVATE_000028": [
+      "private/PLATE_PRIVATE_000028.jpg"
+    ],
+    "PLATE_PRIVATE_000029": [
+      "private/PLATE_PRIVATE_000029.jpg"
+    ],
+    "PLATE_PRIVATE_000030": [
+      "private/PLATE_PRIVATE_000030.jpg"
+    ],
+    "PLATE_PRIVATE_000031": [
+      "private/PLATE_PRIVATE_000031.jpg"
+    ],
+    "PLATE_PRIVATE_000032": [
+      "private/PLATE_PRIVATE_000032.jpg"
+    ],
+    "PLATE_PRIVATE_000033": [
+      "private/PLATE_PRIVATE_000033.jpg"
+    ],
+    "PLATE_PRIVATE_000034": [
+      "private/PLATE_PRIVATE_000034.jpg"
+    ],
+    "PLATE_PRIVATE_000035": [
+      "private/PLATE_PRIVATE_000035.jpg"
+    ],
+    "PLATE_PRIVATE_000036": [
+      "private/PLATE_PRIVATE_000036.jpg"
+    ],
+    "PLATE_PRIVATE_000037": [
+      "private/PLATE_PRIVATE_000037.jpg"
+    ],
+    "PLATE_PRIVATE_000038": [
+      "private/PLATE_PRIVATE_000038.jpg"
+    ],
+    "PLATE_PRIVATE_000039": [
+      "private/PLATE_PRIVATE_000039.jpg"
+    ],
+    "PLATE_PRIVATE_000040": [
+      "private/PLATE_PRIVATE_000040.jpg"
+    ],
+    "PLATE_PRIVATE_000041": [
+      "private/PLATE_PRIVATE_000041.jpg"
+    ],
+    "PLATE_PRIVATE_000042": [
+      "private/PLATE_PRIVATE_000042.jpg"
+    ],
+    "PLATE_PRIVATE_000043": [
+      "private/PLATE_PRIVATE_000043.jpg"
+    ]
+  }
+}

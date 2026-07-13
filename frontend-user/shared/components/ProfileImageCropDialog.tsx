@@ -112,7 +112,7 @@ export function ProfileImageCropDialog({ open, file, onOpenChange, onConfirm }: 
 
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next) handleClose(); else onOpenChange(true); }}>
-      <DialogContent className="profile-crop-dialog max-w-sm">
+      <DialogContent accent="violet" className="profile-crop-dialog max-w-sm">
         <DialogHeader>
           <DialogTitle>{t('profile.cropPhotoTitle')}</DialogTitle>
           <DialogDescription>{t('profile.cropPhotoDesc')}</DialogDescription>

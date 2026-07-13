@@ -2,11 +2,14 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { Lock, Eye, EyeOff, KeyRound, CheckCircle, AlertCircle } from 'lucide-react';
 import { AuthPageBackground } from '@shared/components/auth/AuthPageBackground';
+import { AuthPageControls } from '@shared/components/auth/AuthPageControls';
 import { authAPI } from '@shared/services/api';
+import { useLanguage } from '@shared/context/LanguageContext';
 import { isStrongPassword, getPasswordValidationError, PASSWORD_REQUIREMENTS } from '@shared/utils/passwordPolicy';
 import { toast } from 'sonner';
 
 export function ResetPasswordPage() {
+  const { t } = useLanguage();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const uid = searchParams.get('uid') ?? '';
@@ -58,6 +61,7 @@ export function ResetPasswordPage() {
 
   return (
     <div className="up-page up-page--user">
+      <AuthPageControls />
       <AuthPageBackground />
       <div className="up-overlay" />
       <div className="up-inner" style={{ justifyContent: 'center' }}>
@@ -127,7 +131,12 @@ export function ResetPasswordPage() {
                         minLength={8}
                         required
                       />
-                      <button type="button" className="lf-eye" onClick={() => setShowPwd((v) => !v)} tabIndex={-1}>
+                      <button
+                        type="button"
+                        className="lf-eye"
+                        onClick={() => setShowPwd((v) => !v)}
+                        aria-label={showPwd ? t('auth.hidePassword') : t('auth.showPassword')}
+                      >
                         {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
                     </div>
@@ -156,7 +165,12 @@ export function ResetPasswordPage() {
                         autoComplete="new-password"
                         required
                       />
-                      <button type="button" className="lf-eye" onClick={() => setShowConfirm((v) => !v)} tabIndex={-1}>
+                      <button
+                        type="button"
+                        className="lf-eye"
+                        onClick={() => setShowConfirm((v) => !v)}
+                        aria-label={showConfirm ? t('auth.hidePassword') : t('auth.showPassword')}
+                      >
                         {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
                     </div>

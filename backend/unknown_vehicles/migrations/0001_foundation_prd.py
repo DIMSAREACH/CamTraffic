@@ -2,6 +2,7 @@
 
 from django.db import migrations, models
 import django.db.models.deletion
+import uuid
 
 
 class Migration(migrations.Migration):
@@ -19,7 +20,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='UnknownVehicle',
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
                 ('plate_detected', models.CharField(db_index=True, max_length=20)),
                 ('violation_type', models.CharField(blank=True, max_length=30)),
                 ('evidence_photo', models.ImageField(blank=True, null=True, upload_to='unknown_vehicles/evidence/')),

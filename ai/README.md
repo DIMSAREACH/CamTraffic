@@ -1,99 +1,48 @@
 # CamTraffic AI Module
 
-## Important: `sign_catalog.json` is not live-linked
+Computer vision assets and Python dependencies for traffic sign detection and license plate OCR.
 
-The app **does not** read `sign_catalog.json` on every page load. Traffic sign names, descriptions, and images shown in the UI come from the **database** (`TrafficSign` table).
+## Layout
 
-| File | Used for |
-|------|----------|
-| `sign_catalog.json` | Source metadata when you **sync** or **train** |
-| `data.yaml` | YOLO training class list |
-| `weights/best.pt` | Live AI detection model |
-| Database | Traffic Signs page, detection labels, TTS text |
+| Path | Purpose |
+|------|---------|
+| `weights/best.pt` | Production YOLO weights (gitignored — train locally) |
+| `dataset_10/` | 10-class Cambodian sign dataset (YOLO format) |
+| `dataset/` | Full 236-class sign dataset (gitignored, local only) |
+| `datasets/` | Collection manifests, raw/processed layout (Phase 7) |
+| `scripts/` | dedup, quality check, validation, collection tracker |
+| `runs/` | Training and evaluation outputs |
 
-After you edit `sign_catalog.json`, run:
+## Inference (runtime)
 
-```bash
-python scripts/sync_sign_catalog.py
-```
+Detection runs in **Django** (`backend/ai_detection/`), not a separate FastAPI process:
 
-Or from `backend`:
+- `POST /api/ai/detect/` — upload or frame processing
+- Mock mode: `AI_MOCK_MODE=true` in `backend/.env`
 
-```bash
-python manage.py sync_ai_training --skip-env --source-dir "D:/Year4/Project Thesis/Expert System/Reference(PDF Download)/Dim Sareach/Traffic Sign/01-Sign"
-```
-
-Then refresh the Traffic Signs page (Ctrl+F5).
-
-`sync_ai_training` also runs automatically at the **end of** `python ai/train.py`.
-
-## Quick pipeline (01-Sign + 02-Sign)
-
-By default `build_dataset.py` merges **both** reference folders:
+## Setup (training / local inference)
 
 ```bash
-python ai/build_dataset.py --augments 8
-python ai/train.py --epochs 30 --batch 4 --device cpu
-python scripts/sync_sign_catalog.py
+cd ai
+python -m venv .venv
+.venv\Scripts\activate   # Windows
+pip install -r requirements.txt
 ```
 
-Single folder only:
+Train with project scripts:
 
 ```bash
-python ai/build_dataset.py --source "D:/.../Traffic Sign/02-Sign" --augments 8
+python scripts/build_dataset_10.py
+python ai/scripts/collection_tracker.py --write-manifest
+python ai/scripts/build_class_maps.py
+python ai/scripts/annotation_tracker.py --write-manifest
 ```
 
-Sign names/descriptions: edit `ai/reference_sign_meta.json`, then:
+## Requirements
 
-```bash
-python ai/build_dataset.py --augments 8
-python scripts/sync_sign_catalog.py
-```
+See `requirements.txt` for Ultralytics YOLO, OpenCV, EasyOCR, and supporting libraries.
 
-`reference_sign_meta.json` does **not** store images — `sync_sign_catalog.py` copies art from `01-Sign` / `02-Sign` and removes outside backdrop automatically.
+## Related docs
 
-**Images are not stored in JSON.** Reference photos live in `Traffic Sign/01-Sign` and `02-Sign`. After JSON edits:
-
-```bash
-python ai/build_dataset.py --augments 8
-python scripts/sync_sign_catalog.py
-```
-
-Do not hand-edit `class_key` in `sign_catalog.json` — it must match the YOLO class name from `data.yaml` or image sync will fail and the UI shows the red circle placeholder.
-
-Sign images synced to the database have **outside sign margins** removed (white/black backdrop outside the sign shape → transparent). Colors inside the sign are kept.
-
-## Thesis evidence (AI-06.5)
-
-After training, export plots and sample prediction screenshots:
-
-```bash
-python scripts/export_ai06_evidence.py
-```
-
-Output: `docs/thesis_evidence/AI-06/` (`training/`, `predictions/`, `README.md`, `metrics_summary.json`).
-
-## Detection pipeline (Option 1 — thesis defense)
-
-Default mode is **offline** (`AI_DETECTION_MODE=local` in `backend/.env`):
-
-```text
-Webcam / Upload → OpenCV preprocess → YOLOv8 signs → catalog match
-                → YOLOv8 vehicles (COCO) → EasyOCR plates → violation engine → PostgreSQL
-```
-
-Priority for signs: **YOLO** (236 trained classes from `best.pt`) → **catalog histogram match** (236 refs) → **OpenCV shape hints**.
-
-Gemini Vision is **disabled by default**. Enable only as optional backup:
-
-```env
-AI_DETECTION_MODE=hybrid
-GEMINI_ENABLED=True
-GEMINI_API_KEY=your-key-here
-AI_GEMINI_UPLOAD_FALLBACK=True
-AI_GEMINI_LIVE_FALLBACK=True
-```
-
-Restart Django after changing `.env`. The detect API returns `detection_engine`: `yolo`, `catalog_match`, `opencv`, `shape_hint`, or `gemini` (hybrid only).
-
-Implementation: `backend/ai_detection/services.py`, `catalog_visual_match.py`, `vehicle_detection.py`, `plate_ocr.py`.
+- `docs/ARCHITECTURE.md` §7 — AI pipeline
+- Phase 7–10 checklist tasks in `docs/CHECKLIST.md`

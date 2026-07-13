@@ -1,23 +1,15 @@
 import { Link, useLocation } from 'react-router';
 import {
-  LayoutDashboard, Car, FileText, Camera,
+  LayoutDashboard, Car, FileText, Camera, Cctv,
   BookOpen, BarChart3, Bell, User, LogOut,
-  Activity, Zap, X, AlertTriangle, Archive,
+  Activity, X, AlertTriangle, Archive, Scale, ShieldAlert, Shield, Settings2,
 } from 'lucide-react';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { SidebarBrandToggle } from '@shared/components/layout/SidebarBrandToggle';
 import { NavbarProfileAvatar } from '@shared/components/NavbarProfileAvatar';
 import { cn } from '@shared/components/ui/utils';
-
-interface NavItem {
-  labelKey: string;
-  path: string;
-  icon: React.ReactNode;
-  roles: string[];
-  badge?: number;
-  section?: string;
-}
+import { getNavItemsForRole } from '@shared/constants/portalRoutes';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -31,29 +23,45 @@ const ROLE_LABEL_KEY: Record<string, string> = {
   driver: 'role.driver',
 };
 
-const NAV_ITEMS: NavItem[] = [
-  { labelKey: 'sidebar.nav.dashboard', path: '/dashboard', icon: <LayoutDashboard size={18} strokeWidth={1.75} />, roles: ['police', 'driver'], section: 'main' },
-  { labelKey: 'sidebar.nav.aiDetection', path: '/dashboard/ai-detection', icon: <Camera size={18} strokeWidth={1.75} />, roles: ['driver'], section: 'main' },
-  { labelKey: 'sidebar.nav.trafficSigns', path: '/dashboard/signs', icon: <BookOpen size={18} strokeWidth={1.75} />, roles: ['police', 'driver'], section: 'main' },
-  { labelKey: 'sidebar.nav.fineManagement', path: '/dashboard/fines', icon: <FileText size={18} strokeWidth={1.75} />, roles: ['police', 'driver'], section: 'manage' },
-  { labelKey: 'sidebar.nav.violationManagement', path: '/dashboard/violations', icon: <AlertTriangle size={18} strokeWidth={1.75} />, roles: ['police', 'driver'], section: 'manage' },
-  { labelKey: 'sidebar.nav.myVehicles', path: '/dashboard/vehicles', icon: <Car size={18} strokeWidth={1.75} />, roles: ['driver'], section: 'manage' },
-  { labelKey: 'sidebar.nav.detectionLogs', path: '/dashboard/ai-logs', icon: <Activity size={18} strokeWidth={1.75} />, roles: ['police'], section: 'manage' },
-  { labelKey: 'sidebar.nav.evidenceArchive', path: '/dashboard/evidence', icon: <Archive size={18} strokeWidth={1.75} />, roles: ['police', 'admin'], section: 'manage' },
-  { labelKey: 'sidebar.nav.reports', path: '/dashboard/reports', icon: <BarChart3 size={18} strokeWidth={1.75} />, roles: ['police'], section: 'manage' },
-  { labelKey: 'sidebar.nav.notifications', path: '/dashboard/notifications', icon: <Bell size={18} strokeWidth={1.75} />, roles: ['police', 'driver'], section: 'account' },
-  { labelKey: 'sidebar.nav.myProfile', path: '/dashboard/profile', icon: <User size={18} strokeWidth={1.75} />, roles: ['police', 'driver'], section: 'account' },
-];
+const NAV_ICONS: Record<string, React.ReactNode> = {
+  'sidebar.nav.dashboard': <LayoutDashboard size={18} strokeWidth={1.75} />,
+  'sidebar.nav.aiDetection': <Camera size={18} strokeWidth={1.75} />,
+  'sidebar.nav.cameras': <Cctv size={18} strokeWidth={1.75} />,
+  'sidebar.nav.trafficSigns': <BookOpen size={18} strokeWidth={1.75} />,
+  'sidebar.nav.fineManagement': <FileText size={18} strokeWidth={1.75} />,
+  'sidebar.nav.violationManagement': <AlertTriangle size={18} strokeWidth={1.75} />,
+  'sidebar.nav.appeals': <Scale size={18} strokeWidth={1.75} />,
+  'sidebar.nav.myVehicles': <Car size={18} strokeWidth={1.75} />,
+  'sidebar.nav.detectionLogs': <Activity size={18} strokeWidth={1.75} />,
+  'sidebar.nav.evidenceArchive': <Archive size={18} strokeWidth={1.75} />,
+  'sidebar.nav.unknownVehicles': <Car size={18} strokeWidth={1.75} />,
+  'sidebar.nav.reports': <BarChart3 size={18} strokeWidth={1.75} />,
+  'sidebar.nav.settings': <Settings2 size={18} strokeWidth={1.75} />,
+  'sidebar.nav.notifications': <Bell size={18} strokeWidth={1.75} />,
+  'sidebar.nav.myProfile': <User size={18} strokeWidth={1.75} />,
+};
+
+interface NavItem {
+  labelKey: string;
+  path: string;
+  icon: React.ReactNode;
+  badge?: number;
+  section?: string;
+}
 
 export function UserSidebar({ collapsed, onToggle, unreadCount = 0, isMobile = false }: SidebarProps) {
   const { user, logout } = useAuth();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const location = useLocation();
   const expanded = isMobile || !collapsed;
 
-  const visible = NAV_ITEMS.filter((item) => user && item.roles.includes(user.role)).map((item) =>
-    item.labelKey === 'sidebar.nav.notifications' ? { ...item, badge: unreadCount } : item,
-  );
+  const visible: NavItem[] = (user ? getNavItemsForRole(user.role) : []).map((item) => ({
+    labelKey: item.labelKey,
+    path: item.path,
+    icon: NAV_ICONS[item.labelKey] ?? <FileText size={18} strokeWidth={1.75} />,
+    section: item.section,
+    ...(item.labelKey === 'sidebar.nav.notifications' ? { badge: unreadCount } : {}),
+  }));
 
   const mainItems = visible.filter((i) => i.section === 'main');
   const manageItems = visible.filter((i) => i.section === 'manage');
@@ -112,8 +120,6 @@ export function UserSidebar({ collapsed, onToggle, unreadCount = 0, isMobile = f
   const gradient = user?.role === 'police'
     ? 'linear-gradient(135deg, #7c3aed, #4f46e5)'
     : 'linear-gradient(135deg, #06b6d4, #0891b2)';
-  const roleColor = user?.role === 'police' ? '#a78bfa' : '#67e8f9';
-
   return (
     <aside
       className={cn(
@@ -148,22 +154,38 @@ export function UserSidebar({ collapsed, onToggle, unreadCount = 0, isMobile = f
 
       <div className="sidebar-bottom">
         {user && (
-          <div className="sidebar-user-card sidebar-fade-when-collapsed">
-            <div className="flex items-center gap-3">
-              <NavbarProfileAvatar
-                initials={initials}
-                alt={user.full_name}
-                profileImage={user.profile_image}
-                gradient={gradient}
-                size="xs"
-                showStatus
-                className="[&_.app-navbar__avatar-status]:border-[#0f172a]"
-              />
-              <div className="min-w-0 flex-1">
-                <p className="sidebar-user-card__name truncate">{user.full_name}</p>
-                <p className="sidebar-user-card__role" style={{ color: roleColor }}>{roleLabel}</p>
+          <div className="sidebar-user-section sidebar-fade-when-collapsed">
+            <p className="sidebar-user-section__label">{t('sidebar.user')}</p>
+            <div className="sidebar-user-section__divider" aria-hidden />
+            <div className="sidebar-user-card" data-role={user.role ?? 'driver'}>
+              <div className="sidebar-user-card__top">
+                <NavbarProfileAvatar
+                  initials={initials}
+                  alt={user.full_name}
+                  profileImage={user.profile_image}
+                  gradient={gradient}
+                  size="sm"
+                  showStatus
+                  className="[&_.app-navbar__avatar-status]:border-[#0f172a]"
+                />
+                <div className="sidebar-user-card__identity min-w-0 flex-1">
+                  <p className="sidebar-user-card__name truncate" title={user.full_name}>
+                    {user.full_name}
+                  </p>
+                  {roleLabel && (
+                    <span className="sidebar-user-card__role-badge">
+                      <Shield size={11} aria-hidden />
+                      {roleLabel}
+                    </span>
+                  )}
+                </div>
               </div>
-              <Zap size={12} className="text-slate-500 flex-shrink-0" />
+              <div className="sidebar-user-card__email-block">
+                <span className="sidebar-user-card__field-label">{t('users.email')}</span>
+                <p className="sidebar-user-card__email truncate" title={user.email}>
+                  {user.email}
+                </p>
+              </div>
             </div>
           </div>
         )}

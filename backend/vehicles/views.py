@@ -8,7 +8,7 @@ from core.permissions import IsAdmin, IsDriver, IsPoliceOrAdmin
 from core.responses import error_response, success_response
 
 from .models import Vehicle
-from .serializers import VehicleCreateSerializer, VehicleSerializer
+from .serializers import VehicleCreateSerializer, VehicleSerializer, VehicleUpdateSerializer
 
 User = get_user_model()
 
@@ -50,15 +50,34 @@ class VehicleListCreateView(generics.ListCreateAPIView):
         )
 
 
-class VehicleDetailView(generics.RetrieveDestroyAPIView):
+class VehicleDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = VehicleSerializer
+    lookup_url_kwarg = 'pk'
+
+    def get_serializer_class(self):
+        if self.request.method in ('PUT', 'PATCH'):
+            return VehicleUpdateSerializer
+        return VehicleSerializer
 
     def get_queryset(self):
         user = self.request.user
         if user.role in ('admin', 'police'):
             return Vehicle.objects.select_related('owner')
         return Vehicle.objects.filter(owner=user)
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        return success_response(VehicleSerializer(instance).data)
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if request.user.role not in ('admin', 'police') and instance.owner_id != request.user.id:
+            return error_response('Permission denied', status_code=status.HTTP_403_FORBIDDEN)
+        partial = kwargs.pop('partial', False)
+        serializer = VehicleUpdateSerializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        vehicle = serializer.save()
+        return success_response(VehicleSerializer(vehicle).data, message='Vehicle updated')
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()

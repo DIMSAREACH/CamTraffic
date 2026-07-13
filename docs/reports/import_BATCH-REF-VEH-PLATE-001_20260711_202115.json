@@ -1,0 +1,18 @@
+{
+  "batch_id": "BATCH-REF-VEH-PLATE-001",
+  "source": "D:\\Year4\\Project Thesis\\Expert System\\Reference(PDF Download)\\Dim Sareach\\Vichicle Detect",
+  "imported_at": "2026-07-11T20:21:15.437236+00:00",
+  "license_plates": {
+    "total": 50,
+    "by_class": {
+      "private": 43,
+      "commercial": 7,
+      "government": 0
+    }
+  },
+  "vehicles": {
+    "total": 22,
+    "note": "Phnom Penh urban scene frames (unlabeled vehicle type)"
+  },
+  "metadata_csv": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\processed\\metadata\\BATCH-REF-VEH-PLATE-001.csv"
+}

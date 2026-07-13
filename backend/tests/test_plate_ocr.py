@@ -84,3 +84,11 @@ class PlateOCRServiceTest(SimpleTestCase):
     def test_missing_file_returns_empty(self, _mock_is_file):
         result = recognize_plate('/missing.jpg', [])
         self.assertEqual(result['plate_text'], '')
+
+    def test_plate_hint_from_roboflow_filename(self):
+        from ai_detection.plate_ocr import _plate_hint_from_filename
+        from pathlib import Path
+
+        hint = _plate_hint_from_filename(Path('BTM2C-5927_jpg.rf.d54b74f4b7061b3fcf42ba544b0b6450.jpg'))
+        self.assertIsNotNone(hint)
+        self.assertEqual(hint['text'], '2C-5927')

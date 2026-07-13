@@ -1,5 +1,5 @@
 export type UserRole = 'admin' | 'police' | 'driver';
-export type FineStatus = 'pending' | 'paid' | 'overdue' | 'dismissed';
+export type FineStatus = 'pending' | 'paid' | 'overdue' | 'dismissed' | 'disputed';
 export type SignCategory = 'warning' | 'prohibitory' | 'mandatory' | 'informative';
 export type NotificationType = 'fine' | 'system' | 'detection' | 'alert';
 
@@ -17,6 +17,7 @@ export interface User {
   last_login?: string | null;
   auth_provider?: 'email' | 'google' | 'github';
   is_active: boolean;
+  email_verified?: boolean;
 }
 
 export interface UserPreferences {
@@ -88,6 +89,7 @@ export interface Vehicle {
   model: string;
   color: string;
   year: number;
+  registration_photo?: string | null;
   created_at: string;
 }
 
@@ -108,11 +110,11 @@ export interface TrafficSign {
 }
 
 export interface Fine {
-  id: number;
-  driver_id: number;
+  id: string;
+  driver_id: string;
   driver_name: string;
   driver_license: string;
-  police_id: number;
+  police_id?: string;
   police_name: string;
   amount: number;
   reason: string;
@@ -120,14 +122,87 @@ export interface Fine {
   evidence_image?: string;
   location: string;
   vehicle_plate: string;
+  violation_id?: string;
+  payment_method?: string;
+  payment_reference?: string;
+  payment_screenshot?: string;
   created_at: string;
   paid_at?: string;
+}
+
+export type AppealStatus = 'pending' | 'upheld' | 'dismissed';
+
+export interface ViolationAppeal {
+  id: string;
+  violation_id: string;
+  fine_id?: string | null;
+  driver_id: string;
+  driver_name: string;
+  driver_license: string;
+  reason: string;
+  evidence_image?: string | null;
+  status: AppealStatus;
+  submitted_at: string;
+  review_date?: string | null;
+  reviewed_by?: string | null;
+  reviewed_by_name?: string | null;
+  officer_comments?: string;
+  violation_type?: string;
+  violation_location?: string;
+  updated_at?: string;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  user_id?: string | null;
+  user_name?: string | null;
+  user_role?: string | null;
+  action: string;
+  resource: string;
+  resource_id: string;
+  ip_address?: string | null;
+  timestamp: string;
+  old_value?: Record<string, unknown>;
+  new_value?: Record<string, unknown>;
+  extra_data?: Record<string, unknown>;
+}
+
+export interface UnknownVehicleRecord {
+  id: string;
+  plate_detected: string;
+  camera_id?: string | null;
+  camera_name?: string | null;
+  violation_type?: string;
+  evidence_photo?: string | null;
+  ai_confidence_score?: number | null;
+  is_resolved: boolean;
+  resolved_by?: string | null;
+  resolved_by_name?: string | null;
+  linked_vehicle?: string | null;
+  linked_vehicle_plate?: string | null;
+  linked_violation?: string | null;
+  officer_note?: string;
+  detected_at: string;
+  resolved_at?: string | null;
+}
+
+export interface AIModelVersion {
+  id: string;
+  version: string;
+  model_file: string;
+  description?: string;
+  accuracy?: number | null;
+  is_active: boolean;
+  uploaded_by?: string | null;
+  uploaded_by_name?: string | null;
+  uploaded_at: string;
 }
 
 export interface AIDetectionLog {
   id: number;
   user_id: number;
   user_name: string;
+  user_email?: string;
   user_profile_image?: string;
   uploaded_image: string;
   detected_sign: string;
@@ -308,8 +383,8 @@ export interface Camera {
 }
 
 export interface TrafficViolation {
-  id: number;
-  driver_id: number;
+  id: string;
+  driver_id: string;
   driver_name: string;
   driver_license: string;
   officer_name?: string | null;
@@ -325,15 +400,15 @@ export interface TrafficViolation {
   vehicle_evidence_image?: string | null;
   plate_evidence_image?: string | null;
   status: 'draft' | 'pending_review' | 'confirmed' | 'rejected';
-  ai_detection_log?: number | null;
-  fine_id?: number | null;
-  driver_user_id?: number;
+  ai_detection_log?: string | null;
+  fine_id?: string | null;
+  driver_user_id?: string;
   created_at: string;
   updated_at: string;
 }
 
 export interface ViolationRule {
-  id: number;
+  id: string;
   sign_class_key: string;
   prohibited_action: string;
   violation_type: string;
@@ -388,4 +463,76 @@ export interface DashboardStats {
     violations?: TrendBadge | null;
     revenue?: TrendBadge | null;
   };
+}
+
+export interface RBACPermission {
+  id: string;
+  perm_name: string;
+  action_type: string;
+  resource: string;
+  description?: string;
+  created_at?: string;
+}
+
+export interface RBACRole {
+  id: string;
+  role_name: string;
+  description?: string;
+  status: 'active' | 'inactive';
+  assigned_date?: string | null;
+  created_at?: string;
+  permissions?: RBACPermission[];
+}
+
+export interface PoliceStation {
+  id: string;
+  name: string;
+  code: string;
+  city?: string;
+  region?: string;
+  address?: string;
+  phone?: string;
+  latitude?: string | null;
+  longitude?: string | null;
+  status: 'active' | 'inactive';
+  officer_count?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface OfficerProfile {
+  id: string;
+  user_id: string;
+  full_name: string;
+  email: string;
+  phone?: string;
+  badge_no: string;
+  rank?: string;
+  department?: string;
+  status: 'active' | 'inactive' | 'suspended';
+  station?: string | null;
+  station_name?: string | null;
+  created_at?: string;
+}
+
+export interface DriverProfile {
+  id: string;
+  user_id: string;
+  full_name: string;
+  email: string;
+  phone?: string;
+  license_no: string;
+  national_id?: string | null;
+  license_expiry?: string | null;
+  date_of_birth?: string | null;
+  kyc_status: 'unverified' | 'pending' | 'approved' | 'rejected';
+  status: 'active' | 'inactive' | 'suspended';
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface SystemBackupItem {
+  filename: string;
+  size_bytes: number;
+  created_at: string;
 }

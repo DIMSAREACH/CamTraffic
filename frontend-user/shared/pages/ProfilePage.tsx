@@ -22,6 +22,8 @@ import {
 } from '@shared/utils/passwordPolicy';
 import { getRefreshToken } from '@shared/utils/authStorage';
 import { WelcomeProfileAvatar } from '@shared/components/WelcomeProfileAvatar';
+import { LoginHistoryCard } from '@shared/components/admin/LoginHistoryCard';
+import { EmailVerificationPanel } from '@shared/components/auth/EmailVerificationPanel';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from '@shared/components/ui/dialog';
 import { toast } from 'sonner';
 import { DASHBOARD_PALETTE } from '@shared/constants/chartPalette';
@@ -837,6 +839,10 @@ export function ProfilePage() {
               </div>
             </section>
 
+            <div className="profile-page__section--span-full">
+              <EmailVerificationPanel />
+            </div>
+
             <div className="profile-page__security-pair profile-page__section--span-full">
             <section className="profile-page__section profile-page__section--glass profile-page__section--equal">
               <div className="profile-page__section-head">
@@ -1153,39 +1159,7 @@ export function ProfilePage() {
               </div>
             </section>
 
-            <section className="profile-page__section profile-page__section--glass">
-              <div className="profile-page__section-head">
-                <div className="profile-page__section-icon profile-page__section-icon--yellow">
-                  <Clock size={15} />
-                </div>
-                <div>
-                  <h2 className="profile-page__section-title">{t('profile.loginHistory')}</h2>
-                  <p className="profile-page__section-desc">{t('profile.loginHistoryDesc')}</p>
-                </div>
-              </div>
-              {loginHistory.length === 0 ? (
-                <p className="profile-page__empty-note">{t('profile.noLoginHistory')}</p>
-              ) : (
-                <div className="profile-page__history profile-page__history--clean">
-                  {loginHistory.map((h, i) => {
-                    const pal = paletteAt(i % DASHBOARD_PALETTE.length);
-                    return (
-                      <div key={`${h.time}-${i}`} className="profile-page__history-row profile-page__history-row--clean">
-                        <div className="profile-page__history-dot" style={{ background: pal.solid }} />
-                        <div className="profile-page__history-copy">
-                          <p className="profile-page__history-device">{h.device}</p>
-                          <p className="profile-page__history-ip">{h.ip_masked}</p>
-                        </div>
-                        <span className="profile-page__history-time">{h.time_label}</span>
-                        <span className="profile-page__history-badge" style={{ color: pal.dark, background: pal.soft }}>
-                          {h.status}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
+            <LoginHistoryCard events={loginHistory} />
           </div>
         )}
           </div>
@@ -1193,7 +1167,7 @@ export function ProfilePage() {
       </div>
 
       <Dialog open={deleteDialogOpen} onOpenChange={(open) => { if (!open) resetDeleteDialog(); else setDeleteDialogOpen(true); }}>
-        <DialogContent className="profile-page__delete-dialog max-w-md">
+        <DialogContent accent="danger" className="profile-page__delete-dialog max-w-md">
           <DialogHeader>
             <DialogTitle className="profile-page__delete-dialog-title">
               <span className="profile-page__danger-card-icon profile-page__danger-card-icon--delete">

@@ -1,0 +1,17 @@
+# Auto-generated 2026-07-11T20:25:20.892697+00:00
+path: D:/Year4/Project Thesis/Expert System/Project/CamTraffic/ai/datasets/splits/cambodia_traffic_reference_remapped
+train: images/train
+val: images/val
+test: images/test
+nc: 10
+names:
+  0: NO_ENTRY
+  1: NO_LEFT_TURN
+  2: NO_RIGHT_TURN
+  3: NO_U_TURN
+  4: NO_PARKING
+  5: M_STOP
+  6: P_SPEED_LIMIT_20_KM_H
+  7: P_SPEED_LIMIT_50_KM_H
+  8: W_PEDESTRIAN_CROSSING
+  9: I_ONE_WAY_TRAFFIC

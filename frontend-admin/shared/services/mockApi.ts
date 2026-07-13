@@ -3,6 +3,11 @@ import {
   SAMPLE_VIOLATION_RULES,
   SAMPLE_VIOLATIONS,
 } from './sampleDataFallback';
+import {
+  buildReportOutputPreview,
+  buildSampleEnforcementExcelBlob,
+  buildSampleReportPdfBlob,
+} from './reportOutputPreview';
 import type {
   User, Vehicle, Fine, TrafficSign, TrafficViolation, ViolationRule, AIDetectionLog, AIDetectionPageStats, Notification,
   DashboardStats, AuthResponse, LoginOptions, Road, Camera,
@@ -12,7 +17,6 @@ import {
   mockAILogs, mockNotifications, mockDashboardStats,
   MOCK_CREDENTIALS, AI_DETECTION_RESULTS, mockRoads, mockCameras,
 } from './mockData';
-import { normalizeCameraFrames } from '@shared/constants/cameraFrameDemo';
 import { LOGIN_ERRORS } from '@shared/utils/loginErrors';
 import { loadAuthSession } from '@shared/utils/authStorage';
 import type { ProfileOverview, UserPreferences } from '../types';
@@ -190,6 +194,14 @@ export const authAPI = {
     }
     return { access: `jwt_${user.id}`, refresh: `refresh_${user.id}`, user: { ...user } };
   },
+  async sendEmailVerification() {
+    await delay(400);
+    return { message: 'Verification link sent.' };
+  },
+  async confirmEmailVerification(_uid: string, _token: string) {
+    await delay(400);
+    return { message: 'Email verified successfully' };
+  },
 };
 
 export const usersAPI = {
@@ -330,6 +342,16 @@ export const finesAPI = {
     fines[idx] = { ...fines[idx], status };
     return { ...fines[idx] };
   },
+  async update(id: number, data: Partial<Pick<Fine, 'amount' | 'reason' | 'location' | 'vehicle_plate' | 'status'>>) {
+    const idx = fines.findIndex((f) => f.id === id);
+    if (idx < 0) throw new Error('Fine not found');
+    fines[idx] = { ...fines[idx], ...data };
+    return { ...fines[idx] };
+  },
+  async delete(id: number) {
+    const idx = fines.findIndex((f) => f.id === id);
+    if (idx >= 0) fines.splice(idx, 1);
+  },
   async searchByLicense(license: string) {
     const driver = users.find((u) => u.license_no?.toLowerCase().includes(license.toLowerCase()));
     if (!driver) return { driver: null, fines: [], vehicles: [] };
@@ -340,6 +362,104 @@ export const finesAPI = {
     };
   },
   getPdfUrl: (id: number) => `#mock-pdf-${id}`,
+  async submitPayment(id: number, _formData: FormData) {
+    const idx = fines.findIndex((f) => f.id === id);
+    if (idx < 0) throw new Error('Fine not found');
+    fines[idx] = { ...fines[idx], status: 'paid', paid_at: new Date().toISOString(), payment_method: 'aba' };
+    return { ...fines[idx] };
+  },
+};
+
+const appeals: import('../types').ViolationAppeal[] = [];
+
+export const appealsAPI = {
+  async getAll() { return appeals.map((a) => ({ ...a })); },
+  async create(_formData: FormData) {
+    const a: import('../types').ViolationAppeal = {
+      id: `appeal-${appeals.length + 1}`,
+      violation_id: 'v-1',
+      driver_id: '1',
+      driver_name: 'Demo Driver',
+      driver_license: 'DL-001',
+      reason: 'Mock appeal',
+      status: 'pending',
+      submitted_at: new Date().toISOString(),
+    };
+    appeals.push(a);
+    return a;
+  },
+  async review(id: string, data: { status: 'upheld' | 'dismissed'; officer_comments?: string }) {
+    const idx = appeals.findIndex((a) => a.id === id);
+    appeals[idx] = { ...appeals[idx], status: data.status, officer_comments: data.officer_comments, review_date: new Date().toISOString() };
+    return { ...appeals[idx] };
+  },
+};
+
+export const auditAPI = {
+  async getAll(): Promise<import('../types').AuditLogEntry[]> {
+    return [{
+      id: 'audit-1',
+      user_name: 'System Admin',
+      user_role: 'admin',
+      action: 'login',
+      resource: 'auth',
+      resource_id: '',
+      timestamp: new Date().toISOString(),
+    }];
+  },
+};
+
+export const unknownVehiclesAPI = {
+  async getAll(): Promise<import('../types').UnknownVehicleRecord[]> {
+    return [{
+      id: 'uv-1',
+      plate_detected: '2BB-9999',
+      camera_name: 'Demo Camera',
+      is_resolved: false,
+      detected_at: new Date().toISOString(),
+    }];
+  },
+  async resolve(id: string, data: { officer_note?: string }) {
+    return {
+      id,
+      plate_detected: '2BB-9999',
+      is_resolved: true,
+      officer_note: data.officer_note || '',
+      detected_at: new Date().toISOString(),
+      resolved_at: new Date().toISOString(),
+    };
+  },
+};
+
+export const aiModelsAPI = {
+  async getAll(): Promise<import('../types').AIModelVersion[]> {
+    return [{
+      id: 'model-1',
+      version: 'yolo11n-dataset10',
+      model_file: 'best.pt',
+      accuracy: 99.5,
+      is_active: true,
+      uploaded_at: new Date().toISOString(),
+    }];
+  },
+  async create(data: Partial<import('../types').AIModelVersion>) {
+    return {
+      id: `model-${Date.now()}`,
+      version: data.version || 'v1',
+      model_file: data.model_file || 'best.pt',
+      is_active: false,
+      uploaded_at: new Date().toISOString(),
+    };
+  },
+  async activate(id: string) {
+    return {
+      id,
+      version: 'active',
+      model_file: 'best.pt',
+      is_active: true,
+      uploaded_at: new Date().toISOString(),
+    };
+  },
 };
 
 let mockSignIdSeq = 10000;
@@ -489,6 +609,24 @@ export const aiAPI = {
       })),
     };
   },
+  async exportLogsCsv(): Promise<Blob> {
+    await delay(200);
+    const header = 'id,user,detected_sign,confidence,review_status,created_at\n';
+    const rows = aiLogs.map((l) =>
+      `${l.id},${l.user_name},${l.detected_sign},${l.confidence},${l.review_status || 'pending'},${l.created_at}`,
+    ).join('\n');
+    return new Blob([header + rows], { type: 'text/csv' });
+  },
+  async reviewLog(logId: string, review_status: 'approved' | 'rejected' | 'pending'): Promise<AIDetectionLog> {
+    await delay(300);
+    const log = aiLogs.find((l) => String(l.id) === logId);
+    if (!log) throw new Error('Log not found');
+    log.review_status = review_status;
+    return withUserProfileImage(log);
+  },
+  async detectVideo(file: File) {
+    return aiAPI.detect(file);
+  },
 };
 
 export const notificationsAPI = {
@@ -557,7 +695,7 @@ export const roadsAPI = {
 export const camerasAPI = {
   async getAll(): Promise<Camera[]> {
     await delay(350);
-    return normalizeCameraFrames([...mockCameras]);
+    return [...mockCameras];
   },
   async getById(id: number): Promise<Camera> {
     await delay(200);
@@ -601,35 +739,82 @@ export const camerasAPI = {
   },
 };
 
+const mockViolations: TrafficViolation[] = SAMPLE_VIOLATIONS.map((v) => ({ ...v }));
+
 export const violationsAPI = {
-  async getAll(): Promise<TrafficViolation[]> { return [...SAMPLE_VIOLATIONS]; },
-  async getById(_id: number): Promise<TrafficViolation> { throw new Error('Not found'); },
-  async evaluate(_data: { class_key: string; observed_action: string; sign_code?: string }) {
-    return { is_violation: false };
+  async getAll(): Promise<TrafficViolation[]> { return [...mockViolations]; },
+  async getById(id: string): Promise<TrafficViolation> {
+    const row = mockViolations.find((v) => v.id === id);
+    if (!row) throw new Error('Not found');
+    return { ...row };
   },
-  async create(_data: {
-    driver_id: number;
+  async evaluate(_data: { class_key: string; observed_action: string; sign_code?: string }) {
+    const matched = SAMPLE_VIOLATION_RULES.some(
+      (r) => r.sign_class_key === _data.class_key && r.prohibited_action === _data.observed_action,
+    );
+    return { is_violation: matched };
+  },
+  async create(data: {
+    driver_id: string;
     class_key: string;
     observed_action: string;
     sign_code?: string;
     location?: string;
-    ai_detection_log_id?: number;
+    ai_detection_log_id?: string;
   }): Promise<TrafficViolation> {
-    throw new Error('Mock violations create not implemented');
+    await delay(300);
+    const driver = users.find((u) => u.id === data.driver_id) ?? mockUsers.find((u) => u.id === data.driver_id);
+    const nextId = String(
+      mockViolations.reduce((max, v) => Math.max(max, parseInt(String(v.id), 10) || 0), 0) + 1,
+    );
+    const rule = SAMPLE_VIOLATION_RULES.find((r) => r.sign_class_key === data.class_key);
+    const violation: TrafficViolation = {
+      id: nextId,
+      driver_id: data.driver_id,
+      driver_name: driver?.full_name ?? 'Unknown driver',
+      driver_license: driver?.license_no ?? '',
+      officer_name: users.find((u) => u.role === 'police')?.full_name ?? 'Officer',
+      vehicle_plate: mockVehicles.find((v) => v.owner_id === data.driver_id)?.plate_number ?? null,
+      violation_type: rule?.violation_type ?? data.class_key,
+      observed_action: data.observed_action,
+      detected_sign_code: data.sign_code ?? data.class_key,
+      detected_class_key: data.class_key,
+      violation_date: new Date().toISOString(),
+      location: data.location ?? 'Phnom Penh',
+      description: rule?.description ?? `Mock violation for ${data.class_key}`,
+      status: 'pending_review',
+      ai_detection_log: data.ai_detection_log_id ?? null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    mockViolations.push(violation);
+    return violation;
   },
-  async update(_id: number, _data: Partial<TrafficViolation>): Promise<TrafficViolation> {
-    throw new Error('Mock violations update not implemented');
+  async update(id: string, data: Partial<TrafficViolation>): Promise<TrafficViolation> {
+    await delay(300);
+    const idx = mockViolations.findIndex((v) => v.id === id);
+    if (idx < 0) throw new Error('Violation not found');
+    mockViolations[idx] = {
+      ...mockViolations[idx],
+      ...data,
+      updated_at: new Date().toISOString(),
+    };
+    return mockViolations[idx];
   },
-  async delete(_id: number): Promise<void> {},
+  async delete(_id: string): Promise<void> {
+    await delay(200);
+    const idx = mockViolations.findIndex((v) => v.id === _id);
+    if (idx >= 0) mockViolations.splice(idx, 1);
+  },
   async getRules(): Promise<ViolationRule[]> {
     return [...SAMPLE_VIOLATION_RULES];
   },
   async getStats() {
     return {
-      total_violations: SAMPLE_VIOLATIONS.length,
-      pending_review: SAMPLE_VIOLATIONS.filter((v) => v.status === 'pending_review').length,
-      confirmed: SAMPLE_VIOLATIONS.filter((v) => v.status === 'confirmed').length,
-      rejected: 0,
+      total_violations: mockViolations.length,
+      pending_review: mockViolations.filter((v) => v.status === 'pending_review').length,
+      confirmed: mockViolations.filter((v) => v.status === 'confirmed').length,
+      rejected: mockViolations.filter((v) => v.status === 'rejected').length,
       by_type: [],
     };
   },
@@ -664,10 +849,182 @@ export const dashboardAPI = {
     const results = getSampleEvidenceArchive();
     return { count: results.length, results };
   },
+  async downloadReportPdf(scope: 'admin' | 'police' = 'police') {
+    await delay(500);
+    const now = new Date();
+    const preview = buildReportOutputPreview(mockDashboardStats, now.getFullYear(), now.getMonth() + 1);
+    const label = scope === 'admin' ? 'System-wide analytics' : 'Officer enforcement district';
+    return buildSampleReportPdfBlob(preview, label);
+  },
+  async downloadEnforcementExcel(year: number, month: number) {
+    await delay(500);
+    const preview = buildReportOutputPreview(mockDashboardStats, year, month);
+    return buildSampleEnforcementExcelBlob(preview.excelRows, year, month);
+  },
   async listSystemBackups() {
-    return { backups: [] };
+    await delay(200);
+    return {
+      backups: [
+        {
+          filename: 'camtraffic-backup-mock.zip',
+          size_bytes: 1024,
+          created_at: new Date().toISOString(),
+        },
+      ],
+    };
   },
-  async downloadSystemBackup() {
-    throw new Error('Full system backup requires the live API (disable mock mode).');
+  async downloadSystemBackup(includeWeights = false) {
+    await delay(800);
+    const note = includeWeights ? 'mock-backup-with-weights' : 'mock-backup';
+    return new Blob([note], { type: 'application/zip' });
   },
+  async restoreSystemBackup(filename: string) {
+    await delay(500);
+    return { restored: ['database_sqlite', 'media'], manifest: { filename } };
+  },
+  async getAIDashboardStats() {
+    await delay(200);
+    return {
+      models: { total: 3, active: 1, latest: 'v1.2.0' },
+      datasets: { registered: 2 },
+      detection: { total: 1284, today: 42, avg_confidence: 87.5 },
+      model_runtime: { device: 'cpu', model_file: 'best.pt', classes: 43 },
+      enforcement: { total_detections: 1284, detection_accuracy: 87, total_violations: 156 },
+      training: { last_trained_at: new Date().toISOString(), training_images: 4200 },
+      generated_at: new Date().toISOString(),
+    };
+  },
+};
+
+export const rbacAPI = {
+  async getRoles() {
+    await delay(200);
+    const allPerms = await this.getPermissions();
+    const byName = Object.fromEntries(allPerms.map((p) => [p.perm_name, p]));
+    const pick = (...names: string[]) => names.map((n) => byName[n]).filter(Boolean);
+    return [
+      {
+        id: '1',
+        role_name: 'admin',
+        description: 'Full system administrator',
+        status: 'active' as const,
+        permissions: allPerms,
+      },
+      {
+        id: '2',
+        role_name: 'officer',
+        description: 'Traffic enforcement officer',
+        status: 'active' as const,
+        permissions: pick(
+          'users.view', 'signs.view', 'fines.view', 'fines.manage',
+          'vehicles.view', 'violations.view', 'violations.manage', 'reports.view',
+        ),
+      },
+      {
+        id: '3',
+        role_name: 'driver',
+        description: 'Registered driver portal',
+        status: 'active' as const,
+        permissions: pick('signs.view', 'fines.view', 'vehicles.view', 'vehicles.manage'),
+      },
+    ];
+  },
+  async createRole(data: { role_name: string; description?: string }) {
+    await delay(200);
+    return { id: String(Date.now()), status: 'active' as const, permissions: [], ...data };
+  },
+  async updateRole(id: string, data: Record<string, unknown>) {
+    await delay(200);
+    return { id, role_name: 'role', status: 'active' as const, permissions: [], ...data };
+  },
+  async deleteRole() { await delay(200); },
+  async getPermissions() {
+    await delay(200);
+    const rows: Array<{ id: string; perm_name: string; action_type: string; resource: string; description?: string }> = [
+      { id: 'p1', perm_name: 'users.view', action_type: 'view', resource: 'users', description: 'View user accounts' },
+      { id: 'p2', perm_name: 'users.manage', action_type: 'manage', resource: 'users', description: 'Create and edit users' },
+      { id: 'p3', perm_name: 'signs.view', action_type: 'view', resource: 'signs', description: 'Browse traffic sign catalog' },
+      { id: 'p4', perm_name: 'signs.manage', action_type: 'manage', resource: 'signs', description: 'Edit sign reference data' },
+      { id: 'p5', perm_name: 'fines.view', action_type: 'view', resource: 'fines', description: 'View fines and payments' },
+      { id: 'p6', perm_name: 'fines.manage', action_type: 'manage', resource: 'fines', description: 'Issue and update fines' },
+      { id: 'p7', perm_name: 'vehicles.view', action_type: 'view', resource: 'vehicles', description: 'View registered vehicles' },
+      { id: 'p8', perm_name: 'vehicles.manage', action_type: 'manage', resource: 'vehicles', description: 'Manage vehicle records' },
+      { id: 'p9', perm_name: 'violations.view', action_type: 'view', resource: 'violations', description: 'View violation records' },
+      { id: 'p10', perm_name: 'violations.manage', action_type: 'manage', resource: 'violations', description: 'Confirm and enforce violations' },
+      { id: 'p11', perm_name: 'infrastructure.manage', action_type: 'manage', resource: 'infrastructure', description: 'Manage cameras and roads' },
+      { id: 'p12', perm_name: 'reports.view', action_type: 'view', resource: 'reports', description: 'Access analytics and exports' },
+    ];
+    return rows;
+  },
+  async assignPermissions(roleId: string, permissionIds: string[]) {
+    await delay(200);
+    const all = await this.getPermissions();
+    const permissions = all.filter((p) => permissionIds.includes(p.id));
+    const roleName = roleId === '1' ? 'admin' : roleId === '2' ? 'officer' : roleId === '3' ? 'driver' : 'role';
+    return { id: roleId, role_name: roleName, status: 'active' as const, permissions };
+  },
+};
+
+export const officersAPI = {
+  async getAll() {
+    await delay(200);
+    return users.filter((u) => u.role === 'police').map((u, i) => ({
+      id: String(i + 1),
+      user_id: u.id,
+      full_name: u.full_name,
+      email: u.email,
+      phone: u.phone,
+      badge_no: `BADGE-${i + 1}`,
+      rank: 'Officer',
+      department: 'Traffic Police',
+      status: 'active' as const,
+    }));
+  },
+  async create(data: Record<string, unknown>) {
+    await delay(300);
+    return { id: '1', status: 'active' as const, rank: 'Officer', department: 'Traffic Police', ...data } as import('../types').OfficerProfile;
+  },
+  async update(id: string, data: Record<string, unknown>) {
+    await delay(200);
+    return { id, badge_no: 'BADGE-1', full_name: 'Officer', email: 'o@x.kh', user_id: '1', status: 'active' as const, ...data } as import('../types').OfficerProfile;
+  },
+  async delete() { await delay(200); },
+  async getStations() {
+    await delay(200);
+    return [{ id: '1', name: 'Central HQ', code: 'HQ-01', city: 'Phnom Penh', status: 'active' as const }];
+  },
+  async createStation(data: Record<string, unknown>) {
+    await delay(200);
+    return { id: '2', status: 'active' as const, ...data } as import('../types').PoliceStation;
+  },
+  async updateStation(id: string, data: Record<string, unknown>) {
+    await delay(200);
+    return { id, name: 'Station', code: 'ST-1', status: 'active' as const, ...data } as import('../types').PoliceStation;
+  },
+  async deleteStation() { await delay(200); },
+};
+
+export const driversAPI = {
+  async getAll() {
+    await delay(200);
+    return users.filter((u) => u.role === 'driver').map((u, i) => ({
+      id: String(i + 1),
+      user_id: u.id,
+      full_name: u.full_name,
+      email: u.email,
+      phone: u.phone,
+      license_no: u.license_no || `LIC-${i + 1}`,
+      kyc_status: 'approved' as const,
+      status: 'active' as const,
+    }));
+  },
+  async create(data: Record<string, unknown>) {
+    await delay(300);
+    return { id: '1', kyc_status: 'unverified' as const, status: 'active' as const, license_no: 'LIC-NEW', ...data } as import('../types').DriverProfile;
+  },
+  async update(id: string, data: Record<string, unknown>) {
+    await delay(200);
+    return { id, license_no: 'LIC-1', full_name: 'Driver', email: 'd@x.kh', user_id: '1', kyc_status: 'approved' as const, status: 'active' as const, ...data } as import('../types').DriverProfile;
+  },
+  async delete() { await delay(200); },
 };

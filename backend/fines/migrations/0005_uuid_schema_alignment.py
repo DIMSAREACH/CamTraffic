@@ -3,7 +3,6 @@
 from django.conf import settings
 from django.db import migrations, models
 import django.db.models.deletion
-import uuid
 
 
 class Migration(migrations.Migration):
@@ -18,11 +17,6 @@ class Migration(migrations.Migration):
             model_name='fine',
             name='amount',
             field=models.DecimalField(decimal_places=2, max_digits=12),
-        ),
-        migrations.AlterField(
-            model_name='fine',
-            name='id',
-            field=models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False),
         ),
         migrations.AlterField(
             model_name='fine',

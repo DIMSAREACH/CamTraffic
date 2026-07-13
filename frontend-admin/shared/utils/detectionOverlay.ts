@@ -32,9 +32,9 @@ export interface OverlayDetectionInput {
   display_confidence?: number;
 }
 
-const SIGN_COLOR = '#F59E0B';
-const VEHICLE_COLOR = '#3B82F6';
-const PLATE_COLOR = '#0EA5E9';
+const SIGN_COLOR = '#8B5CF6';
+const VEHICLE_COLOR = '#06B6D4';
+const PLATE_COLOR = '#F59E0B';
 
 function clamp01(value: number) {
   return Math.max(0, Math.min(1, value));

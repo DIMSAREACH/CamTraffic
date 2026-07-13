@@ -3,12 +3,15 @@ import { usePagination } from '@shared/hooks/usePagination';
 import { TablePagination } from '@shared/components/ui/TablePagination';
 import {
   Search, Eye, CheckCircle, XCircle, Clock, AlertTriangle,
-  FileText, Shield, Trash2, ImageIcon, MapPin, Plus, DollarSign,
+  FileText, Shield, Trash2, ImageIcon, MapPin, Plus, DollarSign, User, Hash, Pencil,
 } from 'lucide-react';
 import { Button } from '@shared/components/ui/button';
+import { Input } from '@shared/components/ui/input';
 import { Label } from '@shared/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@shared/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@shared/components/ui/table';
+import { TableEmptyState } from '@shared/components/ui/TableEmptyState';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { khrToUsd, usdToKhr } from '@shared/i18n/localeFormat';
@@ -99,7 +102,7 @@ export function ViolationsPage() {
   const [fineTarget, setFineTarget] = useState<TrafficViolation | null>(null);
   const [createForm, setCreateForm] = useState({
     driver_license: '',
-    driver_profile_id: null as number | null,
+    driver_profile_id: null as string | null,
     driver_name: '',
     rule_id: '',
     observed_action: '',
@@ -113,6 +116,10 @@ export function ViolationsPage() {
     vehicle_plate: '',
   });
   const [evalPreview, setEvalPreview] = useState<{ is_violation?: boolean; violation_type?: string } | null>(null);
+  const [editViolation, setEditViolation] = useState<TrafficViolation | null>(null);
+  const [deleteViolation, setDeleteViolation] = useState<TrafficViolation | null>(null);
+  const [editForm, setEditForm] = useState({ location: '', description: '', status: 'pending_review' as TrafficViolation['status'] });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const canManage = user?.role === 'admin' || user?.role === 'police';
 
@@ -173,7 +180,7 @@ export function ViolationsPage() {
   const statusLabel = (status: string) => t(`violations.status.${status}`);
   const getStatusMeta = (status: string) => STATUS_STYLE[status] ?? STATUS_STYLE.draft;
 
-  const handleStatusUpdate = async (id: number, status: TrafficViolation['status']) => {
+  const handleStatusUpdate = async (id: string, status: TrafficViolation['status']) => {
     try {
       const updated = await violationsAPI.update(id, { status });
       setViolations((prev) => prev.map((v) => (v.id === id ? updated : v)));
@@ -184,15 +191,48 @@ export function ViolationsPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm(t('violations.confirmDelete'))) return;
+  const handleDelete = async (id: string) => {
     try {
       await violationsAPI.delete(id);
       setViolations((prev) => prev.filter((v) => v.id !== id));
       if (selected?.id === id) setSelected(null);
+      setDeleteViolation(null);
       toast.success(t('violations.toastDeleted'));
     } catch {
       toast.error(t('violations.toastDeleteFail'));
+    }
+  };
+
+  const openEdit = (row: TrafficViolation) => {
+    setEditViolation(row);
+    setEditForm({
+      location: row.location || '',
+      description: row.description || '',
+      status: row.status,
+    });
+  };
+
+  const handleEditSave = async () => {
+    if (!editViolation) return;
+    if (!editForm.location.trim()) {
+      toast.error(t('violations.toastFillRequired'));
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      const updated = await violationsAPI.update(editViolation.id, {
+        location: editForm.location.trim(),
+        description: editForm.description.trim(),
+        status: editForm.status,
+      });
+      setViolations((prev) => prev.map((v) => (v.id === updated.id ? updated : v)));
+      if (selected?.id === updated.id) setSelected(updated);
+      setEditViolation(null);
+      toast.success(t('violations.toastUpdated'));
+    } catch {
+      toast.error(t('violations.toastUpdateFail'));
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -429,7 +469,7 @@ export function ViolationsPage() {
       {/* Table */}
       <div className="enforcement-page__panel enforcement-page__panel--violations">
         <div className="overflow-x-auto">
-          <Table className="enforcement-page__table">
+          <Table className="enforcement-page__table mgmt-table__grid">
             <TableHeader>
               <TableRow className="enforcement-page__table-head">
                 {[
@@ -458,19 +498,13 @@ export function ViolationsPage() {
                   </TableRow>
                 ))
               ) : filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-16">
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="enforcement-page__empty-icon enforcement-page__empty-icon--amber">
-                        <AlertTriangle size={28} />
-                      </div>
-                      <div>
-                        <p className="enforcement-page__empty-title">{t('violations.empty')}</p>
-                        <p className="enforcement-page__empty-subtitle">{t('violations.emptyHint')}</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                <TableEmptyState
+                  colSpan={8}
+                  tone="amber"
+                  icon={<AlertTriangle size={28} />}
+                  title={t('violations.empty')}
+                  subtitle={t('violations.emptyHint')}
+                />
               ) : pagination.pageItems.map((row) => {
                 const meta = getStatusMeta(row.status);
                 return (
@@ -515,10 +549,35 @@ export function ViolationsPage() {
                       </span>
                     </TableCell>
                     <TableCell>
-                      <div className="enforcement-page__table-actions">
-                        <button type="button" className="enforcement-page__action-btn" onClick={() => setSelected(row)}>
-                          <Eye size={12} /> {t('violations.view')}
+                      <div className="enforcement-page__table-actions violations-page__actions">
+                        <button
+                          type="button"
+                          className="violations-page__action-btn violations-page__action-btn--view"
+                          onClick={() => setSelected(row)}
+                          aria-label={t('violations.view')}
+                        >
+                          <Eye size={13} />
                         </button>
+                        {canManage ? (
+                          <button
+                            type="button"
+                            className="violations-page__action-btn violations-page__action-btn--edit"
+                            onClick={() => openEdit(row)}
+                            aria-label={t('common.edit')}
+                          >
+                            <Pencil size={13} />
+                          </button>
+                        ) : null}
+                        {user?.role === 'admin' ? (
+                          <button
+                            type="button"
+                            className="violations-page__action-btn violations-page__action-btn--delete"
+                            onClick={() => setDeleteViolation(row)}
+                            aria-label={t('common.delete')}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        ) : null}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -528,165 +587,295 @@ export function ViolationsPage() {
           </Table>
         </div>
 
-        <TablePagination pagination={pagination} label="violations" />
+        <TablePagination pagination={pagination} labelKey="pagination.label.violations" />
       </div>
 
       {/* Detail dialog */}
       <Dialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent accent="rose" className="violations-view-dialog max-w-[56rem] sm:max-w-[56rem] p-0 gap-0 overflow-hidden">
           {selected && (() => {
             const meta = getStatusMeta(selected.status);
-            return (
-              <>
-                <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2.5">
-                    <div className="enforcement-page__dialog-icon">
-                      <AlertTriangle size={15} />
-                    </div>
-                    <span className="enforcement-page__dialog-title">
-                      {formatViolationType(selected.violation_type)} — #{selected.id}
-                    </span>
-                  </DialogTitle>
-                </DialogHeader>
+            const signCode = selected.detected_sign_code || selected.detected_class_key || '—';
+            const evidenceItems = [
+              selected.evidence_image && { url: selected.evidence_image, label: t('violations.evidence') },
+              selected.plate_evidence_image && { url: selected.plate_evidence_image, label: t('violations.plateEvidence') },
+              selected.vehicle_evidence_image && { url: selected.vehicle_evidence_image, label: t('violations.vehicleEvidence') },
+            ].filter(Boolean) as { url: string; label: string }[];
 
-                <div className="enforcement-page__status-banner" style={{ background: meta.bg }}>
-                  <span className="enforcement-page__detail-label">{t('violations.colStatus')}</span>
-                  <span className="enforcement-page__badge" style={{ background: meta.bg, color: meta.color, border: `1px solid ${meta.color}30` }}>
-                    {meta.icon}
-                    {statusLabel(selected.status)}
-                  </span>
+            const detailCards = [
+              { key: 'license', label: t('violations.licenseNo'), value: selected.driver_license, icon: Hash, tone: 'blue' as const },
+              { key: 'action', label: t('violations.colAction'), value: formatObservedAction(selected.observed_action), icon: Shield, tone: 'violet' as const },
+              { key: 'officer', label: t('violations.officer'), value: selected.officer_name || '—', icon: User, tone: 'amber' as const },
+              { key: 'date', label: t('violations.colDate'), value: new Date(selected.violation_date).toLocaleString(), icon: Clock, tone: 'teal' as const },
+            ];
+
+            return (
+              <div className="violations-view-dialog__shell">
+                <div className="violations-view-dialog__header">
+                  <div className="violations-view-dialog__header-icon">
+                    <AlertTriangle size={18} />
+                  </div>
+                  <div className="violations-view-dialog__header-copy">
+                    <h2 className="violations-view-dialog__header-title">
+                      {formatViolationType(selected.violation_type)} — #{selected.id}
+                    </h2>
+                    <p className="violations-view-dialog__header-meta">
+                      {new Date(selected.violation_date).toLocaleString()}
+                      <span aria-hidden> · </span>
+                      {selected.location}
+                    </p>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                  <div>
-                    <div className="enforcement-page__detail-grid">
-                      {[
-                        { label: t('violations.colDriver'), value: selected.driver_name },
-                        { label: t('violations.licenseNo'), value: selected.driver_license },
-                        { label: t('violations.colSign'), value: selected.detected_sign_code || selected.detected_class_key },
-                        { label: t('violations.colAction'), value: formatObservedAction(selected.observed_action) },
-                        { label: t('violations.colLocation'), value: selected.location },
-                        { label: t('violations.officer'), value: selected.officer_name || '—' },
-                        { label: t('violations.colDate'), value: new Date(selected.violation_date).toLocaleString() },
-                      ].map((item) => (
-                        <div key={item.label} className="enforcement-page__detail-row">
-                          <span className="enforcement-page__detail-label">{item.label}</span>
-                          <span className="enforcement-page__detail-value">{item.value || '—'}</span>
-                        </div>
-                      ))}
+                <div className="violations-view-dialog__summary">
+                  <div className="violations-view-dialog__summary-top">
+                    <span className="violations-view-dialog__driver">{selected.driver_name || '—'}</span>
+                    <span
+                      className="violations-view-dialog__status-badge"
+                      style={{ background: meta.bg, color: meta.color, borderColor: `${meta.color}35` }}
+                    >
+                      {meta.icon}
+                      {statusLabel(selected.status)}
+                    </span>
+                  </div>
+                  <div className="violations-view-dialog__summary-meta">
+                    <span className="violations-view-dialog__sign-chip">
+                      <Shield size={13} />
+                      {signCode}
+                    </span>
+                    <span className="violations-view-dialog__location-chip">
+                      <MapPin size={13} />
+                      {selected.location}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="violations-view-dialog__body">
+                  <div className="violations-view-dialog__main">
+                    <div className="violations-view-dialog__cards">
+                      {detailCards.map((card) => {
+                        const CardIcon = card.icon;
+                        return (
+                          <div
+                            key={card.key}
+                            className={`violations-view-dialog__card violations-view-dialog__card--${card.tone}`}
+                          >
+                            <div className={`violations-view-dialog__card-icon violations-view-dialog__card-icon--${card.tone}`}>
+                              <CardIcon size={15} />
+                            </div>
+                            <div className="violations-view-dialog__card-copy">
+                              <span className="violations-view-dialog__card-label">{card.label}</span>
+                              <span className={`violations-view-dialog__card-value${card.key === 'license' ? ' violations-view-dialog__card-value--mono' : ''}`}>
+                                {card.value || '—'}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                    {selected.description && (
-                      <div className="enforcement-page__description-box">
-                        <p className="enforcement-page__detail-label">{t('violations.description')}</p>
-                        <p className="enforcement-page__cell-body mt-1.5 leading-relaxed">{selected.description}</p>
+
+                    {selected.description ? (
+                      <div className="violations-view-dialog__description">
+                        <div className="violations-view-dialog__description-head">
+                          <FileText size={14} />
+                          <span>{t('violations.description')}</span>
+                        </div>
+                        <p className="violations-view-dialog__description-text">{selected.description}</p>
                       </div>
-                    )}
+                    ) : null}
                   </div>
 
-                  <div>
-                    <p className="enforcement-page__evidence-title">
-                      <ImageIcon size={12} className="inline mr-1.5" />
-                      {t('violations.evidence')}
-                    </p>
-                    {selected.evidence_image || selected.plate_evidence_image || selected.vehicle_evidence_image ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {selected.evidence_image && (
-                          <a href={selected.evidence_image} target="_blank" rel="noreferrer" className="block">
-                            <p className="text-[10px] font-semibold text-muted-foreground mb-1">{t('violations.evidence')}</p>
-                            <img src={selected.evidence_image} alt={t('violations.evidence')} className="enforcement-page__evidence-image" />
+                  <aside className="violations-view-dialog__evidence">
+                    <div className="violations-view-dialog__evidence-head">
+                      <ImageIcon size={14} />
+                      <span>{t('violations.evidence')}</span>
+                    </div>
+                    {evidenceItems.length > 0 ? (
+                      <div className="violations-view-dialog__evidence-list">
+                        {evidenceItems.map((item) => (
+                          <a
+                            key={item.url}
+                            href={item.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="violations-view-dialog__evidence-link"
+                          >
+                            <img src={item.url} alt={item.label} className="violations-view-dialog__evidence-image" />
+                            <span className="violations-view-dialog__evidence-overlay">
+                              <Eye size={15} />
+                              {t('evidenceArchive.viewFullImage')}
+                            </span>
+                            <span className="violations-view-dialog__evidence-caption">{item.label}</span>
                           </a>
-                        )}
-                        {selected.plate_evidence_image && (
-                          <a href={selected.plate_evidence_image} target="_blank" rel="noreferrer" className="block">
-                            <p className="text-[10px] font-semibold text-muted-foreground mb-1">{t('violations.plateEvidence')}</p>
-                            <img src={selected.plate_evidence_image} alt={t('violations.plateEvidence')} className="enforcement-page__evidence-image" />
-                          </a>
-                        )}
-                        {selected.vehicle_evidence_image && (
-                          <a href={selected.vehicle_evidence_image} target="_blank" rel="noreferrer" className="block">
-                            <p className="text-[10px] font-semibold text-muted-foreground mb-1">{t('violations.vehicleEvidence')}</p>
-                            <img src={selected.vehicle_evidence_image} alt={t('violations.vehicleEvidence')} className="enforcement-page__evidence-image" />
-                          </a>
-                        )}
+                        ))}
                       </div>
                     ) : (
-                      <div className="enforcement-page__evidence-box">{t('violations.noEvidence')}</div>
+                      <div className="violations-view-dialog__evidence-empty">{t('violations.noEvidence')}</div>
                     )}
-                  </div>
+                  </aside>
                 </div>
 
-                {canManage && (
-                  <DialogFooter className="flex flex-wrap gap-2 sm:justify-between mt-2">
-                    <div className="flex flex-wrap gap-2">
-                      {selected.status === 'confirmed' && !selected.fine_id && (
+                {canManage ? (
+                  <div className="violations-view-dialog__footer">
+                    <div className="violations-view-dialog__footer-actions">
+                      {selected.status === 'confirmed' && !selected.fine_id ? (
                         <Button
                           size="sm"
-                          className="text-[13px] font-semibold"
-                          style={{ background: 'linear-gradient(135deg, #F59E0B, #D97706)' }}
+                          className="violations-view-dialog__btn violations-view-dialog__btn--fine"
                           onClick={() => openIssueFine(selected)}
                         >
                           <DollarSign size={14} /> {t('violations.issueFine')}
                         </Button>
-                      )}
-                      {selected.status !== 'confirmed' && (
+                      ) : null}
+                      {selected.status !== 'confirmed' ? (
                         <Button
                           size="sm"
-                          className="text-[13px] font-semibold"
-                          style={{ background: 'linear-gradient(135deg, #EF4444, #DC2626)' }}
+                          className="violations-view-dialog__btn violations-view-dialog__btn--confirm"
                           onClick={() => handleStatusUpdate(selected.id, 'confirmed')}
                         >
                           <CheckCircle size={14} /> {t('violations.confirm')}
                         </Button>
-                      )}
-                      {selected.status !== 'rejected' && (
-                        <Button size="sm" variant="outline" className="text-[13px] font-semibold" onClick={() => handleStatusUpdate(selected.id, 'rejected')}>
+                      ) : null}
+                      {selected.status !== 'rejected' ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="violations-view-dialog__btn violations-view-dialog__btn--reject"
+                          onClick={() => handleStatusUpdate(selected.id, 'rejected')}
+                        >
                           <XCircle size={14} /> {t('violations.reject')}
                         </Button>
-                      )}
+                      ) : null}
                     </div>
-                    {user?.role === 'admin' && (
-                      <Button size="sm" variant="destructive" className="text-[13px] font-semibold" onClick={() => handleDelete(selected.id)}>
+                    {user?.role === 'admin' ? (
+                      <Button
+                        size="sm"
+                        className="violations-view-dialog__btn violations-view-dialog__btn--delete"
+                        onClick={() => setDeleteViolation(selected)}
+                      >
                         <Trash2 size={14} /> {t('violations.delete')}
                       </Button>
-                    )}
-                  </DialogFooter>
+                    ) : null}
+                    {canManage ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="violations-view-dialog__btn"
+                        onClick={() => { openEdit(selected); setSelected(null); }}
+                      >
+                        <Pencil size={14} /> {t('violations.editViolation')}
+                      </Button>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="violations-view-dialog__footer violations-view-dialog__footer--single">
+                    <Button variant="outline" className="violations-view-dialog__close-btn" onClick={() => setSelected(null)}>
+                      {t('vehicles.close')}
+                    </Button>
+                  </div>
                 )}
-              </>
+              </div>
             );
           })()}
         </DialogContent>
       </Dialog>
 
+      <Dialog open={!!editViolation} onOpenChange={(open) => !open && setEditViolation(null)}>
+        <DialogContent accent="rose" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t('violations.editTitle')}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>{t('violations.locationLabel')}</Label>
+              <Input
+                value={editForm.location}
+                onChange={(e) => setEditForm((f) => ({ ...f, location: e.target.value }))}
+                placeholder={t('violations.locationPlaceholder')}
+              />
+            </div>
+            <div>
+              <Label>{t('violations.description')}</Label>
+              <Input
+                value={editForm.description}
+                onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label>{t('violations.colStatus')}</Label>
+              <Select value={editForm.status} onValueChange={(v) => setEditForm((f) => ({ ...f, status: v as TrafficViolation['status'] }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(['draft', 'pending_review', 'confirmed', 'rejected'] as const).map((s) => (
+                    <SelectItem key={s} value={s}>{statusLabel(s)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditViolation(null)}>{t('common.cancel')}</Button>
+            <Button onClick={() => void handleEditSave()} disabled={savingEdit}>
+              {savingEdit ? t('common.saving') : t('common.save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!deleteViolation} onOpenChange={(open) => !open && setDeleteViolation(null)}>
+        <DialogContent accent="danger" className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t('violations.deleteTitle')}</DialogTitle>
+          </DialogHeader>
+          <p className="ct-dialog-message">{t('violations.deleteConfirm', { id: String(deleteViolation?.id ?? '') })}</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteViolation(null)}>{t('common.cancel')}</Button>
+            <Button variant="destructive" onClick={() => deleteViolation && void handleDelete(deleteViolation.id)}>
+              {t('common.delete')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Create violation dialog */}
       <Dialog open={createOpen} onOpenChange={(open) => { if (!open) resetCreateForm(); setCreateOpen(open); }}>
-        <DialogContent className="max-w-lg">
+        <DialogContent accent="rose" className="violations-create-dialog max-w-3xl sm:max-w-3xl">
           <DialogHeader>
-            <DialogTitle>{t('violations.createTitle')}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2.5">
+              <div className="enforcement-page__dialog-icon enforcement-page__dialog-icon--rose">
+                <Plus size={15} />
+              </div>
+              <span className="enforcement-page__dialog-title">{t('violations.createTitle')}</span>
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
+
+          <div className="ct-dialog-form violations-create-dialog__form">
+            <div className="ct-dialog-field">
               <Label className="enforcement-page__form-label">{t('violations.driverLicense')} *</Label>
-              <div className="flex gap-2 mt-1">
-                <input
+              <div className="violations-create-dialog__lookup-row">
+                <Input
                   value={createForm.driver_license}
                   onChange={(e) => setCreateForm((p) => ({ ...p, driver_license: e.target.value }))}
-                  className="enforcement-page__search flex-1"
                   placeholder="LIC-00001"
                 />
-                <Button type="button" variant="outline" size="sm" onClick={() => void handleDriverLookup()}>
+                <Button type="button" variant="outline" className="violations-create-dialog__lookup-btn" onClick={() => void handleDriverLookup()}>
                   {t('violations.lookupDriver')}
                 </Button>
               </div>
-              {createForm.driver_name && (
-                <p className="text-[12px] text-emerald-600 mt-1">{createForm.driver_name}</p>
-              )}
+              {createForm.driver_name ? (
+                <p className="violations-create-dialog__driver-found">
+                  <CheckCircle size={14} />
+                  {createForm.driver_name}
+                </p>
+              ) : null}
             </div>
-            <div>
+
+            <div className="ct-dialog-field">
               <Label className="enforcement-page__form-label">{t('violations.ruleLabel')} *</Label>
               <select
                 value={createForm.rule_id}
                 onChange={(e) => setCreateForm((p) => ({ ...p, rule_id: e.target.value, observed_action: '' }))}
-                className="w-full mt-1 rounded-xl border border-border bg-background px-3 py-2.5 text-[13px]"
+                className="violations-create-dialog__select"
               >
                 <option value="">{t('violations.selectRule')}</option>
                 {rules.map((rule) => (
@@ -696,12 +885,13 @@ export function ViolationsPage() {
                 ))}
               </select>
             </div>
-            <div>
+
+            <div className="ct-dialog-field">
               <Label className="enforcement-page__form-label">{t('violations.overrideAction')}</Label>
               <select
                 value={createForm.observed_action}
                 onChange={(e) => setCreateForm((p) => ({ ...p, observed_action: e.target.value }))}
-                className="w-full mt-1 rounded-xl border border-border bg-background px-3 py-2.5 text-[13px]"
+                className="violations-create-dialog__select"
               >
                 <option value="">{t('violations.useRuleDefault')}</option>
                 {OBSERVED_ACTION_VALUES.map((action) => (
@@ -709,38 +899,44 @@ export function ViolationsPage() {
                 ))}
               </select>
             </div>
-            <div>
-              <Label className="enforcement-page__form-label">{t('violations.colSign')}</Label>
-              <input
-                value={createForm.sign_code}
-                onChange={(e) => setCreateForm((p) => ({ ...p, sign_code: e.target.value }))}
-                className="enforcement-page__search w-full mt-1"
-                placeholder="PW03-R1-01"
-              />
+
+            <div className="ct-dialog-field-grid">
+              <div className="ct-dialog-field">
+                <Label className="enforcement-page__form-label">{t('violations.colSign')}</Label>
+                <Input
+                  value={createForm.sign_code}
+                  onChange={(e) => setCreateForm((p) => ({ ...p, sign_code: e.target.value }))}
+                  placeholder="PW03-R1-01"
+                />
+              </div>
+              <div className="ct-dialog-field">
+                <Label className="enforcement-page__form-label">{t('violations.locationLabel')} *</Label>
+                <Input
+                  value={createForm.location}
+                  onChange={(e) => setCreateForm((p) => ({ ...p, location: e.target.value }))}
+                  placeholder={t('violations.locationPlaceholder')}
+                />
+              </div>
             </div>
-            <div>
-              <Label className="enforcement-page__form-label">{t('violations.locationLabel')} *</Label>
-              <input
-                value={createForm.location}
-                onChange={(e) => setCreateForm((p) => ({ ...p, location: e.target.value }))}
-                className="enforcement-page__search w-full mt-1"
-                placeholder={t('violations.locationPlaceholder')}
-              />
-            </div>
-            {evalPreview && (
-              <p className={`text-[12px] ${evalPreview.is_violation ? 'text-red-600' : 'text-muted-foreground'}`}>
-                {evalPreview.is_violation
-                  ? t('violations.previewMatch', { type: formatViolationType(evalPreview.violation_type || '') })
-                  : t('violations.previewNoMatch')}
-              </p>
-            )}
+
+            {evalPreview ? (
+              <div className={`violations-create-dialog__preview${evalPreview.is_violation ? ' violations-create-dialog__preview--match' : ' violations-create-dialog__preview--neutral'}`}>
+                {evalPreview.is_violation ? <AlertTriangle size={15} /> : <Shield size={15} />}
+                <span>
+                  {evalPreview.is_violation
+                    ? t('violations.previewMatch', { type: formatViolationType(evalPreview.violation_type || '') })
+                    : t('violations.previewNoMatch')}
+                </span>
+              </div>
+            ) : null}
           </div>
+
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setCreateOpen(false)}>{t('common.cancel')}</Button>
             <Button
               disabled={creating}
+              className="violations-create-dialog__submit"
               onClick={() => void handleCreateViolation()}
-              style={{ background: 'linear-gradient(135deg, #EF4444, #DC2626)' }}
             >
               {creating ? t('common.saving') : t('violations.createViolation')}
             </Button>

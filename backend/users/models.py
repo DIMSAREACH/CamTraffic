@@ -34,6 +34,7 @@ class User(AbstractUser):
     auth_provider = models.CharField(max_length=20, choices=AUTH_PROVIDER_CHOICES, default='email')
     social_uid = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     profile_image = models.ImageField(upload_to='profiles/', blank=True, null=True)
+    email_verified = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -69,6 +70,13 @@ class Officer(UUIDPrimaryKeyModel):
     ]
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='officer_profile')
+    station = models.ForeignKey(
+        'infrastructure.PoliceStation',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='officers',
+    )
     badge_no = models.CharField(max_length=50, unique=True)
     rank = models.CharField(max_length=100, blank=True)
     department = models.CharField(max_length=150, blank=True)

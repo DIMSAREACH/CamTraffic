@@ -175,19 +175,17 @@ export function LiveWebcamPanel({ onResult, disabled = false, pipelineOptions }:
         className="relative rounded-2xl overflow-hidden bg-black flex-1 min-h-[280px] border border-violet-500/20 live-webcam-panel__stage"
       >
         {!streaming && !cameraError && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 gap-3">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center"
-              style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.25)' }}>
-              <Camera size={28} color="#A78BFA" />
+          <div className="live-webcam-panel__idle absolute inset-0 flex flex-col items-center justify-center text-center px-6 gap-3">
+            <div className="live-webcam-panel__idle-icon">
+              <Camera size={28} strokeWidth={2} />
             </div>
-            <p className="text-[15px] font-bold text-foreground">{t('aiDetection.webcam.startTitle')}</p>
-            <p className="text-[12px] text-muted-foreground max-w-xs">{t('aiDetection.webcam.startHint')}</p>
+            <p className="live-webcam-panel__idle-title">{t('aiDetection.webcam.startTitle')}</p>
+            <p className="live-webcam-panel__idle-hint">{t('aiDetection.webcam.startHint')}</p>
             <button
               type="button"
               disabled={disabled}
               onClick={() => void startCamera()}
-              className="mt-1 px-5 py-2.5 rounded-xl text-white text-[13px] font-bold flex items-center gap-2 cursor-pointer disabled:opacity-50"
-              style={{ background: 'linear-gradient(135deg,#7C3AED,#2563EB)' }}
+              className="live-webcam-panel__idle-btn mt-1 px-5 py-2.5 rounded-xl text-white text-[13px] font-bold flex items-center gap-2 cursor-pointer disabled:opacity-50"
             >
               <Camera size={15} />
               {t('aiDetection.webcam.enableCamera')}
@@ -196,14 +194,14 @@ export function LiveWebcamPanel({ onResult, disabled = false, pipelineOptions }:
         )}
 
         {cameraError && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 gap-2">
-            <AlertTriangle size={32} className="text-amber-500" />
-            <p className="text-[14px] font-bold text-foreground">
+          <div className="live-webcam-panel__error absolute inset-0 flex flex-col items-center justify-center text-center px-6 gap-2">
+            <AlertTriangle size={32} className="live-webcam-panel__error-icon" />
+            <p className="live-webcam-panel__error-title">
               {cameraError === 'permission'
                 ? t('aiDetection.webcam.errorPermission')
                 : t('aiDetection.webcam.errorUnavailable')}
             </p>
-            <p className="text-[12px] text-muted-foreground max-w-sm">
+            <p className="live-webcam-panel__error-hint">
               {t('aiDetection.webcam.errorHint')}
             </p>
           </div>

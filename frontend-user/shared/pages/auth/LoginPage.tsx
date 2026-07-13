@@ -10,7 +10,7 @@ import { AuthPageBackground } from '@shared/components/auth/AuthPageBackground';
 import { AuthFeatureList } from '@shared/components/auth/AuthFeatureList';
 import { CamTrafficLogo } from '@shared/components/layout/CamTrafficLogo';
 import { SocialLoginButtons } from '@shared/components/auth/SocialLoginButtons';
-import { AuthThemeToggle } from '@shared/components/AuthThemeToggle';
+import { AuthPageControls } from '@shared/components/auth/AuthPageControls';
 import { getAdminDevUrl, getUserDevUrl } from '@shared/utils/portal';
 import { isRememberMeEnabled } from '@shared/utils/authStorage';
 import { useLanguage } from '@shared/context/LanguageContext';
@@ -174,7 +174,12 @@ export function LoginPage() {
               autoComplete="current-password"
               required
             />
-            <button type="button" className="lf-eye" onClick={() => setShowPass((v) => !v)} tabIndex={-1}>
+            <button
+              type="button"
+              className="lf-eye"
+              onClick={() => setShowPass((v) => !v)}
+              aria-label={showPass ? t('auth.hidePassword') : t('auth.showPassword')}
+            >
               {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
@@ -223,7 +228,7 @@ export function LoginPage() {
   if (portalAdmin || IS_ADMIN_SURFACE) {
     return (
       <div className="up-page ap-page">
-        <AuthThemeToggle />
+        <AuthPageControls />
         <AuthPageBackground variant="admin" />
         <div className="up-overlay ap-overlay" />
         <div className="up-inner">
@@ -306,7 +311,7 @@ export function LoginPage() {
 
   return (
     <div className="up-page up-page--user">
-      <AuthThemeToggle />
+      <AuthPageControls />
       <AuthPageBackground />
       <div className="up-overlay" />
       <div className="up-inner">
@@ -363,9 +368,13 @@ export function LoginPage() {
               true,
             )}
 
-            <p className="up-register-line">
-              {t('auth.firstTimeHere')} <Link to="/register">{t('auth.register')}</Link>
-            </p>
+            {activeRole === 'driver' ? (
+              <p className="up-register-line">
+                {t('auth.firstTimeHere')} <Link to="/register">{t('auth.register')}</Link>
+              </p>
+            ) : (
+              <p className="up-register-line up-register-line--muted">{t('auth.officerNoRegister')}</p>
+            )}
           </div>
         </div>
       </div>

@@ -4,22 +4,28 @@ import { fileURLToPath } from 'url'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { createApiProxy } from './shared/vite/apiProxy'
+import { assertProductionDataMode } from './shared/vite/assertProductionDataMode'
+import { optimizeDeps } from './shared/vite/optimizeDeps'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, __dirname, '')
+  assertProductionDataMode(mode, env)
   const userPort = Number(env.VITE_USER_PORT || 5173)
   const adminPort = Number(env.VITE_ADMIN_PORT || 5174)
   const apiProxyTarget = env.VITE_API_PROXY_TARGET || 'http://127.0.0.1:8000'
 
   return {
     plugins: [react(), tailwindcss()],
+    optimizeDeps,
     resolve: {
       alias: {
         '@': __dirname,
         '@shared': path.resolve(__dirname, 'shared'),
         '@admin': path.resolve(__dirname, 'admin'),
+        '@camtraffic/store': path.resolve(__dirname, '../packages/store/src'),
+        '@camtraffic/query': path.resolve(__dirname, '../packages/query/src'),
       },
     },
     define: {
@@ -34,7 +40,7 @@ export default defineConfig(({ mode }) => {
     server: {
       port: adminPort,
       strictPort: true,
-      host: true,
+      host: 'localhost',
       proxy: {
         '/api': createApiProxy(apiProxyTarget),
         '/media': createApiProxy(apiProxyTarget),

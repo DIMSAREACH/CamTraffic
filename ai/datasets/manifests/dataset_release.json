@@ -1,0 +1,19 @@
+{
+  "release_id": "camtraffic-datasets-v1",
+  "media_in_git": false,
+  "gitignore": ["ai/dataset/", "ai/datasets/raw/", "ai/datasets/processed/", "ai/weights/"],
+  "tracked_manifests": [
+    "ai/datasets/manifests/collection_stats.json",
+    "ai/datasets/manifests/BATCH-REF-PROH-001.json",
+    "ai/datasets/manifests/BATCH-REF-VEH-PLATE-001.json",
+    "ai/datasets/manifests/annotation_stats.json",
+    "ai/datasets/manifests/dataset_release.json"
+  ],
+  "collection_summary": {
+    "traffic_signs": 2840,
+    "vehicles_reference": 22,
+    "license_plates_reference": 50,
+    "road_footage": 0
+  },
+  "notes": "Regenerate: python ai/scripts/collection_tracker.py --write-manifest && python ai/scripts/build_prohibitory_manifest.py"
+}

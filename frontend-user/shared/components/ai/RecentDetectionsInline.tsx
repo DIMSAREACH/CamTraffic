@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Activity, AlertCircle, Car, ChevronRight, Clock, Hash, History, Signpost } from 'lucide-react';
+import { Activity, AlertCircle, Camera, Car, ChevronRight, Clock, Hash, History } from 'lucide-react';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { logDisplay, logDisplayColor } from '@shared/utils/detectionDisplay';
 import { getProfileImageUrl } from '@shared/utils/profileImage';
@@ -28,14 +28,14 @@ function RecentDetectionThumb({
   const [imgFailed, setImgFailed] = useState(false);
   const src = getProfileImageUrl(log.uploaded_image);
   const FallbackIcon =
-    mode === 'vehicle' ? Car : mode === 'plate' ? Hash : mode === 'no_sign' || mode === 'unknown_sign' ? AlertCircle : Signpost;
+    mode === 'vehicle' ? Car : mode === 'plate' ? Hash : mode === 'no_sign' || mode === 'unknown_sign' ? AlertCircle : Camera;
 
   if (src && !imgFailed) {
     return (
       <img
         src={src}
         alt={hero.title}
-        className="w-10 h-10 rounded-lg object-cover flex-shrink-0 bg-muted ring-1 ring-border/80"
+        className="ai-detection-recent-thumb ai-detection-recent-thumb--photo"
         style={{ boxShadow: `0 0 0 1.5px ${accent}35` }}
         onError={() => setImgFailed(true)}
       />
@@ -44,10 +44,10 @@ function RecentDetectionThumb({
 
   return (
     <div
-      className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-      style={{ background: `${accent}18`, border: `1.5px solid ${accent}35` }}
+      className="ai-detection-recent-thumb ai-detection-recent-thumb--fallback"
+      style={{ background: `${accent}18`, borderColor: `${accent}35` }}
     >
-      <FallbackIcon size={13} style={{ color: accent }} />
+      <FallbackIcon size={17} strokeWidth={2.25} className="ai-detection-recent-thumb__icon" style={{ color: accent }} />
     </div>
   );
 }
@@ -75,7 +75,7 @@ export function RecentDetectionsInline({
             className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
             style={{ background: 'linear-gradient(135deg,#059669,#10B981)' }}
           >
-            <History size={13} color="white" strokeWidth={2.5} />
+            <History size={14} color="white" strokeWidth={2.5} />
           </div>
           <div className="min-w-0">
             <p className="text-[11px] font-black uppercase tracking-wider text-foreground truncate">

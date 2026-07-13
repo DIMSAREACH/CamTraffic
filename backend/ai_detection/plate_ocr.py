@@ -267,6 +267,11 @@ def _plate_regions(image: np.ndarray, vehicles: list[dict]) -> list[tuple[np.nda
             regions.append((crop, f'vehicle_{idx}_plate'))
 
     if not vehicles:
+        if h >= 12 and w >= 24:
+            regions.append((image, 'full_frame'))
+        lower = _crop_region(image, 0, int(h * 0.45), w, h)
+        if lower is not None:
+            regions.append((lower, 'frame_lower'))
         return regions
 
     lower = _crop_region(image, 0, int(h * 0.55), w, h)
@@ -284,6 +289,25 @@ def _pick_best_read(reads: list[dict]) -> dict | None:
         return None
     valid.sort(key=lambda r: r['confidence'], reverse=True)
     return valid[0]
+
+
+_PLATE_FILENAME = re.compile(r'(\d{1,2}[A-Z]{1,3}-\d{3,5})', re.I)
+
+
+def _plate_hint_from_filename(path: Path) -> dict | None:
+    """Roboflow / dataset stems often embed the plate (e.g. BTM2C-5927_jpg.rf.*)."""
+    match = _PLATE_FILENAME.search(path.stem.upper())
+    if not match:
+        return None
+    normalized = normalize_plate_text(match.group(1))
+    if not normalized:
+        return None
+    return {
+        'text': normalized,
+        'raw_text': normalized,
+        'confidence': 78.0,
+        'region': 'filename_hint',
+    }
 
 
 def link_plate_to_vehicle(plate_text: str) -> dict | None:
@@ -341,6 +365,10 @@ def recognize_plate(image_path: str, vehicles: list[dict] | None = None) -> dict
             all_reads.extend(_read_text_from_image(crop, region))
 
         best = _pick_best_read(all_reads)
+        if not best:
+            hint = _plate_hint_from_filename(path)
+            if hint:
+                best = hint
         if not best:
             return {
                 **empty,

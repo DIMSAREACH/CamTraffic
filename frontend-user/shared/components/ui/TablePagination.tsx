@@ -1,19 +1,28 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { UsePaginationReturn } from '@shared/hooks/usePagination';
+import { useLanguage } from '@shared/context/LanguageContext';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 interface TablePaginationProps<T> {
   pagination: UsePaginationReturn<T>;
-  label?: string;
+  /** i18n key under pagination.label.* */
+  labelKey?: string;
+  variant?: 'default' | 'footer';
 }
 
-export function TablePagination<T>({ pagination, label = 'records' }: TablePaginationProps<T>) {
+export function TablePagination<T>({
+  pagination,
+  labelKey = 'pagination.label.records',
+  variant = 'default',
+}: TablePaginationProps<T>) {
+  const { t } = useLanguage();
   const { page, pageSize, total, totalPages, from, to, setPage, setPageSize } = pagination;
+  const label = t(labelKey);
+  const isFooter = variant === 'footer';
 
   if (total === 0) return null;
 
-  // Build page number list with ellipsis
   function pageNumbers(): (number | 'ellipsis')[] {
     if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
     const pages: (number | 'ellipsis')[] = [1];
@@ -27,70 +36,80 @@ export function TablePagination<T>({ pagination, label = 'records' }: TablePagin
   }
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-1 pt-4 pb-1 border-t border-border">
-      {/* Show per page */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <span>Show</span>
-        <select
-          value={pageSize}
-          onChange={e => setPageSize(Number(e.target.value))}
-          className="h-8 rounded-md border border-input bg-background px-2 py-0 text-sm focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer"
-        >
-          {PAGE_SIZE_OPTIONS.map(s => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-        </select>
+    <div
+      className={`table-pagination ${isFooter ? 'table-pagination--footer' : ''}`}
+      role="navigation"
+      aria-label={t('pagination.aria')}
+    >
+      <div className="table-pagination__row">
+        <div className="table-pagination__show">
+          <span className="table-pagination__show-label">{t('pagination.show')}</span>
+          <select
+            value={pageSize}
+            onChange={(e) => setPageSize(Number(e.target.value))}
+            className="ct-native-select ct-native-select--sm table-pagination__select"
+            aria-label={t('pagination.show')}
+          >
+            {PAGE_SIZE_OPTIONS.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="table-pagination__end">
+          <div className="table-pagination__pages">
+            <p className="table-pagination__page-label">
+              {t('pagination.pageOf', { page, totalPages })}
+            </p>
+            <nav className="table-pagination__nav" aria-label={t('pagination.aria')}>
+              <button
+                type="button"
+                onClick={() => setPage(page - 1)}
+                disabled={page === 1}
+                aria-label={t('pagination.prev')}
+                className="table-pagination__btn"
+              >
+                <ChevronLeft size={15} />
+              </button>
+
+              {pageNumbers().map((p, idx) =>
+                p === 'ellipsis' ? (
+                  <span key={`e-${idx}`} className="table-pagination__ellipsis" aria-hidden>
+                    …
+                  </span>
+                ) : (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setPage(p)}
+                    aria-current={p === page ? 'page' : undefined}
+                    aria-label={t('pagination.pageOf', { page: p, totalPages })}
+                    className={`table-pagination__page ${p === page ? 'table-pagination__page--active' : ''}`}
+                  >
+                    {p}
+                  </button>
+                ),
+              )}
+
+              <button
+                type="button"
+                onClick={() => setPage(page + 1)}
+                disabled={page === totalPages}
+                aria-label={t('pagination.next')}
+                className="table-pagination__btn"
+              >
+                <ChevronRight size={15} />
+              </button>
+            </nav>
+          </div>
+
+          <span className="table-pagination__divider" aria-hidden />
+
+          <p className="table-pagination__range">
+            {t('pagination.range', { from, to, total, label })}
+          </p>
+        </div>
       </div>
-
-      {/* Page buttons */}
-      <nav className="flex items-center gap-1" aria-label="Pagination">
-        <button
-          type="button"
-          onClick={() => setPage(page - 1)}
-          disabled={page === 1}
-          aria-label="Previous page"
-          className="h-8 w-8 flex items-center justify-center rounded-md border border-input bg-background text-sm hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        >
-          <ChevronLeft size={15} />
-        </button>
-
-        {pageNumbers().map((p, idx) =>
-          p === 'ellipsis' ? (
-            <span key={`e-${idx}`} className="h-8 w-8 flex items-center justify-center text-muted-foreground text-sm">
-              …
-            </span>
-          ) : (
-            <button
-              key={p}
-              type="button"
-              onClick={() => setPage(p)}
-              aria-current={p === page ? 'page' : undefined}
-              className={`h-8 min-w-8 px-2 flex items-center justify-center rounded-md text-sm font-medium border transition-colors ${
-                p === page
-                  ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                  : 'border-input bg-background hover:bg-muted text-foreground'
-              }`}
-            >
-              {p}
-            </button>
-          ),
-        )}
-
-        <button
-          type="button"
-          onClick={() => setPage(page + 1)}
-          disabled={page === totalPages}
-          aria-label="Next page"
-          className="h-8 w-8 flex items-center justify-center rounded-md border border-input bg-background text-sm hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        >
-          <ChevronRight size={15} />
-        </button>
-      </nav>
-
-      {/* Range info */}
-      <p className="text-sm text-muted-foreground whitespace-nowrap">
-        View {from} – {to} of {total} {label}
-      </p>
     </div>
   );
 }

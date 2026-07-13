@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from core.media_urls import api_media_url
+
 from .models import AIDetectionLog
 from .result_compose import compose_detection_payload
 
@@ -7,6 +9,7 @@ from .result_compose import compose_detection_payload
 class AIDetectionLogSerializer(serializers.ModelSerializer):
     user_id = serializers.UUIDField(source='user.id', read_only=True)
     user_name = serializers.CharField(source='user.full_name', read_only=True)
+    user_email = serializers.EmailField(source='user.email', read_only=True)
     user_profile_image = serializers.SerializerMethodField()
     uploaded_image = serializers.SerializerMethodField()
     detection_mode = serializers.SerializerMethodField()
@@ -23,13 +26,13 @@ class AIDetectionLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = AIDetectionLog
         fields = (
-            'id', 'user_id', 'user_name', 'user_profile_image', 'uploaded_image', 'detected_sign',
+            'id', 'user_id', 'user_name', 'user_email', 'user_profile_image', 'uploaded_image', 'detected_sign',
             'confidence', 'description', 'guidance', 'vehicle_count', 'detected_vehicles',
             'detected_plate', 'plate_confidence', 'plate_type', 'plate_ocr_details',
             'matched_vehicle_id', 'matched_vehicle', 'vehicle_snapshot', 'plate_snapshot',
             'detection_mode', 'display_label', 'display_label_en', 'display_label_km',
             'display_confidence', 'display_description', 'display_description_en',
-            'created_at',
+            'processing_time', 'model_version', 'review_status', 'created_at',
         )
 
     def _composed(self, obj: AIDetectionLog) -> dict:
@@ -123,30 +126,22 @@ class AIDetectionLogSerializer(serializers.ModelSerializer):
         if not user or not user.profile_image:
             return ''
         request = self.context.get('request')
-        if request:
-            return request.build_absolute_uri(user.profile_image.url)
-        return user.profile_image.url
+        return api_media_url(request, user.profile_image)
 
     def get_uploaded_image(self, obj):
         if obj.uploaded_image:
             request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.uploaded_image.url)
-            return obj.uploaded_image.url
+            return api_media_url(request, obj.uploaded_image)
         return ''
 
     def get_vehicle_snapshot(self, obj):
         if not obj.vehicle_snapshot:
             return ''
         request = self.context.get('request')
-        if request:
-            return request.build_absolute_uri(obj.vehicle_snapshot.url)
-        return obj.vehicle_snapshot.url
+        return api_media_url(request, obj.vehicle_snapshot)
 
     def get_plate_snapshot(self, obj):
         if not obj.plate_snapshot:
             return ''
         request = self.context.get('request')
-        if request:
-            return request.build_absolute_uri(obj.plate_snapshot.url)
-        return obj.plate_snapshot.url
+        return api_media_url(request, obj.plate_snapshot)

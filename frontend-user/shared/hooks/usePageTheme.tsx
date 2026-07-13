@@ -1,12 +1,17 @@
 import type { ReactNode } from 'react';
 import {
   Activity,
+  Archive,
   BarChart3,
   Bell,
+  Brain,
   Camera,
   Car,
+  Cctv,
   FileText,
+  Scale,
   Shield,
+  ShieldAlert,
   User,
   Users,
 } from 'lucide-react';
@@ -42,6 +47,13 @@ const THEME_MAP: Record<
     color: '#7c3aed',
     gradient: 'linear-gradient(90deg,#6d28d9,#7c3aed,#a78bfa,transparent)',
   },
+  '/dashboard/cameras': {
+    crumbKeys: ['pageTheme.crumbInfrastructure', 'pageTheme.crumbCameras'],
+    labelKey: 'pageTheme.cameras',
+    icon: <Cctv size={13} className="text-blue-500" />,
+    color: '#2563eb',
+    gradient: 'linear-gradient(90deg,#1d4ed8,#3b82f6,#60a5fa,transparent)',
+  },
   '/dashboard/ai-logs': {
     crumbKeys: ['pageTheme.crumbAiSystem', 'pageTheme.crumbDetectionLogs'],
     labelKey: 'pageTheme.aiLogs',
@@ -63,6 +75,13 @@ const THEME_MAP: Record<
     color: '#b91c1c',
     gradient: 'linear-gradient(90deg,#991b1b,#dc2626,#f87171,transparent)',
   },
+  '/dashboard/appeals': {
+    crumbKeys: ['pageTheme.crumbEnforcement', 'pageTheme.crumbAppeals'],
+    labelKey: 'pageTheme.appeals',
+    icon: <Scale size={13} className="text-amber-600" />,
+    color: '#d97706',
+    gradient: 'linear-gradient(90deg,#b45309,#d97706,#fbbf24,transparent)',
+  },
   '/dashboard/signs': {
     crumbKeys: ['pageTheme.crumbReference', 'pageTheme.crumbTrafficSigns'],
     labelKey: 'pageTheme.signs',
@@ -76,6 +95,34 @@ const THEME_MAP: Record<
     icon: <Car size={13} className="text-emerald-600" />,
     color: '#059669',
     gradient: 'linear-gradient(90deg,#059669,#10b981,#34d399,transparent)',
+  },
+  '/dashboard/unknown-vehicles': {
+    crumbKeys: ['pageTheme.crumbRegistry', 'pageTheme.crumbUnknownVehicles'],
+    labelKey: 'pageTheme.unknownVehicles',
+    icon: <Car size={13} className="text-orange-600" />,
+    color: '#ea580c',
+    gradient: 'linear-gradient(90deg,#c2410c,#ea580c,#fb923c,transparent)',
+  },
+  '/dashboard/evidence': {
+    crumbKeys: ['pageTheme.crumbEnforcement', 'pageTheme.crumbEvidence'],
+    labelKey: 'pageTheme.evidence',
+    icon: <Archive size={13} className="text-slate-600" />,
+    color: '#475569',
+    gradient: 'linear-gradient(90deg,#334155,#475569,#94a3b8,transparent)',
+  },
+  '/dashboard/audit-logs': {
+    crumbKeys: ['pageTheme.crumbAdmin', 'pageTheme.crumbAuditLogs'],
+    labelKey: 'pageTheme.auditLogs',
+    icon: <ShieldAlert size={13} className="text-rose-600" />,
+    color: '#e11d48',
+    gradient: 'linear-gradient(90deg,#be123c,#e11d48,#fb7185,transparent)',
+  },
+  '/dashboard/ai-models': {
+    crumbKeys: ['pageTheme.crumbAiSystem', 'pageTheme.crumbAiModels'],
+    labelKey: 'pageTheme.aiModels',
+    icon: <Brain size={13} className="text-indigo-500" />,
+    color: '#6366f1',
+    gradient: 'linear-gradient(90deg,#4f46e5,#6366f1,#a5b4fc,transparent)',
   },
   '/dashboard/users': {
     crumbKeys: ['pageTheme.crumbAdmin', 'pageTheme.crumbUserManagement'],

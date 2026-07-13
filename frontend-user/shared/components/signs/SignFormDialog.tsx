@@ -209,13 +209,13 @@ export function SignFormDialog({ open, onOpenChange, mode, sign, onSaved }: Prop
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="signs-form-dialog p-0 gap-0 overflow-hidden" aria-describedby={undefined}>
+      <DialogContent accent="teal" className="signs-form-dialog max-w-[56rem] sm:max-w-[56rem] p-0 gap-0 overflow-hidden" aria-describedby={undefined}>
         <DialogHeader
           className={`signs-form-dialog__header${isCreate ? ' signs-form-dialog__header--create' : ' signs-form-dialog__header--edit'}`}
         >
           <div className="signs-form-dialog__header-main">
             <span className="signs-form-dialog__icon" aria-hidden>
-              {isCreate ? <Plus size={18} strokeWidth={2.25} /> : <Pencil size={17} strokeWidth={2.25} />}
+              {isCreate ? <Plus size={20} strokeWidth={2.5} /> : <Pencil size={19} strokeWidth={2.5} />}
             </span>
             <div className="min-w-0 flex-1">
               <p className="signs-form-dialog__eyebrow">
@@ -291,7 +291,7 @@ export function SignFormDialog({ open, onOpenChange, mode, sign, onSaved }: Prop
                   <Label htmlFor="description" className="signs-form-label">{t('pages.signs.description')}</Label>
                   <Textarea
                     id="description"
-                    rows={2}
+                    rows={3}
                     value={form.description}
                     onChange={e => set('description', e.target.value)}
                     className="signs-form-control signs-form-textarea"
@@ -301,7 +301,7 @@ export function SignFormDialog({ open, onOpenChange, mode, sign, onSaved }: Prop
                   <Label htmlFor="guidance" className="signs-form-label">{t('pages.signs.formGuidance')}</Label>
                   <Textarea
                     id="guidance"
-                    rows={2}
+                    rows={3}
                     value={form.guidance}
                     onChange={e => set('guidance', e.target.value)}
                     className="signs-form-control signs-form-textarea"
@@ -313,7 +313,7 @@ export function SignFormDialog({ open, onOpenChange, mode, sign, onSaved }: Prop
                 <Label htmlFor="rules" className="signs-form-label">{t('pages.signs.formRules')}</Label>
                 <Textarea
                   id="rules"
-                  rows={2}
+                  rows={3}
                   value={form.rulesText}
                   onChange={e => set('rulesText', e.target.value)}
                   placeholder={t('pages.signs.formRulesHint')}
@@ -343,7 +343,7 @@ export function SignFormDialog({ open, onOpenChange, mode, sign, onSaved }: Prop
                     ) : (
                       <div className="signs-form-dialog__preview-empty">
                         <span className="signs-form-dialog__preview-empty-icon" aria-hidden>
-                          <ImagePlus size={22} strokeWidth={1.75} />
+                          <ImagePlus size={28} strokeWidth={1.75} />
                         </span>
                         <span className="signs-form-dialog__preview-empty-title">
                           {t('pages.signs.formChooseFile')}
@@ -351,16 +351,22 @@ export function SignFormDialog({ open, onOpenChange, mode, sign, onSaved }: Prop
                         <span className="signs-form-dialog__preview-empty-hint">
                           {t('pages.signs.formUploadHint')}
                         </span>
+                        <span className="signs-form-dialog__upload-cta">
+                          <Upload size={14} strokeWidth={2.25} />
+                          {t('pages.signs.formUploadCta')}
+                        </span>
                       </div>
                     )}
                   </div>
                 </label>
                 <div className="signs-form-dialog__upload-footer">
-                  <span
-                    className={`signs-form-dialog__upload-badge${isCreate ? ' is-required' : ' is-optional'}`}
-                  >
-                    {isCreate ? t('pages.signs.formImageRequired') : t('pages.signs.formImageOptional')}
-                  </span>
+                  {previewUrl ? (
+                    <span
+                      className={`signs-form-dialog__upload-badge${isCreate ? ' is-required' : ' is-optional'}`}
+                    >
+                      {isCreate ? t('pages.signs.formImageRequired') : t('pages.signs.formImageOptional')}
+                    </span>
+                  ) : null}
                   {imageFile && (
                     <span className="signs-form-dialog__filename" title={imageFile.name}>
                       {imageFile.name}

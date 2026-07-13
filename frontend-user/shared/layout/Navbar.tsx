@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type CSSProperties } from 'react';
+import { useState, useRef, useEffect, type CSSProperties, type RefObject } from 'react';
 import { Bell, Search, LogOut, User, ChevronRight, X, Menu } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router';
 import { useAuth } from '@shared/context/AuthContext';
@@ -21,6 +21,8 @@ interface NavbarProps {
   onMobileMenuOpen?: () => void;
   sidebarCollapsed?: boolean;
   onSidebarToggle?: () => void;
+  mobileMenuButtonRef?: RefObject<HTMLButtonElement | null>;
+  mobileMenuOpen?: boolean;
 }
 
 const ROLE_GRADIENT: Record<string, { gradient: string; glow: string; accent: string; badge: string }> = {
@@ -41,6 +43,8 @@ export function Navbar({
   onMenuToggle,
   onMobileMenuOpen,
   sidebarCollapsed = false,
+  mobileMenuButtonRef,
+  mobileMenuOpen = false,
 }: NavbarProps) {
   const openMobileMenu = onMobileMenuOpen ?? onMenuToggle;
   const { user, logout } = useAuth();
@@ -97,10 +101,13 @@ export function Navbar({
       <div className="app-navbar__left relative flex flex-row flex-nowrap items-center gap-0 min-w-0 flex-1 pl-3 sm:pl-5">
         {openMobileMenu && (
           <button
+            ref={mobileMenuButtonRef}
             type="button"
             onClick={openMobileMenu}
             className="app-navbar__menu-btn lg:hidden p-2.5 rounded-xl mr-1 flex-shrink-0"
             aria-label={t('navbar.openMenu')}
+            aria-expanded={mobileMenuOpen}
+            aria-controls="mobile-sidebar-drawer"
           >
             <Menu size={18} />
           </button>

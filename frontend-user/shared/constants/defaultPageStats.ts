@@ -1,10 +1,12 @@
 import catalog from '@shared/data/traffic_sign_catalog_10.json';
+import { USE_SAMPLE_FALLBACK } from '@shared/config/dataMode';
 import type {
   AIDetectionCategoryStat,
   AIDetectionPageStats,
   AIDetectionSampleSign,
   SignCategory,
 } from '@shared/types';
+import { getProfileImageUrl } from '@shared/utils/profileImage';
 
 const CATEGORY_UI: Record<
   SignCategory,
@@ -107,7 +109,10 @@ export function resolveSampleSignImage(image?: string, signCode?: string): strin
     || (signCode ? DEMO_IMAGE_BY_SIGN_CODE[signCode.toUpperCase().replace(/\s+/g, '')] : '')
     || '';
   if (!raw) return '';
-  if (raw.startsWith('http') || raw.startsWith('blob:') || raw.startsWith('data:')) return raw;
+  if (raw.startsWith('blob:') || raw.startsWith('data:')) return raw;
+  if (raw.startsWith('http')) {
+    return getProfileImageUrl(raw) || raw;
+  }
   if (raw.startsWith('/demo-signs/')) {
     const base = import.meta.env.BASE_URL || '/';
     const prefix = base.endsWith('/') ? base.slice(0, -1) : base;
@@ -116,7 +121,7 @@ export function resolveSampleSignImage(image?: string, signCode?: string): strin
     }
     return raw;
   }
-  return raw;
+  return getProfileImageUrl(raw) || raw;
 }
 
 function patchSampleSignImages(signs: AIDetectionSampleSign[]): AIDetectionSampleSign[] {
@@ -163,6 +168,14 @@ export function mergePageStatsWithDefaults(
   api: AIDetectionPageStats | null | undefined,
 ): AIDetectionPageStats {
   if (!api) return DEFAULT_PAGE_STATS;
+
+  if (!USE_SAMPLE_FALLBACK) {
+    return {
+      ...api,
+      categories: api.categories ?? [],
+      sample_signs: patchSampleSignImages(api.sample_signs ?? []),
+    };
+  }
 
   const apiSamples = api.sample_signs?.length ? patchSampleSignImages(api.sample_signs) : [];
   const hasUsableSamples = apiSamples.some((s) => Boolean(resolveSampleSignImage(s.image, s.sign_code)));

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { cn } from '@shared/components/ui/utils';
 import { getProfileImageSrc } from '@shared/utils/profileImage';
+import { useLanguage } from '@shared/context/LanguageContext';
 
 const SIZE = {
   xs: 'w-9 h-9 text-xs',
@@ -27,6 +28,7 @@ export function NavbarProfileAvatar({
   showStatus = true,
   className,
 }: NavbarProfileAvatarProps) {
+  const { t } = useLanguage();
   const [imgFailed, setImgFailed] = useState(false);
   const src = imgFailed ? null : getProfileImageSrc(profileImage);
 
@@ -61,7 +63,7 @@ export function NavbarProfileAvatar({
             'app-navbar__avatar-status absolute z-10 rounded-full',
             size === 'md' ? 'app-navbar__avatar-status--md' : 'app-navbar__avatar-status--sm',
           )}
-          title="Online"
+          title={t('navbar.online')}
           aria-hidden
         />
       )}

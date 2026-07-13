@@ -1,23 +1,59 @@
-/** Resolve profile_image from API to a browser-loadable URL. */
+/** Same-origin path for Django /media URLs (Vite proxy or production deploy). */
+function sameOriginMediaPath(path: string): string {
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}${normalized}`;
+  }
+  const apiBase = import.meta.env.VITE_API_URL || '/api';
+  if (apiBase.startsWith('/')) {
+    return normalized;
+  }
+  const origin = apiBase.replace(/\/api\/?$/, '') || 'http://127.0.0.1:8000';
+  return `${origin}${normalized}`;
+}
+
+/** Resolve profile_image or API media fields to a browser-loadable URL. */
 export function getProfileImageUrl(profileImage?: string | null): string | null {
   if (!profileImage) return null;
-  if (
-    profileImage.startsWith('http') ||
-    profileImage.startsWith('blob:') ||
-    profileImage.startsWith('data:')
-  ) {
+  if (profileImage.startsWith('blob:') || profileImage.startsWith('data:')) {
     return profileImage;
   }
 
-  const path = profileImage.startsWith('/') ? profileImage : `/${profileImage}`;
-
-  if (typeof window !== 'undefined') {
-    return `${window.location.origin}${path}`;
+  if (/^https?:\/\//i.test(profileImage)) {
+    try {
+      const parsed = new URL(profileImage);
+      if (parsed.pathname.startsWith('/media/')) {
+        return sameOriginMediaPath(`${parsed.pathname}${parsed.search}`);
+      }
+    } catch {
+      return profileImage;
+    }
+    return profileImage;
   }
 
-  const apiBase = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
-  const origin = apiBase.replace(/\/api\/?$/, '') || 'http://127.0.0.1:8000';
-  return `${origin}${path}`;
+  return sameOriginMediaPath(profileImage);
+}
+
+const DETECTION_MEDIA_FIELDS = [
+  'uploaded_image',
+  'vehicle_snapshot',
+  'plate_snapshot',
+  'sign_crop_image',
+  'processed_image',
+  'annotated_processed_image',
+  'guide_frame_image',
+] as const;
+
+/** Rewrite Django media URLs on detection API payloads for the SPA origin. */
+export function normalizeDetectionMedia<T extends Record<string, unknown>>(result: T): T {
+  const next = { ...result } as T & Record<string, unknown>;
+  for (const key of DETECTION_MEDIA_FIELDS) {
+    const value = next[key];
+    if (typeof value === 'string' && value) {
+      next[key] = getProfileImageUrl(value) || value;
+    }
+  }
+  return next as T;
 }
 
 /** URL with cache-bust query from stored path (filename changes on re-upload). */

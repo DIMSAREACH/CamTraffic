@@ -1,17 +1,18 @@
-import { useState, useEffect, type ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import {
-  Car, FileText, Camera, AlertTriangle, CheckCircle, Clock, ArrowRight,
-  BookOpen, Sparkles, RefreshCw, Zap,
+  Car, FileText, AlertTriangle, CheckCircle, Clock, ArrowRight,
+  Sparkles, RefreshCw, Zap, Scale, Shield,
 } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { formatAppDate, greetingKey, formatAppCurrency } from '@shared/i18n/localeFormat';
 import { WelcomeProfileAvatar } from '@shared/components/WelcomeProfileAvatar';
-import { dashboardAPI } from '@shared/services/api';
-import { getSampleDriverStats } from '@shared/services/sampleDataFallback';
+import { useDriverDashboardStats } from '@shared/hooks/queries/useDashboardQueries';
+import { EMPTY_DRIVER_STATS } from '@shared/constants/emptyDashboard';
 import { DASHBOARD_PALETTE } from '@shared/constants/chartPalette';
-import type { Fine, AIDetectionLog } from '@shared/types';
+import type { Fine } from '@shared/types';
+import { toast } from 'sonner';
 
 const C = DASHBOARD_PALETTE;
 
@@ -77,37 +78,24 @@ export function DriverDashboard() {
   const { t, locale } = useLanguage();
   const navigate = useNavigate();
   const now = new Date();
-  const [stats, setStats] = useState<{
-    vehicles: number; total_fines: number; pending: number; paid: number; owed: number;
-    recent_detections: AIDetectionLog[]; recent_fines: Fine[];
-  }>(() => getSampleDriverStats());
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
-
-  const loadStats = () => {
-    if (!user) return;
-    setLoading(true);
-    setLoadError(false);
-    dashboardAPI
-      .getDriverStats(user.id)
-      .then((data) => {
-        setStats(data);
-        setLoadError(false);
-      })
-      .catch(() => {
-        setStats(getSampleDriverStats(user.id));
-        setLoadError(false);
-      })
-      .finally(() => setLoading(false));
-  };
+  const {
+    data,
+    isLoading,
+    isError,
+    isFetching,
+    refetch,
+  } = useDriverDashboardStats(user?.id);
+  const stats = data ?? EMPTY_DRIVER_STATS;
 
   useEffect(() => {
-    loadStats();
-  }, [user]);
+    if (isError) toast.error(t('dashboard.loadErrorTitle'));
+  }, [isError, t]);
+
+  const loading = isLoading && !data;
 
   const quickActions = [
-    { label: t('dashboard.qaAiDetection'), desc: t('dashboard.qaAiDetectionDesc'), icon: <Camera size={22} />, path: '/dashboard/ai-detection', palette: C[0], badge: t('dashboard.qaAiBadge') },
-    { label: t('dashboard.qaSignsLibrary'), desc: t('dashboard.qaSignsLibraryDesc'), icon: <BookOpen size={22} />, path: '/dashboard/signs', palette: C[1], badge: null },
+    { label: t('dashboard.qaMyViolations'), desc: t('dashboard.qaMyViolationsDesc'), icon: <Shield size={22} />, path: '/dashboard/violations', palette: C[0], badge: null },
+    { label: t('dashboard.qaMyAppeals'), desc: t('dashboard.qaMyAppealsDesc'), icon: <Scale size={22} />, path: '/dashboard/appeals', palette: C[1], badge: null },
     { label: t('dashboard.qaMyVehicles'), desc: t('dashboard.qaMyVehiclesDesc'), icon: <Car size={22} />, path: '/dashboard/vehicles', palette: C[2], badge: null },
     { label: t('dashboard.qaMyFines'), desc: t('dashboard.qaMyFinesDesc'), icon: <FileText size={22} />, path: '/dashboard/fines', palette: C[5], badge: stats?.pending ? t('dashboard.pendingBadge', { count: stats.pending }) : null },
   ];
@@ -133,14 +121,15 @@ export function DriverDashboard() {
     );
   }
 
-  if (loadError && !stats) {
+  if (isError && !data) {
     return (
       <div className="rounded-2xl bg-white p-8 text-center shadow-sm" style={{ border: '1px solid rgba(37,99,235,0.1)' }}>
         <p className="text-slate-700 font-semibold mb-2">{t('dashboard.loadErrorTitle')}</p>
         <p className="text-sm text-slate-500 mb-4">{t('dashboard.loadErrorHint')}</p>
         <button
           type="button"
-          onClick={loadStats}
+          onClick={() => { void refetch(); }}
+          disabled={isFetching}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold"
           style={{ background: C[1].grad }}
         >
@@ -336,56 +325,58 @@ export function DriverDashboard() {
         </PanelCard>
 
         <PanelCard
-          title={t('dashboard.recentDetections')}
-          accent={C[0].solid}
-          icon={<Camera size={16} />}
+          title={t('dashboard.recentFines')}
+          accent={C[5].solid}
+          icon={<FileText size={16} />}
           action={(
             <button
               type="button"
-              onClick={() => navigate('/dashboard/ai-detection')}
+              onClick={() => navigate('/dashboard/fines')}
               className="user-dashboard-panel__link text-[13px] flex items-center gap-1 flex-shrink-0"
-              style={{ color: C[0].dark }}
+              style={{ color: C[5].dark }}
             >
-              {t('dashboard.detect')} <ArrowRight size={12} />
+              {t('dashboard.viewAll')} <ArrowRight size={12} />
             </button>
           )}
         >
-          {!stats?.recent_detections?.length ? (
-            <div className="text-center py-10 rounded-xl" style={{ background: C[0].soft, border: `1px dashed ${C[0].solid}44` }}>
-              <Camera size={32} className="mx-auto mb-2.5" style={{ color: C[0].solid }} />
-              <p className="text-sm font-semibold" style={{ color: '#334155' }}>{t('dashboard.noDetectionsYet')}</p>
+          {!stats?.recent_fines?.length ? (
+            <div className="text-center py-10 rounded-xl" style={{ background: C[5].soft, border: `1px dashed ${C[5].solid}44` }}>
+              <FileText size={32} className="mx-auto mb-2.5" style={{ color: C[5].solid }} />
+              <p className="text-sm font-semibold" style={{ color: '#334155' }}>{t('dashboard.noFinesYet')}</p>
               <button
                 type="button"
-                onClick={() => navigate('/dashboard/ai-detection')}
+                onClick={() => navigate('/dashboard/violations')}
                 className="mt-3 px-4 py-2 rounded-xl text-white text-xs font-semibold"
-                style={{ background: C[0].grad }}
+                style={{ background: C[5].grad }}
               >
-                {t('dashboard.tryAiDetection')}
+                {t('dashboard.qaMyViolations')}
               </button>
             </div>
           ) : (
             <div className="space-y-2.5">
-              {stats.recent_detections.map((d, i) => {
+              {stats.recent_fines.map((f, i) => {
+                const badge = STATUS_BADGE[f.status] ?? STATUS_BADGE.pending;
                 const tone = C[i % C.length];
                 return (
                   <div
-                    key={d.id}
-                    className="flex items-center gap-3 p-3 rounded-xl transition-all"
+                    key={f.id}
+                    className="flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer"
                     style={{ background: tone.soft, border: `1px solid ${tone.solid}22` }}
+                    onClick={() => navigate('/dashboard/fines')}
+                    onKeyDown={(e) => e.key === 'Enter' && navigate('/dashboard/fines')}
+                    role="button"
+                    tabIndex={0}
                   >
                     <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                      style={{ background: `${tone.solid}22`, color: tone.dark }}>
-                      <Camera size={15} />
+                      style={{ background: badge.bg, color: badge.color }}>
+                      <FileText size={15} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="user-dashboard-list-item__title truncate">{d.detected_sign}</p>
-                      <p className="user-dashboard-list-item__meta mt-0.5">{new Date(d.created_at).toLocaleDateString()}</p>
+                      <p className="user-dashboard-list-item__title truncate">{f.reason}</p>
+                      <p className="user-dashboard-list-item__meta mt-0.5">{new Date(f.created_at).toLocaleDateString()}</p>
                     </div>
-                    <span
-                      className="user-dashboard-confidence flex-shrink-0"
-                      style={{ background: tone.soft, color: tone.dark, borderColor: `${tone.solid}44` }}
-                    >
-                      {d.confidence.toFixed(1)}%
+                    <span className="user-dashboard-list-item__amount flex-shrink-0">
+                      {formatAppCurrency(locale, f.amount)}
                     </span>
                   </div>
                 );

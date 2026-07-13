@@ -6,6 +6,7 @@ from rest_framework import filters, generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
+from core.audit_service import log_audit
 from core.permissions import IsAdmin, IsPoliceOrAdmin
 from core.responses import error_response, success_response
 from vehicles.models import Vehicle
@@ -13,7 +14,7 @@ from vehicles.serializers import VehicleSerializer
 from violations.models import TrafficViolation, ViolationRule
 
 from .models import Fine
-from .serializers import FineCreateSerializer, FineSerializer
+from .serializers import FineCreateSerializer, FinePaymentSerializer, FineSerializer
 from .services import notify_driver_fine
 
 User = get_user_model()
@@ -108,6 +109,14 @@ class FineListCreateView(generics.ListCreateAPIView):
             violation=violation,
         )
         notify_driver_fine(driver, fine)
+        log_audit(
+            user=request.user,
+            action='create',
+            resource='fine',
+            resource_id=fine.id,
+            request=request,
+            new_value={'amount': str(fine.amount), 'driver_id': str(driver.id)},
+        )
         return success_response(
             FineSerializer(fine, context={'request': request}).data,
             message='Fine issued',
@@ -115,7 +124,7 @@ class FineListCreateView(generics.ListCreateAPIView):
         )
 
 
-class FineDetailView(generics.RetrieveUpdateAPIView):
+class FineDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = FineSerializer
 
@@ -130,17 +139,105 @@ class FineDetailView(generics.RetrieveUpdateAPIView):
 
     def patch(self, request, *args, **kwargs):
         instance = self.get_object()
+        user = request.user
+        if user.role not in ('police', 'admin'):
+            return error_response('Permission denied', status_code=status.HTTP_403_FORBIDDEN)
+
+        editable = instance.status in ('pending', 'overdue', 'disputed')
         new_status = request.data.get('status')
         if new_status:
-            if request.user.role not in ('police', 'admin') and request.user.id != instance.driver_id:
-                return error_response('Permission denied', status_code=status.HTTP_403_FORBIDDEN)
             instance.status = new_status
             if new_status == 'paid':
                 instance.paid_at = timezone.now()
-            instance.save()
+            elif new_status in ('pending', 'overdue', 'disputed'):
+                instance.paid_at = None
+
+        if editable:
+            if 'amount' in request.data:
+                instance.amount = request.data['amount']
+            if 'reason' in request.data:
+                instance.reason = str(request.data['reason'] or '').strip()
+            if 'location' in request.data:
+                instance.location = str(request.data['location'] or '').strip()
+            if 'vehicle_plate' in request.data:
+                instance.vehicle_plate = str(request.data['vehicle_plate'] or '').strip()
+
+        instance.save()
+        log_audit(
+            user=user,
+            action='update',
+            resource='fine',
+            resource_id=instance.id,
+            request=request,
+            new_value={'status': instance.status},
+        )
         return success_response(
             FineSerializer(instance, context={'request': request}).data,
             message='Fine updated',
+        )
+
+    def delete(self, request, *args, **kwargs):
+        if request.user.role != 'admin':
+            return error_response('Only admin can delete fines', status_code=status.HTTP_403_FORBIDDEN)
+        instance = self.get_object()
+        if instance.status == 'paid':
+            return error_response('Cannot delete a paid fine', status_code=status.HTTP_400_BAD_REQUEST)
+        fine_id = instance.id
+        instance.delete()
+        log_audit(
+            user=request.user,
+            action='delete',
+            resource='fine',
+            resource_id=fine_id,
+            request=request,
+        )
+        return success_response(None, message='Fine deleted')
+
+
+class FinePaymentView(APIView):
+    """Driver submits payment proof (mock gateway — ABA, Wing, bank transfer)."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            fine = Fine.objects.select_related('driver').get(pk=pk)
+        except Fine.DoesNotExist:
+            return error_response('Fine not found', status_code=status.HTTP_404_NOT_FOUND)
+
+        if request.user.role != 'driver' or fine.driver_id != request.user.id:
+            return error_response('Only the fined driver can submit payment', status_code=status.HTTP_403_FORBIDDEN)
+
+        if fine.status not in ('pending', 'overdue', 'disputed'):
+            return error_response('This fine cannot be paid in its current status')
+
+        serializer = FinePaymentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        fine.payment_method = data['payment_method']
+        fine.payment_reference = data['payment_reference']
+        if data.get('payment_screenshot'):
+            fine.payment_screenshot = data['payment_screenshot']
+        fine.status = 'paid'
+        fine.paid_at = timezone.now()
+        fine.save()
+
+        log_audit(
+            user=request.user,
+            action='update',
+            resource='fine_payment',
+            resource_id=fine.id,
+            request=request,
+            new_value={
+                'payment_method': fine.payment_method,
+                'payment_reference': fine.payment_reference,
+                'status': fine.status,
+            },
+        )
+
+        return success_response(
+            FineSerializer(fine, context={'request': request}).data,
+            message='Payment submitted successfully',
         )
 
 
@@ -153,7 +250,10 @@ class DriverLookupView(APIView):
             return error_response('License number required')
         driver = User.objects.filter(role='driver', license_no__icontains=license_no, is_active=True).first()
         if not driver:
-            return success_response({'driver': None, 'driver_profile_id': None, 'fines': [], 'vehicles': []}, message='No driver found')
+            return success_response(
+                {'driver': None, 'driver_profile_id': None, 'fines': [], 'vehicles': []},
+                message='No driver found',
+            )
         from users.models import Driver
         from users.serializers import UserSerializer
 
@@ -179,9 +279,11 @@ class FinePDFExportView(APIView):
         user = request.user
         if user.role == 'driver' and fine.driver_id != user.id:
             return error_response('Permission denied', status_code=status.HTTP_403_FORBIDDEN)
+        from io import BytesIO
+
         from reportlab.lib.pagesizes import A4
         from reportlab.pdfgen import canvas
-        from io import BytesIO
+
         buffer = BytesIO()
         p = canvas.Canvas(buffer, pagesize=A4)
         p.setFont('Helvetica-Bold', 16)

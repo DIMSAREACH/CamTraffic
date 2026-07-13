@@ -11,7 +11,7 @@ class VehicleSerializer(serializers.ModelSerializer):
         model = Vehicle
         fields = (
             'id', 'owner_id', 'owner_name', 'plate_number', 'vehicle_type',
-            'model', 'color', 'year', 'created_at',
+            'model', 'color', 'year', 'registration_photo', 'created_at',
         )
         read_only_fields = ('id', 'created_at', 'owner_id', 'owner_name')
 
@@ -24,3 +24,9 @@ class VehicleCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data['owner'] = self.context['request'].user
         return super().create(validated_data)
+
+
+class VehicleUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Vehicle
+        fields = ('plate_number', 'vehicle_type', 'model', 'color', 'year')

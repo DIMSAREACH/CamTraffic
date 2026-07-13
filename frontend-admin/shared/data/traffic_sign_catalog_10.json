@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-06-18",
+  "generated_at": "2026-07-13",
   "dataset": "Cambodia Traffic Sign Dataset (10 Classes)",
   "model": "YOLOv8",
   "total_classes": 10,

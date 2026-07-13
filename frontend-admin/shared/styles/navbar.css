@@ -497,15 +497,11 @@
   --navbar-menu-item-bg: transparent;
   --navbar-menu-item-hover-bg: #e8e4ff;
   font-family: var(--dashboard-font-body);
-  border-radius: 12px !important;
-  border: 1px solid color-mix(in srgb, var(--ct-indigo) 22%, #e2e8f0) !important;
+  border-radius: var(--dropdown-radius) !important;
+  border: 1px solid var(--dropdown-border) !important;
   background: linear-gradient(165deg, #ffffff 0%, #faf8ff 45%, #f0fdfa 100%) !important;
-  box-shadow:
-    0 4px 8px rgba(15, 23, 42, 0.06),
-    0 12px 32px rgba(124, 58, 237, 0.14),
-    0 20px 48px rgba(6, 182, 212, 0.1),
-    0 4px 16px rgba(99, 102, 241, 0.08) !important;
-  padding: 0.25rem !important;
+  box-shadow: var(--dropdown-shadow) !important;
+  padding: var(--dropdown-padding) !important;
   overflow: hidden;
 }
 
@@ -636,7 +632,7 @@
   font-weight: 500;
   color: var(--navbar-text-muted) !important;
   background-color: var(--navbar-menu-item-bg) !important;
-  border-radius: 0.5rem !important;
+  border-radius: var(--dropdown-item-radius) !important;
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
@@ -733,8 +729,8 @@
   --navbar-bg: #1e293b;
   --navbar-border: rgba(255, 255, 255, 0.06);
   --navbar-text: #f8fafc;
-  --navbar-text-muted: #94a3b8;
-  --navbar-text-subtle: #64748b;
+  --navbar-text-muted: #cbd5e1;
+  --navbar-text-subtle: #94a3b8;
   --navbar-surface: #172033;
   --navbar-surface-hover: #243044;
   --navbar-surface-border: rgba(255, 255, 255, 0.08);

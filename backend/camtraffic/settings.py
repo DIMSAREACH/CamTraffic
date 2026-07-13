@@ -7,6 +7,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from config.logging import build_logging_config
+
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -27,6 +29,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'django_filters',
+    'drf_spectacular',
     'core',
     'authentication',
     'users',
@@ -44,10 +47,14 @@ INSTALLED_APPS = [
     'audit',
     'unknown_vehicles',
     'ai_models',
+    'datasets',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'core.middleware.RequestIdMiddleware',
+    'core.middleware.RequestLoggingMiddleware',
+    'core.middleware.SecurityHardeningMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -133,6 +140,25 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'Asia/Phnom_Penh'
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_DEFAULT_QUEUE = 'default'
+# Windows: prefork pool crashes in billiard (use solo — one task at a time)
+if os.name == 'nt':
+    CELERY_WORKER_POOL = 'solo'
+    CELERY_WORKER_CONCURRENCY = 1
+CELERY_BEAT_SCHEDULE = {
+    'mark-overdue-fines-daily': {
+        'task': 'camtraffic.mark_overdue_fines',
+        'schedule': 86400.0,
+    },
+    'celery-ping-hourly': {
+        'task': 'camtraffic.ping',
+        'schedule': 3600.0,
+    },
+}
+
+# Local dev without Redis: run tasks inline (no broker connection retries).
+if not USE_REDIS:
+    CELERY_TASK_ALWAYS_EAGER = True
+    CELERY_TASK_EAGER_PROPAGATES = True
 
 AUTH_USER_MODEL = 'users.User'
 
@@ -195,6 +221,17 @@ REST_FRAMEWORK = {
         'rest_framework.filters.SearchFilter',
         'rest_framework.filters.OrderingFilter',
     ),
+    'DEFAULT_THROTTLE_CLASSES': (
+        'core.throttling.AnonBurstRateThrottle',
+        'core.throttling.BurstRateThrottle',
+        'core.throttling.SustainedRateThrottle',
+    ),
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': os.getenv('API_THROTTLE_ANON', '60/min'),
+        'burst': os.getenv('API_THROTTLE_BURST', '120/min'),
+        'sustained': os.getenv('API_THROTTLE_SUSTAINED', '2000/hour'),
+    },
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'EXCEPTION_HANDLER': 'core.exceptions.custom_exception_handler',
 }
 
@@ -276,6 +313,51 @@ FRONTEND_PASSWORD_RESET_URL = os.getenv(
     'FRONTEND_PASSWORD_RESET_URL',
     'http://localhost:5173/reset-password',
 )
+FRONTEND_EMAIL_VERIFY_URL = os.getenv(
+    'FRONTEND_EMAIL_VERIFY_URL',
+    'http://localhost:5173/verify-email',
+)
+
+# Login brute-force protection (SecurityHardeningMiddleware)
+LOGIN_RATE_LIMIT_MAX = int(os.getenv('LOGIN_RATE_LIMIT_MAX', '10'))
+LOGIN_RATE_LIMIT_WINDOW = int(os.getenv('LOGIN_RATE_LIMIT_WINDOW', '300'))
+
+# OpenAPI / Swagger (enable in production with ENABLE_API_DOCS=true)
+ENABLE_API_DOCS = os.getenv('ENABLE_API_DOCS', 'True' if DEBUG else 'False').lower() == 'true'
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'CamTraffic API',
+    'DESCRIPTION': (
+        'REST API for the AI-Based Traffic Sign Detection and Traffic Law Enforcement System (Cambodia). '
+        'Authenticate with JWT Bearer token from POST /api/auth/login/.'
+    ),
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
+    'SCHEMA_PATH_PREFIX': r'/api',
+    'SECURITY': [{'BearerAuth': []}],
+    'APPEND_COMPONENTS': {
+        'securitySchemes': {
+            'BearerAuth': {
+                'type': 'http',
+                'scheme': 'bearer',
+                'bearerFormat': 'JWT',
+            },
+        },
+    },
+    'TAGS': [
+        {'name': 'auth', 'description': 'Login, register, profile, OAuth'},
+        {'name': 'dashboard', 'description': 'Analytics and reports'},
+        {'name': 'ai', 'description': 'Sign detection and OCR'},
+        {'name': 'rbac', 'description': 'Roles and permissions (admin)'},
+    ],
+}
+
+# Secure cookies in production
+SESSION_COOKIE_SECURE = os.getenv('SESSION_COOKIE_SECURE', 'False' if DEBUG else 'True').lower() == 'true'
+CSRF_COOKIE_SECURE = os.getenv('CSRF_COOKIE_SECURE', 'False' if DEBUG else 'True').lower() == 'true'
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
 
 # Resend (https://resend.com) — preferred for password reset / resend emails
 RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
@@ -292,30 +374,31 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', 30))
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', '') or EMAIL_HOST_USER or 'noreply@camtraffic.kh'
 
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {message}',
-            'style': '{',
-        },
-    },
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
-        },
-        'file': {
-            'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'logs' / 'camtraffic.log',
-            'formatter': 'verbose',
-        },
-    },
-    'root': {
-        'handlers': ['console'],
-        'level': 'INFO',
-    },
-}
+LOGGING = build_logging_config(
+    BASE_DIR,
+    use_json=os.getenv('JSON_LOGS', 'False').lower() == 'true',
+)
 
-(BASE_DIR / 'logs').mkdir(exist_ok=True)
+# ── Production safety checks ───────────────────────────────────────────────────
+_DEV_SECRET_KEYS = frozenset({
+    'django-insecure-dev-only-change-in-production',
+    'change-me-to-a-long-random-secret-key',
+})
+
+
+def _validate_production_settings() -> None:
+    if DEBUG:
+        return
+    from django.core.exceptions import ImproperlyConfigured
+
+    if SECRET_KEY in _DEV_SECRET_KEYS or len(SECRET_KEY) < 40:
+        raise ImproperlyConfigured(
+            'SECRET_KEY must be a strong random value (40+ chars) when DEBUG=False.'
+        )
+    if USE_SQLITE:
+        raise ImproperlyConfigured(
+            'USE_SQLITE must be False in production. Configure PostgreSQL (USE_SQLITE=False).'
+        )
+
+
+_validate_production_settings()

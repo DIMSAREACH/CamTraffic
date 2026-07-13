@@ -2,6 +2,7 @@
 
 from django.db import migrations, models
 import django.db.models.deletion
+import uuid
 
 
 class Migration(migrations.Migration):
@@ -15,7 +16,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Road',
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
                 ('name', models.CharField(max_length=200)),
                 ('road_type', models.CharField(choices=[('highway', 'Highway'), ('urban', 'Urban'), ('rural', 'Rural'), ('intersection', 'Intersection')], default='urban', max_length=30)),
                 ('length_km', models.DecimalField(blank=True, decimal_places=2, max_digits=8, null=True)),
@@ -36,7 +37,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='TrafficSignal',
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
                 ('signal_code', models.CharField(max_length=50)),
                 ('cycle_duration', models.PositiveIntegerField(default=120, help_text='Seconds')),
                 ('timing_sequence', models.JSONField(blank=True, default=dict)),
@@ -54,7 +55,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Camera',
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
                 ('name', models.CharField(max_length=150)),
                 ('code', models.CharField(blank=True, max_length=50, unique=True)),
                 ('model', models.CharField(blank=True, max_length=100)),

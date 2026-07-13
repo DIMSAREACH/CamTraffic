@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   BarChart3, Download, TrendingUp, FileText, Users, Camera, PieChart as PieChartIcon,
   BarChart2, LineChart as LineChartIcon, AlertCircle, RefreshCw, Shield, Car, BadgeCheck,
-  MapPin, Activity, Gauge, Layers,
+  MapPin, Activity, Gauge, Layers, FileSpreadsheet, Calendar, ArrowDownToLine, Loader2,
 } from 'lucide-react';
 import { Button } from '@shared/components/ui/button';
 import {
@@ -14,7 +14,7 @@ import { useLanguage } from '@shared/context/LanguageContext';
 import { formatAppCurrency, formatChartAxisCurrency, formatRevenue } from '@shared/i18n/localeFormat';
 import { useLiveData } from '@shared/hooks/useLiveData';
 import { dashboardAPI } from '@shared/services/api';
-import { getSampleAdminDashboard, mergeDashboardStats } from '@shared/services/sampleDataFallback';
+import { EMPTY_DASHBOARD_STATS } from '@shared/constants/emptyDashboard';
 import { toast } from 'sonner';
 import type { DashboardStats } from '@shared/types';
 import {
@@ -158,7 +158,7 @@ function TopLocationsPanel({
 export function ReportsPage() {
   const { t, locale } = useLanguage();
   const { user } = useAuth();
-  const [stats, setStats] = useState<DashboardStats>(() => getSampleAdminDashboard());
+  const [stats, setStats] = useState<DashboardStats>(() => ({ ...EMPTY_DASHBOARD_STATS }));
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [tab, setTab] = useState<ReportTab>('overview');
@@ -181,11 +181,11 @@ export function ReportsPage() {
         : dashboardAPI.getPoliceReportStats();
 
     request
-      .then((s) => setStats(mergeDashboardStats(s)))
+      .then((s) => setStats(s))
       .catch(() => {
-        setStats(getSampleAdminDashboard());
-        setLoadError(false);
-        if (!silent) toast.message(t('reports.demoData') || 'Showing demo report data.');
+        setStats({ ...EMPTY_DASHBOARD_STATS });
+        setLoadError(true);
+        if (!silent) toast.error(t('dashboard.loadErrorTitle'));
       })
       .finally(() => {
         if (!silent) setLoading(false);
@@ -300,54 +300,6 @@ export function ReportsPage() {
             <p className="enforcement-page__subtitle">
               {t('pages.reports.heroSubtitle', { year: reportYear })}
             </p>
-          </div>
-          <div className="flex flex-col sm:flex-row sm:items-end gap-3">
-            <div className="flex gap-2">
-              <label className="flex flex-col gap-1 text-[11px] font-semibold text-muted-foreground">
-                {t('reports.exportMonth')}
-                <select
-                  value={reportMonth}
-                  onChange={(e) => setReportMonth(Number(e.target.value))}
-                  className="rounded-lg border border-border bg-background px-2.5 py-2 text-[13px] min-w-[5.5rem]"
-                >
-                  {monthOptions.map((m) => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1 text-[11px] font-semibold text-muted-foreground">
-                {t('reports.exportYear')}
-                <select
-                  value={reportYear}
-                  onChange={(e) => setReportYear(Number(e.target.value))}
-                  className="rounded-lg border border-border bg-background px-2.5 py-2 text-[13px] min-w-[5.5rem]"
-                >
-                  {yearOptions.map((y) => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                className="enforcement-page__hero-btn enforcement-page__hero-btn--amber"
-                onClick={handleExport}
-                disabled={exporting}
-              >
-                <Download size={16} />
-                {exporting ? t('reports.exporting') : t('pages.reports.exportPdf')}
-              </button>
-              <button
-                type="button"
-                className="enforcement-page__hero-btn"
-                onClick={() => void handleExportExcel()}
-                disabled={exportingExcel}
-              >
-                <Download size={16} />
-                {exportingExcel ? t('reports.exporting') : t('pages.reports.exportExcel')}
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -834,6 +786,103 @@ export function ReportsPage() {
           </div>
         </div>
       )}
+
+      <section className="reports-page__data-ops" aria-labelledby="data-ops-title">
+        <div className="reports-page__data-ops-glow reports-page__data-ops-glow--amber" aria-hidden />
+        <div className="reports-page__data-ops-glow reports-page__data-ops-glow--blue" aria-hidden />
+
+        <div className="reports-page__data-ops-inner">
+          <header className="reports-page__data-ops-head">
+            <p className="reports-page__data-ops-eyebrow">{t('reports.dataOpsEyebrow')}</p>
+            <h2 id="data-ops-title" className="reports-page__data-ops-title">{t('reports.dataOpsTitle')}</h2>
+            <p className="reports-page__data-ops-desc">{t('reports.dataOpsDesc')}</p>
+          </header>
+
+          <div className="reports-page__data-ops-grid">
+            <article className="reports-page__io-panel reports-page__io-panel--export">
+              <div className="reports-page__io-panel-head">
+                <div className="reports-page__io-panel-icon reports-page__io-panel-icon--amber">
+                  <ArrowDownToLine size={17} strokeWidth={2.2} />
+                </div>
+                <div>
+                  <h3 className="reports-page__io-panel-title">{t('reports.exportOutputTitle')}</h3>
+                  <p className="reports-page__io-panel-sub">
+                    {user.role === 'admin' ? t('reports.reportSummaryScopeAdmin') : t('reports.reportSummaryScopePolice')}
+                  </p>
+                </div>
+              </div>
+
+              <div className="reports-page__io-toolbar">
+                <Calendar size={14} />
+                <label className="reports-page__io-field">
+                  <span>{t('reports.exportMonth')}</span>
+                  <select value={reportMonth} onChange={(e) => setReportMonth(Number(e.target.value))}>
+                    {monthOptions.map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="reports-page__io-field">
+                  <span>{t('reports.exportYear')}</span>
+                  <select value={reportYear} onChange={(e) => setReportYear(Number(e.target.value))}>
+                    {yearOptions.map((y) => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <div className="reports-page__io-cards">
+                <div className="reports-page__io-card reports-page__io-card--pdf">
+                  <div className="reports-page__io-card-top">
+                    <span className="reports-page__io-card-icon"><FileText size={18} /></span>
+                    <span className="reports-page__io-format">{t('reports.outputFormatPdf')}</span>
+                  </div>
+                  <h4 className="reports-page__io-card-title">{t('pages.reports.exportPdf')}</h4>
+                  <p className="reports-page__io-card-desc">{t('reports.reportSummaryPdfHint')}</p>
+                  <ul className="reports-page__io-includes">
+                    <li>{t('reports.reportSummaryChipOverview')}</li>
+                    <li>{t('reports.reportSummaryChipMonthly')}</li>
+                    <li>{t('reports.reportSummaryChipViolations')}</li>
+                  </ul>
+                  <button
+                    type="button"
+                    className="reports-page__io-card-btn reports-page__io-card-btn--amber"
+                    onClick={() => void handleExport()}
+                    disabled={exporting}
+                  >
+                    {exporting ? <Loader2 size={15} className="reports-page__io-spinner" /> : <Download size={15} />}
+                    {exporting ? t('reports.exporting') : t('reports.outputActionExport')}
+                  </button>
+                </div>
+
+                <div className="reports-page__io-card reports-page__io-card--excel">
+                  <div className="reports-page__io-card-top">
+                    <span className="reports-page__io-card-icon"><FileSpreadsheet size={18} /></span>
+                    <span className="reports-page__io-format">{t('reports.outputFormatExcel')}</span>
+                  </div>
+                  <h4 className="reports-page__io-card-title">{t('pages.reports.exportExcel')}</h4>
+                  <p className="reports-page__io-card-desc">{t('reports.reportSummaryExcelHint')}</p>
+                  <ul className="reports-page__io-includes">
+                    <li>{t('reports.reportSummaryChipViolations')}</li>
+                    <li>{t('reports.reportSummaryChipReasons')}</li>
+                    <li>{t('reports.reportSummaryPeriod')}</li>
+                  </ul>
+                  <button
+                    type="button"
+                    className="reports-page__io-card-btn reports-page__io-card-btn--blue"
+                    onClick={() => void handleExportExcel()}
+                    disabled={exportingExcel}
+                  >
+                    {exportingExcel ? <Loader2 size={15} className="reports-page__io-spinner" /> : <Download size={15} />}
+                    {exportingExcel ? t('reports.exporting') : t('reports.outputActionExport')}
+                  </button>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

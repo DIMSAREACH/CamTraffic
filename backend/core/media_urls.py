@@ -1,0 +1,35 @@
+"""Relative media URLs for SPA clients (Vite /media proxy or same-origin deploy)."""
+from __future__ import annotations
+
+from urllib.parse import urlparse
+
+from django.conf import settings
+
+
+def api_media_url(_request, field) -> str:
+    """Return a browser-loadable path such as /media/... (no Django host)."""
+    if not field:
+        return ''
+    name = getattr(field, 'name', None)
+    if not name:
+        return ''
+    try:
+        url = field.url
+    except (ValueError, AttributeError):
+        return ''
+    if url.startswith(('http://', 'https://')):
+        path = urlparse(url).path or url
+    else:
+        path = url
+    if not path.startswith('/'):
+        media = settings.MEDIA_URL.rstrip('/')
+        path = f'{media}/{name.lstrip("/")}'
+    return path
+
+
+def api_media_path(relative_name: str) -> str:
+    """Build /media/... from a storage-relative path."""
+    if not relative_name:
+        return ''
+    media = settings.MEDIA_URL.rstrip('/')
+    return f'{media}/{relative_name.lstrip("/")}'

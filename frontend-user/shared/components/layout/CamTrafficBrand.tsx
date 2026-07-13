@@ -33,6 +33,7 @@ export function CamTrafficBrand({
   const { t } = useLanguage();
   const logoSize = LOGO_SIZES[size];
   const tagline = variant === 'admin' ? t('brand.taglineAdmin') : t('brand.taglineUser');
+  const homeLabel = t('sidebar.goHome');
   const Root = to ? Link : 'div';
 
   return (
@@ -47,8 +48,8 @@ export function CamTrafficBrand({
         to && 'sidebar-brand-link',
         className,
       )}
-      aria-label="CamTraffic home"
-      title={to ? 'Go to dashboard' : undefined}
+      aria-label={homeLabel}
+      title={to ? homeLabel : undefined}
     >
       {!textOnly && (
         <CamTrafficLogo size={logoSize} className="sidebar-brand__mark flex-shrink-0" />

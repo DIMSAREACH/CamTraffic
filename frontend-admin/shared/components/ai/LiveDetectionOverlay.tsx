@@ -59,19 +59,19 @@ export function LiveDetectionOverlay({
           style={{ background: 'rgba(15,23,42,0.78)', border: '1px solid rgba(255,255,255,0.12)' }}>
           {kinds.has('sign') && (
             <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full" style={{ background: '#F59E0B' }} />
+              <span className="w-2 h-2 rounded-full" style={{ background: '#8B5CF6' }} />
               {legendSign}
             </span>
           )}
           {kinds.has('vehicle') && (
             <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full" style={{ background: '#3B82F6' }} />
+              <span className="w-2 h-2 rounded-full" style={{ background: '#06B6D4' }} />
               {legendVehicle}
             </span>
           )}
           {kinds.has('plate') && (
             <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full" style={{ background: '#0EA5E9' }} />
+              <span className="w-2 h-2 rounded-full" style={{ background: '#F59E0B' }} />
               {legendPlate}
             </span>
           )}

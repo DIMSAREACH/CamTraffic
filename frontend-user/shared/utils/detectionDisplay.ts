@@ -59,6 +59,95 @@ function kmGuidanceFallback(title: string): string {
   return `សូមបញ្ជរកចរាចរតាមស្លាក ${title}។ រក្សាសុវត្ថិភាពចរាចរណ៍។`;
 }
 
+/** Keep Khmer sentences when API text mixes Khmer + English. */
+export function khmerDominantText(text: string): string {
+  const chunks = text.split(/(?<=[។.!?])\s+/).map((s) => s.trim()).filter(Boolean);
+  const khmerChunks = chunks.filter((chunk) => KHMER_RE.test(chunk));
+  if (khmerChunks.length > 0) return khmerChunks.join(' ');
+  return text;
+}
+
+/** Keep English sentences when API text mixes Khmer + English. */
+export function englishDominantText(text: string): string {
+  const chunks = text.split(/(?<=[.!?])\s+/).map((s) => s.trim()).filter(Boolean);
+  const englishChunks = chunks.filter((chunk) => chunk && !KHMER_RE.test(chunk));
+  if (englishChunks.length > 0) return englishChunks.join(' ');
+  return text.replace(/[\u1780-\u17FF]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
+}
+
+const EN_SPEECH_FALLBACK =
+  'Traffic guidance from the detected sign. Please follow Cambodian road rules and obey the sign.';
+const KM_SPEECH_FALLBACK =
+  'សូមបញ្ជរកចរាចរតាមស្លាកចរាចរណ៍ និងគោរពច្បាប់ចរាចរណ៍។';
+
+/** One language per utterance — avoids Khmer voice reading English (and vice versa). */
+export function textForTts(text: string, locale: 'km' | 'en'): string {
+  const raw = text.trim();
+  if (!raw) return '';
+  if (locale === 'en') {
+    const stripped = englishDominantText(raw);
+    if (stripped && !KHMER_RE.test(stripped)) return stripped;
+    const latinOnly = raw.replace(/[\u1780-\u17FF]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
+    if (latinOnly && /[A-Za-z]{2,}/.test(latinOnly)) return latinOnly;
+    return EN_SPEECH_FALLBACK;
+  }
+  const khmer = prepareKhmerTtsText(khmerDominantText(raw));
+  if (khmer && KHMER_RE.test(khmer)) return khmer;
+  return KM_SPEECH_FALLBACK;
+}
+
+function pickKhmerSpeechText(
+  primary: string | undefined,
+  kmField: string | undefined,
+  title: string,
+  code: string | undefined,
+  fallback: (t: string, c?: string) => string,
+): string {
+  if (kmField?.trim() && hasKhmer(kmField)) return kmField.trim();
+  if (primary?.trim() && hasKhmer(primary) && !isGenericKhmerSignLabel(primary, code)) {
+    return khmerDominantText(primary);
+  }
+  return fallback(title, code);
+}
+
+function enDescriptionFallback(title: string, code?: string): string {
+  const subject = title.trim() || code || 'traffic sign';
+  return `${subject}. Please follow Cambodian road rules and obey the detected sign.`;
+}
+
+function enGuidanceFallback(title: string): string {
+  const subject = title.trim() || 'traffic sign';
+  return `Please follow the ${subject} sign guidance and drive safely.`;
+}
+
+function pickEnglishSpeechText(
+  primary: string | undefined,
+  enField: string | undefined,
+  title: string,
+  code: string | undefined,
+  fallback: (t: string, c?: string) => string,
+): string {
+  if (enField?.trim() && !hasKhmer(enField)) return enField.trim();
+  if (primary?.trim() && !hasKhmer(primary)) return englishDominantText(primary);
+  return fallback(title, code);
+}
+
+function resolveEnglishTitle(
+  result: DetectionDisplayInput,
+  labels: { km: string; en: string },
+): string {
+  const candidates = [
+    result.display_title_en,
+    labels.en,
+    result.sign_name_en,
+    result.sign_code,
+  ].filter(Boolean) as string[];
+  for (const candidate of candidates) {
+    if (!hasKhmer(candidate)) return candidate;
+  }
+  return labels.en || result.sign_code || 'traffic sign';
+}
+
 /** Normalize Khmer TTS text (fix Latin letters mixed into Khmer labels). */
 export function prepareKhmerTtsText(text: string): string {
   let out = text.trim();
@@ -77,8 +166,10 @@ export interface DetectionDisplayInput {
   confidence: number;
   description: string;
   description_en?: string;
+  description_km?: string;
   guidance: string;
   guidance_en?: string;
+  guidance_km?: string;
   detection_mode?: DetectionMode;
   sign_present?: boolean;
   display_title?: string;
@@ -155,6 +246,12 @@ export function normalizeDetectionSign<T extends SignNameFields & { class_key?: 
 export function isUsefulDetectionResult(result: DetectionDisplayInput): boolean {
   const mode = resolveDetectionMode(result);
   const conf = result.display_confidence ?? result.confidence ?? 0;
+  if (mode === 'vehicle') {
+    return (result.vehicle_count ?? result.vehicles?.length ?? 0) > 0 && conf >= 20;
+  }
+  if (mode === 'plate') {
+    return Boolean(result.detected_plate) || conf >= 35;
+  }
   if (result.sign_present === false || mode === 'no_sign' || mode === 'unknown_sign') {
     return false;
   }
@@ -164,14 +261,23 @@ export function isUsefulDetectionResult(result: DetectionDisplayInput): boolean 
 export function resolveDetectionMode(result: DetectionDisplayInput): DetectionMode {
   if (result.detection_mode) return result.detection_mode;
   if (result.sign_present === false) return 'no_sign';
-  if (result.class_key || result.sign_code) return 'sign';
+
   const signEn = (result.sign_name_en || '').trim().toLowerCase();
   const signKm = result.sign_name_km || result.sign_name || '';
-  if (signEn === 'unknown sign' || signKm === 'ស្លាកមិនស្គាល់') return 'unknown_sign';
+  const isUnknownSign = signEn === 'unknown sign' || signKm === 'ស្លាកមិនស្គាល់';
+  const vehicleCount = result.vehicle_count ?? result.vehicles?.length ?? 0;
+
+  if (vehicleCount > 0 && (isUnknownSign || (!result.class_key && !result.sign_code))) {
+    if (result.detected_plate) return 'plate';
+    return 'vehicle';
+  }
+
+  if (result.class_key || result.sign_code) return 'sign';
+  if (isUnknownSign) return 'unknown_sign';
   if (result.confidence >= 10 && signEn !== 'unknown sign') {
     return 'sign';
   }
-  if ((result.vehicle_count ?? result.vehicles?.length ?? 0) > 0) return 'vehicle';
+  if (vehicleCount > 0) return 'vehicle';
   if (result.detected_plate) return 'plate';
   return 'no_sign';
 }
@@ -287,6 +393,57 @@ export function detectionHero(result: DetectionDisplayInput, locale: 'km' | 'en'
   const normalized = normalizeDetectionSign(result);
   const mode = resolveDetectionMode(normalized);
   const isEn = locale === 'en';
+
+  if (mode === 'vehicle') {
+    const top = normalized.vehicles?.[0];
+    const title = isEn
+      ? (normalized.display_title_en || top?.label || 'Vehicle')
+      : (normalized.display_title_km || VEHICLE_LABELS_KM[top?.vehicle_type || ''] || top?.label || 'រថយន្ត');
+    const confidence = normalized.display_confidence ?? top?.confidence ?? 0;
+    const description = isEn
+      ? (normalized.description_en || normalized.description || 'Vehicle detected in this image.')
+      : (normalized.description_km || normalized.description || 'រកឃើញយានជំនិះក្នុងរូបនេះ។');
+    const guidance = isEn
+      ? (normalized.guidance_en || normalized.guidance || 'No traffic sign in frame — vehicle and plate data shown below.')
+      : (normalized.guidance_km || normalized.guidance || 'មិនមានស្លាកចរាចរណ៍ — ទិន្នន័យយានជំនិះនិងផ្លាកលេខនៅខាងក្រោម។');
+    return { mode, title, description, guidance, confidence };
+  }
+
+  if (mode === 'plate') {
+    const plate = normalized.detected_plate || normalized.display_title_en || '';
+    const confidence = normalized.plate_confidence ?? normalized.display_confidence ?? 0;
+    const title = plate || (isEn ? 'License plate' : 'ផ្លាកលេខ');
+    const description = isEn
+      ? (normalized.description_en || normalized.description || `License plate ${plate} detected.`)
+      : (normalized.description_km || normalized.description || `រកឃើញផ្លាកលេខ ${plate}។`);
+    const guidance = isEn
+      ? (normalized.guidance_en || normalized.guidance || 'Plate can be linked to a registered vehicle.')
+      : (normalized.guidance_km || normalized.guidance || 'ផ្លាកលេខអាចភ្ជាប់ទៅរថយន្តដែលបានចុះឈ្មោះ។');
+    return { mode, title, description, guidance, confidence };
+  }
+
+  if (mode === 'unknown_sign') {
+    const title = isEn ? 'Unknown sign' : 'ស្លាកមិនស្គាល់';
+    const description = isEn
+      ? (normalized.description_en || normalized.description)
+      : (normalized.description_km || normalized.description);
+    const guidance = isEn
+      ? (normalized.guidance_en || normalized.guidance)
+      : (normalized.guidance_km || normalized.guidance);
+    return { mode, title, description, guidance, confidence: 0 };
+  }
+
+  if (mode === 'no_sign') {
+    const title = isEn ? 'No traffic sign found' : 'មិនមានស្លាកចរាចរណ៍';
+    const description = isEn
+      ? (normalized.description_en || normalized.description)
+      : (normalized.description_km || normalized.description);
+    const guidance = isEn
+      ? (normalized.guidance_en || normalized.guidance)
+      : (normalized.guidance_km || normalized.guidance);
+    return { mode, title, description, guidance, confidence: 0 };
+  }
+
   const labels = signDisplayNames({
     sign_code: normalized.sign_code,
     sign_name: normalized.sign_name,
@@ -295,38 +452,56 @@ export function detectionHero(result: DetectionDisplayInput, locale: 'km' | 'en'
     description_en: normalized.description_en,
   });
   const title = isEn
-    ? (normalized.display_title_en || labels.en || normalized.sign_name_en || normalized.sign_name)
+    ? resolveEnglishTitle(normalized, labels)
     : resolveKhmerTitle(normalized, labels);
   const description = isEn
-    ? (normalized.description_en || normalized.description)
-    : (
-      hasKhmer(normalized.description) && !isGenericKhmerSignLabel(normalized.description, normalized.sign_code)
-        ? normalized.description
-        : kmDescriptionFallback(title, normalized.sign_code)
-    );
+    ? pickEnglishSpeechText(
+        normalized.description,
+        normalized.description_en,
+        title,
+        normalized.sign_code,
+        enDescriptionFallback,
+      )
+    : pickKhmerSpeechText(
+        normalized.description,
+        normalized.description_km,
+        title,
+        normalized.sign_code,
+        kmDescriptionFallback,
+      );
   const guidance = isEn
-    ? (normalized.guidance_en || normalized.guidance)
-    : (
-      hasKhmer(normalized.guidance) && !isGenericKhmerSignLabel(normalized.guidance, normalized.sign_code)
-        ? normalized.guidance
-        : kmGuidanceFallback(title)
-    );
+    ? pickEnglishSpeechText(
+        normalized.guidance,
+        normalized.guidance_en,
+        title,
+        normalized.sign_code,
+        (t) => enGuidanceFallback(t),
+      )
+    : pickKhmerSpeechText(
+        normalized.guidance,
+        normalized.guidance_km,
+        title,
+        normalized.sign_code,
+        (t) => kmGuidanceFallback(t),
+      );
   const confidence = normalized.display_confidence ?? normalized.confidence;
   return { mode, title, description, guidance, confidence };
 }
 
 function buildSignSpeech(title: string, description: string, guidance: string, locale: 'km' | 'en') {
   if (locale === 'en') {
-    return (
+    return textForTts(
       `Traffic sign detected: ${title}. ` +
       `${description} ` +
-      `Please follow this traffic sign guidance: ${guidance}`
+      `Please follow this traffic sign guidance: ${guidance}`,
+      'en',
     );
   }
-  return prepareKhmerTtsText(
+  return textForTts(
     `បានរកឃើញស្លាកចរាចរណ៍ ${title}។ ` +
     `${description} ` +
     `សូមបញ្ជរកចរាចរតាមស្លាកចរាចរណ៍នេះ៖ ${guidance}`,
+    'km',
   );
 }
 
@@ -341,14 +516,16 @@ export function heroSpeechText(input: DetectionDisplayInput | LogDisplayInput, l
 
   if (hero.mode === 'plate') {
     if (locale === 'en') {
-      return (
+      return textForTts(
         `License plate detected: ${hero.title}, ${hero.confidence.toFixed(1)} percent confidence. ` +
-        `${hero.description} ${hero.guidance}`
+        `${hero.description} ${hero.guidance}`,
+        'en',
       );
     }
-    return (
+    return textForTts(
       `បានរកឃើញផ្លាកលេខ ${hero.title} ភាពជឿជាក់ ${hero.confidence.toFixed(1)} ភាគរយ។ ` +
-      `${hero.description} ${hero.guidance}`
+      `${hero.description} ${hero.guidance}`,
+      'km',
     );
   }
 
@@ -359,29 +536,31 @@ export function heroSpeechText(input: DetectionDisplayInput | LogDisplayInput, l
         : ` ផ្លាកលេខ ${plate}${plateConf ? ` ភាពជឿជាក់ ${plateConf.toFixed(1)} ភាគរយ` : ''}។`)
       : '';
     if (locale === 'en') {
-      return (
+      return textForTts(
         `Vehicle detected: ${hero.title}, ${hero.confidence.toFixed(1)} percent confidence.` +
-        `${plateSpeech} ${hero.description} ${hero.guidance}`
+        `${plateSpeech} ${hero.description} ${hero.guidance}`,
+        'en',
       );
     }
-    return (
+    return textForTts(
       `បានរកឃើញ${hero.title} ភាពជឿជាក់ ${hero.confidence.toFixed(1)} ភាគរយ។` +
-      `${plateSpeech} ${hero.description} ${hero.guidance}`
+      `${plateSpeech} ${hero.description} ${hero.guidance}`,
+      'km',
     );
   }
 
   if (hero.mode === 'unknown_sign') {
     if (locale === 'en') {
-      return `Unknown traffic sign. ${hero.description} ${hero.guidance}`;
+      return textForTts(`Unknown traffic sign. ${hero.description} ${hero.guidance}`, 'en');
     }
-    return `ស្លាកមិនស្គាល់។ ${hero.description} ${hero.guidance}`;
+    return textForTts(`ស្លាកមិនស្គាល់។ ${hero.description} ${hero.guidance}`, 'km');
   }
 
   if (hero.mode === 'no_sign') {
     if (locale === 'en') {
-      return `No traffic sign found in this image. ${hero.description} ${hero.guidance}`;
+      return textForTts(`No traffic sign found in this image. ${hero.description} ${hero.guidance}`, 'en');
     }
-    return `មិនរកឃើញស្លាកចរាចរណ៍ក្នុងរូបនេះ។ ${hero.description} ${hero.guidance}`;
+    return textForTts(`មិនរកឃើញស្លាកចរាចរណ៍ក្នុងរូបនេះ។ ${hero.description} ${hero.guidance}`, 'km');
   }
 
   return buildSignSpeech(hero.title, hero.description, hero.guidance, locale);
@@ -395,25 +574,25 @@ export function heroTitleSpeech(input: DetectionDisplayInput | LogDisplayInput, 
 
   if (hero.mode === 'plate') {
     return locale === 'en'
-      ? `License plate: ${hero.title}`
-      : `ផ្លាកលេខ ${hero.title}`;
+      ? textForTts(`License plate: ${hero.title}`, 'en')
+      : textForTts(`ផ្លាកលេខ ${hero.title}`, 'km');
   }
   if (hero.mode === 'vehicle') {
     return locale === 'en'
-      ? `Vehicle detected: ${hero.title}`
-      : `រកឃើញ${hero.title}`;
+      ? textForTts(`Vehicle detected: ${hero.title}`, 'en')
+      : textForTts(`រកឃើញ${hero.title}`, 'km');
   }
   if (hero.mode === 'unknown_sign') {
     return locale === 'en'
-      ? 'Unknown sign'
-      : 'ស្លាកមិនស្គាល់';
+      ? textForTts('Unknown sign', 'en')
+      : textForTts('ស្លាកមិនស្គាល់', 'km');
   }
   if (hero.mode === 'no_sign') {
     return locale === 'en'
-      ? 'No traffic sign found'
-      : 'មិនមានស្លាកចរាចរណ៍';
+      ? textForTts('No traffic sign found', 'en')
+      : textForTts('មិនមានស្លាកចរាចរណ៍', 'km');
   }
   return locale === 'en'
-    ? `Traffic sign: ${hero.title}`
-    : prepareKhmerTtsText(`ស្លាកចរាចរណ៍ ${hero.title}`);
+    ? textForTts(`Traffic sign: ${hero.title}`, 'en')
+    : textForTts(`ស្លាកចរាចរណ៍ ${hero.title}`, 'km');
 }

@@ -1,0 +1,31 @@
+# CamTraffic — production Django API (Gunicorn + YOLO weights mount)
+FROM python:3.11-slim-bookworm
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    DJANGO_SETTINGS_MODULE=camtraffic.settings_production
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    libgl1 \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY backend/requirements.txt /app/requirements.txt
+RUN pip install --upgrade pip && pip install -r requirements.txt
+
+COPY backend/ /app/backend/
+COPY ai/ /app/ai/
+COPY deploy/gunicorn/gunicorn.conf.py /app/deploy/gunicorn/gunicorn.conf.py
+
+WORKDIR /app/backend
+
+RUN mkdir -p logs media staticfiles backups
+
+EXPOSE 8000
+
+CMD ["gunicorn", "-c", "/app/deploy/gunicorn/gunicorn.conf.py", "camtraffic.wsgi:application"]

@@ -1,5 +1,9 @@
 import { useLanguage } from '@shared/context/LanguageContext';
 import { OBSERVED_ACTION_VALUES } from '@shared/constants/observedActions';
+import { Label } from '@shared/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/components/ui/select';
+
+const AUTO_VALUE = '_auto';
 
 interface DemoObservedActionSelectProps {
   value: string;
@@ -23,26 +27,28 @@ export function DemoObservedActionSelect({
   };
 
   return (
-    <div className={className}>
-      <label className="block text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
-        {t('aiDetection.demoActionLabel')}
-      </label>
-      <select
-        value={value}
+    <div className={`ai-detection-demo-select${className ? ` ${className}` : ''}`}>
+      <Label className="ai-detection-demo-select__label">{t('aiDetection.demoActionLabel')}</Label>
+      <Select
+        value={value || AUTO_VALUE}
         disabled={disabled}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-[13px] font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-violet-500/40 disabled:opacity-60"
+        onValueChange={(next) => onChange(next === AUTO_VALUE ? '' : next)}
       >
-        <option value="">{t('aiDetection.demoActionAuto')}</option>
-        {OBSERVED_ACTION_VALUES.map((action) => (
-          <option key={action} value={action}>
-            {labelFor(action)}
-          </option>
-        ))}
-      </select>
-      <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
-        {t('aiDetection.demoActionHint')}
-      </p>
+        <SelectTrigger className="ai-detection-demo-select__trigger">
+          <SelectValue placeholder={t('aiDetection.demoActionAuto')} />
+        </SelectTrigger>
+        <SelectContent className="ai-detection-demo-select__menu">
+          <SelectItem value={AUTO_VALUE} className="ai-detection-demo-select__item">
+            {t('aiDetection.demoActionAuto')}
+          </SelectItem>
+          {OBSERVED_ACTION_VALUES.map((action) => (
+            <SelectItem key={action} value={action} className="ai-detection-demo-select__item">
+              {labelFor(action)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <p className="ai-detection-demo-select__hint">{t('aiDetection.demoActionHint')}</p>
     </div>
   );
 }

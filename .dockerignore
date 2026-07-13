@@ -1,0 +1,42 @@
+# Git / IDE
+.git
+.gitignore
+.cursor
+.vscode
+**/.DS_Store
+
+# Node — never copy host node_modules into Linux images
+**/node_modules
+**/dist
+**/.turbo
+
+# Python
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+backend/venv
+backend/db.sqlite3
+backend/db.sqlite3.*
+backend/logs
+backend/backups
+backend/media
+
+# AI artifacts (weights mounted at runtime in compose)
+ai/dataset
+ai/runs
+ai/datasets/raw
+
+# Env secrets
+**/.env
+**/.env.local
+deploy/env/.env.production
+
+# Docs / tests (not needed in runtime images)
+docs
+tests
+*.md
+!deploy/**/*.md
+
+# Large / local-only
+terminals
+agent-transcripts

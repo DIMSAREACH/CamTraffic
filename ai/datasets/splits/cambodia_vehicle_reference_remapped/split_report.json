@@ -1,0 +1,12 @@
+{
+  "export": "BATCH-ROBO-VEH-001",
+  "output": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cambodia_vehicle_reference_remapped",
+  "total": 196,
+  "splits": {
+    "train": 137,
+    "val": 39,
+    "test": 20
+  },
+  "seed": 42,
+  "generated_at": "2026-07-11T20:41:22.882394+00:00"
+}

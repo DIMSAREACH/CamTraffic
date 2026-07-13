@@ -21,15 +21,15 @@ class ViolationEvaluateSerializer(serializers.Serializer):
 
 
 class ViolationCreateSerializer(serializers.Serializer):
-    driver_id = serializers.IntegerField()
+    driver_id = serializers.UUIDField()
     class_key = serializers.CharField(max_length=80)
     observed_action = serializers.CharField(max_length=50)
     sign_code = serializers.CharField(max_length=30, required=False, allow_blank=True)
     location = serializers.CharField(max_length=255, required=False, allow_blank=True)
-    vehicle_id = serializers.IntegerField(required=False, allow_null=True)
-    camera_id = serializers.IntegerField(required=False, allow_null=True)
-    road_id = serializers.IntegerField(required=False, allow_null=True)
-    ai_detection_log_id = serializers.IntegerField(required=False, allow_null=True)
+    vehicle_id = serializers.UUIDField(required=False, allow_null=True)
+    camera_id = serializers.UUIDField(required=False, allow_null=True)
+    road_id = serializers.UUIDField(required=False, allow_null=True)
+    ai_detection_log_id = serializers.UUIDField(required=False, allow_null=True)
     status = serializers.ChoiceField(
         choices=['draft', 'pending_review', 'confirmed', 'rejected'],
         required=False,
@@ -38,16 +38,16 @@ class ViolationCreateSerializer(serializers.Serializer):
 
 
 class TrafficViolationSerializer(serializers.ModelSerializer):
-    driver_id = serializers.IntegerField(source='driver.id', read_only=True)
+    driver_id = serializers.UUIDField(source='driver.id', read_only=True)
     driver_name = serializers.CharField(source='driver.user.full_name', read_only=True)
     driver_license = serializers.CharField(source='driver.license_no', read_only=True)
-    driver_user_id = serializers.IntegerField(source='driver.user.id', read_only=True)
+    driver_user_id = serializers.UUIDField(source='driver.user.id', read_only=True)
     officer_name = serializers.CharField(source='officer.user.full_name', read_only=True, allow_null=True)
     vehicle_plate = serializers.CharField(source='vehicle.plate_number', read_only=True, allow_null=True)
     evidence_image = serializers.SerializerMethodField()
     vehicle_evidence_image = serializers.SerializerMethodField()
     plate_evidence_image = serializers.SerializerMethodField()
-    fine_id = serializers.IntegerField(source='fine.id', read_only=True, allow_null=True)
+    fine_id = serializers.UUIDField(source='fine.id', read_only=True, allow_null=True)
 
     class Meta:
         model = TrafficViolation
@@ -97,7 +97,7 @@ class TrafficViolationUpdateSerializer(serializers.ModelSerializer):
 
 
 class DriverFieldSerializer(serializers.Serializer):
-    driver_id = serializers.IntegerField()
+    driver_id = serializers.UUIDField()
 
     def validate_driver_id(self, value):
         if not Driver.objects.filter(pk=value).exists():

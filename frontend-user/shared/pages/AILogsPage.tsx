@@ -8,13 +8,14 @@ import {
 import { Button } from '@shared/components/ui/button';
 import { Dialog, DialogContent } from '@shared/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@shared/components/ui/table';
+import { TableEmptyState } from '@shared/components/ui/TableEmptyState';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { useLiveData } from '@shared/hooks/useLiveData';
 import { aiAPI } from '@shared/services/api';
 import { toast } from 'sonner';
 import { SpeakButton } from '@shared/components/SpeakButton';
 import { useSpeech } from '@shared/hooks/useSpeech';
-import { heroSpeechText, heroTitleSpeech, logDisplay, logDisplayColor } from '@shared/utils/detectionDisplay';
+import { heroSpeechText, logDisplay, logDisplayColor } from '@shared/utils/detectionDisplay';
 import { getProfileImageSrc } from '@shared/utils/profileImage';
 import type { AIDetectionLog } from '@shared/types';
 
@@ -54,18 +55,22 @@ function UserAvatar({
   name,
   profileImage,
   size = 'sm',
+  inDialog = false,
 }: {
   name: string;
   profileImage?: string | null;
-  size?: 'sm' | 'md';
+  size?: 'sm' | 'md' | 'lg';
+  inDialog?: boolean;
 }) {
   const [imgFailed, setImgFailed] = useState(false);
   const src = imgFailed ? null : getProfileImageSrc(profileImage);
-  const sizeClass = size === 'md' ? ' enforcement-page__avatar--md' : '';
+  const sizeClass =
+    size === 'lg' ? ' enforcement-page__avatar--lg' : size === 'md' ? ' enforcement-page__avatar--md' : '';
+  const dialogClass = inDialog ? ' ai-log-dialog__avatar' : '';
 
   if (src) {
     return (
-      <div className={`enforcement-page__avatar enforcement-page__avatar--ai enforcement-page__avatar--photo${sizeClass}`}>
+      <div className={`enforcement-page__avatar enforcement-page__avatar--ai enforcement-page__avatar--photo${dialogClass}${sizeClass}`}>
         <img
           src={src}
           alt={name}
@@ -79,7 +84,7 @@ function UserAvatar({
   }
 
   return (
-    <div className={`enforcement-page__avatar enforcement-page__avatar--ai${sizeClass}`}>
+    <div className={`enforcement-page__avatar enforcement-page__avatar--ai${dialogClass}${sizeClass}`}>
       {initials(name)}
     </div>
   );
@@ -132,8 +137,8 @@ function AILogDetailDialog({
   if (!log) return null;
 
   const hero = logDisplay(log, locale);
-  const fullSpeech = heroSpeechText(log, locale);
-  const titleSpeech = heroTitleSpeech(log, locale);
+  const fullSpeechKm = heroSpeechText(log, 'km');
+  const fullSpeechEn = heroSpeechText(log, 'en');
   const tier = confidenceTier(hero.confidence);
   const tierMeta = CONFIDENCE_STYLE[tier];
   const normalizedConfidence = normalizeConfidence(hero.confidence);
@@ -143,7 +148,7 @@ function AILogDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="ai-log-dialog max-w-2xl p-0 gap-0 overflow-hidden rounded-2xl border-0">
+      <DialogContent accent="violet" className="ai-log-dialog p-0 gap-0 overflow-hidden">
         <div className="ai-log-dialog__shell">
           <div className="ai-log-dialog__header">
             <div className="ai-log-dialog__header-icon">
@@ -151,14 +156,16 @@ function AILogDetailDialog({
             </div>
             <div className="ai-log-dialog__header-copy">
               <h2 className="ai-log-dialog__header-title">{t('aiLogs.detailTitle')}</h2>
-              <p className="ai-log-dialog__header-meta">
-                {t('aiLogs.detailLogId')} #{log.id}
-                <span aria-hidden>·</span>
-                {formattedDate}
-              </p>
+              <div className="ai-log-dialog__header-meta">
+                <span className="ai-log-dialog__header-meta-id">
+                  {t('aiLogs.detailLogId')} #{log.id}
+                </span>
+                <span className="ai-log-dialog__header-meta-date">{formattedDate}</span>
+              </div>
             </div>
           </div>
 
+          <div className="ai-log-dialog__body">
           <div className="ai-log-dialog__preview">
             {log.uploaded_image ? (
               <img
@@ -177,32 +184,30 @@ function AILogDetailDialog({
           <div className="ai-log-dialog__summary">
             <div className="ai-log-dialog__summary-main">
               <p className="ai-log-dialog__summary-label">{t('aiLogs.colDetected')}</p>
-              <div className="flex items-start gap-2">
-                <h3 className="ai-log-dialog__summary-title flex-1">{hero.title}</h3>
+              <div className="ai-log-dialog__summary-title-row">
+                <h3 className="ai-log-dialog__summary-title">{hero.title}</h3>
                 <SpeakButton
                   size="md"
-                  label={t('aiLogs.listenFull')}
-                  isActive={speakingId === 'log-full'}
-                  onClick={() => speak(fullSpeech, 'log-full')}
-                />
-              </div>
-              <div className="flex items-center gap-2 mt-1">
-                <p className="ai-log-dialog__summary-mode">{modeLabel(hero.mode, t)}</p>
-                <SpeakButton
-                  size="sm"
                   label={t('aiDetection.listenResult')}
-                  isActive={speakingId === 'log-title'}
-                  onClick={() => speak(titleSpeech, 'log-title')}
+                  isActive={speakingId === 'log-full'}
+                  onClick={() => speak(
+                    locale === 'km' ? fullSpeechKm : fullSpeechEn,
+                    'log-full',
+                    locale,
+                  )}
                 />
               </div>
+              <div className="ai-log-dialog__summary-mode-row">
+                <p className="ai-log-dialog__summary-mode">{modeLabel(hero.mode, t)}</p>
+              </div>
+              <span
+                className="ai-log-dialog__tier-badge ai-log-dialog__tier-badge--inline"
+                style={{ background: tierMeta.bg, color: tierMeta.color, border: `1px solid ${tierMeta.color}30` }}
+              >
+                <ModeIcon size={12} />
+                {confidenceTierLabel(tier)}
+              </span>
             </div>
-            <span
-              className="ai-log-dialog__tier-badge"
-              style={{ background: tierMeta.bg, color: tierMeta.color, border: `1px solid ${tierMeta.color}30` }}
-            >
-              <ModeIcon size={12} />
-              {confidenceTierLabel(tier)}
-            </span>
           </div>
 
           <div className="ai-log-dialog__cards">
@@ -231,10 +236,12 @@ function AILogDetailDialog({
             </div>
 
             <div className="ai-log-dialog__card ai-log-dialog__card--user">
-              <UserAvatar name={log.user_name} profileImage={log.user_profile_image} size="md" />
-              <div className="min-w-0">
-                <p className="ai-log-dialog__user-name">{log.user_name}</p>
-                <p className="ai-log-dialog__user-label">{t('aiLogs.colUser')}</p>
+              <div className="ai-log-dialog__user-profile">
+                <UserAvatar name={log.user_name} profileImage={log.user_profile_image} size="lg" inDialog />
+                <div className="ai-log-dialog__user-field">
+                  <span className="ai-log-dialog__user-field-label">{t('aiLogs.colUser')}</span>
+                  <p className="ai-log-dialog__user-name">{log.user_name}</p>
+                </div>
               </div>
             </div>
           </div>
@@ -249,7 +256,7 @@ function AILogDetailDialog({
                 <SpeakButton
                   label={t('aiLogs.listenDescription')}
                   isActive={speakingId === 'log-desc'}
-                  onClick={() => speak(hero.description, 'log-desc')}
+                  onClick={() => speak(hero.description, 'log-desc', locale)}
                 />
               </div>
               <div className="ai-log-dialog__section-box ai-log-dialog__section-box--info">
@@ -293,6 +300,7 @@ function AILogDetailDialog({
                         ? `License plate ${log.detected_plate}, ${(log.plate_confidence ?? 0).toFixed(1)} percent confidence`
                         : `ផ្លាកលេខ ${log.detected_plate} ភាពជឿជាក់ ${(log.plate_confidence ?? 0).toFixed(1)} ភាគរយ`,
                       'log-plate',
+                      locale,
                     )}
                   />
                 </div>
@@ -324,13 +332,14 @@ function AILogDetailDialog({
                 <SpeakButton
                   label={t('aiLogs.listenGuidance')}
                   isActive={speakingId === 'log-guide'}
-                  onClick={() => speak(hero.guidance, 'log-guide')}
+                  onClick={() => speak(hero.guidance, 'log-guide', locale)}
                 />
               </div>
               <div className="ai-log-dialog__section-box ai-log-dialog__section-box--guide">
                 <p className="ai-log-dialog__section-text">{hero.guidance || '—'}</p>
               </div>
             </section>
+          </div>
           </div>
 
           <div className="ai-log-dialog__footer">
@@ -535,7 +544,7 @@ export function AILogsPage() {
 
       <div className="enforcement-page__panel enforcement-page__panel--ai-logs">
         <div className="overflow-x-auto">
-          <Table className="enforcement-page__table enforcement-page__table--ai-logs">
+          <Table className="enforcement-page__table mgmt-table__grid enforcement-page__table--ai-logs">
             <TableHeader>
               <TableRow className="enforcement-page__table-head">
                 {tableColumns.map((col) => (
@@ -557,19 +566,13 @@ export function AILogsPage() {
                   </TableRow>
                 ))
               ) : filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={tableColumns.length} className="text-center py-16">
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="enforcement-page__empty-icon enforcement-page__empty-icon--violet">
-                        <Activity size={28} />
-                      </div>
-                      <div>
-                        <p className="enforcement-page__empty-title">{t('aiLogs.empty')}</p>
-                        <p className="enforcement-page__empty-subtitle">{t('aiLogs.emptyHint')}</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                <TableEmptyState
+                  colSpan={tableColumns.length}
+                  tone="violet"
+                  icon={<Activity size={28} />}
+                  title={t('aiLogs.empty')}
+                  subtitle={t('aiLogs.emptyHint')}
+                />
               ) : pagination.pageItems.map((log) => {
                 const hero = logDisplay(log, speechLocale);
                 const tier = confidenceTier(hero.confidence);
@@ -665,7 +668,7 @@ export function AILogsPage() {
           </Table>
         </div>
 
-        <TablePagination pagination={pagination} label="logs" />
+        <TablePagination pagination={pagination} labelKey="pagination.label.logs" />
       </div>
 
       <AILogDetailDialog

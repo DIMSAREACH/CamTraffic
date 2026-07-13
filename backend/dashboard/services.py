@@ -100,7 +100,7 @@ def get_admin_stats(request=None):
     violations = TrafficViolation.objects.all()
     monthly_fines = _monthly_fine_stats(fines)
 
-    return {
+    stats = {
         'total_users': User.objects.count(),
         'total_drivers': User.objects.filter(role='driver').count(),
         'total_police': User.objects.filter(role='police').count(),
@@ -142,6 +142,14 @@ def get_admin_stats(request=None):
             'revenue': _fine_trend(paid),
         },
     }
+
+    try:
+        from .analytics_extensions import get_top_locations
+        stats['top_locations'] = get_top_locations()
+    except Exception:
+        stats['top_locations'] = []
+
+    return stats
 
 
 def get_police_report_stats(police_user, request=None):
@@ -221,7 +229,6 @@ def get_police_stats(police_user, request=None):
 def get_driver_stats(user, request=None):
     fines = Fine.objects.filter(driver=user).select_related('driver', 'police')
     vehicles = Vehicle.objects.filter(owner=user)
-    detections = AIDetectionLog.objects.filter(user=user).select_related('user')
     unpaid = fines.exclude(status__in=('paid', 'dismissed'))
     ctx = _serializer_context(request)
 
@@ -231,11 +238,6 @@ def get_driver_stats(user, request=None):
         'pending': unpaid.count(),
         'paid': fines.filter(status='paid').count(),
         'owed': float(unpaid.aggregate(total=Sum('amount'))['total'] or 0),
-        'recent_detections': AIDetectionLogSerializer(
-            detections.order_by('-created_at')[:3],
-            many=True,
-            context=ctx,
-        ).data,
         'recent_fines': FineSerializer(
             fines.order_by('-created_at')[:3],
             many=True,

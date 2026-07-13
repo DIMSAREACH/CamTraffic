@@ -8,7 +8,7 @@ import { authAPI } from '@shared/services/api';
 import { AuthPageBackground } from '@shared/components/auth/AuthPageBackground';
 import { AuthFeatureList } from '@shared/components/auth/AuthFeatureList';
 import { CamTrafficLogo } from '@shared/components/layout/CamTrafficLogo';
-import { AuthThemeToggle } from '@shared/components/AuthThemeToggle';
+import { AuthPageControls } from '@shared/components/auth/AuthPageControls';
 import { toast } from 'sonner';
 import {
   PASSWORD_REQUIREMENTS,
@@ -119,7 +119,7 @@ export function RegisterPage() {
 
   return (
     <div className="up-page up-page--user">
-      <AuthThemeToggle />
+      <AuthPageControls />
       <AuthPageBackground />
       <div className="up-overlay" />
 

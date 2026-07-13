@@ -10,6 +10,8 @@ from .profile_views import (
 )
 from .views import (
     ChangePasswordView,
+    EmailVerifyConfirmView,
+    EmailVerifySendView,
     LoginView,
     LogoutView,
     PasswordResetConfirmView,
@@ -36,4 +38,6 @@ urlpatterns = [
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),
     path('password-reset/', PasswordResetRequestView.as_view(), name='password-reset'),
     path('password-reset/confirm/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
+    path('verify-email/send/', EmailVerifySendView.as_view(), name='verify-email-send'),
+    path('verify-email/confirm/', EmailVerifyConfirmView.as_view(), name='verify-email-confirm'),
 ]

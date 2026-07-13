@@ -10,7 +10,7 @@
   --portal-muted-surface: #f8fafc;
   --portal-heading: #0f172a;
   --portal-body: #334155;
-  --portal-subtle: #64748b;
+  --portal-subtle: #475569;
   --portal-link: #2563eb;
   --portal-card-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 4px 16px rgba(15, 23, 42, 0.04);
   --accent-emerald: #10b981;
@@ -29,7 +29,7 @@ html.dark {
   --portal-muted-surface: #172033;
   --portal-heading: #f8fafc;
   --portal-body: #e2e8f0;
-  --portal-subtle: #94a3b8;
+  --portal-subtle: #cbd5e1;
   --portal-link: #38bdf8;
   --portal-card-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.05),
@@ -95,7 +95,7 @@ html.dark .app-dashboard .text-gray-600 {
 }
 
 html.dark .app-dashboard .text-slate-300 {
-  color: #64748b !important;
+  color: var(--portal-subtle) !important;
 }
 
 html.dark .app-dashboard .border-gray-100,
@@ -154,7 +154,7 @@ html.dark .app-dashboard select {
 
 html.dark .app-dashboard input::placeholder,
 html.dark .app-dashboard textarea::placeholder {
-  color: #64748b !important;
+  color: #94a3b8 !important;
 }
 
 html.dark .app-dashboard input:focus,
@@ -272,20 +272,7 @@ html.dark .recharts-tooltip-item {
   color: #e2e8f0 !important;
 }
 
-/* Portaled UI */
-html.dark [data-slot='dialog-content'] {
-  background: var(--portal-surface) !important;
-  color: var(--portal-heading) !important;
-  border: 1px solid var(--portal-surface-border) !important;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.55) !important;
-}
-
-html.dark [data-slot='dialog-content'] .text-slate-800,
-html.dark [data-slot='dialog-content'] .text-slate-900 {
-  color: var(--portal-heading) !important;
-}
-
-html.dark [data-slot='dropdown-menu-content']:not(.app-navbar__menu),
+/* Portaled UI — dropdowns handled in dropdowns.css; dialogs in dialogs.css */
 html.dark [data-slot='select-content'] {
   background: var(--portal-surface) !important;
   color: var(--portal-heading) !important;
@@ -327,9 +314,19 @@ html.dark .app-dashboard .lf-field:focus-within .lf-icon {
   color: var(--accent-sky) !important;
 }
 
-/* Sonner toasts */
+/* Sonner toasts — close button styling in sonner-overrides.css */
 html.dark [data-sonner-toast] {
   background: var(--portal-surface) !important;
   border: 1px solid var(--portal-surface-border) !important;
   color: var(--portal-heading) !important;
+}
+
+/* ── Readability: ensure muted copy stays legible in both themes ── */
+html.dark .app-dashboard .text-muted-foreground {
+  color: var(--muted-foreground) !important;
+}
+
+html.dark .app-shell,
+html.dark .app-layout-main {
+  color: var(--foreground);
 }

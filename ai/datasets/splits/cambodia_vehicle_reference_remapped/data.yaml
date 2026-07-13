@@ -1,0 +1,12 @@
+# Auto-generated 2026-07-11T20:41:22.881395+00:00
+path: D:/Year4/Project Thesis/Expert System/Project/CamTraffic/ai/datasets/splits/cambodia_vehicle_reference_remapped
+train: images/train
+val: images/val
+test: images/test
+nc: 5
+names:
+  0: bus
+  1: sedan
+  2: motorcycle
+  3: truck
+  4: scooter

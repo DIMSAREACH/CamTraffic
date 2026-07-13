@@ -1,0 +1,345 @@
+{
+  "labels": [
+    {
+      "name": "NO_ENTRY",
+      "attributes": [
+        {
+          "name": "group",
+          "values": [
+            "traffic_sign"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "NO_LEFT_TURN",
+      "attributes": [
+        {
+          "name": "group",
+          "values": [
+            "traffic_sign"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "NO_RIGHT_TURN",
+      "attributes": [
+        {
+          "name": "group",
+          "values": [
+            "traffic_sign"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "NO_U_TURN",
+      "attributes": [
+        {
+          "name": "group",
+          "values": [
+            "traffic_sign"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "NO_PARKING",
+      "attributes": [
+        {
+          "name": "group",
+          "values": [
+            "traffic_sign"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "M_STOP",
+      "attributes": [
+        {
+          "name": "group",
+          "values": [
+            "traffic_sign"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "P_SPEED_LIMIT_20_KM_H",
+      "attributes": [
+        {
+          "name": "group",
+          "values": [
+            "traffic_sign"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "P_SPEED_LIMIT_50_KM_H",
+      "attributes": [
+        {
+          "name": "group",
+          "values": [
+            "traffic_sign"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "W_PEDESTRIAN_CROSSING",
+      "attributes": [
+        {
+          "name": "group",
+          "values": [
+            "traffic_sign"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "I_ONE_WAY_TRAFFIC",
+      "attributes": [
+        {
+          "name": "group",
+          "values": [
+            "traffic_sign"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "sedan",
+      "attributes": [
+        {
+          "name": "group",
+          "values": [
+            "vehicle"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "suv",
+      "attributes": [
+        {
+          "name": "group",
+          "values": [
+            "vehicle"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "pickup",
+      "attributes": [
+        {
+          "name": "group",
+          "values": [
+            "vehicle"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "motorcycle",
+      "attributes": [
+        {
+          "name": "group",
+          "values": [
+            "vehicle"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "scooter",
+      "attributes": [
+        {
+          "name": "group",
+          "values": [
+            "vehicle"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "bus",
+      "attributes": [
+        {
+          "name": "group",
+          "values": [
+            "vehicle"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "truck",
+      "attributes": [
+        {
+          "name": "group",
+          "values": [
+            "vehicle"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "van",
+      "attributes": [
+        {
+          "name": "group",
+          "values": [
+            "vehicle"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "taxi",
+      "attributes": [
+        {
+          "name": "group",
+          "values": [
+            "vehicle"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "plate_private",
+      "attributes": [
+        {
+          "name": "group",
+          "values": [
+            "license_plate"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "plate_commercial",
+      "attributes": [
+        {
+          "name": "group",
+          "values": [
+            "license_plate"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "plate_government",
+      "attributes": [
+        {
+          "name": "group",
+          "values": [
+            "license_plate"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "NO_STOPPING",
+      "attributes": [
+        {
+          "name": "group",
+          "values": [
+            "traffic_sign"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "M_YIELD_GIVE_WAY",
+      "attributes": [
+        {
+          "name": "group",
+          "values": [
+            "traffic_sign"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "M_PRIORITY_ROAD",
+      "attributes": [
+        {
+          "name": "group",
+          "values": [
+            "traffic_sign"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "P_NO_OVERTAKING",
+      "attributes": [
+        {
+          "name": "group",
+          "values": [
+            "traffic_sign"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "P_MAXIMUM_SPEED_LIMIT",
+      "attributes": [
+        {
+          "name": "group",
+          "values": [
+            "traffic_sign"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "W_CROSSROAD",
+      "attributes": [
+        {
+          "name": "group",
+          "values": [
+            "traffic_sign"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "HEIGHT_LIMIT",
+      "attributes": [
+        {
+          "name": "group",
+          "values": [
+            "traffic_sign"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "M_SLOW_DOWN",
+      "attributes": [
+        {
+          "name": "group",
+          "values": [
+            "traffic_sign"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ROAD_CLOSED_ALL_VEHICLES",
+      "attributes": [
+        {
+          "name": "group",
+          "values": [
+            "traffic_sign"
+          ]
+        }
+      ]
+    }
+  ]
+}
