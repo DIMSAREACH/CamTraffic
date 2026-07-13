@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { FilterSelect } from '@shared/components/ui/FilterSelect';
 import type { UsePaginationReturn } from '@shared/hooks/usePagination';
 import { useLanguage } from '@shared/context/LanguageContext';
 
@@ -8,12 +9,15 @@ interface TablePaginationProps<T> {
   pagination: UsePaginationReturn<T>;
   /** i18n key under pagination.label.* */
   labelKey?: string;
+  /** i18n key for range text (default: pagination.range) */
+  rangeKey?: string;
   variant?: 'default' | 'footer';
 }
 
 export function TablePagination<T>({
   pagination,
   labelKey = 'pagination.label.records',
+  rangeKey = 'pagination.range',
   variant = 'default',
 }: TablePaginationProps<T>) {
   const { t } = useLanguage();
@@ -44,16 +48,15 @@ export function TablePagination<T>({
       <div className="table-pagination__row">
         <div className="table-pagination__show">
           <span className="table-pagination__show-label">{t('pagination.show')}</span>
-          <select
-            value={pageSize}
-            onChange={(e) => setPageSize(Number(e.target.value))}
-            className="ct-native-select ct-native-select--sm table-pagination__select"
-            aria-label={t('pagination.show')}
-          >
-            {PAGE_SIZE_OPTIONS.map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
+          <FilterSelect
+            className="ct-filter-select--sm table-pagination__select"
+            tone="blue"
+            size="sm"
+            value={String(pageSize)}
+            onValueChange={(v) => setPageSize(Number(v))}
+            ariaLabel={t('pagination.show')}
+            options={PAGE_SIZE_OPTIONS.map((s) => ({ value: String(s), label: String(s) }))}
+          />
         </div>
 
         <div className="table-pagination__end">
@@ -106,7 +109,7 @@ export function TablePagination<T>({
           <span className="table-pagination__divider" aria-hidden />
 
           <p className="table-pagination__range">
-            {t('pagination.range', { from, to, total, label })}
+            {t(rangeKey, { from, to, total, label })}
           </p>
         </div>
       </div>

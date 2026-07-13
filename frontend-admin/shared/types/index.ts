@@ -333,9 +333,11 @@ export interface ReportSignCount {
 }
 
 export interface ReportLocationRow {
-  name: string;
-  fines: number;
-  detections: number;
+  name?: string;
+  /** Backend alias for name (camera — road). */
+  location?: string;
+  fines?: number;
+  detections?: number;
 }
 
 export interface ReportHourCount {

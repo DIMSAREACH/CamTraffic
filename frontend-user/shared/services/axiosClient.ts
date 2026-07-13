@@ -31,11 +31,24 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+function isCredentialAuthRequest(config?: { url?: string }): boolean {
+  const url = config?.url ?? '';
+  return (
+    url.includes('/auth/login/')
+    || url.includes('/auth/register/')
+    || url.includes('/auth/password-reset')
+    || url.includes('/auth/oauth/')
+  );
+}
+
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const original = error.config;
-    if (error.response?.status === 401 && original && !original._retry) {
+    const isLoginFlow = isCredentialAuthRequest(original);
+
+    // Never try token refresh on login/register failures — that masks the real 401 message.
+    if (error.response?.status === 401 && original && !original._retry && !isLoginFlow) {
       const refresh = getRefreshToken();
       if (refresh) {
         original._retry = true;
@@ -61,10 +74,18 @@ apiClient.interceptors.response.use(
     if (!message) {
       const status = error.response?.status;
       if (status === 401) {
-        if (!getAccessToken()) {
-          invalidateAuthSession();
+        if (isLoginFlow) {
+          message = 'Invalid email or password. Please try again.';
+        } else {
+          if (!getAccessToken()) {
+            invalidateAuthSession();
+          }
+          message = 'Session expired. Please log in again.';
         }
-        message = 'Session expired. Please log in again.';
+      } else if (status === 429) {
+        const retryAfter = error.response?.headers?.['retry-after'];
+        const waitHint = retryAfter ? ` Try again in about ${retryAfter}s.` : ' Please wait a moment and try again.';
+        message = `Too many requests.${waitHint}`;
       } else if (status === 503) {
         message = 'Backend unavailable. Start Django: cd backend && python manage.py runserver';
       } else if (error.message === 'Network Error' || error.code === 'ECONNRESET') {

@@ -27,14 +27,21 @@ export function greetingKey(hour: number): 'greeting.morning' | 'greeting.aftern
 /** Reference USD → KHR rate (National Bank of Cambodia, rounded for display). */
 export const USD_TO_KHR = 4100;
 
+/** Coerce unknown amount inputs to a finite USD number (API may send strings/null). */
+export function toUsdAmount(amountUsd: unknown): number {
+  const n = typeof amountUsd === 'number' ? amountUsd : Number(amountUsd);
+  return Number.isFinite(n) ? n : 0;
+}
+
 /** Fine amounts are stored in USD; convert for Khmer display. */
 export function usdToKhr(amountUsd: number): number {
-  return Math.round(amountUsd * USD_TO_KHR);
+  return Math.round(toUsdAmount(amountUsd) * USD_TO_KHR);
 }
 
 /** Convert Riel input back to USD for API storage. */
 export function khrToUsd(amountKhr: number): number {
-  return Math.round((amountKhr / USD_TO_KHR) * 100) / 100;
+  const n = toUsdAmount(amountKhr);
+  return Math.round((n / USD_TO_KHR) * 100) / 100;
 }
 
 export function formatAppCurrency(locale: Locale, amountUsd: number, compact = false): string {

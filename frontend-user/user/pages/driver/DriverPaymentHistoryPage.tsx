@@ -5,7 +5,6 @@ import { useLanguage } from '@shared/context/LanguageContext';
 import { formatAppCurrency } from '@shared/i18n/localeFormat';
 import { useLiveData } from '@shared/hooks/useLiveData';
 import { finesAPI } from '@shared/services/api';
-import { FinesTabs } from '@shared/components/fines/FinesTabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@shared/components/ui/table';
 import { TableEmptyState } from '@shared/components/ui/TableEmptyState';
 import type { Fine } from '@shared/types';
@@ -58,8 +57,6 @@ export function DriverPaymentHistoryPage() {
           </div>
         </div>
       </div>
-
-      <FinesTabs active="payments" />
 
       <div className="enforcement-page__stat-grid enforcement-page__stat-grid--two mb-4">
         <div className="enforcement-page__stat-card enforcement-page__stat-card--emerald">

@@ -20,12 +20,23 @@ import { EvidenceArchivePage } from '@shared/pages/EvidenceArchivePage';
 import { AppealsPage } from '@shared/pages/AppealsPage';
 import { AuditLogsPage } from '@shared/pages/AuditLogsPage';
 import { UnknownVehiclesPage } from '@shared/pages/UnknownVehiclesPage';
-import { AIModelsPage } from '@shared/pages/AIModelsPage';
 import { CamerasPage } from '@shared/pages/CamerasPage';
 import { DriverPaymentHistoryPage } from '@user/pages/driver/DriverPaymentHistoryPage';
-import { DriverSettingsPage } from '@user/pages/driver/DriverSettingsPage';
+import { DriverSearchPage } from '@user/pages/officer/DriverSearchPage';
+import { DriverTrafficRulesPage } from '@user/pages/driver/DriverTrafficRulesPage';
+import { DriverSupportPage } from '@user/pages/driver/DriverSupportPage';
+import { UserSettingsPage } from '@user/pages/UserSettingsPage';
 import { OperationalAiGuard } from '@shared/components/auth/OperationalAiGuard';
 import { RedirectToAdminPortal } from '@shared/components/PortalRedirect';
+import { AIDetectionSourcePage } from '@shared/pages/AIDetectionSourcePage';
+
+function GuardedAiDetectionSourcePage() {
+  return (
+    <OperationalAiGuard>
+      <AIDetectionSourcePage />
+    </OperationalAiGuard>
+  );
+}
 
 function GuardedAiDetectionPage() {
   return (
@@ -71,19 +82,23 @@ export const router = createBrowserRouter([
     Component: UserLayout,
     children: [
       { index: true, Component: DashboardPage },
+      { path: 'ai-detection/source', Component: GuardedAiDetectionSourcePage },
       { path: 'ai-detection', Component: GuardedAiDetectionPage },
       { path: 'cameras', Component: GuardedCamerasPage },
       { path: 'ai-logs', Component: GuardedAiLogsPage },
       { path: 'evidence', Component: GuardedEvidencePage },
       { path: 'fines', Component: FineManagement },
       { path: 'fines/payments', Component: DriverPaymentHistoryPage },
-      { path: 'settings', Component: DriverSettingsPage },
+      { path: 'settings', Component: UserSettingsPage },
       { path: 'violations', Component: ViolationsPage },
       { path: 'signs', Component: TrafficSignsPage },
       { path: 'vehicles', Component: VehiclesPage },
       { path: 'reports', Component: ReportsPage },
       { path: 'appeals', Component: AppealsPage },
       { path: 'unknown-vehicles', Component: UnknownVehiclesPage },
+      { path: 'driver-search', Component: DriverSearchPage },
+      { path: 'traffic-rules', Component: DriverTrafficRulesPage },
+      { path: 'support', Component: DriverSupportPage },
       { path: 'profile', Component: ProfilePage },
       { path: 'notifications', Component: NotificationsPage },
     ],

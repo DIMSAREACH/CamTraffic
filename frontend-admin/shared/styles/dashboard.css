@@ -1173,8 +1173,162 @@ html.dark .table-pagination:not(.table-pagination--footer) {
 }
 
 .table-pagination__select {
-  width: auto;
+  width: auto !important;
   min-width: 4.25rem;
+  max-width: 6.5rem;
+  flex-shrink: 0;
+}
+
+.app-dashboard .table-pagination,
+.enforcement-page .table-pagination {
+  display: block;
+}
+
+.app-dashboard .table-pagination__row,
+.enforcement-page .table-pagination__row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+}
+
+.app-dashboard .table-pagination__show,
+.enforcement-page .table-pagination__show {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  width: auto;
+  flex-shrink: 0;
+}
+
+.app-dashboard .table-pagination__end,
+.enforcement-page .table-pagination__end {
+  display: inline-flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.625rem 0.875rem;
+  width: auto;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.app-dashboard .table-pagination__pages,
+.enforcement-page .table-pagination__pages {
+  display: inline-flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.app-dashboard .table-pagination__nav,
+.enforcement-page .table-pagination__nav {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Reports tables — keep pagination on one compact bar like Fines / Users */
+.dashboard-page--reports .table-pagination,
+.scheduled-reports-page .table-pagination,
+.report-center-page .table-pagination {
+  display: block;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid rgba(37, 99, 235, 0.1);
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.92) 0%, rgba(241, 245, 249, 0.55) 100%);
+}
+
+html.dark .dashboard-page--reports .table-pagination,
+html.dark .scheduled-reports-page .table-pagination,
+html.dark .report-center-page .table-pagination {
+  border-top-color: rgba(148, 163, 184, 0.14);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.45) 0%, rgba(15, 23, 42, 0.2) 100%);
+}
+
+.dashboard-page--reports .table-pagination__row,
+.scheduled-reports-page .table-pagination__row,
+.report-center-page .table-pagination__row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+}
+
+.dashboard-page--reports .table-pagination__show,
+.scheduled-reports-page .table-pagination__show,
+.report-center-page .table-pagination__show {
+  display: inline-flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.45rem;
+  flex: 0 0 auto;
+}
+
+.dashboard-page--reports .table-pagination__end,
+.scheduled-reports-page .table-pagination__end,
+.report-center-page .table-pagination__end {
+  display: inline-flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.65rem 0.85rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+}
+
+.dashboard-page--reports .table-pagination__pages,
+.scheduled-reports-page .table-pagination__pages,
+.report-center-page .table-pagination__pages {
+  display: inline-flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.45rem 0.65rem;
+}
+
+.dashboard-page--reports .table-pagination__divider,
+.scheduled-reports-page .table-pagination__divider,
+.report-center-page .table-pagination__divider {
+  display: block;
+}
+
+.dashboard-page--reports .table-pagination select,
+.dashboard-page--reports .table-pagination__select,
+.scheduled-reports-page .table-pagination select,
+.scheduled-reports-page .table-pagination__select,
+.report-center-page .table-pagination select,
+.report-center-page .table-pagination__select {
+  width: auto !important;
+  min-width: 4.25rem;
+  max-width: 5.5rem;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 720px) {
+  .dashboard-page--reports .table-pagination__row,
+  .scheduled-reports-page .table-pagination__row,
+  .report-center-page .table-pagination__row {
+    flex-wrap: wrap;
+  }
+
+  .dashboard-page--reports .table-pagination__end,
+  .scheduled-reports-page .table-pagination__end,
+  .report-center-page .table-pagination__end {
+    width: 100%;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
 }
 
 /* Traffic Signs — compact portrait cards, 5 columns on desktop */
@@ -13605,14 +13759,18 @@ html.dark .enforcement-page__stat-icon--amber {
 .enforcement-page--reports .enforcement-page__stat-label--teal,
 .enforcement-page--reports .enforcement-page__stat-label--amber,
 .enforcement-page--reports .enforcement-page__stat-label--blue,
-.enforcement-page--reports .enforcement-page__stat-label--violet {
+.enforcement-page--reports .enforcement-page__stat-label--violet,
+.enforcement-page--reports .enforcement-page__stat-label--emerald,
+.enforcement-page--reports .enforcement-page__stat-label--rose {
   color: #64748b;
 }
 
 html.dark .enforcement-page--reports .enforcement-page__stat-label--teal,
 html.dark .enforcement-page--reports .enforcement-page__stat-label--amber,
 html.dark .enforcement-page--reports .enforcement-page__stat-label--blue,
-html.dark .enforcement-page--reports .enforcement-page__stat-label--violet {
+html.dark .enforcement-page--reports .enforcement-page__stat-label--violet,
+html.dark .enforcement-page--reports .enforcement-page__stat-label--emerald,
+html.dark .enforcement-page--reports .enforcement-page__stat-label--rose {
   color: var(--enforcement-text-muted);
 }
 
@@ -22086,10 +22244,47 @@ html.dark .evidence-archive-card__chip--ref {
   box-shadow: 0 4px 14px rgba(16, 185, 129, 0.36);
 }
 
+.crud-actions__btn--download {
+  color: #ffffff;
+  background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);
+  border-color: rgba(13, 148, 136, 0.35);
+  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.28);
+}
+
+.crud-actions__btn--download:hover {
+  background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%);
+  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.36);
+}
+
+.crud-actions__btn--power-off {
+  color: #ffffff;
+  background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+  border-color: rgba(245, 158, 11, 0.35);
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.28);
+}
+
+.crud-actions__btn--power-off:hover {
+  background: linear-gradient(135deg, #b45309 0%, #d97706 100%);
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.36);
+}
+
+.crud-actions__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.crud-actions__btn:disabled:hover {
+  transform: none;
+}
+
 html.dark .crud-actions__btn--view,
 html.dark .crud-actions__btn--edit,
 html.dark .crud-actions__btn--delete,
-html.dark .crud-actions__btn--resolve {
+html.dark .crud-actions__btn--resolve,
+html.dark .crud-actions__btn--download,
+html.dark .crud-actions__btn--power-off {
   color: #ffffff;
 }
 
@@ -22751,3 +22946,216 @@ html.dark .enforcement-page .mgmt-table__stack-meta {
   overflow-x: auto;
 }
 
+
+/* ── Traffic Signs page (catalog / categories) ───────── */
+.signs-page__toolbar-row {
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.signs-page__filters {
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+}
+
+.signs-page__panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.15rem 0.65rem;
+}
+
+.signs-page__panel-title {
+  margin: 0;
+  font-family: var(--dashboard-font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--enforcement-text-primary);
+}
+
+.signs-page__panel-subtitle {
+  margin: 0.2rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--enforcement-text-muted);
+}
+
+.signs-page__table {
+  table-layout: fixed;
+  min-width: 44rem;
+}
+
+.signs-page__col--image { width: 12%; }
+.signs-page__col--sign { width: 28%; }
+.signs-page__col--category { width: 16%; }
+.signs-page__col--description { width: 30%; }
+.signs-page__col--action { width: 14%; min-width: 5.5rem; }
+
+.signs-categories-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.signs-categories-panel__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.85rem;
+  padding: 1.05rem 1.15rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.signs-categories-panel__title-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.signs-categories-panel__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  border-radius: 0.75rem;
+  background: rgba(13, 148, 136, 0.12);
+  color: #0d9488;
+  flex-shrink: 0;
+}
+
+.signs-categories-panel__title {
+  margin: 0;
+  font-family: var(--dashboard-font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--enforcement-text-primary);
+}
+
+.signs-categories-panel__subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--enforcement-text-muted);
+}
+
+.signs-categories-panel__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+  padding: 1rem 1.15rem 1.15rem;
+}
+
+@media (max-width: 900px) {
+  .signs-categories-panel__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.signs-categories-panel__card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.95rem 1rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(248, 250, 252, 0.85);
+}
+
+html.dark .signs-categories-panel__card {
+  background: rgba(15, 23, 42, 0.45);
+  border-color: rgba(148, 163, 184, 0.18);
+}
+
+.signs-categories-panel__card-top {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.signs-categories-panel__card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 0.75rem;
+  flex-shrink: 0;
+}
+
+.signs-categories-panel__card-icon.is-rose { background: rgba(239, 68, 68, 0.12); color: #dc2626; }
+.signs-categories-panel__card-icon.is-amber { background: rgba(245, 158, 11, 0.14); color: #d97706; }
+.signs-categories-panel__card-icon.is-blue { background: rgba(37, 99, 235, 0.12); color: #2563eb; }
+.signs-categories-panel__card-icon.is-emerald { background: rgba(16, 185, 129, 0.12); color: #059669; }
+
+.signs-categories-panel__card-value {
+  margin: 0;
+  font-family: var(--dashboard-font-display);
+  font-size: 1.45rem;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--enforcement-text-primary);
+}
+
+.signs-categories-panel__card-label {
+  margin: 0.15rem 0 0;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  color: var(--enforcement-text-muted);
+}
+
+.signs-categories-panel__card-desc {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--enforcement-text-muted);
+}
+
+.signs-categories-panel__samples {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.signs-categories-panel__sample {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.signs-categories-panel__sample-name {
+  font-size: 0.8125rem;
+  color: var(--enforcement-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signs-categories-panel__empty {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--enforcement-text-muted);
+}
+
+.signs-categories-panel__action {
+  align-self: flex-start;
+  margin-top: 0.15rem;
+  border: 0;
+  background: transparent;
+  color: #0d9488;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  cursor: pointer;
+  padding: 0;
+}
+
+.signs-categories-panel__action:hover {
+  text-decoration: underline;
+}

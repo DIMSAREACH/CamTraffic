@@ -226,7 +226,7 @@ html.dark .enforcement-page__stat-card--rose {
 }
 
 .enforcement-page--reports {
-  --enforcement-hero-bg: linear-gradient(135deg, #1a1208 0%, #451a03 42%, #1e1b4b 100%);
+  --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #0c4a6e 42%, #134e4a 100%);
 }
 
 .enforcement-page--ai-dashboard,
@@ -290,9 +290,22 @@ html.dark .enforcement-page__stat-card--rose {
   --enforcement-hero-bg: linear-gradient(135deg, #0f172a 0%, #334155 48%, #1e1b4b 100%);
 }
 
-.enforcement-page--settings,
 .enforcement-page--backup {
-  --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #1e293b 48%, #1e1b4b 100%);
+  --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #1e293b 42%, #1e3a8a 100%);
+}
+
+.enforcement-page--settings {
+  --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #1e293b 42%, #1e3a8a 100%);
+}
+
+.enforcement-page--settings .enforcement-page__eyebrow {
+  color: rgba(191, 219, 254, 0.98);
+}
+
+.enforcement-page--settings .enforcement-page__eyebrow-icon {
+  background: rgba(37, 99, 235, 0.24);
+  color: #93c5fd;
+  border-color: rgba(147, 197, 253, 0.22);
 }
 
 /* ── App shell — richer page background ──────────────────────── */

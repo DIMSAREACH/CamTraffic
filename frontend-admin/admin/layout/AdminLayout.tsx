@@ -11,6 +11,8 @@ import { useLiveData } from '@shared/hooks/useLiveData';
 import { getUserDevUrl } from '@shared/utils/portal';
 import { notificationsAPI } from '@shared/services/api';
 import { AdminFooter } from '@admin/layout/AdminFooter';
+import { EnterpriseModuleSubNav } from '@shared/components/layout/EnterpriseModuleSubNav';
+import { resolveAdminEnterpriseModule } from '@shared/constants/enterpriseModules';
 import { cn } from '@shared/components/ui/utils';
 
 export function AdminLayout() {
@@ -40,17 +42,17 @@ export function AdminLayout() {
 
   useEffect(() => {
     if (!user) return;
-    notificationsAPI.getByUser(user.id).then((ns) =>
-      setUnreadCount(ns.filter((n) => !n.is_read).length),
-    );
+    notificationsAPI.getByUser(user.id)
+      .then((ns) => setUnreadCount(ns.filter((n) => !n.is_read).length))
+      .catch(() => { /* ignore poll errors (e.g. 429) */ });
   }, [user]);
 
   useLiveData(() => {
     if (!user) return;
-    notificationsAPI.getByUser(user.id).then((ns) =>
-      setUnreadCount(ns.filter((n) => !n.is_read).length),
-    );
-  }, 30_000, Boolean(user));
+    return notificationsAPI.getByUser(user.id)
+      .then((ns) => setUnreadCount(ns.filter((n) => !n.is_read).length))
+      .catch(() => undefined);
+  }, 60_000, Boolean(user));
 
   useEffect(() => {
     closeMobile();
@@ -101,6 +103,7 @@ export function AdminLayout() {
 
   const isCamerasPage = location.pathname.includes('/cameras');
   const isProfilePage = location.pathname.includes('/profile');
+  const activeModule = resolveAdminEnterpriseModule(location.pathname);
 
   return (
     <div
@@ -165,6 +168,7 @@ export function AdminLayout() {
               isProfilePage ? 'app-dashboard--profile-route' : 'p-5 lg:p-6',
             )}
           >
+            {activeModule && <EnterpriseModuleSubNav module={activeModule} />}
             <Outlet key={locale} />
           </div>
         </main>

@@ -292,13 +292,13 @@ export function CameraLocationsPage() {
       <section className="cam-loc__workspace" aria-label={t('cameraLocations.mapTitle')}>
         <article className="cam-loc__map-card">
           <header className="cam-loc__card-hero cam-loc__card-hero--map">
-            <span className="cam-loc__card-hero-glow" aria-hidden />
-            <div className="cam-loc__card-hero-icon">
-              <Layers size={18} />
-            </div>
+            <span className="cam-loc__chart-dot cam-loc__chart-dot--map" aria-hidden />
             <div className="cam-loc__card-hero-copy">
               <h2 className="cam-loc__card-hero-title">{t('cameraLocations.mapTitle')}</h2>
               <p className="cam-loc__card-hero-sub">{t('cameraLocations.mapSubtitle')}</p>
+            </div>
+            <div className="cam-loc__card-hero-icon cam-loc__card-hero-icon--map">
+              <Layers size={16} />
             </div>
             <div className="cam-loc__card-hero-badge">
               <span className="cam-loc__card-hero-badge-value">{mapPoints.length}</span>
@@ -349,13 +349,13 @@ export function CameraLocationsPage() {
 
         <article className="cam-loc__coverage-card">
           <header className="cam-loc__card-hero cam-loc__card-hero--coverage">
-            <span className="cam-loc__card-hero-glow" aria-hidden />
-            <div className="cam-loc__card-hero-icon">
-              <BarChart3 size={18} />
-            </div>
+            <span className="cam-loc__chart-dot cam-loc__chart-dot--coverage" aria-hidden />
             <div className="cam-loc__card-hero-copy">
               <h2 className="cam-loc__card-hero-title">{t('cameraLocations.coverageTitle')}</h2>
               <p className="cam-loc__card-hero-sub">{t('cameraLocations.coverageSubtitle')}</p>
+            </div>
+            <div className="cam-loc__card-hero-icon cam-loc__card-hero-icon--coverage">
+              <BarChart3 size={16} />
             </div>
           </header>
           <div className="cam-loc__coverage-body">
@@ -410,13 +410,13 @@ export function CameraLocationsPage() {
 
       <section className="cam-loc__registry">
         <header className="cam-loc__card-hero cam-loc__card-hero--registry cam-loc__registry-hero">
-          <span className="cam-loc__card-hero-glow cam-loc__registry-glow" aria-hidden />
-          <div className="cam-loc__card-hero-icon cam-loc__registry-icon">
-            <MapPin size={18} />
-          </div>
+          <span className="cam-loc__chart-dot cam-loc__chart-dot--registry" aria-hidden />
           <div className="cam-loc__card-hero-copy cam-loc__registry-copy">
             <h2 className="cam-loc__card-hero-title cam-loc__registry-title">{t('cameraLocations.registryTitle')}</h2>
             <p className="cam-loc__card-hero-sub cam-loc__registry-sub">{t('cameraLocations.registrySubtitle')}</p>
+          </div>
+          <div className="cam-loc__card-hero-icon cam-loc__card-hero-icon--registry cam-loc__registry-icon">
+            <MapPin size={16} />
           </div>
         </header>
 

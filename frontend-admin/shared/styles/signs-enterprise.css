@@ -1,0 +1,570 @@
+/* ── Traffic Sign Management — clean colorful enterprise UI ─────────────── */
+
+.dashboard-page--signs.enforcement-page--signs,
+.signs-page--enterprise {
+  --sg-accent: #0d9488;
+  --sg-cyan: #06b6d4;
+  --sg-blue: #2563eb;
+  --sg-radius: 1.15rem;
+  --sg-border: rgba(148, 163, 184, 0.16);
+  --sg-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+}
+
+.dashboard-page--signs.enforcement-page--signs {
+  width: 100%;
+  max-width: none;
+  gap: 1rem;
+  padding-bottom: 1.5rem;
+  background:
+    radial-gradient(ellipse 65% 45% at 0% 0%, rgba(13, 148, 136, 0.11), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 100% 8%, rgba(37, 99, 235, 0.09), transparent 50%),
+    radial-gradient(ellipse 40% 35% at 70% 100%, rgba(244, 63, 94, 0.05), transparent 50%),
+    linear-gradient(180deg, #eef2ff 0%, #f8fafc 38%, #f0fdfa 100%);
+}
+
+html.dark .dashboard-page--signs.enforcement-page--signs {
+  background:
+    radial-gradient(ellipse 65% 45% at 0% 0%, rgba(13, 148, 136, 0.2), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 100% 5%, rgba(37, 99, 235, 0.16), transparent 50%),
+    linear-gradient(180deg, #0b1220 0%, #0f172a 55%, #111827 100%);
+}
+
+.dashboard-page--signs.enforcement-page--signs {
+  --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #134e4a 40%, #1e3a8a 100%);
+}
+
+.dashboard-page--signs .enforcement-page__hero {
+  border-radius: calc(var(--sg-radius) + 0.1rem);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.18);
+}
+
+.dashboard-page--signs .enforcement-page__hero::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 3px;
+  background: linear-gradient(90deg, #0d9488, #06b6d4, #2563eb, #f43f5e);
+  opacity: 0.95;
+  z-index: 2;
+}
+
+.dashboard-page--signs .signs-page__hero-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.dashboard-page--signs .signs-page__hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.dashboard-page--signs .signs-page__hero-actions .enforcement-page__hero-btn {
+  margin: 0;
+}
+
+.dashboard-page--signs .enforcement-page__hero-btn--teal {
+  background: linear-gradient(135deg, #14b8a6, #0d9488);
+  box-shadow: 0 4px 16px rgba(13, 148, 136, 0.4);
+}
+
+.dashboard-page--signs .enforcement-page__hero-btn--outline {
+  color: #0f172a;
+  background: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
+}
+
+.dashboard-page--signs .enforcement-page__hero-btn--outline:hover {
+  background: #f8fafc;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.16);
+}
+
+.dashboard-page--signs .enforcement-page__eyebrow {
+  color: rgba(153, 246, 228, 0.98) !important;
+}
+
+.dashboard-page--signs .enforcement-page__eyebrow-icon {
+  background: rgba(13, 148, 136, 0.22) !important;
+  color: #5eead4 !important;
+  border-color: rgba(94, 234, 212, 0.25) !important;
+}
+
+/* KPI strip */
+.dashboard-page--signs .signs-kpi-grid {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.dashboard-page--signs .signs-kpi-card {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  border-radius: var(--sg-radius);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.dashboard-page--signs .signs-kpi-card:hover {
+  transform: translateY(-3px);
+}
+
+.dashboard-page--signs .signs-kpi-card.is-active {
+  box-shadow: 0 12px 28px rgba(13, 148, 136, 0.2);
+  outline: 2px solid rgba(13, 148, 136, 0.4);
+  outline-offset: 0;
+}
+
+.dashboard-page--signs .signs-kpi-card__chev {
+  position: absolute;
+  right: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  opacity: 0.55;
+}
+
+/* Tabs */
+.dashboard-page--signs .signs-page__tabs-toolbar {
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--sg-radius);
+  border: 1px solid var(--sg-border);
+  background: #fff;
+  box-shadow: var(--sg-shadow);
+}
+
+html.dark .dashboard-page--signs .signs-page__tabs-toolbar {
+  background: rgba(30, 41, 59, 0.92);
+}
+
+.dashboard-page--signs .signs-page__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.dashboard-page--signs .signs-page__tab.is-active {
+  background: linear-gradient(135deg, #0d9488, #0f766e) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.28);
+}
+
+/* Catalog toolbar — ONE horizontal row */
+.dashboard-page--signs .enforcement-page__toolbar:has(.signs-page__toolbar-row) {
+  padding: 0.85rem 1rem;
+  border-radius: var(--sg-radius);
+  border: 1px solid var(--sg-border);
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  box-shadow: var(--sg-shadow);
+}
+
+.dashboard-page--signs .signs-page__toolbar-row {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.dashboard-page--signs .signs-page__search {
+  position: relative;
+  flex: 1 1 auto !important;
+  min-width: 11rem;
+  max-width: none !important;
+  width: auto !important;
+}
+
+.dashboard-page--signs .signs-page__search .enforcement-page__search {
+  height: 2.6rem;
+  border-radius: 0.8rem;
+  border-color: rgba(13, 148, 136, 0.18);
+  background: #fff;
+}
+
+.dashboard-page--signs .signs-page__search .enforcement-page__search:focus {
+  border-color: #0d9488;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12);
+}
+
+.dashboard-page--signs .signs-page__filters {
+  display: flex !important;
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.dashboard-page--signs .signs-page__select {
+  appearance: none;
+  -webkit-appearance: none;
+  width: auto !important;
+  min-width: 11rem;
+  max-width: 15rem;
+  height: 2.6rem;
+  padding: 0.5rem 2.1rem 0.5rem 0.9rem;
+  border-radius: 0.8rem;
+  border: 1.5px solid rgba(37, 99, 235, 0.18);
+  background-color: #eff6ff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  font-family: var(--dashboard-font-body);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #1e40af;
+  cursor: pointer;
+  outline: none;
+  flex: 0 0 auto;
+}
+
+.dashboard-page--signs .signs-page__select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  background-color: #fff;
+}
+
+.dashboard-page--signs .signs-page__view-toggle {
+  flex: 0 0 auto !important;
+  width: auto !important;
+}
+
+/* View toggle control */
+.dashboard-page--signs .signs-view-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.dashboard-page--signs .signs-view-toggle__label {
+  font-size: 0.75rem;
+  font-weight: 750;
+  color: #64748b;
+  letter-spacing: 0.02em;
+}
+
+.dashboard-page--signs .signs-view-toggle__track {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.22rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, rgba(13, 148, 136, 0.08), rgba(37, 99, 235, 0.08));
+  border: 1px solid rgba(13, 148, 136, 0.16);
+}
+
+.dashboard-page--signs .signs-view-toggle__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 9999px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 750;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dashboard-page--signs .signs-view-toggle__btn.is-active {
+  color: #fff;
+  background: linear-gradient(135deg, #0d9488, #0891b2);
+  box-shadow: 0 3px 12px rgba(13, 148, 136, 0.35);
+}
+
+/* Catalog panel */
+.dashboard-page--signs .enforcement-page__panel--signs {
+  border-radius: var(--sg-radius);
+  border: 1px solid var(--sg-border);
+  background: #fff;
+  box-shadow: var(--sg-shadow);
+  overflow: hidden;
+  padding: 0;
+}
+
+html.dark .dashboard-page--signs .enforcement-page__panel--signs {
+  background: rgba(30, 41, 59, 0.92);
+}
+
+.dashboard-page--signs .signs-page__panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.15rem 0.85rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+  background:
+    radial-gradient(circle at 0% 0%, rgba(13, 148, 136, 0.08), transparent 45%),
+    linear-gradient(180deg, #f0fdfa, #ffffff);
+}
+
+.dashboard-page--signs .signs-page__panel-title {
+  margin: 0;
+  font-family: var(--dashboard-font-display);
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+}
+
+.dashboard-page--signs .signs-page__panel-subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.dashboard-page--signs .signs-page__scroll {
+  overflow-x: auto;
+}
+
+.dashboard-page--signs .signs-page__table .enforcement-page__table-head {
+  background: linear-gradient(180deg, #ecfdf5 0%, #f8fafc 100%);
+}
+
+.dashboard-page--signs .signs-page__table .enforcement-page__th {
+  color: #115e59;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+/* Card grid — first-design layout + category-tinted media + wider cards */
+.app-dashboard .dashboard-page--signs .signs-card-grid,
+.dashboard-page--signs .signs-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16.5rem, 1fr));
+  gap: 1.15rem;
+  padding: 1.15rem 1.25rem 1.35rem;
+}
+
+.dashboard-page--signs .signs-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  width: 100%;
+  min-width: 0;
+  border-radius: 1.15rem;
+  text-align: left;
+  cursor: pointer;
+  background: #ffffff;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.07);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.dashboard-page--signs .signs-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(37, 99, 235, 0.22);
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.1);
+}
+
+.dashboard-page--signs .signs-card__accent {
+  height: 3px;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+/* Soft background tint matching the sign / category color */
+.dashboard-page--signs .signs-card__media {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem 1.15rem 1rem;
+  min-height: 15rem;
+  background: #f8fafc;
+}
+
+.dashboard-page--signs .signs-card__media[data-category='prohibitory'] {
+  background:
+    radial-gradient(circle at 50% 42%, rgba(244, 63, 94, 0.18), transparent 62%),
+    linear-gradient(180deg, #fff5f5 0%, #ffe4e6 100%);
+}
+
+.dashboard-page--signs .signs-card__media[data-category='warning'] {
+  background:
+    radial-gradient(circle at 50% 42%, rgba(245, 158, 11, 0.22), transparent 62%),
+    linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%);
+}
+
+.dashboard-page--signs .signs-card__media[data-category='mandatory'] {
+  background:
+    radial-gradient(circle at 50% 42%, rgba(37, 99, 235, 0.16), transparent 62%),
+    linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
+}
+
+.dashboard-page--signs .signs-card__media[data-category='informative'] {
+  background:
+    radial-gradient(circle at 50% 42%, rgba(16, 185, 129, 0.16), transparent 62%),
+    linear-gradient(180deg, #ecfdf5 0%, #d1fae5 100%);
+}
+
+.dashboard-page--signs .signs-card__img-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 15.5rem;
+  height: 13.5rem;
+  margin: 0 auto;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow:
+    inset 0 0 0 1px rgba(15, 23, 42, 0.06),
+    0 6px 18px rgba(15, 23, 42, 0.08);
+}
+
+.dashboard-page--signs .signs-card__img-wrap .signs-img-stage--fill {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  box-shadow: none;
+  padding: 0.65rem;
+}
+
+.dashboard-page--signs .signs-card__img {
+  max-height: 12rem;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(15, 23, 42, 0.12));
+}
+
+.dashboard-page--signs .signs-card__body {
+  flex-shrink: 0;
+  padding: 0.95rem 1.05rem 1.1rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+  background: #ffffff;
+}
+
+.dashboard-page--signs .signs-card__badge {
+  font-size: 0.68rem !important;
+}
+
+.dashboard-page--signs .signs-card .crud-actions {
+  gap: 0.35rem;
+}
+
+/* Outline edit/delete — first-design red outline actions */
+.dashboard-page--signs .signs-card .crud-actions__btn {
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 0.55rem;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.dashboard-page--signs .signs-card .crud-actions__btn--edit {
+  color: #e11d48 !important;
+  border: 1.5px solid rgba(225, 29, 72, 0.45) !important;
+}
+
+.dashboard-page--signs .signs-card .crud-actions__btn--edit:hover {
+  background: rgba(225, 29, 72, 0.08) !important;
+  border-color: #e11d48 !important;
+}
+
+.dashboard-page--signs .signs-card .crud-actions__btn--delete {
+  color: #e11d48 !important;
+  border: 1.5px solid rgba(225, 29, 72, 0.45) !important;
+}
+
+.dashboard-page--signs .signs-card .crud-actions__btn--delete:hover {
+  background: rgba(225, 29, 72, 0.08) !important;
+  border-color: #e11d48 !important;
+}
+
+/* Pagination */
+.dashboard-page--signs .table-pagination {
+  display: block;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid rgba(13, 148, 136, 0.12);
+  background: linear-gradient(180deg, rgba(240, 253, 250, 0.95) 0%, rgba(248, 250, 252, 0.6) 100%);
+}
+
+.dashboard-page--signs .table-pagination__row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+}
+
+.dashboard-page--signs .table-pagination__show,
+.dashboard-page--signs .table-pagination__end,
+.dashboard-page--signs .table-pagination__pages,
+.dashboard-page--signs .table-pagination__nav {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.dashboard-page--signs .table-pagination__divider {
+  display: block;
+}
+
+.dashboard-page--signs .table-pagination select,
+.dashboard-page--signs .table-pagination__select {
+  width: auto !important;
+  min-width: 4.25rem;
+  max-width: 5.5rem;
+}
+
+@media (max-width: 1100px) {
+  .dashboard-page--signs .signs-kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .dashboard-page--signs .signs-page__toolbar-row {
+    flex-wrap: wrap;
+  }
+
+  .dashboard-page--signs .signs-page__search {
+    flex: 1 1 100% !important;
+  }
+
+  .dashboard-page--signs .signs-page__filters,
+  .dashboard-page--signs .signs-page__view-toggle {
+    flex: 1 1 auto;
+  }
+
+  .dashboard-page--signs .signs-page__select {
+    width: 100% !important;
+    max-width: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard-page--signs .signs-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-page--signs .signs-view-toggle__label {
+    display: none;
+  }
+
+  .dashboard-page--signs .signs-card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr));
+    gap: 0.85rem;
+  }
+
+  .dashboard-page--signs .table-pagination__row {
+    flex-wrap: wrap;
+  }
+}

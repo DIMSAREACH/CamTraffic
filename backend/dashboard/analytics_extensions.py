@@ -60,8 +60,11 @@ def get_top_locations():
         count = TrafficViolation.objects.filter(camera=cam).count()
         if count < 1:
             count = cam.detection_count_today or 0
+        label = f'{cam.name} — {cam.road.name}' if cam.road_id else (cam.name or f'Camera {cam.pk}')
         rows.append({
-            'location': f'{cam.name} — {cam.road.name}' if cam.road_id else cam.name,
+            'name': label,
+            'location': label,
+            'fines': count,
             'detections': count,
             'lat': float(cam.latitude) if cam.latitude else None,
             'lng': float(cam.longitude) if cam.longitude else None,

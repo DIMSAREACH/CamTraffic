@@ -23,6 +23,34 @@ type DetectionCategory = 'all' | 'sign' | 'vehicle' | 'plate';
 export type CenterDetectionResult = WebcamDetectionResult & {
   log_id?: string | number | null;
   model_version?: string;
+  plate_province_code?: string;
+  plate_province_en?: string;
+  plate_province_km?: string;
+  plate_type?: string;
+  pipeline_vehicle?: {
+    vehicle_type: string;
+    vehicle_label_en: string;
+    vehicle_label_km: string;
+    vehicle_confidence: number;
+    source?: 'yolo' | 'database';
+  };
+  violation_evaluation?: {
+    is_violation: boolean;
+    violation_type?: string;
+    title?: string;
+    description?: string;
+    observed_action?: string;
+    default_fine_amount?: number;
+    reason?: string;
+  };
+  violation?: {
+    id?: string | number;
+    violation_type?: string;
+    vehicle_plate?: string;
+  };
+  violation_error?: string;
+  vehicle_snapshot?: string;
+  plate_snapshot?: string;
   video_analysis?: {
     source_filename?: string;
     frames_analyzed?: number;

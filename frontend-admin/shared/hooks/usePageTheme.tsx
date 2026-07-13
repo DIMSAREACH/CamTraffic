@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useLocation } from 'react-router';
 import { useLanguage } from '@shared/context/LanguageContext';
+import { resolveAdminEnterpriseModule } from '@shared/constants/enterpriseModules';
 
 type PageThemeConfig = {
   crumb: string[];
@@ -154,6 +155,28 @@ const THEME_MAP: Record<
   },
 };
 
+const ADMIN_MODULE_TITLE_KEYS: Record<string, string> = {
+  dashboard: 'sidebar.pageTitles.dashboard',
+  'ai-detection': 'sidebar.pageTitles.aiDetection',
+  'ai-models': 'sidebar.pageTitles.aiModels',
+  'traffic-signs': 'sidebar.pageTitles.trafficSigns',
+  cameras: 'sidebar.pageTitles.cameras',
+  roads: 'sidebar.pageTitles.roads',
+  vehicles: 'sidebar.pageTitles.vehicles',
+  drivers: 'sidebar.pageTitles.drivers',
+  officers: 'sidebar.pageTitles.officers',
+  violations: 'sidebar.pageTitles.violations',
+  fines: 'sidebar.pageTitles.fines',
+  appeals: 'sidebar.pageTitles.appeals',
+  reports: 'sidebar.pageTitles.reports',
+  notifications: 'sidebar.pageTitles.notifications',
+  users: 'sidebar.pageTitles.users',
+  roles: 'sidebar.pageTitles.roles',
+  audit: 'sidebar.pageTitles.auditLogs',
+  profile: 'sidebar.pageTitles.profile',
+  settings: 'sidebar.pageTitles.settings',
+};
+
 export function usePageTheme(): PageThemeConfig {
   const { t } = useLanguage();
   const location = useLocation();
@@ -161,10 +184,14 @@ export function usePageTheme(): PageThemeConfig {
     ? location.pathname.replace('/admin', '/dashboard')
     : location.pathname;
   const cfg = THEME_MAP[themeKey] ?? THEME_MAP['/dashboard'];
+  const adminMod = location.pathname.startsWith('/admin')
+    ? resolveAdminEnterpriseModule(location.pathname)
+    : null;
+  const moduleTitleKey = adminMod ? ADMIN_MODULE_TITLE_KEYS[adminMod.id] : null;
 
   return {
     crumb: cfg.crumbKeys.map((k) => t(k)),
-    label: t(cfg.labelKey),
+    label: moduleTitleKey ? t(moduleTitleKey) : t(cfg.labelKey),
     icon: cfg.icon,
     color: cfg.color,
     gradient: cfg.gradient,

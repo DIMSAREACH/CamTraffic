@@ -36,8 +36,12 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         if not request:
             return
 
-        portal = (request.data.get('portal') or '').strip().lower()
-        expected_role = (request.data.get('role') or '').strip().lower()
+        raw = getattr(request, 'data', None)
+        if not isinstance(raw, dict):
+            raw = getattr(request, 'POST', {}) or {}
+
+        portal = (raw.get('portal') or '').strip().lower()
+        expected_role = (raw.get('role') or '').strip().lower()
 
         if portal == 'admin':
             if self.user.role != 'admin':

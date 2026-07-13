@@ -46,7 +46,7 @@ export function SignNameLabels({ sign, size = 'md', className = '', centered = f
       {showEnglish ? (
         <p
           className={subClass}
-          style={size === 'detail' ? undefined : { color: 'var(--muted-foreground)', fontWeight: 500 }}
+          style={size === 'detail' ? undefined : { color: 'var(--foreground)', fontWeight: 600 }}
         >
           {en}
         </p>

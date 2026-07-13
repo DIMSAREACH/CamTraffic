@@ -5,8 +5,10 @@ import { AuthThemeToggle } from '@shared/components/AuthThemeToggle';
 export function AuthPageControls() {
   return (
     <div className="auth-page-controls">
-      <AuthLanguageSwitcher />
-      <AuthThemeToggle />
+      <div className="auth-page-controls__group">
+        <AuthLanguageSwitcher />
+        <AuthThemeToggle />
+      </div>
     </div>
   );
 }

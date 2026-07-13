@@ -938,7 +938,8 @@ export function CamerasPage() {
       <div className="cameras-workspace">
         <aside className="cameras-panel cameras-panel--list">
           <header className="cameras-panel__header">
-            <div>
+            <span className="cameras-panel__dot cameras-panel__dot--list" aria-hidden />
+            <div className="cameras-panel__header-copy">
               <h2 className="dashboard-section__title">{t('pages.cameras.listTitle')}</h2>
               <p className="dashboard-section__subtitle">{t('pages.cameras.listSubtitle')}</p>
             </div>
@@ -1000,6 +1001,28 @@ export function CamerasPage() {
         </aside>
 
         <main className="cameras-panel cameras-panel--preview">
+          {selected ? (
+            <header className="cameras-panel__header cameras-panel__header--preview">
+              <span className="cameras-panel__dot cameras-panel__dot--preview" aria-hidden />
+              <div className="cameras-panel__header-copy">
+                <h2 className="dashboard-section__title">{selected.name}</h2>
+                <p className="dashboard-section__subtitle">
+                  {selected.road_name || t('pages.cameras.previewSubtitle')}
+                </p>
+              </div>
+              <div className="cameras-panel__header-meta">
+                <StatusPill status={selected.status} t={t} size="md" />
+              </div>
+            </header>
+          ) : (
+            <header className="cameras-panel__header cameras-panel__header--preview">
+              <span className="cameras-panel__dot cameras-panel__dot--preview" aria-hidden />
+              <div className="cameras-panel__header-copy">
+                <h2 className="dashboard-section__title">{t('pages.cameras.previewTitle')}</h2>
+                <p className="dashboard-section__subtitle">{t('pages.cameras.selectCameraHint')}</p>
+              </div>
+            </header>
+          )}
           <div className="cameras-panel__content cameras-panel__content--fill">
             {selected ? (
               <div className="cameras-preview-shell">

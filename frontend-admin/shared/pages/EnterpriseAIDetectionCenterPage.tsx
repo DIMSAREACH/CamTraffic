@@ -1,94 +1,158 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router';
 import {
-  Brain, Upload, Film, Cctv, Camera, History, Activity, Target, Cpu, Zap,
-  Sparkles, ScanLine,
+  Brain, ArrowLeft, Activity, Target, Camera as CameraIcon, Zap,
+  Loader2, CheckCircle, Signpost, Car, Hash, Shield, BarChart3,
 } from 'lucide-react';
 import { LiveWebcamPanel } from '@shared/components/ai/LiveWebcamPanel';
 import { ImageUploadPanel } from '@shared/components/ai/center/ImageUploadPanel';
 import { VideoUploadPanel } from '@shared/components/ai/center/VideoUploadPanel';
 import { LiveCameraDetectionPanel } from '@shared/components/ai/center/LiveCameraDetectionPanel';
 import {
-  DetectionCenterResultsPanel,
-  type CenterDetectionResult,
-} from '@shared/components/ai/center/DetectionCenterResultsPanel';
-import { DetectionCenterHistoryPanel } from '@shared/components/ai/center/DetectionCenterHistoryPanel';
+  EnterpriseDetectionInputWorkspace,
+  type EnterpriseInputMode,
+} from '@shared/components/ai/center/EnterpriseDetectionInputWorkspace';
+import { EnterpriseDetectionResultsView } from '@shared/components/ai/center/EnterpriseDetectionResultsView';
+import { RecentDetectionsTable } from '@shared/components/ai/center/RecentDetectionsTable';
+import type { CenterDetectionResult } from '@shared/components/ai/center/DetectionCenterResultsPanel';
 import type { DetectPipelineOptions } from '@shared/constants/observedActions';
 import { isManualScanResult, type WebcamDetectionResult } from '@shared/hooks/useWebcamDetection';
 import { useLanguage } from '@shared/context/LanguageContext';
-import { useLiveData } from '@shared/hooks/useLiveData';
-import { aiAPI } from '@shared/services/api';
+import { aiAPI, camerasAPI } from '@shared/services/api';
 import {
   DEFAULT_PAGE_STATS,
   mergePageStatsWithDefaults,
 } from '@shared/constants/defaultPageStats';
-import type { AIDetectionPageStats } from '@shared/types';
+import {
+  getStoredAdminDetectionInputMode,
+  setStoredAdminDetectionInputMode,
+} from '@shared/constants/detectionInputMode';
+import type { AIDetectionLog, AIDetectionPageStats } from '@shared/types';
 import { cn } from '@shared/components/ui/utils';
 
-type WorkflowTab = 'detect' | 'history';
-type InputMode = 'image' | 'video' | 'camera' | 'webcam';
-
-const INPUT_MODES: { id: InputMode; icon: typeof Upload; tone: string }[] = [
-  { id: 'image', icon: Upload, tone: 'violet' },
-  { id: 'video', icon: Film, tone: 'rose' },
-  { id: 'camera', icon: Cctv, tone: 'cyan' },
-  { id: 'webcam', icon: Camera, tone: 'emerald' },
-];
-
-const ENGINE_TAGS = [
-  { label: 'YOLOv11 Signs', tone: 'violet' },
-  { label: 'YOLOv11 Vehicles', tone: 'cyan' },
-  { label: 'YOLOv11 Plates', tone: 'amber' },
-  { label: 'EasyOCR', tone: 'emerald' },
+const PROCESSING_STEPS = [
+  { icon: Signpost, labelKey: 'aiCenter.processSigns' },
+  { icon: Car, labelKey: 'aiCenter.processVehicles' },
+  { icon: Hash, labelKey: 'aiCenter.processPlates' },
+  { icon: Shield, labelKey: 'aiCenter.processViolations' },
 ] as const;
 
-const INPUT_TONE: Record<InputMode, string> = {
-  image: 'violet',
-  video: 'rose',
-  camera: 'cyan',
-  webcam: 'emerald',
-};
+function isToday(iso: string): boolean {
+  const d = new Date(iso);
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear()
+    && d.getMonth() === now.getMonth()
+    && d.getDate() === now.getDate();
+}
 
-const INPUT_ICONS: Record<InputMode, typeof Upload> = {
-  image: Upload,
-  video: Film,
-  camera: Cctv,
-  webcam: Camera,
-};
+function EnterpriseProcessingPanel({ progress = 82 }: { progress?: number }) {
+  const { t } = useLanguage();
+  return (
+    <div className="enterprise-ai-processing">
+      <div className="enterprise-ai-processing__head">
+        <Loader2 size={28} className="enterprise-ai-processing__spinner" />
+        <h3>{t('aiCenter.processingTitle')}</h3>
+        <p>{t('aiCenter.analyzingImage')}</p>
+      </div>
+      <div
+        className="enterprise-ai-processing__bar"
+        role="progressbar"
+        aria-valuenow={progress}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      >
+        <div className="enterprise-ai-processing__bar-fill" style={{ width: `${progress}%` }} />
+      </div>
+      <p className="enterprise-ai-processing__pct">{progress}%</p>
+      <ul className="enterprise-ai-processing__steps">
+        {PROCESSING_STEPS.map(({ icon: Icon, labelKey }) => (
+          <li key={labelKey}>
+            <CheckCircle size={16} />
+            {t(labelKey)}
+          </li>
+        ))}
+      </ul>
+      <p className="enterprise-ai-processing__wait">{t('aiCenter.pleaseWait')}</p>
+    </div>
+  );
+}
+
+function parseInitialMode(searchParams: URLSearchParams): EnterpriseInputMode {
+  const q = searchParams.get('mode');
+  if (q === 'camera' || q === 'video' || q === 'webcam' || q === 'image') return q;
+  return getStoredAdminDetectionInputMode();
+}
 
 export function EnterpriseAIDetectionCenterPage() {
   const { t } = useLanguage();
-  const [workflow, setWorkflow] = useState<WorkflowTab>('detect');
-  const [inputMode, setInputMode] = useState<InputMode>('image');
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [inputMode, setInputMode] = useState<EnterpriseInputMode>(() => parseInitialMode(searchParams));
   const [demoAction, setDemoAction] = useState('');
   const [result, setResult] = useState<CenterDetectionResult | null>(null);
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
   const [detecting, setDetecting] = useState(false);
-
   const [pageStats, setPageStats] = useState<AIDetectionPageStats>(DEFAULT_PAGE_STATS);
+  const [recentLogs, setRecentLogs] = useState<AIDetectionLog[]>([]);
+  const [loadingLogs, setLoadingLogs] = useState(true);
+  const [liveCameraCount, setLiveCameraCount] = useState(0);
 
-  useEffect(() => {
-    aiAPI.getPageStats()
-      .then((data) => setPageStats(mergePageStatsWithDefaults(data)))
-      .catch(() => { /* keep defaults */ });
+  const refreshStats = useCallback(async () => {
+    try {
+      const data = await aiAPI.getPageStats();
+      setPageStats(mergePageStatsWithDefaults(data));
+    } catch { /* keep defaults */ }
   }, []);
 
-  useLiveData(() => {
-    aiAPI.getPageStats()
-      .then((data) => setPageStats(mergePageStatsWithDefaults(data)))
-      .catch(() => { /* keep defaults */ });
-  }, 30_000, true);
+  const refreshLogs = useCallback(async () => {
+    setLoadingLogs(true);
+    try {
+      const logs = await aiAPI.getLogs();
+      setRecentLogs(logs);
+    } catch {
+      setRecentLogs([]);
+    } finally {
+      setLoadingLogs(false);
+    }
+  }, []);
 
-  const stats = pageStats;
+  const refreshCameras = useCallback(async () => {
+    try {
+      const cameras = await camerasAPI.getAll();
+      const active = cameras.filter((c) => c.status === 'active');
+      setLiveCameraCount(active.length || cameras.length);
+    } catch {
+      setLiveCameraCount(0);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshStats();
+    void refreshLogs();
+    void refreshCameras();
+  }, [refreshStats, refreshLogs, refreshCameras]);
+
+  const todayDetections = useMemo(
+    () => recentLogs.filter((log) => isToday(log.created_at)).length,
+    [recentLogs],
+  );
+
+  const selectInputMode = (mode: EnterpriseInputMode) => {
+    setStoredAdminDetectionInputMode(mode);
+    setInputMode(mode);
+  };
 
   const pipelineOptions: DetectPipelineOptions = {
-    observed_action: demoAction || undefined,
-    demo_violation: !!demoAction,
-    auto_create_violation: true,
+    observedAction: demoAction || undefined,
+    demoViolation: !!demoAction,
+    autoCreateViolation: true,
   };
 
   const handleResult = (res: CenterDetectionResult, preview: string) => {
     setResult(res);
     setPreviewSrc(preview || res.uploaded_image || null);
+    void refreshLogs();
+    void refreshStats();
   };
 
   const handleWebcamResult = (res: WebcamDetectionResult) => {
@@ -97,8 +161,7 @@ export function EnterpriseAIDetectionCenterPage() {
   };
 
   const sourceLabel = t(`aiCenter.source.${inputMode}`);
-  const activeTone = INPUT_TONE[inputMode];
-  const ActiveInputIcon = INPUT_ICONS[inputMode];
+  const showResults = Boolean(result) && !detecting;
 
   const exportResult = () => {
     if (!result) return;
@@ -111,215 +174,132 @@ export function EnterpriseAIDetectionCenterPage() {
     URL.revokeObjectURL(url);
   };
 
+  const resetDetection = () => {
+    setResult(null);
+    setPreviewSrc(null);
+    setDetecting(false);
+  };
+
+  const beforeKpi = [
+    { tone: 'emerald', icon: Activity, value: pageStats.stats.total_scans.toLocaleString(), label: t('aiCenter.kpiTotalDetect') },
+    { tone: 'blue', icon: Zap, value: String(todayDetections), label: t('aiCenter.kpiTodayDetect') },
+    { tone: 'violet', icon: Target, value: `${pageStats.stats.accuracy_avg.toFixed(1)}%`, label: t('aiCenter.kpiAccuracy') },
+    { tone: 'cyan', icon: CameraIcon, value: String(liveCameraCount), label: t('aiCenter.kpiLiveCameras') },
+  ];
+
+  const panelProps = {
+    demoObservedAction: demoAction,
+    onDemoObservedActionChange: setDemoAction,
+    onResult: handleResult,
+    onDetectingChange: setDetecting,
+    disabled: detecting,
+  };
+
+  const renderPreview = () => {
+    switch (inputMode) {
+      case 'image':
+        return <ImageUploadPanel {...panelProps} layout="enterprise" />;
+      case 'video':
+        return <VideoUploadPanel {...panelProps} />;
+      case 'camera':
+        return <LiveCameraDetectionPanel {...panelProps} />;
+      case 'webcam':
+        return (
+          <div className="ai-center-webcam-wrap">
+            <LiveWebcamPanel
+              onResult={handleWebcamResult}
+              disabled={detecting}
+              pipelineOptions={pipelineOptions}
+            />
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
-    <div className="enforcement-page enforcement-page--ai-center dashboard-home dashboard-page--ai-center">
-      {/* Hero */}
-      <div className="enforcement-page__hero">
+    <div className="enforcement-page enforcement-page--ai-center dashboard-home dashboard-page--ai-center enterprise-ai-page">
+      <div className="enforcement-page__hero enterprise-ai-page__hero enterprise-ai-page__hero--compact">
         <div className="enforcement-page__hero-glow--primary" aria-hidden />
-        <div className="enforcement-page__hero-glow--secondary" aria-hidden />
-        <div className="enforcement-page__hero-inner">
+        <div className="enforcement-page__hero-inner enterprise-ai-page__hero-inner">
           <div>
             <div className="enforcement-page__eyebrow">
-              <span className="enforcement-page__eyebrow-icon">
-                <Brain size={14} />
-              </span>
-              {t('aiCenter.heroEyebrow')}
-              <span className="ai-center-live-badge">
-                <Sparkles size={11} />
-                {t('aiCenter.liveBadge')}
-              </span>
+              <span className="enforcement-page__eyebrow-icon"><Brain size={14} /></span>
+              {t('aiCenter.newDetectionTitle')}
             </div>
             <h1 className="enforcement-page__title">{t('aiCenter.heroTitle')}</h1>
-            <p className="enforcement-page__subtitle">{t('aiCenter.heroSubtitle')}</p>
+            <p className="enforcement-page__subtitle">{t('aiCenter.newDetectionSubtitle')}</p>
+          </div>
+          <div className="enterprise-ai-page__hero-actions">
+            <button
+              type="button"
+              className="enterprise-ai-page__action-btn"
+              onClick={() => navigate('/admin/ai-detection')}
+            >
+              <ArrowLeft size={15} />
+              {t('aiCenter.backToDashboard')}
+            </button>
+            <button
+              type="button"
+              className="enterprise-ai-page__action-btn"
+              onClick={() => navigate('/admin/ai-dashboard')}
+            >
+              <BarChart3 size={15} />
+              {t('aiCenter.actionAnalytics')}
+            </button>
           </div>
         </div>
       </div>
 
-      {/* KPI stats */}
-      <div className="enforcement-page__stat-grid enforcement-page__stat-grid--four ai-center-stat-grid">
-        <div className="enforcement-page__stat-card enforcement-page__stat-card--emerald">
-          <div className="enforcement-page__stat-icon enforcement-page__stat-icon--emerald">
-            <Target size={18} />
-          </div>
-          <div className="enforcement-page__stat-copy">
-            <p className="enforcement-page__stat-value">{stats.stats.accuracy_avg.toFixed(1)}%</p>
-            <p className="enforcement-page__stat-label enforcement-page__stat-label--emerald">
-              {t('aiCenter.kpiAccuracy')}
-            </p>
-          </div>
-        </div>
-        <div className="enforcement-page__stat-card enforcement-page__stat-card--blue">
-          <div className="enforcement-page__stat-icon enforcement-page__stat-icon--blue">
-            <Activity size={18} />
-          </div>
-          <div className="enforcement-page__stat-copy">
-            <p className="enforcement-page__stat-value">{stats.stats.total_scans}</p>
-            <p className="enforcement-page__stat-label enforcement-page__stat-label--blue">
-              {t('aiCenter.kpiScans')}
-            </p>
-          </div>
-        </div>
-        <div className="enforcement-page__stat-card enforcement-page__stat-card--violet">
-          <div className="enforcement-page__stat-icon enforcement-page__stat-icon--violet">
-            <Cpu size={18} />
-          </div>
-          <div className="enforcement-page__stat-copy">
-            <p className="enforcement-page__stat-value ai-center-stat-value--text">{stats.model.label}</p>
-            <p className="enforcement-page__stat-label enforcement-page__stat-label--violet">
-              {t('aiCenter.kpiModel')}
-            </p>
-          </div>
-        </div>
-        <div className="enforcement-page__stat-card enforcement-page__stat-card--amber ai-center-stat-card--engines">
-          <div className="enforcement-page__stat-icon enforcement-page__stat-icon--amber">
-            <Zap size={18} />
-          </div>
-          <div className="enforcement-page__stat-copy">
-            <p className="enforcement-page__stat-label enforcement-page__stat-label--amber ai-center-engines-label">
-              {t('aiCenter.engines')}
-            </p>
-            <div className="ai-center-engine-tags">
-              {ENGINE_TAGS.map(({ label, tone }) => (
-                <span key={label} className={cn('ai-center-engine-tag', `ai-center-engine-tag--${tone}`)}>
-                  {label}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Workflow tabs */}
-      <div className="enforcement-page__toolbar ai-center-workflow-toolbar">
-        <div className="enforcement-page__filters">
-          <button
-            type="button"
-            className={cn(
-              'enforcement-page__filter-btn ai-center-workflow-tab',
-              workflow === 'detect' && 'enforcement-page__filter-btn--active',
-            )}
-            style={workflow === 'detect' ? { background: 'linear-gradient(135deg, #6366f1, #4f46e5)' } : undefined}
-            onClick={() => setWorkflow('detect')}
-          >
-            <Zap size={15} />
-            {t('aiCenter.tabDetect')}
-          </button>
-          <button
-            type="button"
-            className={cn(
-              'enforcement-page__filter-btn ai-center-workflow-tab',
-              workflow === 'history' && 'enforcement-page__filter-btn--active',
-            )}
-            style={workflow === 'history' ? { background: 'linear-gradient(135deg, #0891b2, #0e7490)' } : undefined}
-            onClick={() => setWorkflow('history')}
-          >
-            <History size={15} />
-            {t('aiCenter.tabHistory')}
-          </button>
-        </div>
-      </div>
-
-      {workflow === 'history' ? (
-        <DetectionCenterHistoryPanel />
-      ) : (
-        <div className="ai-center-workspace">
-          <section
-            className={cn(
-              'ai-center-panel ai-center-panel--input enforcement-page__panel',
-              `ai-center-panel--tone-${activeTone}`,
-            )}
-          >
-            <header className={cn('ai-center-panel__header ai-center-panel__header--input', `ai-center-panel__header--tone-${activeTone}`)}>
-              <span className="ai-center-panel__header-glow" aria-hidden />
-              <div className={cn('ai-center-panel__header-icon', `ai-center-panel__header-icon--${activeTone}`)}>
-                <ActiveInputIcon size={18} />
-              </div>
-              <div>
-                <h2 className="ai-center-panel__title">{t('aiCenter.panelInput')}</h2>
-                <p className="ai-center-panel__subtitle">{t('aiCenter.panelInputHint')}</p>
-              </div>
-            </header>
-
-            <div className="ai-center-input-tabs">
-              {INPUT_MODES.map(({ id, icon: Icon, tone }) => (
-                <button
-                  key={id}
-                  type="button"
-                  className={cn(
-                    'ai-center-input-tab',
-                    `ai-center-input-tab--${tone}`,
-                    inputMode === id && 'is-active',
-                  )}
-                  onClick={() => setInputMode(id)}
-                  disabled={detecting}
-                  title={t(`aiCenter.input.${id}`)}
-                >
-                  <Icon size={16} />
-                  <span>{t(`aiCenter.input.${id}`)}</span>
-                </button>
-              ))}
-            </div>
-
-            <div className="ai-center-input-body">
-              {inputMode === 'image' && (
-                <ImageUploadPanel
-                  demoObservedAction={demoAction}
-                  onDemoObservedActionChange={setDemoAction}
-                  onResult={handleResult}
-                  onDetectingChange={setDetecting}
-                  disabled={detecting}
-                />
-              )}
-              {inputMode === 'video' && (
-                <VideoUploadPanel
-                  demoObservedAction={demoAction}
-                  onDemoObservedActionChange={setDemoAction}
-                  onResult={handleResult}
-                  onDetectingChange={setDetecting}
-                  disabled={detecting}
-                />
-              )}
-              {inputMode === 'camera' && (
-                <LiveCameraDetectionPanel
-                  demoObservedAction={demoAction}
-                  onDemoObservedActionChange={setDemoAction}
-                  onResult={handleResult}
-                  onDetectingChange={setDetecting}
-                  disabled={detecting}
-                />
-              )}
-              {inputMode === 'webcam' && (
-                <div className="ai-center-webcam-wrap">
-                  <LiveWebcamPanel
-                    onResult={handleWebcamResult}
-                    disabled={detecting}
-                    pipelineOptions={pipelineOptions}
-                  />
+      {!showResults && (
+        <div className="enforcement-page__stat-grid enforcement-page__stat-grid--four enterprise-ai-kpi-grid">
+          {beforeKpi.map((card) => {
+            const Icon = card.icon;
+            return (
+              <div key={card.label} className={cn('enforcement-page__stat-card', `enforcement-page__stat-card--${card.tone}`)}>
+                <div className={cn('enforcement-page__stat-icon', `enforcement-page__stat-icon--${card.tone}`)}>
+                  <Icon size={18} />
                 </div>
-              )}
-            </div>
-          </section>
-
-          <section className="ai-center-panel ai-center-panel--results enforcement-page__panel">
-            <header className="ai-center-panel__header ai-center-panel__header--results">
-              <span className="ai-center-panel__header-glow" aria-hidden />
-              <div className="ai-center-panel__header-icon ai-center-panel__header-icon--cyan">
-                <ScanLine size={18} />
+                <div className="enforcement-page__stat-copy">
+                  <p className="enforcement-page__stat-value">{card.value}</p>
+                  <p className={cn('enforcement-page__stat-label', `enforcement-page__stat-label--${card.tone}`)}>
+                    {card.label}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h2 className="ai-center-panel__title">{t('aiCenter.panelResults')}</h2>
-                <p className="ai-center-panel__subtitle">{t('aiCenter.panelResultsHint')}</p>
-              </div>
-            </header>
-            <DetectionCenterResultsPanel
-              result={result}
-              originalSrc={previewSrc}
-              detecting={detecting}
-              sourceLabel={sourceLabel}
-              onExport={result ? exportResult : undefined}
-            />
-          </section>
+            );
+          })}
         </div>
+      )}
+
+      {showResults && result ? (
+        <EnterpriseDetectionResultsView
+          result={result}
+          previewSrc={previewSrc}
+          sourceLabel={sourceLabel}
+          accuracyAvg={pageStats.stats.accuracy_avg}
+          onExport={exportResult}
+          onNewDetection={resetDetection}
+        />
+      ) : (
+        <>
+          <EnterpriseDetectionInputWorkspace
+            inputMode={inputMode}
+            onInputModeChange={selectInputMode}
+            detecting={detecting}
+            sourceControls={null}
+            previewContent={renderPreview()}
+            processingOverlay={<EnterpriseProcessingPanel />}
+          />
+          <RecentDetectionsTable
+            logs={recentLogs}
+            loading={loadingLogs}
+            onViewAll={() => navigate('/admin/ai-detection?tab=history')}
+            onViewLog={() => navigate('/admin/ai-detection?tab=history')}
+            pageSize={10}
+          />
+        </>
       )}
     </div>
   );

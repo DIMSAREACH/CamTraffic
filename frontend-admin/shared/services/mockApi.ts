@@ -397,15 +397,57 @@ export const appealsAPI = {
 
 export const auditAPI = {
   async getAll(): Promise<import('../types').AuditLogEntry[]> {
-    return [{
-      id: 'audit-1',
-      user_name: 'System Admin',
-      user_role: 'admin',
-      action: 'login',
-      resource: 'auth',
-      resource_id: '',
-      timestamp: new Date().toISOString(),
-    }];
+    const now = Date.now();
+    return [
+      {
+        id: 'audit-rbac-1',
+        user_name: 'System Admin',
+        user_role: 'admin',
+        action: 'update',
+        resource: 'role',
+        resource_id: 'admin',
+        timestamp: new Date(now - 5 * 60_000).toISOString(),
+        new_value: { event: 'permission_updated' },
+      },
+      {
+        id: 'audit-rbac-2',
+        user_name: 'System Admin',
+        user_role: 'admin',
+        action: 'create',
+        resource: 'role',
+        resource_id: 'supervisor',
+        timestamp: new Date(now - 35 * 60_000).toISOString(),
+        new_value: { event: 'role_created' },
+      },
+      {
+        id: 'audit-rbac-3',
+        user_name: 'System Admin',
+        user_role: 'admin',
+        action: 'update',
+        resource: 'permission',
+        resource_id: 'officer',
+        timestamp: new Date(now - 2 * 3600_000).toISOString(),
+        new_value: { event: 'user_assigned' },
+      },
+      {
+        id: 'audit-rbac-4',
+        user_name: 'Officer Sok',
+        user_role: 'police',
+        action: 'view',
+        resource: 'rbac',
+        resource_id: 'roles',
+        timestamp: new Date(now - 5 * 3600_000).toISOString(),
+      },
+      {
+        id: 'audit-1',
+        user_name: 'System Admin',
+        user_role: 'admin',
+        action: 'login',
+        resource: 'auth',
+        resource_id: '',
+        timestamp: new Date(now - 8 * 3600_000).toISOString(),
+      },
+    ];
   },
 };
 
@@ -433,20 +475,52 @@ export const unknownVehiclesAPI = {
 
 export const aiModelsAPI = {
   async getAll(): Promise<import('../types').AIModelVersion[]> {
-    return [{
-      id: 'model-1',
-      version: 'yolo11n-dataset10',
-      model_file: 'best.pt',
-      accuracy: 99.5,
-      is_active: true,
-      uploaded_at: new Date().toISOString(),
-    }];
+    return [
+      {
+        id: 'model-1',
+        version: 'v1.0',
+        model_file: 'runs/camtraffic-v1/weights/best.pt',
+        description: 'YOLOv11 Cambodian Traffic',
+        accuracy: 98.7,
+        is_active: true,
+        uploaded_at: new Date().toISOString(),
+      },
+      {
+        id: 'model-2',
+        version: 'v0.9',
+        model_file: 'runs/camtraffic-v09/weights/best.pt',
+        description: 'YOLOv11 Cambodian Traffic',
+        accuracy: 97.5,
+        is_active: false,
+        uploaded_at: new Date(Date.now() - 86400000 * 12).toISOString(),
+      },
+      {
+        id: 'model-3',
+        version: 'v0.8',
+        model_file: 'runs/combined/weights/best.pt',
+        description: 'YOLOv11 Combined Detection',
+        accuracy: 96.2,
+        is_active: false,
+        uploaded_at: new Date(Date.now() - 86400000 * 28).toISOString(),
+      },
+      {
+        id: 'model-4',
+        version: 'dataset10-n',
+        model_file: 'best.pt',
+        description: 'YOLOv11 Dataset-10 Nano',
+        accuracy: 99.1,
+        is_active: false,
+        uploaded_at: new Date(Date.now() - 86400000 * 45).toISOString(),
+      },
+    ];
   },
   async create(data: Partial<import('../types').AIModelVersion>) {
     return {
       id: `model-${Date.now()}`,
       version: data.version || 'v1',
       model_file: data.model_file || 'best.pt',
+      description: data.description,
+      accuracy: data.accuracy ?? null,
       is_active: false,
       uploaded_at: new Date().toISOString(),
     };
@@ -894,6 +968,58 @@ export const dashboardAPI = {
       generated_at: new Date().toISOString(),
     };
   },
+  async getDetectionAnalytics() {
+    await delay(200);
+    return {
+      accuracy: mockDashboardStats.detection_accuracy,
+      precision: 97.4,
+      recall: 96.1,
+      map50: 94.8,
+      f1: 96.7,
+      total_detections: mockDashboardStats.total_detections,
+    };
+  },
+  async getHeatmap() {
+    await delay(200);
+    const points = (mockDashboardStats.top_locations ?? []).map((loc, i) => ({
+      id: `heat-${i}`,
+      name: loc.name,
+      road: loc.name,
+      lat: 11.55 + (i % 5) * 0.02,
+      lng: 104.88 + (i % 4) * 0.015,
+      detections: loc.detections,
+      violations: loc.fines,
+      intensity: loc.detections,
+      status: 'active',
+    }));
+    return { points };
+  },
+  async getOfficerPerformance() {
+    await delay(200);
+    return {
+      officers: [
+        {
+          id: '1', full_name: 'Officer Chan', email: 'chan@camtraffic.gov.kh', badge_no: 'PP-001',
+          fines_issued: 42, violations_reviewed: 58, revenue_collected: 4200, pending_fines: 6,
+        },
+        {
+          id: '2', full_name: 'Officer Sok', email: 'sok@camtraffic.gov.kh', badge_no: 'PP-014',
+          fines_issued: 36, violations_reviewed: 41, revenue_collected: 3100, pending_fines: 4,
+        },
+      ],
+    };
+  },
+  async getDriverAnalytics() {
+    await delay(200);
+    return {
+      drivers: [
+        {
+          id: '1', full_name: 'Driver Demo', email: 'driver@example.com', vehicles: 2,
+          total_fines: 5, pending_fines: 1, amount_owed: 250, paid_fines: 4,
+        },
+      ],
+    };
+  },
 };
 
 export const rbacAPI = {
@@ -916,8 +1042,9 @@ export const rbacAPI = {
         description: 'Traffic enforcement officer',
         status: 'active' as const,
         permissions: pick(
-          'users.view', 'signs.view', 'fines.view', 'fines.manage',
-          'vehicles.view', 'violations.view', 'violations.manage', 'reports.view',
+          'users.view', 'signs.view', 'fines.view', 'fines.create', 'fines.edit', 'fines.approve',
+          'vehicles.view', 'violations.view', 'violations.create', 'violations.edit', 'violations.approve',
+          'reports.view', 'ai.view',
         ),
       },
       {
@@ -925,7 +1052,7 @@ export const rbacAPI = {
         role_name: 'driver',
         description: 'Registered driver portal',
         status: 'active' as const,
-        permissions: pick('signs.view', 'fines.view', 'vehicles.view', 'vehicles.manage'),
+        permissions: pick('signs.view', 'fines.view', 'vehicles.view', 'vehicles.edit', 'reports.view'),
       },
     ];
   },
@@ -942,17 +1069,50 @@ export const rbacAPI = {
     await delay(200);
     const rows: Array<{ id: string; perm_name: string; action_type: string; resource: string; description?: string }> = [
       { id: 'p1', perm_name: 'users.view', action_type: 'view', resource: 'users', description: 'View user accounts' },
-      { id: 'p2', perm_name: 'users.manage', action_type: 'manage', resource: 'users', description: 'Create and edit users' },
-      { id: 'p3', perm_name: 'signs.view', action_type: 'view', resource: 'signs', description: 'Browse traffic sign catalog' },
-      { id: 'p4', perm_name: 'signs.manage', action_type: 'manage', resource: 'signs', description: 'Edit sign reference data' },
-      { id: 'p5', perm_name: 'fines.view', action_type: 'view', resource: 'fines', description: 'View fines and payments' },
-      { id: 'p6', perm_name: 'fines.manage', action_type: 'manage', resource: 'fines', description: 'Issue and update fines' },
-      { id: 'p7', perm_name: 'vehicles.view', action_type: 'view', resource: 'vehicles', description: 'View registered vehicles' },
-      { id: 'p8', perm_name: 'vehicles.manage', action_type: 'manage', resource: 'vehicles', description: 'Manage vehicle records' },
-      { id: 'p9', perm_name: 'violations.view', action_type: 'view', resource: 'violations', description: 'View violation records' },
-      { id: 'p10', perm_name: 'violations.manage', action_type: 'manage', resource: 'violations', description: 'Confirm and enforce violations' },
-      { id: 'p11', perm_name: 'infrastructure.manage', action_type: 'manage', resource: 'infrastructure', description: 'Manage cameras and roads' },
-      { id: 'p12', perm_name: 'reports.view', action_type: 'view', resource: 'reports', description: 'Access analytics and exports' },
+      { id: 'p2', perm_name: 'users.create', action_type: 'create', resource: 'users', description: 'Create user accounts' },
+      { id: 'p3', perm_name: 'users.edit', action_type: 'edit', resource: 'users', description: 'Edit user accounts' },
+      { id: 'p4', perm_name: 'users.delete', action_type: 'delete', resource: 'users', description: 'Delete user accounts' },
+      { id: 'p5', perm_name: 'users.manage', action_type: 'manage', resource: 'users', description: 'Full user management' },
+      { id: 'p6', perm_name: 'signs.view', action_type: 'view', resource: 'signs', description: 'Browse traffic sign catalog' },
+      { id: 'p7', perm_name: 'signs.create', action_type: 'create', resource: 'signs', description: 'Add traffic signs' },
+      { id: 'p8', perm_name: 'signs.edit', action_type: 'edit', resource: 'signs', description: 'Edit traffic signs' },
+      { id: 'p9', perm_name: 'signs.delete', action_type: 'delete', resource: 'signs', description: 'Delete traffic signs' },
+      { id: 'p10', perm_name: 'signs.export', action_type: 'export', resource: 'signs', description: 'Export sign catalog' },
+      { id: 'p11', perm_name: 'signs.import', action_type: 'import', resource: 'signs', description: 'Import sign catalog' },
+      { id: 'p12', perm_name: 'fines.view', action_type: 'view', resource: 'fines', description: 'View fines and payments' },
+      { id: 'p13', perm_name: 'fines.create', action_type: 'create', resource: 'fines', description: 'Issue fines' },
+      { id: 'p14', perm_name: 'fines.edit', action_type: 'edit', resource: 'fines', description: 'Update fines' },
+      { id: 'p15', perm_name: 'fines.export', action_type: 'export', resource: 'fines', description: 'Export fine records' },
+      { id: 'p16', perm_name: 'fines.approve', action_type: 'approve', resource: 'fines', description: 'Approve fine actions' },
+      { id: 'p17', perm_name: 'vehicles.view', action_type: 'view', resource: 'vehicles', description: 'View registered vehicles' },
+      { id: 'p18', perm_name: 'vehicles.create', action_type: 'create', resource: 'vehicles', description: 'Register vehicles' },
+      { id: 'p19', perm_name: 'vehicles.edit', action_type: 'edit', resource: 'vehicles', description: 'Edit vehicle records' },
+      { id: 'p20', perm_name: 'vehicles.delete', action_type: 'delete', resource: 'vehicles', description: 'Delete vehicle records' },
+      { id: 'p21', perm_name: 'vehicles.export', action_type: 'export', resource: 'vehicles', description: 'Export vehicles' },
+      { id: 'p22', perm_name: 'vehicles.import', action_type: 'import', resource: 'vehicles', description: 'Import vehicles' },
+      { id: 'p23', perm_name: 'violations.view', action_type: 'view', resource: 'violations', description: 'View violation records' },
+      { id: 'p24', perm_name: 'violations.create', action_type: 'create', resource: 'violations', description: 'Create violations' },
+      { id: 'p25', perm_name: 'violations.edit', action_type: 'edit', resource: 'violations', description: 'Edit violations' },
+      { id: 'p26', perm_name: 'violations.export', action_type: 'export', resource: 'violations', description: 'Export violations' },
+      { id: 'p27', perm_name: 'violations.approve', action_type: 'approve', resource: 'violations', description: 'Approve / confirm violations' },
+      { id: 'p28', perm_name: 'infrastructure.view', action_type: 'view', resource: 'infrastructure', description: 'View cameras and roads' },
+      { id: 'p29', perm_name: 'infrastructure.create', action_type: 'create', resource: 'infrastructure', description: 'Add cameras and roads' },
+      { id: 'p30', perm_name: 'infrastructure.edit', action_type: 'edit', resource: 'infrastructure', description: 'Edit infrastructure' },
+      { id: 'p31', perm_name: 'infrastructure.delete', action_type: 'delete', resource: 'infrastructure', description: 'Delete infrastructure' },
+      { id: 'p32', perm_name: 'reports.view', action_type: 'view', resource: 'reports', description: 'Access analytics and exports' },
+      { id: 'p33', perm_name: 'reports.export', action_type: 'export', resource: 'reports', description: 'Export reports' },
+      { id: 'p34', perm_name: 'ai.view', action_type: 'view', resource: 'ai', description: 'View AI detection center' },
+      { id: 'p35', perm_name: 'ai.create', action_type: 'create', resource: 'ai', description: 'Run detections' },
+      { id: 'p36', perm_name: 'ai.manage', action_type: 'manage', resource: 'ai', description: 'Manage AI models' },
+      { id: 'p37', perm_name: 'ai.export', action_type: 'export', resource: 'ai', description: 'Export detection results' },
+      { id: 'p38', perm_name: 'roles.view', action_type: 'view', resource: 'roles', description: 'View roles' },
+      { id: 'p39', perm_name: 'roles.create', action_type: 'create', resource: 'roles', description: 'Create roles' },
+      { id: 'p40', perm_name: 'roles.edit', action_type: 'edit', resource: 'roles', description: 'Edit roles' },
+      { id: 'p41', perm_name: 'roles.delete', action_type: 'delete', resource: 'roles', description: 'Delete roles' },
+      { id: 'p42', perm_name: 'roles.manage', action_type: 'manage', resource: 'roles', description: 'Full RBAC management' },
+      { id: 'p43', perm_name: 'settings.view', action_type: 'view', resource: 'settings', description: 'View system settings' },
+      { id: 'p44', perm_name: 'settings.edit', action_type: 'edit', resource: 'settings', description: 'Edit system settings' },
+      { id: 'p45', perm_name: 'settings.manage', action_type: 'manage', resource: 'settings', description: 'Manage system settings' },
     ];
     return rows;
   },

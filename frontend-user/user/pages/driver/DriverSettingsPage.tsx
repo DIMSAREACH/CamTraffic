@@ -13,12 +13,16 @@ export function DriverSettingsPage() {
   const { t, locale, setLocale } = useLanguage();
 
   return (
-    <div className="enforcement-page">
+    <div className="enforcement-page enforcement-page--settings dashboard-page--settings settings-page--enterprise enforcement-page--user-settings">
       <div className="enforcement-page__hero">
+        <div className="enforcement-page__hero-glow--primary" aria-hidden />
+        <div className="enforcement-page__hero-glow--secondary" aria-hidden />
         <div className="enforcement-page__hero-inner">
           <div>
             <div className="enforcement-page__eyebrow">
-              <Settings2 size={14} />
+              <span className="enforcement-page__eyebrow-icon">
+                <Settings2 size={14} />
+              </span>
               {t('driverSettings.eyebrow')}
             </div>
             <h1 className="enforcement-page__title">{t('driverSettings.title')}</h1>
@@ -27,23 +31,21 @@ export function DriverSettingsPage() {
         </div>
       </div>
 
-      <section className="enforcement-page__panel p-5 mb-6 space-y-4">
+      <section className="settings-page__locale-panel mb-6 space-y-4">
         <div className="flex items-center gap-2">
           <Globe size={18} className="text-cyan-600" />
           <h2 className="font-semibold text-lg">{t('driverSettings.localeTitle')}</h2>
         </div>
         <p className="text-sm text-muted-foreground">{t('driverSettings.localeHint')}</p>
-        <div className="flex flex-wrap gap-2">
+        <div className="settings-page__locale-row">
           {LOCALE_OPTS.map(({ id, labelKey }) => (
             <button
               key={id}
               type="button"
               onClick={() => setLocale(id)}
               className={cn(
-                'px-4 py-2 rounded-xl text-sm font-medium border transition-colors',
-                locale === id
-                  ? 'bg-cyan-600 text-white border-cyan-600'
-                  : 'bg-background border-border hover:bg-muted',
+                'settings-page__locale-btn',
+                locale === id && 'settings-page__locale-btn--active',
               )}
             >
               {t(labelKey)}

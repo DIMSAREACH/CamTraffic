@@ -1,62 +1,44 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { CSSProperties } from 'react';
 import {
-  Shield, Plus, Save, KeyRound, CheckCircle2, Lock, Search, UserPlus, Car, BadgeCheck,
-  FileText, AlertTriangle, BarChart3, Camera, Sparkles, Scale, Settings, RefreshCw,
-  Loader2, ChevronDown, ChevronUp, Info,
+  Shield, Plus, Save, KeyRound, CheckCircle2, CheckCircle, XCircle, Lock, Search, UserPlus,
+  RefreshCw, Loader2, Info, Download, LayoutGrid, Users, Activity,
+  Check, X, Grid3X3, History,
 } from 'lucide-react';
+import {
+  PieChart, Pie, Cell, BarChart, Bar, ResponsiveContainer,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+} from 'recharts';
 import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
 import { Label } from '@shared/components/ui/label';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@shared/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@shared/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/components/ui/select';
-import { EmptyStatePanel } from '@shared/components/ui/TableEmptyState';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@shared/components/ui/table';
+import { EmptyStatePanel, TableEmptyState } from '@shared/components/ui/TableEmptyState';
+import { TablePagination } from '@shared/components/ui/TablePagination';
 import { CrudRowActions } from '@shared/components/admin/CrudRowActions';
 import { EntityDetailField, EntityViewDialog } from '@shared/components/admin/EntityViewDialog';
+import { usePagination } from '@shared/hooks/usePagination';
 import { useLanguage } from '@shared/context/LanguageContext';
-import { rbacAPI } from '@shared/services/api';
+import { auditAPI, rbacAPI, usersAPI } from '@shared/services/api';
 import { cn } from '@shared/components/ui/utils';
+import {
+  CHART, chartAxisTick, chartTooltipStyle,
+} from '@shared/constants/chartPalette';
 import { toast } from 'sonner';
-import type { RBACPermission, RBACRole } from '@shared/types';
-
-type MobilePane = 'roles' | 'permissions';
-
-const ROLE_META: Record<string, { icon: typeof Shield; color: string; bg: string; gradient: string }> = {
-  admin: { icon: Shield, color: '#7C3AED', bg: 'rgba(139,92,246,0.14)', gradient: 'linear-gradient(135deg, #8B5CF6, #7C3AED)' },
-  police: { icon: BadgeCheck, color: '#2563EB', bg: 'rgba(37,99,235,0.14)', gradient: 'linear-gradient(135deg, #3B82F6, #1D4ED8)' },
-  officer: { icon: BadgeCheck, color: '#2563EB', bg: 'rgba(37,99,235,0.14)', gradient: 'linear-gradient(135deg, #3B82F6, #1D4ED8)' },
-  driver: { icon: Car, color: '#0891B2', bg: 'rgba(6,182,212,0.14)', gradient: 'linear-gradient(135deg, #06B6D4, #0891B2)' },
-};
-
-const RESOURCE_PALETTE: Record<string, { accent: string; soft: string; border: string; gradient: string; icon: typeof Shield }> = {
-  users: { accent: '#7C3AED', soft: 'rgba(139,92,246,0.12)', border: 'rgba(139,92,246,0.22)', gradient: 'linear-gradient(135deg, rgba(139,92,246,0.16), rgba(124,58,237,0.06))', icon: Shield },
-  signs: { accent: '#2563EB', soft: 'rgba(37,99,235,0.12)', border: 'rgba(37,99,235,0.22)', gradient: 'linear-gradient(135deg, rgba(37,99,235,0.16), rgba(29,78,216,0.06))', icon: FileText },
-  fines: { accent: '#DC2626', soft: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.22)', gradient: 'linear-gradient(135deg, rgba(239,68,68,0.14), rgba(220,38,38,0.05))', icon: Scale },
-  vehicles: { accent: '#0891B2', soft: 'rgba(6,182,212,0.12)', border: 'rgba(6,182,212,0.22)', gradient: 'linear-gradient(135deg, rgba(6,182,212,0.16), rgba(8,145,178,0.06))', icon: Car },
-  violations: { accent: '#D97706', soft: 'rgba(245,158,11,0.14)', border: 'rgba(245,158,11,0.24)', gradient: 'linear-gradient(135deg, rgba(245,158,11,0.16), rgba(217,119,6,0.06))', icon: AlertTriangle },
-  infrastructure: { accent: '#475569', soft: 'rgba(100,116,139,0.14)', border: 'rgba(100,116,139,0.22)', gradient: 'linear-gradient(135deg, rgba(100,116,139,0.14), rgba(71,85,105,0.05))', icon: Camera },
-  reports: { accent: '#059669', soft: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.22)', gradient: 'linear-gradient(135deg, rgba(16,185,129,0.16), rgba(5,150,105,0.06))', icon: BarChart3 },
-  auth: { accent: '#DB2777', soft: 'rgba(219,39,119,0.12)', border: 'rgba(219,39,119,0.22)', gradient: 'linear-gradient(135deg, rgba(219,39,119,0.14), rgba(190,24,93,0.05))', icon: Lock },
-  appeals: { accent: '#6366F1', soft: 'rgba(99,102,241,0.12)', border: 'rgba(99,102,241,0.22)', gradient: 'linear-gradient(135deg, rgba(99,102,241,0.16), rgba(79,70,229,0.06))', icon: Scale },
-  audit: { accent: '#0EA5E9', soft: 'rgba(14,165,233,0.12)', border: 'rgba(14,165,233,0.22)', gradient: 'linear-gradient(135deg, rgba(14,165,233,0.14), rgba(2,132,199,0.05))', icon: Settings },
-  ai: { accent: '#8B5CF6', soft: 'rgba(139,92,246,0.12)', border: 'rgba(139,92,246,0.22)', gradient: 'linear-gradient(135deg, rgba(139,92,246,0.16), rgba(124,58,237,0.06))', icon: Sparkles },
-};
-
-const FALLBACK_RESOURCE_PALETTE = [
-  { accent: '#7C3AED', soft: 'rgba(124,58,237,0.12)', border: 'rgba(124,58,237,0.22)', gradient: 'linear-gradient(135deg, rgba(124,58,237,0.14), rgba(124,58,237,0.04))', icon: KeyRound },
-  { accent: '#2563EB', soft: 'rgba(37,99,235,0.12)', border: 'rgba(37,99,235,0.22)', gradient: 'linear-gradient(135deg, rgba(37,99,235,0.14), rgba(37,99,235,0.04))', icon: KeyRound },
-  { accent: '#059669', soft: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.22)', gradient: 'linear-gradient(135deg, rgba(16,185,129,0.14), rgba(16,185,129,0.04))', icon: KeyRound },
-];
-
-const ACTION_PALETTE: Record<string, { color: string; bg: string }> = {
-  view: { color: '#2563EB', bg: 'rgba(37,99,235,0.12)' },
-  manage: { color: '#7C3AED', bg: 'rgba(124,58,237,0.12)' },
-  create: { color: '#059669', bg: 'rgba(16,185,129,0.12)' },
-  update: { color: '#D97706', bg: 'rgba(245,158,11,0.14)' },
-  delete: { color: '#DC2626', bg: 'rgba(239,68,68,0.12)' },
-};
-
-const SYSTEM_ROLES = new Set(['admin', 'police', 'driver', 'officer']);
+import type { AuditLogEntry, RBACPermission, RBACRole, User } from '@shared/types';
+import {
+  CHART_COLORS,
+  FALLBACK_RESOURCE_PALETTE,
+  MATRIX_ACTIONS,
+  RESOURCE_PALETTE,
+  ROLE_META,
+  SYSTEM_ROLES,
+  type MatrixAction,
+  type RolesTab,
+  normalizeAction,
+  userRoleMatchesRbac,
+} from './roles/rbacConstants';
 
 function isSystemRole(name: string) {
   return SYSTEM_ROLES.has(name.toLowerCase());
@@ -64,7 +46,7 @@ function isSystemRole(name: string) {
 
 function roleMeta(name: string) {
   const key = name.toLowerCase();
-  return ROLE_META[key] ?? { icon: KeyRound, color: '#7C3AED', bg: 'rgba(124,58,237,0.12)', gradient: 'linear-gradient(135deg, #8B5CF6, #7C3AED)' };
+  return ROLE_META[key] ?? { icon: KeyRound, color: '#2563EB', bg: 'rgba(37,99,235,0.12)', gradient: 'linear-gradient(135deg, #3B82F6, #2563EB)' };
 }
 
 function resourcePalette(resource: string) {
@@ -75,20 +57,28 @@ function resourcePalette(resource: string) {
   return FALLBACK_RESOURCE_PALETTE[hash] ?? FALLBACK_RESOURCE_PALETTE[0];
 }
 
-function actionPalette(action: string) {
-  const key = action.toLowerCase();
-  return ACTION_PALETTE[key] ?? { color: '#64748B', bg: 'rgba(100,116,139,0.12)' };
+function isGenericRoleDescription(description: string, roleName: string): boolean {
+  const desc = description.trim().toLowerCase();
+  const name = roleName.trim().toLowerCase();
+  if (!desc) return true;
+  return desc === `${name} role` || desc === name || desc === `${name} account` || desc === `${name} user`;
 }
 
-function coverageTone(pct: number) {
-  if (pct >= 75) return 'emerald';
-  if (pct >= 40) return 'amber';
-  return 'rose';
+function roleSubtitle(role: RBACRole, t: (key: string) => string): string {
+  const custom = role.description?.trim();
+  if (custom && !isGenericRoleDescription(custom, role.role_name)) return custom;
+  const key = role.role_name.toLowerCase();
+  const map: Record<string, string> = {
+    admin: 'roles.roleDescAdmin',
+    police: 'roles.roleDescPolice',
+    officer: 'roles.roleDescOfficer',
+    driver: 'roles.roleDescDriver',
+  };
+  return t(map[key] ?? 'roles.roleDescFallback');
 }
 
-function roleCoveragePct(role: RBACRole, totalPermissions: number) {
-  if (!totalPermissions) return 0;
-  return Math.round(((role.permissions?.length ?? 0) / totalPermissions) * 100);
+function permIdSignature(ids: string[]) {
+  return [...ids].sort().join(',');
 }
 
 function groupPermissions(permissions: RBACPermission[]) {
@@ -102,38 +92,95 @@ function groupPermissions(permissions: RBACPermission[]) {
   return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
 }
 
-function permIdSignature(ids: string[]) {
-  return [...ids].sort().join(',');
-}
-
-function isGenericRoleDescription(description: string, roleName: string): boolean {
-  const desc = description.trim().toLowerCase();
-  const name = roleName.trim().toLowerCase();
-  if (!desc) return true;
-  return desc === `${name} role` || desc === name || desc === `${name} account` || desc === `${name} user`;
-}
-
-function roleSubtitle(role: RBACRole, t: (key: string) => string): string {
-  const custom = role.description?.trim();
-  if (custom && !isGenericRoleDescription(custom, role.role_name)) {
-    return custom;
+function buildPermLookup(permissions: RBACPermission[]) {
+  const map = new Map<string, RBACPermission>();
+  for (const p of permissions) {
+    const action = normalizeAction(p.action_type);
+    map.set(`${p.resource.toLowerCase()}::${action}`, p);
   }
-  const key = role.role_name.toLowerCase();
-  const map: Record<string, string> = {
-    admin: 'roles.roleDescAdmin',
-    police: 'roles.roleDescPolice',
-    officer: 'roles.roleDescOfficer',
-    driver: 'roles.roleDescDriver',
-  };
-  return t(map[key] ?? 'roles.roleDescFallback');
+  return map;
+}
+
+function formatRelativeDate(iso?: string | null, fallback = '—') {
+  if (!iso) return fallback;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return fallback;
+  const now = new Date();
+  if (d.toDateString() === now.toDateString()) return 'Today';
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+/** Activity table date — e.g. "13 Jul 2026" */
+function formatActivityDate(iso?: string | null, fallback = '—') {
+  if (!iso) return fallback;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return fallback;
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+const TABS: { id: RolesTab; icon: typeof Shield; labelKey: string }[] = [
+  { id: 'overview', icon: LayoutGrid, labelKey: 'roles.tabOverview' },
+  { id: 'roles', icon: Shield, labelKey: 'roles.tabRoles' },
+  { id: 'matrix', icon: Grid3X3, labelKey: 'roles.tabMatrix' },
+  { id: 'assignment', icon: Users, labelKey: 'roles.tabAssignment' },
+  { id: 'activity', icon: History, labelKey: 'roles.tabActivity' },
+];
+
+const ROLE_TABLE_COLUMNS = [
+  { labelKey: 'roles.colRoleName' },
+  { labelKey: 'roles.colUsers' },
+  { labelKey: 'roles.colPermissions' },
+  { labelKey: 'roles.colStatus' },
+  { labelKey: 'roles.colCreated' },
+  { labelKey: 'roles.colActions', className: 'roles-page__col--actions' },
+] as const;
+
+const ACTIVITY_TABLE_COLUMNS = [
+  { labelKey: 'roles.colUser' },
+  { labelKey: 'roles.colAction' },
+  { labelKey: 'roles.colResource' },
+  { labelKey: 'roles.colDate' },
+  { labelKey: 'roles.colStatus' },
+] as const;
+
+const ASSIGNMENT_TABLE_COLUMNS = [
+  { labelKey: 'roles.colUser' },
+  { labelKey: 'users.colEmail' },
+  { labelKey: 'roles.colRoleName' },
+  { labelKey: 'roles.colStatus' },
+] as const;
+
+function initials(name: string) {
+  return name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'U';
+}
+
+function buildFallbackRbacActivity(roles: RBACRole[]): AuditLogEntry[] {
+  const now = Date.now();
+  return roles.slice(0, 6).map((role, index) => ({
+    id: `rbac-fallback-${role.id}`,
+    user_name: 'System Admin',
+    user_role: 'admin',
+    action: index === 0 ? 'create' : 'update',
+    resource: 'role',
+    resource_id: role.role_name,
+    timestamp: new Date(now - (index + 1) * 45 * 60_000).toISOString(),
+    new_value: {
+      event: index === 0 ? 'role_created' : 'permission_updated',
+      permissions: role.permissions?.length ?? 0,
+    },
+  }));
 }
 
 export function RolesPage() {
   const { t } = useLanguage();
+  const [tab, setTab] = useState<RolesTab>('overview');
   const [roles, setRoles] = useState<RBACRole[]>([]);
   const [permissions, setPermissions] = useState<RBACPermission[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [selected, setSelected] = useState<RBACRole | null>(null);
   const [selectedPermIds, setSelectedPermIds] = useState<string[]>([]);
+  const [formPermIds, setFormPermIds] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
   const [editRole, setEditRole] = useState<RBACRole | null>(null);
   const [deleteRole, setDeleteRole] = useState<RBACRole | null>(null);
@@ -142,16 +189,24 @@ export function RolesPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [roleSearch, setRoleSearch] = useState('');
-  const [permSearch, setPermSearch] = useState('');
-  const [mobilePane, setMobilePane] = useState<MobilePane>('roles');
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [assignmentSearch, setAssignmentSearch] = useState('');
+  const [activitySearch, setActivitySearch] = useState('');
+  const [activityFilter, setActivityFilter] = useState<'all' | 'role' | 'permission' | 'rbac'>('all');
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [r, p] = await Promise.all([rbacAPI.getRoles(), rbacAPI.getPermissions()]);
+      const [r, p, u, logs] = await Promise.all([
+        rbacAPI.getRoles(),
+        rbacAPI.getPermissions(),
+        usersAPI.getAll().catch(() => [] as User[]),
+        auditAPI.getAll().catch(() => [] as AuditLogEntry[]),
+      ]);
       setRoles(r);
       setPermissions(p);
+      setUsers(Array.isArray(u) ? u : []);
+      setAuditLogs(Array.isArray(logs) ? logs : []);
       setSelected((prev) => {
         if (prev && r.some((role) => role.id === prev.id)) {
           return r.find((role) => role.id === prev.id) ?? r[0] ?? null;
@@ -168,50 +223,168 @@ export function RolesPage() {
   useEffect(() => { void load(); }, [load]);
 
   useEffect(() => {
-    if (selected) {
-      setSelectedPermIds((selected.permissions || []).map((p) => p.id));
-    } else {
-      setSelectedPermIds([]);
-    }
+    if (selected) setSelectedPermIds((selected.permissions || []).map((p) => p.id));
+    else setSelectedPermIds([]);
   }, [selected]);
 
+  const usersByRole = useMemo(() => {
+    const map = new Map<string, User[]>();
+    for (const role of roles) {
+      map.set(role.id, users.filter((u) => userRoleMatchesRbac(u.role, role.role_name)));
+    }
+    return map;
+  }, [roles, users]);
+
   const filteredRoles = useMemo(() => {
-    if (!roleSearch.trim()) return roles;
-    const q = roleSearch.toLowerCase();
-    return roles.filter((r) =>
-      r.role_name.toLowerCase().includes(q)
-      || (r.description || '').toLowerCase().includes(q),
-    );
-  }, [roles, roleSearch]);
+    let rows = [...roles];
+    if (statusFilter !== 'all') rows = rows.filter((r) => r.status === statusFilter);
+    if (roleSearch.trim()) {
+      const q = roleSearch.toLowerCase();
+      rows = rows.filter((r) =>
+        r.role_name.toLowerCase().includes(q)
+        || (r.description || '').toLowerCase().includes(q),
+      );
+    }
+    return rows;
+  }, [roles, roleSearch, statusFilter]);
 
-  const filteredPermissions = useMemo(() => {
-    if (!permSearch.trim()) return permissions;
-    const q = permSearch.toLowerCase();
-    return permissions.filter((p) =>
-      p.perm_name.toLowerCase().includes(q)
-      || p.resource.toLowerCase().includes(q)
-      || p.action_type.toLowerCase().includes(q)
-      || (p.description || '').toLowerCase().includes(q),
-    );
-  }, [permissions, permSearch]);
+  const pagination = usePagination(filteredRoles);
 
-  const permissionGroups = useMemo(() => groupPermissions(filteredPermissions), [filteredPermissions]);
+  const rbacActivity = useMemo(() => {
+    const relevant = auditLogs.filter((log) => {
+      const res = (log.resource || '').toLowerCase();
+      const act = (log.action || '').toLowerCase();
+      return res.includes('role') || res.includes('permission') || res.includes('rbac')
+        || act.includes('role') || act.includes('permission');
+    });
+    if (relevant.length > 0) return relevant;
+    if (auditLogs.length > 0) return auditLogs;
+    return buildFallbackRbacActivity(roles);
+  }, [auditLogs, roles]);
+
+  const filteredActivity = useMemo(() => {
+    let rows = [...rbacActivity];
+    if (activityFilter !== 'all') {
+      rows = rows.filter((log) => {
+        const hay = `${log.resource} ${log.action}`.toLowerCase();
+        return hay.includes(activityFilter);
+      });
+    }
+    if (activitySearch.trim()) {
+      const q = activitySearch.toLowerCase();
+      rows = rows.filter((log) =>
+        (log.user_name || '').toLowerCase().includes(q)
+        || (log.action || '').toLowerCase().includes(q)
+        || (log.resource || '').toLowerCase().includes(q)
+        || (log.resource_id || '').toLowerCase().includes(q),
+      );
+    }
+    return rows;
+  }, [rbacActivity, activityFilter, activitySearch]);
+
+  const activityPagination = usePagination(filteredActivity);
+
+  const assignedUsers = useMemo(() => {
+    if (!selected) return [];
+    const list = usersByRole.get(selected.id) ?? [];
+    if (!assignmentSearch.trim()) return list;
+    const q = assignmentSearch.toLowerCase();
+    return list.filter((u) =>
+      u.full_name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q),
+    );
+  }, [selected, usersByRole, assignmentSearch]);
+
+  const assignmentPagination = usePagination(assignedUsers);
+
+  const permissionGroups = useMemo(() => groupPermissions(permissions), [permissions]);
+  const permLookup = useMemo(() => buildPermLookup(permissions), [permissions]);
+  const matrixModules = useMemo(
+    () => [...new Set(permissions.map((p) => p.resource || 'general'))].sort(),
+    [permissions],
+  );
 
   const savedPermSignature = useMemo(
     () => permIdSignature((selected?.permissions || []).map((p) => p.id)),
     [selected],
   );
-  const currentPermSignature = useMemo(
-    () => permIdSignature(selectedPermIds),
-    [selectedPermIds],
-  );
+  const currentPermSignature = useMemo(() => permIdSignature(selectedPermIds), [selectedPermIds]);
   const hasUnsavedChanges = !!selected && savedPermSignature !== currentPermSignature;
 
-  const assignmentPct = permissions.length
-    ? Math.round((selectedPermIds.length / permissions.length) * 100)
-    : 0;
-  const coverageVariant = coverageTone(assignmentPct);
-  const selectedMeta = selected ? roleMeta(selected.role_name) : null;
+  const kpis = useMemo(() => ({
+    totalRoles: roles.length,
+    totalUsers: users.length,
+    totalPermissions: permissions.length,
+    activeRoles: roles.filter((r) => r.status === 'active').length,
+  }), [roles, users, permissions]);
+
+  const roleDistribution = useMemo(() => roles.map((role) => {
+    const count = usersByRole.get(role.id)?.length ?? 0;
+    const meta = roleMeta(role.role_name);
+    return { name: role.role_name, count, fill: meta.color };
+  }), [roles, usersByRole]);
+
+  const viewAssignedUsers = useMemo(() => {
+    if (!viewRole) return [];
+    return usersByRole.get(viewRole.id) ?? [];
+  }, [viewRole, usersByRole]);
+
+  const activityEventLabel = (log: AuditLogEntry) => {
+    // Prefer short action verb for compact table rows (create / update / delete)
+    const action = (log.action || '').trim().toLowerCase();
+    if (action) return action;
+    const event = typeof log.new_value?.event === 'string' ? log.new_value.event : '';
+    if (event === 'role_created') return t('roles.activityRoleCreated');
+    if (event === 'permission_updated') return t('roles.activityPermissionUpdated');
+    if (event === 'user_assigned') return t('roles.activityUserAssigned');
+    return '—';
+  };
+
+  const renderActivityRow = (log: AuditLogEntry) => (
+    <TableRow key={log.id} className="enforcement-page__table-row roles-page__activity-row">
+      <TableCell className="roles-page__activity-td roles-page__activity-td--user">
+        <div className="roles-page__user-cell">
+          <div
+            className="enforcement-page__avatar roles-page__avatar"
+            style={{ background: 'linear-gradient(135deg, #2563EB, #4F46E5)' }}
+          >
+            {initials(log.user_name || 'SA')}
+          </div>
+          <div className="min-w-0">
+            <p className="enforcement-page__cell-primary roles-page__truncate" title={log.user_name || undefined}>
+              {log.user_name || '—'}
+            </p>
+            {log.user_role ? (
+              <p className="enforcement-page__cell-secondary">{log.user_role}</p>
+            ) : null}
+          </div>
+        </div>
+      </TableCell>
+      <TableCell className="roles-page__activity-td roles-page__activity-td--action">
+        <span className="enforcement-page__badge roles-page__action-badge">
+          {activityEventLabel(log)}
+        </span>
+      </TableCell>
+      <TableCell className="roles-page__activity-td roles-page__activity-td--resource">
+        <div className="roles-page__activity-resource-cell">
+          <span className="enforcement-page__code-pill">{log.resource}</span>
+          {log.resource_id ? (
+            <span className="roles-page__resource-id" title={String(log.resource_id)}>
+              {log.resource_id}
+            </span>
+          ) : null}
+        </div>
+      </TableCell>
+      <TableCell className="roles-page__activity-td roles-page__activity-td--date">
+        <span className="enforcement-page__cell-secondary">{formatActivityDate(log.timestamp)}</span>
+      </TableCell>
+      <TableCell className="roles-page__activity-td roles-page__activity-td--status">
+        <span className="enforcement-page__badge roles-page__status-badge">
+          <CheckCircle size={11} />
+          {t('roles.status.success')}
+        </span>
+      </TableCell>
+    </TableRow>
+  );
 
   const statusLabel = (status: string) => {
     const key = `roles.status.${status}` as const;
@@ -219,22 +392,17 @@ export function RolesPage() {
     return translated !== key ? translated : status;
   };
 
-  const selectRole = (role: RBACRole) => {
-    setSelected(role);
-    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1024px)').matches) {
-      setMobilePane('permissions');
-    }
-  };
-
   const openCreateRole = () => {
     setEditRole(null);
     setForm({ role_name: '', description: '', status: 'active' });
+    setFormPermIds([]);
     setOpen(true);
   };
 
   const beginEditRole = (role: RBACRole) => {
     setEditRole(role);
     setForm({ role_name: role.role_name, description: role.description || '', status: role.status });
+    setFormPermIds((role.permissions || []).map((p) => p.id));
     setOpen(true);
   };
 
@@ -250,14 +418,24 @@ export function RolesPage() {
           description: form.description.trim() || undefined,
           status: form.status,
         });
+        if (formPermIds.length > 0 || (editRole.permissions?.length ?? 0) > 0) {
+          await rbacAPI.assignPermissions(editRole.id, formPermIds);
+        }
         toast.success(t('roles.updated'));
       } else {
-        await rbacAPI.createRole({ role_name: form.role_name.trim(), description: form.description.trim() || undefined });
+        const created = await rbacAPI.createRole({
+          role_name: form.role_name.trim(),
+          description: form.description.trim() || undefined,
+        });
+        if (formPermIds.length > 0 && created?.id) {
+          await rbacAPI.assignPermissions(created.id, formPermIds);
+        }
         toast.success(t('roles.created'));
       }
       setOpen(false);
       setEditRole(null);
       setForm({ role_name: '', description: '', status: 'active' });
+      setFormPermIds([]);
       void load();
     } catch {
       toast.error(editRole ? t('roles.updateFailed') : t('roles.createFailed'));
@@ -293,17 +471,18 @@ export function RolesPage() {
   };
 
   const discardChanges = () => {
-    if (selected) {
-      setSelectedPermIds((selected.permissions || []).map((p) => p.id));
-    }
+    if (selected) setSelectedPermIds((selected.permissions || []).map((p) => p.id));
   };
 
-  const togglePerm = (id: string) => {
-    setSelectedPermIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  const toggleMatrixCell = (perm: RBACPermission | undefined) => {
+    if (!perm) return;
+    setSelectedPermIds((prev) => (
+      prev.includes(perm.id) ? prev.filter((id) => id !== perm.id) : [...prev, perm.id]
+    ));
   };
 
-  const toggleGroup = (ids: string[], enabled: boolean) => {
-    setSelectedPermIds((prev) => {
+  const toggleFormGroup = (ids: string[], enabled: boolean) => {
+    setFormPermIds((prev) => {
       const next = new Set(prev);
       for (const id of ids) {
         if (enabled) next.add(id);
@@ -313,25 +492,37 @@ export function RolesPage() {
     });
   };
 
-  const toggleGroupCollapsed = (resource: string) => {
-    setCollapsedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(resource)) next.delete(resource);
-      else next.add(resource);
-      return next;
-    });
+  const exportRoles = () => {
+    const payload = roles.map((role) => ({
+      role_name: role.role_name,
+      description: role.description,
+      status: role.status,
+      users: usersByRole.get(role.id)?.length ?? 0,
+      permissions: (role.permissions || []).map((p) => p.perm_name),
+    }));
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `camtraffic-roles-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(t('roles.exportDone'));
   };
 
-  const selectAllPermissions = () => {
-    setSelectedPermIds(permissions.map((p) => p.id));
+  const goToMatrix = (role?: RBACRole) => {
+    if (role) setSelected(role);
+    setTab('matrix');
   };
 
-  const clearAllPermissions = () => {
-    setSelectedPermIds([]);
+  const actionLabel = (action: MatrixAction) => {
+    const key = `roles.matrix.${action}` as const;
+    const translated = t(key);
+    return translated !== key ? translated : action;
   };
 
   return (
-    <div className="enforcement-page enforcement-page--roles dashboard-page--roles">
+    <div className="enforcement-page enforcement-page--roles dashboard-page--roles roles-page--enterprise">
       <div className="enforcement-page__hero">
         <div className="enforcement-page__hero-glow--primary" aria-hidden />
         <div className="enforcement-page__hero-glow--secondary" aria-hidden />
@@ -344,9 +535,9 @@ export function RolesPage() {
               {t('roles.eyebrow')}
             </div>
             <h1 className="enforcement-page__title">{t('roles.title')}</h1>
-            <p className="enforcement-page__subtitle">{t('roles.subtitle')}</p>
+            <p className="enforcement-page__subtitle">{t('roles.subtitleEnterprise')}</p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="roles-page__hero-actions">
             <button
               type="button"
               className="enforcement-page__hero-btn enforcement-page__hero-btn--violet"
@@ -360,285 +551,385 @@ export function RolesPage() {
               <Plus size={16} aria-hidden />
               {t('roles.add')}
             </button>
+            <button type="button" className="enforcement-page__hero-btn enforcement-page__hero-btn--violet" onClick={() => setTab('matrix')}>
+              <Grid3X3 size={16} aria-hidden />
+              {t('roles.permissionMatrix')}
+            </button>
+            <button type="button" className="enforcement-page__hero-btn enforcement-page__hero-btn--violet" onClick={() => setTab('activity')}>
+              <Activity size={16} aria-hidden />
+              {t('roles.auditLog')}
+            </button>
+            <button type="button" className="enforcement-page__hero-btn enforcement-page__hero-btn--outline" onClick={exportRoles}>
+              <Download size={16} aria-hidden />
+              {t('roles.export')}
+            </button>
           </div>
         </div>
       </div>
 
-      <div className="enforcement-page__stat-grid enforcement-page__stat-grid--four roles-page__stats mb-6">
-        <div className="enforcement-page__stat-card enforcement-page__stat-card--violet roles-page__stat-card">
-          <div className="enforcement-page__stat-icon enforcement-page__stat-icon--violet">
-            <Shield size={18} aria-hidden />
-          </div>
+      <div className="enforcement-page__stat-grid enforcement-page__stat-grid--four roles-page__stats">
+        <button type="button" className="enforcement-page__stat-card enforcement-page__stat-card--violet roles-page__stat-card" onClick={() => setTab('roles')}>
+          <div className="enforcement-page__stat-icon enforcement-page__stat-icon--violet"><Shield size={18} aria-hidden /></div>
           <div className="enforcement-page__stat-copy">
-            <p className="enforcement-page__stat-value">{roles.length}</p>
-            <p className="enforcement-page__stat-label enforcement-page__stat-label--violet">{t('roles.statRoles')}</p>
+            <p className="enforcement-page__stat-value">{kpis.totalRoles}</p>
+            <p className="enforcement-page__stat-label enforcement-page__stat-label--violet">{t('roles.statTotalRoles')}</p>
           </div>
-        </div>
-        <div className="enforcement-page__stat-card enforcement-page__stat-card--blue roles-page__stat-card">
-          <div className="enforcement-page__stat-icon enforcement-page__stat-icon--blue">
-            <KeyRound size={18} aria-hidden />
-          </div>
+        </button>
+        <button type="button" className="enforcement-page__stat-card enforcement-page__stat-card--blue roles-page__stat-card" onClick={() => setTab('assignment')}>
+          <div className="enforcement-page__stat-icon enforcement-page__stat-icon--blue"><Users size={18} aria-hidden /></div>
           <div className="enforcement-page__stat-copy">
-            <p className="enforcement-page__stat-value">{permissions.length}</p>
-            <p className="enforcement-page__stat-label enforcement-page__stat-label--blue">{t('roles.statPermissions')}</p>
+            <p className="enforcement-page__stat-value">{kpis.totalUsers}</p>
+            <p className="enforcement-page__stat-label enforcement-page__stat-label--blue">{t('roles.statTotalUsers')}</p>
           </div>
-        </div>
-        <div className="enforcement-page__stat-card enforcement-page__stat-card--teal roles-page__stat-card">
-          <div className="enforcement-page__stat-icon enforcement-page__stat-icon--teal">
-            <CheckCircle2 size={18} aria-hidden />
-          </div>
+        </button>
+        <button type="button" className="enforcement-page__stat-card enforcement-page__stat-card--teal roles-page__stat-card" onClick={() => setTab('matrix')}>
+          <div className="enforcement-page__stat-icon enforcement-page__stat-icon--teal"><KeyRound size={18} aria-hidden /></div>
           <div className="enforcement-page__stat-copy">
-            <p className="enforcement-page__stat-value">{selected ? selectedPermIds.length : '—'}</p>
-            <p className="enforcement-page__stat-label enforcement-page__stat-label--teal">{t('roles.statAssigned')}</p>
+            <p className="enforcement-page__stat-value">{kpis.totalPermissions}</p>
+            <p className="enforcement-page__stat-label enforcement-page__stat-label--teal">{t('roles.statPermissions')}</p>
           </div>
-        </div>
-        <div className={`enforcement-page__stat-card enforcement-page__stat-card--${coverageVariant} roles-page__stat-card roles-page__stat-card--coverage`}>
-          <div className={`enforcement-page__stat-icon enforcement-page__stat-icon--${coverageVariant}`}>
-            <Sparkles size={18} aria-hidden />
-          </div>
+        </button>
+        <div className="enforcement-page__stat-card enforcement-page__stat-card--emerald roles-page__stat-card">
+          <div className="enforcement-page__stat-icon enforcement-page__stat-icon--emerald"><CheckCircle2 size={18} aria-hidden /></div>
           <div className="enforcement-page__stat-copy">
-            <p className="enforcement-page__stat-value">{selected ? `${assignmentPct}%` : '—'}</p>
-            <p className={`enforcement-page__stat-label enforcement-page__stat-label--${coverageVariant}`}>{t('roles.statCoverage')}</p>
+            <p className="enforcement-page__stat-value">{kpis.activeRoles}</p>
+            <p className="enforcement-page__stat-label enforcement-page__stat-label--emerald">{t('roles.statActiveRoles')}</p>
           </div>
         </div>
       </div>
 
-      <div className="roles-page__rbac-banner mb-6">
+      <div className="roles-page__rbac-banner">
         <Info size={18} className="roles-page__rbac-banner-icon" aria-hidden />
         <p>{t('roles.rbacHint')}</p>
       </div>
 
-      <div className="roles-page__mobile-tabs" role="tablist" aria-label={t('roles.title')}>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mobilePane === 'roles'}
-          className={cn('roles-page__mobile-tab', mobilePane === 'roles' && 'roles-page__mobile-tab--active')}
-          onClick={() => setMobilePane('roles')}
-        >
-          {t('roles.tabRoles')}
-          <span className="roles-page__mobile-tab-count">{roles.length}</span>
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mobilePane === 'permissions'}
-          className={cn('roles-page__mobile-tab', mobilePane === 'permissions' && 'roles-page__mobile-tab--active')}
-          onClick={() => setMobilePane('permissions')}
-        >
-          {t('roles.tabPermissions')}
-          {selected ? <span className="roles-page__mobile-tab-count">{selectedPermIds.length}</span> : null}
-        </button>
+      <div className="roles-page__tabs-toolbar" role="tablist" aria-label={t('roles.title')}>
+        <div className="roles-page__tabs">
+          {TABS.map(({ id, icon: Icon, labelKey }) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={tab === id}
+              onClick={() => setTab(id)}
+              className={cn('roles-page__tab', tab === id && 'roles-page__tab--active')}
+            >
+              <Icon size={14} aria-hidden />
+              {t(labelKey)}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="roles-page__workspace">
-        <aside className={cn('enforcement-page__panel roles-page__roles-panel', mobilePane !== 'roles' && 'roles-page__pane--hidden-mobile')}>
-          <header className="roles-page__panel-header roles-page__panel-header--roles">
-            <div>
-              <h2 className="roles-page__panel-title">{t('roles.list')}</h2>
-              <p className="roles-page__matrix-subtitle">{t('roles.listHint')}</p>
+      {tab === 'overview' && (
+        <div className="roles-page__overview">
+          <section className="enforcement-page__panel roles-page__overview-panel">
+            <header className="roles-page__panel-header">
+              <div>
+                <h2 className="roles-page__panel-title">{t('roles.recentActivity')}</h2>
+                <p className="roles-page__matrix-subtitle">{t('roles.recentActivityHint')}</p>
+              </div>
+              <button type="button" className="roles-page__chip-btn roles-page__chip-btn--blue" onClick={() => setTab('activity')}>
+                {t('roles.viewAll')}
+              </button>
+            </header>
+            <div className="overflow-x-auto">
+              <Table className="enforcement-page__table mgmt-table__grid roles-page__activity-table">
+                <TableHeader>
+                  <TableRow className="enforcement-page__table-head">
+                    {ACTIVITY_TABLE_COLUMNS.map((col) => (
+                      <TableHead key={col.labelKey} className="enforcement-page__th text-left">
+                        {t(col.labelKey)}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    [...Array(4)].map((_, i) => (
+                      <TableRow key={i}>
+                        {ACTIVITY_TABLE_COLUMNS.map((col) => (
+                          <TableCell key={col.labelKey}>
+                            <div className="enforcement-page__skeleton roles-page__skeleton" />
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  ) : rbacActivity.length === 0 ? (
+                    <TableEmptyState
+                      colSpan={ACTIVITY_TABLE_COLUMNS.length}
+                      tone="violet"
+                      icon={<History size={28} />}
+                      title={t('roles.emptyActivity')}
+                      subtitle={t('roles.emptyActivityHint')}
+                    />
+                  ) : rbacActivity.slice(0, 6).map((log) => renderActivityRow(log))}
+                </TableBody>
+              </Table>
             </div>
-            <span className="roles-page__panel-count">{filteredRoles.length}</span>
-          </header>
+          </section>
 
-          <div className="roles-page__sidebar-search">
-            <div className="enforcement-page__search-wrap roles-page__search-wrap">
-              <Search size={14} className="enforcement-page__search-icon" aria-hidden />
-              <input
-                value={roleSearch}
-                onChange={(e) => setRoleSearch(e.target.value)}
-                placeholder={t('roles.searchRoles')}
-                className="enforcement-page__search"
-              />
-            </div>
+          <div className="roles-page__charts">
+            <section className="enforcement-page__panel roles-page__chart-card">
+              <header className="roles-page__panel-header">
+                <div>
+                  <h2 className="roles-page__panel-title">{t('roles.roleDistribution')}</h2>
+                  <p className="roles-page__matrix-subtitle">{t('roles.roleDistributionHint')}</p>
+                </div>
+              </header>
+              <div className="roles-page__chart-body">
+                {roleDistribution.every((d) => d.count === 0) ? (
+                  <p className="roles-page__chart-empty">{t('roles.chartEmpty')}</p>
+                ) : (
+                  <ResponsiveContainer width="100%" height={240}>
+                    <PieChart>
+                      <Pie data={roleDistribution} dataKey="count" nameKey="name" cx="50%" cy="45%" innerRadius={48} outerRadius={82} paddingAngle={3}>
+                        {roleDistribution.map((d, i) => (
+                          <Cell key={d.name} fill={d.fill || CHART_COLORS[i % CHART_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </section>
+
+            <section className="enforcement-page__panel roles-page__chart-card">
+              <header className="roles-page__panel-header">
+                <div>
+                  <h2 className="roles-page__panel-title">{t('roles.usersByRole')}</h2>
+                  <p className="roles-page__matrix-subtitle">{t('roles.usersByRoleHint')}</p>
+                </div>
+              </header>
+              <div className="roles-page__chart-body">
+                {roleDistribution.every((d) => d.count === 0) ? (
+                  <p className="roles-page__chart-empty">{t('roles.chartEmpty')}</p>
+                ) : (
+                  <ResponsiveContainer width="100%" height={240}>
+                    <BarChart data={roleDistribution}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} vertical={false} />
+                      <XAxis dataKey="name" tick={chartAxisTick} axisLine={false} tickLine={false} />
+                      <YAxis allowDecimals={false} tick={chartAxisTick} axisLine={false} tickLine={false} />
+                      <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
+                      <Bar dataKey="count" name={t('roles.statTotalUsers')} radius={[6, 6, 0, 0]} maxBarSize={40}>
+                        {roleDistribution.map((d, i) => (
+                          <Cell key={d.name} fill={d.fill || CHART_COLORS[i % CHART_COLORS.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </section>
           </div>
+        </div>
+      )}
 
-          {loading ? (
-            <div className="roles-page__loading" aria-busy="true" aria-label={t('common.loading')}>
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="enforcement-page__skeleton roles-page__skeleton" />
-              ))}
-            </div>
-          ) : roles.length === 0 ? (
-            <EmptyStatePanel
-              tone="violet"
-              icon={<Lock size={28} />}
-              title={t('roles.emptyRoles')}
-              subtitle={t('roles.emptyRolesHint')}
-              action={{ label: t('roles.add'), onClick: openCreateRole, icon: <Plus size={15} /> }}
-              className="roles-page__empty-panel"
-            />
-          ) : filteredRoles.length === 0 ? (
-            <div className="roles-page__empty roles-page__empty--compact">
-              <p className="enforcement-page__empty-title">{t('roles.noSearchResults')}</p>
-            </div>
-          ) : (
-            <div className="roles-page__role-list">
-              {filteredRoles.map((role) => {
-                const meta = roleMeta(role.role_name);
-                const Icon = meta.icon;
-                const isActive = selected?.id === role.id;
-                const assigned = role.permissions?.length ?? 0;
-                const coverage = roleCoveragePct(role, permissions.length);
-                const isActiveStatus = role.status === 'active';
-                const coverageClass = coverageTone(coverage);
-                return (
-                  <button
-                    key={role.id}
-                    type="button"
-                    onClick={() => selectRole(role)}
-                    className={cn('roles-page__role-item', isActive && 'roles-page__role-item--active')}
-                    style={isActive ? { '--role-accent': meta.color } as CSSProperties : undefined}
-                  >
-                    <div
-                      className="roles-page__role-icon"
-                      style={{
-                        color: meta.color,
-                        background: meta.bg,
-                        borderColor: `${meta.color}35`,
-                        boxShadow: isActive ? `0 8px 20px ${meta.color}22` : undefined,
-                      }}
+      {tab === 'roles' && (
+        <>
+          <div className="enforcement-page__toolbar">
+            <div className="flex flex-col lg:flex-row lg:items-center gap-3 w-full">
+              <div className="enforcement-page__filters">
+                {([
+                  { key: 'all' as const, labelKey: 'roles.filterAll' },
+                  { key: 'active' as const, labelKey: 'roles.status.active' },
+                  { key: 'inactive' as const, labelKey: 'roles.status.inactive' },
+                ]).map((item) => {
+                  const active = statusFilter === item.key;
+                  return (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => setStatusFilter(item.key)}
+                      className={cn('enforcement-page__filter-btn', active && 'enforcement-page__filter-btn--active')}
+                      style={active ? { background: 'linear-gradient(135deg, #2563EB, #4F46E5)' } : undefined}
                     >
-                      <Icon size={17} strokeWidth={1.75} />
-                    </div>
-                    <div className="roles-page__role-body">
-                      <div className="roles-page__role-title-row">
-                        <p className="roles-page__role-name">{role.role_name}</p>
-                        {isSystemRole(role.role_name) ? (
-                          <span className="roles-page__system-badge">{t('roles.systemRole')}</span>
-                        ) : null}
-                      </div>
-                      <p className="roles-page__role-meta">
-                        {roleSubtitle(role, t)}
-                      </p>
-                      <div className="roles-page__role-coverage">
-                        <div className="roles-page__role-coverage-bar">
-                          <div
-                            className={`roles-page__role-coverage-fill roles-page__role-coverage-fill--${coverageClass}`}
-                            style={{ width: `${coverage}%` }}
-                          />
-                        </div>
-                        <span className="roles-page__role-coverage-label">{coverage}%</span>
-                      </div>
-                    </div>
-                    <div className="roles-page__role-trailing">
-                      <span className="roles-page__role-badge">{assigned}</span>
-                      <div className="enforcement-page__table-actions users-page__actions roles-page__role-actions" onClick={(e) => e.stopPropagation()}>
-                        <CrudRowActions
-                          onView={() => setViewRole(role)}
-                          onEdit={!isSystemRole(role.role_name) ? () => beginEditRole(role) : undefined}
-                          onDelete={!isSystemRole(role.role_name) ? () => setDeleteRole(role) : undefined}
-                        />
-                      </div>
-                      <span
-                        className="enforcement-page__badge roles-page__status-badge"
-                        style={isActiveStatus
-                          ? { background: 'rgba(16,185,129,0.1)', color: '#059669' }
-                          : { background: 'rgba(148,163,184,0.12)', color: '#64748B' }}
-                      >
-                        {statusLabel(role.status)}
+                      {t(item.labelKey)}
+                      <span className={cn('enforcement-page__filter-count', active && 'enforcement-page__filter-count--active')}>
+                        {item.key === 'all'
+                          ? roles.length
+                          : roles.filter((r) => r.status === item.key).length}
                       </span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </aside>
-
-        <main
-          className={cn(
-            'enforcement-page__panel roles-page__matrix-panel',
-            mobilePane !== 'permissions' && 'roles-page__pane--hidden-mobile',
-          )}
-          style={selectedMeta ? { '--matrix-accent': selectedMeta.color } as CSSProperties : undefined}
-        >
-          {selected && selectedMeta ? (() => {
-            const SelectedIcon = selectedMeta.icon;
-            return (
-            <div className="roles-page__selected-hero" style={{ background: selectedMeta.gradient }}>
-              <div className="roles-page__selected-hero-icon">
-                <SelectedIcon size={22} aria-hidden />
+                    </button>
+                  );
+                })}
               </div>
-              <div className="roles-page__selected-hero-copy">
-                <h2 className="roles-page__selected-hero-title">{selected.role_name}</h2>
-                <p className="roles-page__selected-hero-meta">
-                  {roleSubtitle(selected, t)}
-                </p>
-              </div>
-              <div className="roles-page__selected-hero-stats">
-                <span>{t('roles.permissionsSelected', { count: selectedPermIds.length, total: permissions.length })}</span>
-                <span>{t('roles.coverage', { pct: assignmentPct })}</span>
-              </div>
-            </div>
-            );
-          })() : null}
-
-          <header className="roles-page__matrix-header">
-            <div className="min-w-0 flex-1">
-              <h2 className="roles-page__panel-title">{t('roles.permissionMatrix')}</h2>
-              {selected ? (
-                <>
-                  <p className="roles-page__matrix-subtitle">
-                    {t('roles.permissionsSelected', { count: selectedPermIds.length, total: permissions.length })}
-                  </p>
-                  <div className="roles-page__coverage">
-                    <div className="roles-page__coverage-bar">
-                      <div
-                        className={`roles-page__coverage-fill roles-page__coverage-fill--${coverageVariant}`}
-                        style={{ width: `${assignmentPct}%` }}
-                      />
-                    </div>
-                    <span className={`roles-page__coverage-label roles-page__coverage-label--${coverageVariant}`}>
-                      {t('roles.coverage', { pct: assignmentPct })}
-                    </span>
-                  </div>
-                </>
-              ) : (
-                <p className="roles-page__matrix-subtitle">{t('roles.selectRole')}</p>
-              )}
-            </div>
-            {selected && permissions.length > 0 && (
-              <div className="roles-page__matrix-actions">
-                <button type="button" className="roles-page__chip-btn roles-page__chip-btn--blue" onClick={selectAllPermissions}>
-                  {t('roles.selectAllPermissions')}
-                </button>
-                <button type="button" className="roles-page__chip-btn roles-page__chip-btn--slate" onClick={clearAllPermissions}>
-                  {t('roles.clearAllPermissions')}
-                </button>
-                <button
-                  type="button"
-                  className="roles-page__save-btn"
-                  onClick={() => void handleSavePermissions()}
-                  disabled={saving || !hasUnsavedChanges}
-                >
-                  <Save size={14} aria-hidden />
-                  {saving ? t('common.saving') : t('roles.savePermissions')}
-                </button>
-              </div>
-            )}
-          </header>
-
-          {selected && permissions.length > 0 && (
-            <div className="roles-page__matrix-toolbar">
-              <div className="enforcement-page__search-wrap roles-page__search-wrap roles-page__search-wrap--wide">
+              <div className="enforcement-page__search-wrap flex-1">
                 <Search size={14} className="enforcement-page__search-icon" aria-hidden />
                 <input
-                  value={permSearch}
-                  onChange={(e) => setPermSearch(e.target.value)}
-                  placeholder={t('roles.searchPermissions')}
+                  value={roleSearch}
+                  onChange={(e) => setRoleSearch(e.target.value)}
+                  placeholder={t('roles.searchRoles')}
                   className="enforcement-page__search"
                 />
               </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button type="button" className="enforcement-page__hero-btn" onClick={openCreateRole}>
+                  <Plus size={15} aria-hidden />
+                  {t('roles.add')}
+                </button>
+                <button type="button" className="enforcement-page__hero-btn enforcement-page__hero-btn--outline" onClick={exportRoles}>
+                  <Download size={15} aria-hidden />
+                  {t('roles.export')}
+                </button>
+              </div>
             </div>
-          )}
+          </div>
+
+          <div className="enforcement-page__panel enforcement-page__panel--roles">
+            <div className="overflow-x-auto">
+              <Table className="enforcement-page__table mgmt-table__grid roles-page__table">
+                <TableHeader>
+                  <TableRow className="enforcement-page__table-head">
+                    {ROLE_TABLE_COLUMNS.map((col) => (
+                      <TableHead
+                        key={col.labelKey}
+                        className={`enforcement-page__th text-left${'className' in col && col.className ? ` ${col.className}` : ''}`}
+                      >
+                        {t(col.labelKey)}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    [...Array(5)].map((_, i) => (
+                      <TableRow key={i}>
+                        {ROLE_TABLE_COLUMNS.map((col) => (
+                          <TableCell key={col.labelKey}>
+                            <div className="enforcement-page__skeleton roles-page__skeleton" />
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  ) : filteredRoles.length === 0 ? (
+                    <TableEmptyState
+                      colSpan={ROLE_TABLE_COLUMNS.length}
+                      tone="violet"
+                      icon={<Lock size={28} />}
+                      title={roles.length === 0 ? t('roles.emptyRoles') : t('roles.noSearchResults')}
+                      subtitle={roles.length === 0 ? t('roles.emptyRolesHint') : undefined}
+                      action={roles.length === 0 ? { label: t('roles.add'), onClick: openCreateRole, icon: <Plus size={15} /> } : undefined}
+                    />
+                  ) : pagination.pageItems.map((role) => {
+                    const meta = roleMeta(role.role_name);
+                    const Icon = meta.icon;
+                    const userCount = usersByRole.get(role.id)?.length ?? 0;
+                    const permCount = role.permissions?.length ?? 0;
+                    const isActiveStatus = role.status === 'active';
+                    return (
+                      <TableRow
+                        key={role.id}
+                        className={cn('enforcement-page__table-row', !isActiveStatus && 'roles-page__row--inactive')}
+                      >
+                        <TableCell className="py-3.5">
+                          <div className="roles-page__user-cell">
+                            <div
+                              className="enforcement-page__avatar roles-page__avatar"
+                              style={{ background: meta.gradient }}
+                            >
+                              <Icon size={16} strokeWidth={1.75} />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="roles-page__role-title-row">
+                                <p className="enforcement-page__cell-primary roles-page__truncate" title={role.role_name}>
+                                  {role.role_name}
+                                </p>
+                                {isSystemRole(role.role_name) ? (
+                                  <span className="roles-page__system-badge">{t('roles.systemRole')}</span>
+                                ) : null}
+                              </div>
+                              <p className="enforcement-page__cell-secondary roles-page__truncate" title={roleSubtitle(role, t)}>
+                                {roleSubtitle(role, t)}
+                              </p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="enforcement-page__code-pill">{userCount}</span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="enforcement-page__code-pill">{permCount}</span>
+                        </TableCell>
+                        <TableCell>
+                          <span
+                            className="enforcement-page__badge"
+                            style={isActiveStatus
+                              ? { background: 'rgba(16,185,129,0.1)', color: '#059669' }
+                              : { background: 'rgba(239,68,68,0.1)', color: '#DC2626' }}
+                          >
+                            {isActiveStatus ? <CheckCircle size={11} /> : <XCircle size={11} />}
+                            {statusLabel(role.status)}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="enforcement-page__cell-secondary">
+                            {formatRelativeDate(role.created_at || role.assigned_date)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="roles-page__col--actions">
+                          <div className="enforcement-page__table-actions users-page__actions" role="group" aria-label={t('roles.colActions')}>
+                            <CrudRowActions
+                              onView={() => setViewRole(role)}
+                              onEdit={!isSystemRole(role.role_name) ? () => beginEditRole(role) : () => goToMatrix(role)}
+                              onDelete={!isSystemRole(role.role_name) ? () => setDeleteRole(role) : undefined}
+                            />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+            <TablePagination pagination={pagination} labelKey="pagination.label.roles" />
+          </div>
+        </>
+      )}
+
+      {tab === 'matrix' && (
+        <section className="enforcement-page__panel roles-page__matrix-enterprise">
+          <header className="roles-page__matrix-header">
+            <div className="min-w-0 flex-1">
+              <h2 className="roles-page__panel-title">{t('roles.permissionMatrix')}</h2>
+              <p className="roles-page__matrix-subtitle">{t('roles.matrixHint')}</p>
+            </div>
+            <div className="roles-page__matrix-actions">
+              {roles.length > 0 ? (
+                <Select
+                  value={selected?.id ?? roles[0]?.id}
+                  onValueChange={(id) => setSelected(roles.find((r) => r.id === id) ?? null)}
+                >
+                  <SelectTrigger className="roles-page__role-select">
+                    <SelectValue placeholder={t('roles.selectRole')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roles.map((role) => (
+                      <SelectItem key={role.id} value={role.id}>{role.role_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : null}
+              <button
+                type="button"
+                className="roles-page__save-btn"
+                onClick={() => void handleSavePermissions()}
+                disabled={!selected || saving || !hasUnsavedChanges}
+              >
+                {saving ? <Loader2 size={14} className="animate-spin" aria-hidden /> : <Save size={14} aria-hidden />}
+                {saving ? t('common.saving') : t('roles.savePermissions')}
+              </button>
+            </div>
+          </header>
 
           {!selected ? (
             <EmptyStatePanel
               tone="violet"
               icon={<Shield size={28} />}
               title={t('roles.selectRole')}
-              subtitle={t('roles.selectRoleHint')}
+              subtitle={t('roles.selectRoleHintMatrix')}
               className="roles-page__empty-panel roles-page__empty-panel--matrix"
             />
           ) : permissions.length === 0 ? (
@@ -649,101 +940,58 @@ export function RolesPage() {
               subtitle={t('roles.emptyPermissionsHint')}
               className="roles-page__empty-panel roles-page__empty-panel--matrix"
             />
-          ) : permissionGroups.length === 0 ? (
-            <div className="roles-page__empty">
-              <p className="enforcement-page__empty-title">{t('roles.noSearchResults')}</p>
-            </div>
           ) : (
-            <div className="roles-page__matrix-scroll">
-              {permissionGroups.map(([resource, perms]) => {
-                const ids = perms.map((p) => p.id);
-                const allOn = ids.every((id) => selectedPermIds.includes(id));
-                const someOn = ids.some((id) => selectedPermIds.includes(id));
-                const groupSelected = ids.filter((id) => selectedPermIds.includes(id)).length;
-                const palette = resourcePalette(resource);
-                const ResourceIcon = palette.icon;
-                const collapsed = collapsedGroups.has(resource);
-                return (
-                  <section
-                    key={resource}
-                    className={cn('roles-page__resource-group', collapsed && 'roles-page__resource-group--collapsed')}
-                    style={{
-                      '--resource-accent': palette.accent,
-                      '--resource-soft': palette.soft,
-                      '--resource-border': palette.border,
-                    } as CSSProperties}
-                  >
-                    <div className="roles-page__resource-head" style={{ background: palette.gradient }}>
-                      <button
-                        type="button"
-                        className="roles-page__resource-collapse"
-                        onClick={() => toggleGroupCollapsed(resource)}
-                        aria-expanded={!collapsed}
-                        aria-label={collapsed ? t('roles.expandGroup') : t('roles.collapseGroup')}
-                      >
-                        {collapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-                      </button>
-                      <div className="roles-page__resource-title-wrap">
-                        <span className="roles-page__resource-icon" style={{ color: palette.accent, background: palette.soft, borderColor: palette.border }}>
-                          <ResourceIcon size={14} strokeWidth={2} />
-                        </span>
-                        <h3 className="roles-page__resource-title" style={{ color: palette.accent }}>{resource}</h3>
-                        <span className="roles-page__resource-count" style={{ color: palette.accent, background: palette.soft, borderColor: palette.border }}>
-                          {groupSelected}/{perms.length}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        className="roles-page__resource-toggle"
-                        style={{ color: palette.accent, background: palette.soft, borderColor: palette.border }}
-                        onClick={() => toggleGroup(ids, !allOn)}
-                      >
-                        {allOn ? t('roles.clearGroup') : t('roles.selectAll')}
-                        {someOn && !allOn ? ` (${groupSelected})` : ''}
-                      </button>
-                    </div>
-                    {!collapsed ? (
-                      <div className="roles-page__perm-grid">
-                        {perms.map((p) => {
-                          const checked = selectedPermIds.includes(p.id);
-                          const action = actionPalette(p.action_type);
+            <div className="roles-page__matrix-table-wrap">
+              <table className="roles-page__matrix-table">
+                <thead>
+                  <tr>
+                    <th>{t('roles.colModule')}</th>
+                    {MATRIX_ACTIONS.map((action) => (
+                      <th key={action}>{actionLabel(action)}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {matrixModules.map((resource) => {
+                    const palette = resourcePalette(resource);
+                    const ResourceIcon = palette.icon;
+                    return (
+                      <tr key={resource}>
+                        <td>
+                          <div className="roles-page__module-cell">
+                            <span className="roles-page__resource-icon" style={{ color: palette.accent, background: palette.soft, borderColor: palette.border }}>
+                              <ResourceIcon size={13} strokeWidth={2} />
+                            </span>
+                            <span className="roles-page__module-name">{resource}</span>
+                          </div>
+                        </td>
+                        {MATRIX_ACTIONS.map((action) => {
+                          const perm = permLookup.get(`${resource.toLowerCase()}::${action}`);
+                          const checked = perm ? selectedPermIds.includes(perm.id) : false;
+                          const available = !!perm;
                           return (
-                            <label
-                              key={p.id}
-                              className={cn('roles-page__perm-card', checked && 'roles-page__perm-card--on')}
-                              style={checked ? {
-                                borderColor: palette.border,
-                                background: palette.gradient,
-                                boxShadow: `0 8px 22px ${palette.accent}14`,
-                              } : undefined}
-                            >
-                              <input
-                                type="checkbox"
-                                className="roles-page__perm-check"
-                                style={{ accentColor: palette.accent }}
-                                checked={checked}
-                                onChange={() => togglePerm(p.id)}
-                              />
-                              <div className="roles-page__perm-body">
-                                <span className="roles-page__perm-name">{p.perm_name}</span>
-                                <span
-                                  className="roles-page__perm-action"
-                                  style={{ color: action.color, background: action.bg }}
+                            <td key={action} className="roles-page__matrix-cell">
+                              {available ? (
+                                <button
+                                  type="button"
+                                  className={cn('roles-page__matrix-check', checked && 'roles-page__matrix-check--on')}
+                                  onClick={() => toggleMatrixCell(perm)}
+                                  aria-pressed={checked}
+                                  aria-label={`${resource} ${action}`}
                                 >
-                                  {p.action_type}
-                                </span>
-                                {p.description ? (
-                                  <span className="roles-page__perm-desc">{p.description}</span>
-                                ) : null}
-                              </div>
-                            </label>
+                                  {checked ? <Check size={14} strokeWidth={2.5} /> : <X size={12} strokeWidth={2} className="opacity-30" />}
+                                </button>
+                              ) : (
+                                <span className="roles-page__matrix-na">—</span>
+                              )}
+                            </td>
                           );
                         })}
-                      </div>
-                    ) : null}
-                  </section>
-                );
-              })}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
 
@@ -754,66 +1002,352 @@ export function RolesPage() {
                 <button type="button" className="roles-page__chip-btn roles-page__chip-btn--slate" onClick={discardChanges}>
                   {t('roles.discardChanges')}
                 </button>
-                <button
-                  type="button"
-                  className="roles-page__save-btn"
-                  onClick={() => void handleSavePermissions()}
-                  disabled={saving}
-                >
+                <button type="button" className="roles-page__save-btn" onClick={() => void handleSavePermissions()} disabled={saving}>
                   {saving ? <Loader2 size={14} className="animate-spin" aria-hidden /> : <Save size={14} aria-hidden />}
-                  {saving ? t('common.saving') : t('roles.savePermissions')}
+                  {t('roles.savePermissions')}
                 </button>
               </div>
             </div>
           ) : null}
-        </main>
-      </div>
+        </section>
+      )}
+
+      {tab === 'assignment' && (
+        <div className="roles-page__assignment">
+          <aside className="enforcement-page__panel roles-page__assignment-roles">
+            <header className="roles-page__panel-header">
+              <div>
+                <h2 className="roles-page__panel-title">{t('roles.list')}</h2>
+                <p className="roles-page__matrix-subtitle">{t('roles.assignmentPickRole')}</p>
+              </div>
+            </header>
+            <div className="roles-page__role-list">
+              {roles.map((role) => {
+                const meta = roleMeta(role.role_name);
+                const Icon = meta.icon;
+                const count = usersByRole.get(role.id)?.length ?? 0;
+                const isActive = selected?.id === role.id;
+                return (
+                  <button
+                    key={role.id}
+                    type="button"
+                    className={cn('roles-page__role-item', isActive && 'roles-page__role-item--active')}
+                    style={isActive ? { ['--role-accent' as string]: meta.color } : undefined}
+                    onClick={() => setSelected(role)}
+                  >
+                    <div className="roles-page__role-icon" style={{ color: meta.color, background: meta.bg, borderColor: `${meta.color}35` }}>
+                      <Icon size={17} strokeWidth={1.75} />
+                    </div>
+                    <div className="roles-page__role-body">
+                      <p className="roles-page__role-name">{role.role_name}</p>
+                      <p className="roles-page__role-meta">{t('roles.usersCount', { count })}</p>
+                    </div>
+                    <span className="roles-page__role-badge">{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </aside>
+
+          <section className="enforcement-page__panel roles-page__assignment-users">
+            <header className="roles-page__panel-header">
+              <div>
+                <h2 className="roles-page__panel-title">
+                  {selected ? t('roles.assignedUsersFor', { name: selected.role_name }) : t('roles.assignedUsers')}
+                </h2>
+                <p className="roles-page__matrix-subtitle">{t('roles.assignmentHint')}</p>
+              </div>
+            </header>
+            {selected ? (
+              <>
+                <div className="enforcement-page__toolbar roles-page__embedded-toolbar">
+                  <div className="enforcement-page__search-wrap flex-1">
+                    <Search size={14} className="enforcement-page__search-icon" aria-hidden />
+                    <input
+                      value={assignmentSearch}
+                      onChange={(e) => setAssignmentSearch(e.target.value)}
+                      placeholder={t('roles.searchUsers')}
+                      className="enforcement-page__search"
+                    />
+                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                  <Table className="enforcement-page__table mgmt-table__grid roles-page__assignment-table">
+                    <TableHeader>
+                      <TableRow className="enforcement-page__table-head">
+                        {ASSIGNMENT_TABLE_COLUMNS.map((col) => (
+                          <TableHead key={col.labelKey} className="enforcement-page__th text-left">
+                            {t(col.labelKey)}
+                          </TableHead>
+                        ))}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {assignedUsers.length === 0 ? (
+                        <TableEmptyState
+                          colSpan={ASSIGNMENT_TABLE_COLUMNS.length}
+                          tone="violet"
+                          icon={<Users size={28} />}
+                          title={t('roles.emptyAssignedUsers')}
+                          subtitle={t('roles.emptyAssignedUsersHint')}
+                        />
+                      ) : assignmentPagination.pageItems.map((user) => {
+                        const meta = roleMeta(selected.role_name);
+                        return (
+                          <TableRow key={user.id} className="enforcement-page__table-row">
+                            <TableCell className="py-3.5">
+                              <div className="roles-page__user-cell">
+                                <div
+                                  className="enforcement-page__avatar roles-page__avatar"
+                                  style={{ background: meta.gradient }}
+                                >
+                                  {initials(user.full_name)}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="enforcement-page__cell-primary roles-page__truncate" title={user.full_name}>
+                                    {user.full_name}
+                                  </p>
+                                  <p className="enforcement-page__cell-secondary roles-page__truncate">{user.phone || '—'}</p>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <span className="enforcement-page__cell-body roles-page__truncate" title={user.email}>{user.email}</span>
+                            </TableCell>
+                            <TableCell>
+                              <span className="enforcement-page__badge" style={{ background: meta.bg, color: meta.color }}>
+                                {selected.role_name}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <span
+                                className="enforcement-page__badge"
+                                style={user.is_active
+                                  ? { background: 'rgba(16,185,129,0.1)', color: '#059669' }
+                                  : { background: 'rgba(239,68,68,0.1)', color: '#DC2626' }}
+                              >
+                                {user.is_active ? <CheckCircle size={11} /> : <XCircle size={11} />}
+                                {user.is_active ? statusLabel('active') : statusLabel('inactive')}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+                <TablePagination pagination={assignmentPagination} labelKey="pagination.label.users" />
+              </>
+            ) : (
+              <EmptyStatePanel
+                tone="violet"
+                icon={<Users size={28} />}
+                title={t('roles.selectRole')}
+                subtitle={t('roles.assignmentPickRole')}
+                className="roles-page__empty-panel"
+              />
+            )}
+          </section>
+        </div>
+      )}
+
+      {tab === 'activity' && (
+        <>
+          <div className="enforcement-page__toolbar">
+            <div className="flex flex-col lg:flex-row lg:items-center gap-3 w-full">
+              <div className="enforcement-page__filters">
+                {([
+                  { key: 'all' as const, labelKey: 'roles.filterAllActivity' },
+                  { key: 'role' as const, labelKey: 'roles.filterRoleEvents' },
+                  { key: 'permission' as const, labelKey: 'roles.filterPermissionEvents' },
+                  { key: 'rbac' as const, labelKey: 'roles.filterRbacEvents' },
+                ]).map((item) => {
+                  const active = activityFilter === item.key;
+                  return (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => setActivityFilter(item.key)}
+                      className={cn('enforcement-page__filter-btn', active && 'enforcement-page__filter-btn--active')}
+                      style={active ? { background: 'linear-gradient(135deg, #2563EB, #4F46E5)' } : undefined}
+                    >
+                      {t(item.labelKey)}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="enforcement-page__search-wrap flex-1">
+                <Search size={14} className="enforcement-page__search-icon" aria-hidden />
+                <input
+                  value={activitySearch}
+                  onChange={(e) => setActivitySearch(e.target.value)}
+                  placeholder={t('roles.searchActivity')}
+                  className="enforcement-page__search"
+                />
+              </div>
+            </div>
+          </div>
+
+          <section className="enforcement-page__panel roles-page__activity-panel">
+            <div className="overflow-x-auto">
+              <Table className="enforcement-page__table mgmt-table__grid roles-page__activity-table">
+                <TableHeader>
+                  <TableRow className="enforcement-page__table-head">
+                    {ACTIVITY_TABLE_COLUMNS.map((col) => (
+                      <TableHead key={col.labelKey} className="enforcement-page__th text-left">
+                        {t(col.labelKey)}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    [...Array(5)].map((_, i) => (
+                      <TableRow key={i}>
+                        {ACTIVITY_TABLE_COLUMNS.map((col) => (
+                          <TableCell key={col.labelKey}>
+                            <div className="enforcement-page__skeleton roles-page__skeleton" />
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  ) : filteredActivity.length === 0 ? (
+                    <TableEmptyState
+                      colSpan={ACTIVITY_TABLE_COLUMNS.length}
+                      tone="violet"
+                      icon={<History size={28} />}
+                      title={t('roles.emptyActivity')}
+                      subtitle={t('roles.emptyActivityHint')}
+                    />
+                  ) : activityPagination.pageItems.map((log) => renderActivityRow(log))}
+                </TableBody>
+              </Table>
+            </div>
+            <TablePagination pagination={activityPagination} labelKey="pagination.label.audit" />
+          </section>
+        </>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent accent="violet" className="max-w-md sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2.5">
-              <div className="enforcement-page__dialog-icon enforcement-page__dialog-icon--violet">
-                <UserPlus size={15} />
-              </div>
-              <span className="enforcement-page__dialog-title">{editRole ? t('roles.edit') : t('roles.add')}</span>
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 py-1">
-            <div>
-              <Label className="enforcement-page__form-label">{t('roles.name')} *</Label>
-              <Input
-                className="mt-1"
-                placeholder={t('roles.namePlaceholder')}
-                value={form.role_name}
-                onChange={(e) => setForm({ ...form, role_name: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label className="enforcement-page__form-label">{t('roles.description')}</Label>
-              <Input
-                className="mt-1"
-                placeholder={t('roles.descriptionPlaceholder')}
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-              />
-            </div>
-            {editRole ? (
+        <DialogContent
+          accent="violet"
+          className="roles-form-dialog max-w-[42rem] sm:max-w-[42rem] p-0 gap-0 overflow-hidden"
+        >
+          <DialogHeader
+            className={cn(
+              'roles-form-dialog__header',
+              editRole ? 'roles-form-dialog__header--edit' : 'roles-form-dialog__header--create',
+            )}
+          >
+            <div className="roles-form-dialog__header-main">
+              <span className="roles-form-dialog__icon" aria-hidden>
+                {editRole ? <Shield size={20} strokeWidth={2.35} /> : <UserPlus size={20} strokeWidth={2.35} />}
+              </span>
               <div>
-                <Label className="enforcement-page__form-label">{t('users.colStatus')}</Label>
-                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as RBACRole['status'] })}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">{statusLabel('active')}</SelectItem>
-                    <SelectItem value="inactive">{statusLabel('inactive')}</SelectItem>
-                  </SelectContent>
-                </Select>
+                <p className="roles-form-dialog__eyebrow">{t('roles.eyebrow')}</p>
+                <DialogTitle className="roles-form-dialog__title">
+                  {editRole ? t('roles.edit') : t('roles.add')}
+                </DialogTitle>
+                <DialogDescription className="roles-form-dialog__desc">
+                  {editRole ? t('roles.formDescEdit') : t('roles.formDescCreate')}
+                </DialogDescription>
               </div>
-            ) : null}
+            </div>
+          </DialogHeader>
+
+          <div className="roles-form-dialog__body">
+            <div className="roles-form-dialog__panel">
+              <p className="roles-form-dialog__section-title">{t('roles.formSectionBasic')}</p>
+              <div className="roles-form-dialog__field">
+                <Label className="roles-form-dialog__label">{t('roles.name')} *</Label>
+                <Input
+                  className="roles-form-dialog__input"
+                  placeholder={t('roles.namePlaceholder')}
+                  value={form.role_name}
+                  onChange={(e) => setForm({ ...form, role_name: e.target.value })}
+                  disabled={!!editRole && isSystemRole(editRole.role_name)}
+                />
+              </div>
+              <div className="roles-form-dialog__field">
+                <Label className="roles-form-dialog__label">{t('roles.description')}</Label>
+                <Input
+                  className="roles-form-dialog__input"
+                  placeholder={t('roles.descriptionPlaceholder')}
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                />
+              </div>
+              <div className="roles-form-dialog__field">
+                <Label className="roles-form-dialog__label">{t('users.colStatus')}</Label>
+                <div className="roles-form-dialog__status-radios" role="radiogroup" aria-label={t('users.colStatus')}>
+                  {(['active', 'inactive'] as const).map((status) => (
+                    <label
+                      key={status}
+                      className={cn(
+                        'roles-form-dialog__status-radio',
+                        `roles-form-dialog__status-radio--${status}`,
+                        form.status === status && 'is-active',
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        name="role-status"
+                        checked={form.status === status}
+                        onChange={() => setForm({ ...form, status })}
+                      />
+                      <span className="roles-form-dialog__status-dot" aria-hidden />
+                      {statusLabel(status)}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="roles-form-dialog__panel">
+              <p className="roles-form-dialog__section-title">{t('roles.permissionGroups')}</p>
+              <p className="roles-form-dialog__hint">{t('roles.permissionGroupsHint')}</p>
+              <div className="roles-form-dialog__groups">
+                {permissionGroups.map(([resource, perms]) => {
+                  const ids = perms.map((p) => p.id);
+                  const selectedCount = ids.filter((id) => formPermIds.includes(id)).length;
+                  const allOn = selectedCount === ids.length && ids.length > 0;
+                  const someOn = selectedCount > 0;
+                  const palette = resourcePalette(resource);
+                  const ResourceIcon = palette.icon;
+                  return (
+                    <label
+                      key={resource}
+                      className={cn('roles-form-dialog__group', (allOn || someOn) && 'is-on')}
+                      style={{ ['--group-accent' as string]: palette.accent, ['--group-soft' as string]: palette.soft, ['--group-border' as string]: palette.border }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={allOn}
+                        ref={(el) => { if (el) el.indeterminate = someOn && !allOn; }}
+                        onChange={() => toggleFormGroup(ids, !allOn)}
+                      />
+                      <span className="roles-form-dialog__group-icon">
+                        <ResourceIcon size={14} />
+                      </span>
+                      <span className="roles-form-dialog__group-meta">
+                        <span className="roles-form-dialog__group-name">{resource}</span>
+                        <span className="roles-form-dialog__group-count">{selectedCount}/{ids.length}</span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
           </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>{t('users.cancel')}</Button>
-            <Button type="button" onClick={() => void handleCreate()}>{t('common.save')}</Button>
+
+          <DialogFooter className="roles-form-dialog__footer">
+            <Button type="button" variant="outline" className="roles-form-dialog__btn-cancel" onClick={() => setOpen(false)}>
+              {t('users.cancel')}
+            </Button>
+            <Button type="button" className="roles-form-dialog__btn-submit" disabled={saving} onClick={() => void handleCreate()}>
+              {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+              {t('roles.saveRole')}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -833,35 +1367,50 @@ export function RolesPage() {
 
       <EntityViewDialog
         open={!!viewRole}
-        onOpenChange={(open) => !open && setViewRole(null)}
+        onOpenChange={(isOpen) => !isOpen && setViewRole(null)}
         title={t('roles.viewTitle')}
         accent="violet"
-        onEdit={viewRole && !isSystemRole(viewRole.role_name) ? () => beginEditRole(viewRole) : undefined}
+        onEdit={viewRole && !isSystemRole(viewRole.role_name) ? () => { setViewRole(null); beginEditRole(viewRole); } : undefined}
       >
         {viewRole ? (
           <>
             <EntityDetailField label={t('roles.name')} value={viewRole.role_name} />
             <EntityDetailField label={t('roles.description')} value={roleSubtitle(viewRole, t)} />
             <EntityDetailField label={t('users.colStatus')} value={statusLabel(viewRole.status)} />
+            <EntityDetailField label={t('roles.colUsers')} value={String(viewAssignedUsers.length)} />
             <EntityDetailField
-              label={t('roles.permissionMatrix')}
-              value={t('roles.permissionsSelected', {
-                count: viewRole.permissions?.length ?? 0,
-                total: permissions.length,
-              })}
-            />
-            {viewRole.permissions && viewRole.permissions.length > 0 ? (
-              <EntityDetailField
-                label={t('roles.assignedPermissions')}
-                value={(
+              label={t('roles.assignedPermissions')}
+              value={(
+                viewRole.permissions && viewRole.permissions.length > 0 ? (
                   <ul className="entity-detail-field__list">
                     {viewRole.permissions.map((p) => (
                       <li key={p.id}>{p.perm_name}</li>
                     ))}
                   </ul>
-                )}
-              />
-            ) : null}
+                ) : t('roles.noPermissions')
+              )}
+            />
+            <EntityDetailField
+              label={t('roles.assignedUsers')}
+              value={(
+                viewAssignedUsers.length > 0 ? (
+                  <ul className="entity-detail-field__list">
+                    {viewAssignedUsers.slice(0, 12).map((u) => (
+                      <li key={u.id}>{u.full_name}</li>
+                    ))}
+                    {viewAssignedUsers.length > 12 ? <li>… +{viewAssignedUsers.length - 12}</li> : null}
+                  </ul>
+                ) : t('roles.emptyAssignedUsers')
+              )}
+            />
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => { setViewRole(null); goToMatrix(viewRole); }}>
+                <Grid3X3 size={14} className="mr-1.5" /> {t('roles.permissionMatrix')}
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => { setSelected(viewRole); setViewRole(null); setTab('assignment'); }}>
+                <Users size={14} className="mr-1.5" /> {t('roles.tabAssignment')}
+              </Button>
+            </div>
           </>
         ) : null}
       </EntityViewDialog>

@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { useLocation } from 'react-router';
 import { useLanguage } from '@shared/context/LanguageContext';
+import { useAuth } from '@shared/context/AuthContext';
+import { resolveUserEnterpriseModule } from '@shared/constants/enterpriseModules';
 
 type PageThemeConfig = {
   crumb: string[];
@@ -154,17 +156,45 @@ const THEME_MAP: Record<
   },
 };
 
+const USER_MODULE_TITLE_KEYS: Record<string, string> = {
+  dashboard: 'sidebar.pageTitles.dashboard',
+  detection: 'sidebar.pageTitles.detection',
+  cameras: 'sidebar.pageTitles.cameras',
+  vehicles: 'sidebar.pageTitles.vehicles',
+  drivers: 'sidebar.pageTitles.drivers',
+  violations: 'sidebar.pageTitles.violations',
+  fines: 'sidebar.pageTitles.fines',
+  appeals: 'sidebar.pageTitles.appeals',
+  reports: 'sidebar.pageTitles.reports',
+  notifications: 'sidebar.pageTitles.notifications',
+  profile: 'sidebar.pageTitles.profile',
+  settings: 'sidebar.pageTitles.settings',
+  payments: 'sidebar.pageTitles.payments',
+  signs: 'sidebar.pageTitles.trafficSigns',
+  'traffic-rules': 'sidebar.pageTitles.trafficRules',
+  support: 'sidebar.pageTitles.support',
+};
+
+function getModuleTitleKey(modId: string, role?: string): string | null {
+  if (modId === 'fines' && role === 'driver') return 'sidebar.pageTitles.myFines';
+  if (modId === 'vehicles' && role === 'driver') return 'sidebar.pageTitles.myVehicles';
+  return USER_MODULE_TITLE_KEYS[modId] ?? null;
+}
+
 export function usePageTheme(): PageThemeConfig {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const location = useLocation();
   const themeKey = location.pathname.startsWith('/admin')
     ? location.pathname.replace('/admin', '/dashboard')
     : location.pathname;
   const cfg = THEME_MAP[themeKey] ?? THEME_MAP['/dashboard'];
+  const userMod = user ? resolveUserEnterpriseModule(location.pathname, user.role) : null;
+  const titleKey = userMod ? getModuleTitleKey(userMod.id, user?.role) : null;
 
   return {
     crumb: cfg.crumbKeys.map((k) => t(k)),
-    label: t(cfg.labelKey),
+    label: titleKey ? t(titleKey) : t(cfg.labelKey),
     icon: cfg.icon,
     color: cfg.color,
     gradient: cfg.gradient,

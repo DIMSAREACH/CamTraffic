@@ -1,14 +1,15 @@
-import { Eye, Pencil, Trash2 } from 'lucide-react';
+import { Download, Eye, Pencil, Trash2 } from 'lucide-react';
 import { useLanguage } from '@shared/context/LanguageContext';
 
 type CrudRowActionsProps = {
   onView?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  onDownload?: () => void;
   className?: string;
 };
 
-export function CrudRowActions({ onView, onEdit, onDelete, className }: CrudRowActionsProps) {
+export function CrudRowActions({ onView, onEdit, onDelete, onDownload, className }: CrudRowActionsProps) {
   const { t } = useLanguage();
   return (
     <div className={`crud-actions${className ? ` ${className}` : ''}`}>
@@ -25,6 +26,17 @@ export function CrudRowActions({ onView, onEdit, onDelete, className }: CrudRowA
       {onDelete ? (
         <button type="button" className="crud-actions__btn crud-actions__btn--delete" onClick={onDelete} aria-label={t('common.delete')}>
           <Trash2 size={13} />
+        </button>
+      ) : null}
+      {onDownload ? (
+        <button
+          type="button"
+          className="crud-actions__btn crud-actions__btn--download"
+          onClick={onDownload}
+          aria-label={t('common.download')}
+          title={t('common.download')}
+        >
+          <Download size={13} />
         </button>
       ) : null}
     </div>

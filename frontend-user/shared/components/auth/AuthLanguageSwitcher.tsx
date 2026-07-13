@@ -27,11 +27,10 @@ export function AuthLanguageSwitcher() {
           type="button"
           className="auth-lang-toggle"
           aria-label={t('navbar.language')}
-          title={t('navbar.language')}
+          title={`${t('navbar.language')}: ${t(current.labelKey)}`}
         >
-          <Globe size={16} aria-hidden />
+          <Globe size={17} strokeWidth={1.75} className="auth-lang-toggle__globe" aria-hidden />
           <LocaleFlag locale={current.id} size="sm" />
-          <span className="auth-lang-toggle__code">{current.short}</span>
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44 p-1">

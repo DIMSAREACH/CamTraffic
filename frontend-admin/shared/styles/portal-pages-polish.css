@@ -197,38 +197,46 @@ html.dark .enforcement-page__stat-card:hover {
 }
 
 .enforcement-page--vehicles,
-.enforcement-page--unknown {
+.enforcement-page--unknown,
+.enforcement-page--signs {
   --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #064e3b 48%, #1e1b4b 100%);
 }
 
 .enforcement-page--vehicles .enforcement-page__eyebrow,
-.enforcement-page--unknown .enforcement-page__eyebrow {
+.enforcement-page--unknown .enforcement-page__eyebrow,
+.enforcement-page--signs .enforcement-page__eyebrow {
   color: rgba(110, 231, 183, 0.95);
 }
 
 .enforcement-page--vehicles .enforcement-page__eyebrow-icon,
-.enforcement-page--unknown .enforcement-page__eyebrow-icon {
+.enforcement-page--unknown .enforcement-page__eyebrow-icon,
+.enforcement-page--signs .enforcement-page__eyebrow-icon {
   background: rgba(16, 185, 129, 0.22);
   color: #6ee7b7;
   border-color: rgba(110, 231, 183, 0.2);
 }
 
 .enforcement-page--users,
-.enforcement-page--roles,
 .enforcement-page--drivers,
 .enforcement-page--officers {
   --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #2e1065 48%, #1e1b4b 100%);
 }
 
+.enforcement-page--roles {
+  --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #1e3a8a 42%, #312e81 100%);
+}
+
 .enforcement-page--users .enforcement-page__eyebrow,
-.enforcement-page--roles .enforcement-page__eyebrow,
 .enforcement-page--drivers .enforcement-page__eyebrow,
 .enforcement-page--officers .enforcement-page__eyebrow {
   color: rgba(196, 181, 253, 0.98);
 }
 
+.enforcement-page--roles .enforcement-page__eyebrow {
+  color: rgba(191, 219, 254, 0.98);
+}
+
 .enforcement-page--users .enforcement-page__eyebrow-icon,
-.enforcement-page--roles .enforcement-page__eyebrow-icon,
 .enforcement-page--drivers .enforcement-page__eyebrow-icon,
 .enforcement-page--officers .enforcement-page__eyebrow-icon {
   background: rgba(139, 92, 246, 0.24);
@@ -236,23 +244,32 @@ html.dark .enforcement-page__stat-card:hover {
   border-color: rgba(196, 181, 253, 0.2);
 }
 
+.enforcement-page--roles .enforcement-page__eyebrow-icon {
+  background: rgba(37, 99, 235, 0.28);
+  color: #93c5fd;
+  border-color: rgba(147, 197, 253, 0.28);
+}
+
 .enforcement-page--reports {
-  --enforcement-hero-bg: linear-gradient(135deg, #1a1208 0%, #451a03 42%, #1e1b4b 100%);
+  --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #0c4a6e 42%, #134e4a 100%);
 }
 
 .enforcement-page--ai-dashboard,
+.enforcement-page--ai-mlops,
 .enforcement-page--ai-center,
 .enforcement-page--ai-logs {
   --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #312e81 48%, #0c4a6e 100%);
 }
 
 .enforcement-page--ai-dashboard .enforcement-page__eyebrow,
+.enforcement-page--ai-mlops .enforcement-page__eyebrow,
 .enforcement-page--ai-center .enforcement-page__eyebrow,
 .enforcement-page--ai-logs .enforcement-page__eyebrow {
   color: rgba(165, 180, 252, 0.98);
 }
 
 .enforcement-page--ai-dashboard .enforcement-page__eyebrow-icon,
+.enforcement-page--ai-mlops .enforcement-page__eyebrow-icon,
 .enforcement-page--ai-center .enforcement-page__eyebrow-icon,
 .enforcement-page--ai-logs .enforcement-page__eyebrow-icon {
   background: rgba(99, 102, 241, 0.24);
@@ -292,9 +309,22 @@ html.dark .enforcement-page__stat-card:hover {
   --enforcement-hero-bg: linear-gradient(135deg, #0f172a 0%, #334155 48%, #1e1b4b 100%);
 }
 
-.enforcement-page--settings,
 .enforcement-page--backup {
-  --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #1e293b 48%, #1e1b4b 100%);
+  --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #1e293b 42%, #1e3a8a 100%);
+}
+
+.enforcement-page--settings {
+  --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #1e293b 42%, #1e3a8a 100%);
+}
+
+.enforcement-page--settings .enforcement-page__eyebrow {
+  color: rgba(191, 219, 254, 0.98);
+}
+
+.enforcement-page--settings .enforcement-page__eyebrow-icon {
+  background: rgba(37, 99, 235, 0.24);
+  color: #93c5fd;
+  border-color: rgba(147, 197, 253, 0.22);
 }
 
 /* ── App shell — richer page background ──────────────────────── */

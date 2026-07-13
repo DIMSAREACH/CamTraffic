@@ -12,6 +12,10 @@ import { SignNameLabels } from '@shared/components/signs/SignNameLabels';
 import { LiveWebcamPanel } from '@shared/components/ai/LiveWebcamPanel';
 import { DemoObservedActionSelect } from '@shared/components/ai/DemoObservedActionSelect';
 import type { DetectPipelineOptions } from '@shared/constants/observedActions';
+import {
+  getStoredUserDetectionInputMode,
+  setStoredUserDetectionInputMode,
+} from '@shared/constants/detectionInputMode';
 import { signDisplayNames } from '@shared/utils/signDisplayNames';
 import {
   isDisplayableSignResult,
@@ -1172,7 +1176,7 @@ export function AIDetectionPage() {
   const location = useLocation();
   const aiLogsPath = location.pathname.startsWith('/admin') ? '/admin/ai-logs' : '/dashboard/ai-logs';
 
-  const [inputMode, setInputMode] = useState<'upload' | 'webcam'>('upload');
+  const [inputMode, setInputMode] = useState<'upload' | 'webcam'>(getStoredUserDetectionInputMode);
   const [demoObservedAction, setDemoObservedAction] = useState('');
   const [file, setFile]           = useState<File | null>(null);
   const [preview, setPreview]     = useState<string | null>(null);
@@ -1210,6 +1214,10 @@ export function AIDetectionPage() {
   }, [stopProgressAnimation]);
 
   useEffect(() => () => stopProgressAnimation(), [stopProgressAnimation]);
+
+  useEffect(() => {
+    setInputMode(getStoredUserDetectionInputMode());
+  }, [location.pathname]);
 
   useEffect(() => {
     progressRef.current = progress;
@@ -1516,6 +1524,7 @@ export function AIDetectionPage() {
           setResult(null);
           setProgress(0);
         }
+        setStoredUserDetectionInputMode(mode);
         setInputMode(mode);
       }}
       demoObservedAction={demoObservedAction}

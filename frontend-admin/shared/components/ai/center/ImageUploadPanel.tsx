@@ -18,6 +18,9 @@ interface ImageUploadPanelProps {
   onResult: (result: CenterDetectionResult, previewUrl: string) => void;
   onDetectingChange: (v: boolean) => void;
   disabled?: boolean;
+  layout?: 'default' | 'enterprise';
+  /** When layout=enterprise: controls = config+run only, preview = dropzone only */
+  surface?: 'full' | 'controls' | 'preview';
 }
 
 export function ImageUploadPanel({
@@ -26,6 +29,8 @@ export function ImageUploadPanel({
   onResult,
   onDetectingChange,
   disabled = false,
+  layout = 'default',
+  surface = 'full',
 }: ImageUploadPanelProps) {
   const { t } = useLanguage();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -68,74 +73,115 @@ export function ImageUploadPanel({
     }
   };
 
+  const configSection = (
+    <section className="ai-center-upload-card__config">
+      <DemoObservedActionSelect
+        value={demoObservedAction}
+        onChange={onDemoObservedActionChange}
+        disabled={detecting || disabled}
+      />
+    </section>
+  );
+
+  const dropzone = (
+    <button
+      type="button"
+      className={cn(
+        'ai-center-dropzone ai-center-dropzone--violet',
+        dragging && 'ai-center-dropzone--drag',
+        preview && 'ai-center-dropzone--has-preview',
+      )}
+      onClick={() => inputRef.current?.click()}
+      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDragging(false);
+        const f = e.dataTransfer.files[0];
+        if (f?.type.startsWith('image/')) handleFile(f);
+      }}
+      disabled={detecting || disabled}
+    >
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
+      />
+      {preview ? (
+        <DetectionDisplayImage src={preview} alt="" variant="preview" fill className="ai-center-dropzone__preview" />
+      ) : (
+        <>
+          <span className="ai-center-dropzone__icon-wrap" aria-hidden>
+            <ImageIcon size={28} strokeWidth={1.75} className="ai-center-dropzone__icon" />
+          </span>
+          <p className="ai-center-dropzone__title">{t('aiCenter.imageDropTitle')}</p>
+          <p className="ai-center-dropzone__hint">{t('aiCenter.imageDropHint')}</p>
+          <span className="ai-center-dropzone__browse">{t('aiDetection.inputPanelDropBrowse')}</span>
+        </>
+      )}
+    </button>
+  );
+
+  const footerSection = (
+    <footer className="ai-center-upload-card__footer">
+      {file ? (
+        <div className="ai-center-file-chip" title={file.name}>
+          <Upload size={15} aria-hidden />
+          <span className="ai-center-file-chip__name">{file.name}</span>
+        </div>
+      ) : null}
+      <AiCenterDetectButton
+        tone="violet"
+        className={cn('ai-center-upload-card__cta', !file && 'ai-center-upload-card__cta--solo')}
+        onClick={() => void runDetection()}
+        disabled={!file || detecting || disabled}
+      >
+        {detecting ? <Loader2 size={18} className="animate-spin" /> : <Scan size={18} />}
+        {detecting ? t('aiCenter.analyzing') : t('aiCenter.runDetection')}
+      </AiCenterDetectButton>
+    </footer>
+  );
+
+  if (layout === 'enterprise') {
+    if (surface === 'controls') {
+      return (
+        <div className="ai-center-input-panel ai-center-upload-card ai-center-upload-card--violet ai-center-upload-card--controls-only">
+          {configSection}
+          {footerSection}
+        </div>
+      );
+    }
+    if (surface === 'preview') {
+      return (
+        <div className="ai-center-input-panel ai-center-upload-card ai-center-upload-card--violet ai-center-upload-card--preview-only">
+          <section className="ai-center-upload-card__main enterprise-ai-split__preview">
+            {dropzone}
+          </section>
+        </div>
+      );
+    }
+    return (
+      <div className="ai-center-input-panel ai-center-upload-card ai-center-upload-card--violet ai-center-upload-card--enterprise">
+        <div className="enterprise-ai-split__source">
+          {configSection}
+          {footerSection}
+        </div>
+        <section className="ai-center-upload-card__main enterprise-ai-split__preview">
+          {dropzone}
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="ai-center-input-panel ai-center-upload-card ai-center-upload-card--violet">
-      <section className="ai-center-upload-card__config">
-        <DemoObservedActionSelect
-          value={demoObservedAction}
-          onChange={onDemoObservedActionChange}
-          disabled={detecting || disabled}
-        />
-      </section>
-
+      {configSection}
       <section className="ai-center-upload-card__main">
-        <button
-          type="button"
-          className={cn(
-            'ai-center-dropzone ai-center-dropzone--violet',
-            dragging && 'ai-center-dropzone--drag',
-            preview && 'ai-center-dropzone--has-preview',
-          )}
-          onClick={() => inputRef.current?.click()}
-          onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={(e) => {
-            e.preventDefault();
-            setDragging(false);
-            const f = e.dataTransfer.files[0];
-            if (f?.type.startsWith('image/')) handleFile(f);
-          }}
-          disabled={detecting || disabled}
-        >
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
-          />
-          {preview ? (
-            <DetectionDisplayImage src={preview} alt="" variant="preview" fill className="ai-center-dropzone__preview" />
-          ) : (
-            <>
-              <span className="ai-center-dropzone__icon-wrap" aria-hidden>
-                <ImageIcon size={28} strokeWidth={1.75} className="ai-center-dropzone__icon" />
-              </span>
-              <p className="ai-center-dropzone__title">{t('aiCenter.imageDropTitle')}</p>
-              <p className="ai-center-dropzone__hint">{t('aiCenter.imageDropHint')}</p>
-              <span className="ai-center-dropzone__browse">{t('aiDetection.inputPanelDropBrowse')}</span>
-            </>
-          )}
-        </button>
+        {dropzone}
       </section>
-
-      <footer className="ai-center-upload-card__footer">
-        {file ? (
-          <div className="ai-center-file-chip" title={file.name}>
-            <Upload size={15} aria-hidden />
-            <span className="ai-center-file-chip__name">{file.name}</span>
-          </div>
-        ) : null}
-        <AiCenterDetectButton
-          tone="violet"
-          className={cn('ai-center-upload-card__cta', !file && 'ai-center-upload-card__cta--solo')}
-          onClick={() => void runDetection()}
-          disabled={!file || detecting || disabled}
-        >
-          {detecting ? <Loader2 size={18} className="animate-spin" /> : <Scan size={18} />}
-          {detecting ? t('aiCenter.analyzing') : t('aiCenter.runImageDetection')}
-        </AiCenterDetectButton>
-      </footer>
+      {footerSection}
     </div>
   );
 }

@@ -79,62 +79,115 @@ html.dark .cam-loc__map-canvas {
 }
 
 .cam-loc__map-card,
-.cam-loc__coverage-card {
+.cam-loc__coverage-card,
+.cam-loc__registry {
+  position: relative;
   display: flex;
   flex-direction: column;
   border-radius: 1rem;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06);
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.06);
   overflow: hidden;
   min-height: 22rem;
 }
 
+.cam-loc__registry {
+  min-height: 0;
+  margin-top: 0;
+}
+
 html.dark .cam-loc__map-card,
-html.dark .cam-loc__coverage-card {
-  border-color: rgba(148, 163, 184, 0.14);
-  background: linear-gradient(180deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.92) 100%);
+html.dark .cam-loc__coverage-card,
+html.dark .cam-loc__registry {
+  border-color: rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.72);
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
 }
 
-/* Shared gradient card headers */
-.cam-loc__card-hero {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  padding: 0.95rem 1.1rem;
-  overflow: hidden;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+.cam-loc__map-card::before,
+.cam-loc__coverage-card::before,
+.cam-loc__registry::before {
+  content: '';
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0.25rem;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.cam-loc__map-card::before {
+  background: linear-gradient(90deg, #1d4ed8, #2563eb, #0891b2);
+}
+
+.cam-loc__coverage-card::before {
+  background: linear-gradient(90deg, #047857, #059669, #0d9488);
+}
+
+.cam-loc__registry::before {
+  background: linear-gradient(90deg, #4338ca, #6366f1, #2563eb);
+}
+
+.cam-loc__chart-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  margin-top: 0.4rem;
   flex-shrink: 0;
 }
 
-.cam-loc__card-hero--map {
-  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 42%, #0891b2 100%);
-  box-shadow: 0 6px 22px rgba(37, 99, 235, 0.22);
+.cam-loc__chart-dot--map {
+  background: #2563eb;
+  box-shadow: 0 0 10px #2563eb;
 }
 
-.cam-loc__card-hero--coverage {
-  background: linear-gradient(135deg, #047857 0%, #059669 40%, #0d9488 100%);
-  box-shadow: 0 6px 22px rgba(5, 150, 105, 0.22);
+.cam-loc__chart-dot--coverage {
+  background: #059669;
+  box-shadow: 0 0 10px #059669;
 }
 
+.cam-loc__chart-dot--registry {
+  background: #6366f1;
+  box-shadow: 0 0 10px #6366f1;
+}
+
+/* ChartCard-style card headers */
+.cam-loc__card-hero {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 1.1rem 0.8rem;
+  overflow: visible;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.95);
+  background: #fff;
+  box-shadow: none;
+  flex-shrink: 0;
+}
+
+.cam-loc__card-hero--map,
+.cam-loc__card-hero--coverage,
 .cam-loc__card-hero--registry,
 .cam-loc__registry-hero {
-  background: linear-gradient(135deg, #4338ca 0%, #6366f1 38%, #2563eb 100%);
-  box-shadow: 0 6px 22px rgba(99, 102, 241, 0.22);
+  background: #fff;
+  box-shadow: none;
+}
+
+html.dark .cam-loc__card-hero,
+html.dark .cam-loc__card-hero--map,
+html.dark .cam-loc__card-hero--coverage,
+html.dark .cam-loc__card-hero--registry,
+html.dark .cam-loc__registry-hero {
+  background: transparent;
+  border-bottom-color: rgba(148, 163, 184, 0.16);
 }
 
 .cam-loc__card-hero-glow,
 .cam-loc__registry-glow {
-  position: absolute;
-  top: -2.5rem;
-  right: -1.25rem;
-  width: 8rem;
-  height: 8rem;
-  border-radius: 999px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
-  pointer-events: none;
+  display: none;
 }
 
 .cam-loc__card-hero-icon,
@@ -144,14 +197,32 @@ html.dark .cam-loc__coverage-card {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 0.75rem;
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  backdrop-filter: blur(6px);
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.7rem;
   flex-shrink: 0;
+  margin-left: auto;
+  backdrop-filter: none;
+  border: 1px solid transparent;
+}
+
+.cam-loc__card-hero-icon--map {
+  background: rgba(37, 99, 235, 0.12);
+  color: #2563eb;
+  border-color: rgba(37, 99, 235, 0.18);
+}
+
+.cam-loc__card-hero-icon--coverage {
+  background: rgba(5, 150, 105, 0.12);
+  color: #059669;
+  border-color: rgba(5, 150, 105, 0.18);
+}
+
+.cam-loc__card-hero-icon--registry,
+.cam-loc__registry-icon {
+  background: rgba(99, 102, 241, 0.12);
+  color: #4f46e5;
+  border-color: rgba(99, 102, 241, 0.18);
 }
 
 .cam-loc__card-hero-copy,
@@ -167,17 +238,28 @@ html.dark .cam-loc__coverage-card {
   margin: 0;
   font-size: 1rem;
   font-weight: 800;
-  color: #fff;
+  color: #0f172a;
   letter-spacing: -0.02em;
   line-height: 1.2;
 }
 
+html.dark .cam-loc__card-hero-title,
+html.dark .cam-loc__registry-title {
+  color: #f1f5f9;
+}
+
 .cam-loc__card-hero-sub,
 .cam-loc__registry-sub {
-  margin: 0.15rem 0 0;
-  font-size: 0.76rem;
-  color: rgba(255, 255, 255, 0.9);
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #64748b;
   line-height: 1.35;
+}
+
+html.dark .cam-loc__card-hero-sub,
+html.dark .cam-loc__registry-sub {
+  color: #94a3b8;
 }
 
 .cam-loc__card-hero-badge {
@@ -190,17 +272,21 @@ html.dark .cam-loc__coverage-card {
   min-width: 4.25rem;
   padding: 0.45rem 0.65rem;
   border-radius: 0.75rem;
-  background: rgba(255, 255, 255, 0.16);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  backdrop-filter: blur(8px);
+  background: rgba(37, 99, 235, 0.1);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  backdrop-filter: none;
   flex-shrink: 0;
 }
 
 .cam-loc__card-hero-badge-value {
   font-size: 1.25rem;
   font-weight: 800;
-  color: #fff;
+  color: #1d4ed8;
   line-height: 1;
+}
+
+html.dark .cam-loc__card-hero-badge-value {
+  color: #93c5fd;
 }
 
 .cam-loc__card-hero-badge-label {
@@ -209,9 +295,13 @@ html.dark .cam-loc__coverage-card {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: rgba(255, 255, 255, 0.88);
+  color: #64748b;
   text-align: center;
   line-height: 1.2;
+}
+
+html.dark .cam-loc__card-hero-badge-label {
+  color: #94a3b8;
 }
 
 @media (max-width: 640px) {
@@ -613,19 +703,7 @@ html.dark .cam-loc__coverage-metric--teal {
   background: linear-gradient(90deg, #2dd4bf, #059669);
 }
 
-/* Registry panel */
-.cam-loc__registry {
-  border-radius: 1rem;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06);
-  overflow: hidden;
-}
-
-html.dark .cam-loc__registry {
-  border-color: rgba(148, 163, 184, 0.14);
-  background: linear-gradient(180deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.92) 100%);
-}
+/* Registry panel — shared ChartCard shell above; toolbar/table below */
 
 .cam-loc__toolbar {
   padding: 0.85rem 1rem;

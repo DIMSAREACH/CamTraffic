@@ -242,7 +242,7 @@ export function ReportsPage() {
 
   if (loading) {
     return (
-      <div className="enforcement-page enforcement-page--reports dashboard-page--reports">
+      <div className="enforcement-page enforcement-page--reports dashboard-page--reports reports-page--enterprise">
         <div className="enforcement-page__hero">
           <div className="enforcement-page__hero-glow--primary" aria-hidden />
           <div className="enforcement-page__skeleton" style={{ height: '7rem', borderRadius: '1rem' }} />
@@ -284,7 +284,7 @@ export function ReportsPage() {
   };
 
   return (
-    <div className="enforcement-page enforcement-page--reports dashboard-page--reports">
+    <div className="enforcement-page enforcement-page--reports dashboard-page--reports reports-page--enterprise">
       <div className="enforcement-page__hero">
         <div className="enforcement-page__hero-glow--primary" aria-hidden />
         <div className="enforcement-page__hero-glow--secondary" aria-hidden />

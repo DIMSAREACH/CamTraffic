@@ -226,10 +226,21 @@ REST_FRAMEWORK = {
         'core.throttling.BurstRateThrottle',
         'core.throttling.SustainedRateThrottle',
     ),
+    # Local SPA navigation + StrictMode + live polling easily exceeds production-ish
+    # 2000/hour; keep generous DEBUG defaults and require explicit env in production.
     'DEFAULT_THROTTLE_RATES': {
-        'anon': os.getenv('API_THROTTLE_ANON', '60/min'),
-        'burst': os.getenv('API_THROTTLE_BURST', '120/min'),
-        'sustained': os.getenv('API_THROTTLE_SUSTAINED', '2000/hour'),
+        'anon': os.getenv(
+            'API_THROTTLE_ANON',
+            '600/min' if DEBUG else '60/min',
+        ),
+        'burst': os.getenv(
+            'API_THROTTLE_BURST',
+            '1200/min' if DEBUG else '120/min',
+        ),
+        'sustained': os.getenv(
+            'API_THROTTLE_SUSTAINED',
+            '50000/hour' if DEBUG else '2000/hour',
+        ),
     },
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'EXCEPTION_HANDLER': 'core.exceptions.custom_exception_handler',

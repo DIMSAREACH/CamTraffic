@@ -43,6 +43,7 @@ class LoginView(TokenObtainPairView):
             )
             return error_response(message, status_code=code)
         except Exception:
+            logging.getLogger(__name__).exception('Unexpected login failure')
             return error_response(LOGIN_INVALID_CREDENTIALS, status_code=status.HTTP_401_UNAUTHORIZED)
         data = serializer.validated_data
         return success_response({

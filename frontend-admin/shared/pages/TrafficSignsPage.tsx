@@ -1,14 +1,21 @@
 import { useState, useEffect, useMemo, type KeyboardEvent, type ReactNode } from 'react';
 import { usePagination, useSignGridPageSize } from '@shared/hooks/usePagination';
 import { TablePagination } from '@shared/components/ui/TablePagination';
+import { FilterSelect } from '@shared/components/ui/FilterSelect';
 import { useLanguage } from '@shared/context/LanguageContext';
-import { Search, BookOpen, AlertTriangle, Shield, Info, ChevronRight, LayoutGrid, Table2, Eye, Plus, Pencil, Trash2 } from 'lucide-react';
+import {
+  Search, BookOpen, AlertTriangle, Shield, Info, ChevronRight, LayoutGrid, Table2, Plus, Tags, Pencil, Trash2,
+} from 'lucide-react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@shared/components/ui/dialog';
 import { Button } from '@shared/components/ui/button';
 import { SignFormDialog } from '@shared/components/signs/SignFormDialog';
 import { SignDetailIntro } from '@shared/components/signs/SignDetailIntro';
 import { SignNameLabels } from '@shared/components/signs/SignNameLabels';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@shared/components/ui/table';
+import { TableEmptyState, EmptyStatePanel } from '@shared/components/ui/TableEmptyState';
+import { CrudRowActions } from '@shared/components/admin/CrudRowActions';
+import { SignCategoriesManagementPanel } from '@shared/components/admin/SignCategoriesManagementPanel';
+import { cn } from '@shared/components/ui/utils';
 import {
   clearSignMediaCache,
   markSignMediaInvalid,
@@ -25,6 +32,8 @@ import { toast } from 'sonner';
 import type { TrafficSign, SignCategory } from '@shared/types';
 
 const CAN_MANAGE_SIGNS = import.meta.env.VITE_PORTAL_SURFACE === 'admin';
+
+type SignsTab = 'catalog' | 'categories';
 
 /* ── Category visual tokens ───────────────────────────── */
 const CAT: Record<SignCategory, {
@@ -336,7 +345,6 @@ function SignsViewToggle({
   cardLabel,
   listLabel,
   viewAsLabel,
-  variant = 'default',
 }: {
   mode: SignViewMode;
   onChange: (m: SignViewMode) => void;
@@ -345,56 +353,29 @@ function SignsViewToggle({
   viewAsLabel: string;
   variant?: 'default' | 'onDark';
 }) {
-  const onDark = variant === 'onDark';
-  const btn = (active: boolean) =>
-    active
-      ? onDark
-        ? { background: '#fff', color: '#1D4ED8', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }
-        : { background: 'linear-gradient(135deg,#2563EB,#1D4ED8)', color: '#fff', boxShadow: '0 2px 8px rgba(37,99,235,0.35)' }
-      : { background: 'transparent', color: onDark ? 'rgba(255,255,255,0.9)' : 'var(--muted-foreground)' };
-
   return (
-    <div className="flex items-center gap-2 flex-shrink-0">
-      <span
-        className="dashboard-kpi__label signs-view-toggle-label hidden sm:inline"
-        style={{
-          color: onDark ? 'rgba(255,255,255,0.85)' : 'var(--muted-foreground)',
-          textTransform: 'none',
-          letterSpacing: '0.02em',
-        }}
-      >
-        {viewAsLabel}
-      </span>
-      <div
-        className="flex p-1 rounded-xl"
-        style={onDark
-          ? { background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.22)' }
-          : { background: 'var(--muted)', border: '1px solid rgba(37,99,235,0.08)' }
-        }
-        role="group"
-        aria-label={viewAsLabel}
-      >
+    <div className="signs-view-toggle">
+      <span className="signs-view-toggle__label">{viewAsLabel}</span>
+      <div className="signs-view-toggle__track" role="group" aria-label={viewAsLabel}>
         <button
           type="button"
           title={cardLabel}
           aria-pressed={mode === 'grid'}
           onClick={() => onChange('grid')}
-          className="signs-view-toggle-btn flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all cursor-pointer"
-          style={btn(mode === 'grid')}
+          className={`signs-view-toggle__btn${mode === 'grid' ? ' is-active' : ''}`}
         >
-          <LayoutGrid size={15} strokeWidth={2} />
-          <span className="hidden md:inline dashboard-text__caption" style={{ color: 'inherit' }}>{cardLabel}</span>
+          <LayoutGrid size={15} strokeWidth={2.2} aria-hidden />
+          <span>{cardLabel}</span>
         </button>
         <button
           type="button"
           title={listLabel}
           aria-pressed={mode === 'list'}
           onClick={() => onChange('list')}
-          className="signs-view-toggle-btn flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all cursor-pointer"
-          style={btn(mode === 'list')}
+          className={`signs-view-toggle__btn${mode === 'list' ? ' is-active' : ''}`}
         >
-          <Table2 size={15} strokeWidth={2} />
-          <span className="hidden md:inline dashboard-text__caption" style={{ color: 'inherit' }}>{listLabel}</span>
+          <Table2 size={15} strokeWidth={2.2} aria-hidden />
+          <span>{listLabel}</span>
         </button>
       </div>
     </div>
@@ -438,34 +419,17 @@ function SignCardItem({
     <div
       role="button"
       tabIndex={0}
+      data-category={sign.category}
       onClick={e => {
         if ((e.target as HTMLElement).closest('[data-sign-card-action]')) return;
         onSelect();
       }}
       onKeyDown={handleCardKeyDown}
-      className="signs-card group relative flex flex-col overflow-hidden rounded-2xl text-left transition-all cursor-pointer w-full"
-      style={{
-        background: 'var(--card)',
-        border: `1.5px solid ${c.border}`,
-        boxShadow: `0 2px 10px ${c.glow}`,
-      }}
-      onMouseEnter={e => {
-        (e.currentTarget as HTMLElement).style.boxShadow = `0 12px 32px ${c.glow}`;
-        (e.currentTarget as HTMLElement).style.transform = 'translateY(-4px)';
-        (e.currentTarget as HTMLElement).style.borderColor = `${c.color}66`;
-      }}
-      onMouseLeave={e => {
-        (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 8px rgba(15,23,42,0.06)';
-        (e.currentTarget as HTMLElement).style.transform = '';
-        (e.currentTarget as HTMLElement).style.borderColor = c.border;
-      }}
+      className="signs-card group relative"
     >
-      <div className="signs-card__accent h-1 w-full flex-shrink-0" style={{ background: c.gradient }} />
-      <div
-        className="signs-card__media flex flex-1 items-center justify-center px-3 py-5"
-        style={{ minHeight: '16rem', background: c.bg }}
-      >
-        <div className="signs-card__img-wrap flex items-center justify-center w-full h-full">
+      <div className="signs-card__accent" style={{ background: c.gradient }} />
+      <div className="signs-card__media" data-category={sign.category}>
+        <div className="signs-card__img-wrap">
           <SignImage
             sign={sign}
             hideFallback={!canManage}
@@ -477,35 +441,29 @@ function SignCardItem({
           />
         </div>
       </div>
-      <div
-        className="signs-card__body flex-shrink-0 px-3.5 pb-4 pt-3"
-        style={{
-          background: `linear-gradient(180deg, ${c.bg} 0%, ${c.bg} 55%, var(--card) 100%)`,
-          borderTop: `1px solid ${c.border}`,
-        }}
-      >
+      <div className="signs-card__body">
         <SignNameLabels sign={sign} />
         <div className="flex items-center justify-between gap-2 mt-3">
-          <CategoryBadge category={sign.category} className="signs-card__badge px-3 py-1">
+          <CategoryBadge category={sign.category} className="signs-card__badge px-2.5 py-0.5 text-xs">
             {categoryLabel}
           </CategoryBadge>
           {canManage && (
-            <div className="flex gap-1" data-sign-card-action>
+            <div className="crud-actions" data-sign-card-action onClick={(e) => e.stopPropagation()}>
               <button
                 type="button"
-                onClick={e => { e.stopPropagation(); onEdit?.(); }}
-                className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer transition-colors hover:bg-muted"
+                className="crud-actions__btn crud-actions__btn--edit"
+                onClick={() => onEdit?.()}
                 aria-label={t('common.edit')}
               >
-                <Pencil size={14} style={{ color: c.color }} />
+                <Pencil size={13} />
               </button>
               <button
                 type="button"
-                onClick={e => { e.stopPropagation(); onDelete?.(); }}
-                className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer transition-colors hover:bg-red-50"
+                className="crud-actions__btn crud-actions__btn--delete"
+                onClick={() => onDelete?.()}
                 aria-label={t('common.delete')}
               >
-                <Trash2 size={14} className="text-red-600" />
+                <Trash2 size={13} />
               </button>
             </div>
           )}
@@ -560,31 +518,27 @@ function SignsTable({
   onEdit?: (sign: TrafficSign) => void;
   onDelete?: (sign: TrafficSign) => void;
 }) {
-  const thClass =
-    'dashboard-kpi__label text-muted-foreground py-3.5 px-4 whitespace-nowrap';
-  const thStyle = { textTransform: 'none' as const, letterSpacing: '0.04em', fontSize: 'var(--db-font-sm)' };
-
   return (
-    <div className="dashboard-signs-table dashboard-signs-table__shell rounded-xl overflow-hidden w-full">
-      <Table className="dashboard-signs-table__grid">
+    <div className="mgmt-table__scroll signs-page__scroll">
+      <Table className="enforcement-page__table mgmt-table__grid signs-page__table">
         <colgroup>
-          <col className="dashboard-signs-table__col dashboard-signs-table__col--image" />
-          <col className="dashboard-signs-table__col dashboard-signs-table__col--sign" />
-          <col className="dashboard-signs-table__col dashboard-signs-table__col--category" />
-          <col className="dashboard-signs-table__col dashboard-signs-table__col--description" />
-          <col className="dashboard-signs-table__col dashboard-signs-table__col--action" />
+          <col className="signs-page__col signs-page__col--image" />
+          <col className="signs-page__col signs-page__col--sign" />
+          <col className="signs-page__col signs-page__col--category" />
+          <col className="signs-page__col signs-page__col--description" />
+          <col className="signs-page__col signs-page__col--action" />
         </colgroup>
         <TableHeader>
-          <TableRow className="dashboard-signs-table__head-row">
-            <TableHead className={`${thClass} dashboard-signs-table__th dashboard-signs-table__th--image text-center`} style={thStyle}>{labels.image}</TableHead>
-            <TableHead className={`${thClass} dashboard-signs-table__th dashboard-signs-table__th--sign`} style={thStyle}>{labels.sign}</TableHead>
-            <TableHead className={`${thClass} dashboard-signs-table__th dashboard-signs-table__th--category hidden lg:table-cell`} style={thStyle}>{labels.category}</TableHead>
-            <TableHead className={`${thClass} dashboard-signs-table__th dashboard-signs-table__th--description hidden md:table-cell`} style={thStyle}>{labels.description}</TableHead>
-            <TableHead className={`${thClass} dashboard-signs-table__th dashboard-signs-table__th--action text-center`} style={thStyle}>{labels.action}</TableHead>
+          <TableRow className="enforcement-page__table-head">
+            <TableHead className="enforcement-page__th text-center">{labels.image}</TableHead>
+            <TableHead className="enforcement-page__th text-left">{labels.sign}</TableHead>
+            <TableHead className="enforcement-page__th text-left hidden lg:table-cell">{labels.category}</TableHead>
+            <TableHead className="enforcement-page__th text-left hidden md:table-cell">{labels.description}</TableHead>
+            <TableHead className="enforcement-page__th text-right">{labels.action}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {signs.map(sign => (
+          {signs.map((sign) => (
             <SignTableRow
               key={sign.id}
               sign={sign}
@@ -628,7 +582,6 @@ function SignTableRow({
   onEdit?: (sign: TrafficSign) => void;
   onDelete?: (sign: TrafficSign) => void;
 }) {
-  const c = CAT[sign.category];
   const categoryLabel = catLabel(sign.category);
   const [photoInvalid, setPhotoInvalid] = useState(false);
 
@@ -639,101 +592,77 @@ function SignTableRow({
   };
 
   return (
-              <TableRow className="dashboard-signs-table__row transition-colors">
-                <TableCell className="dashboard-signs-table__td dashboard-signs-table__td--image py-3 px-4 align-middle text-center">
-                  <div className="signs-table-img-wrap mx-auto">
-                    <SignImage
-                      sign={sign}
-                      size={64}
-                      showcase
-                      strictProbe={!canManage}
-                      hideFallback={!canManage}
-                      onUnavailable={hideCard}
-                      className="signs-table-img"
-                    />
-                  </div>
-                </TableCell>
-                <TableCell className="dashboard-signs-table__td dashboard-signs-table__td--sign py-3 px-4 align-middle whitespace-normal">
-                  <SignNameLabels sign={sign} size="sm" />
-                  <CategoryBadge category={sign.category} className="mt-1.5 lg:hidden px-2.5 py-0.5">
-                    {categoryLabel}
-                  </CategoryBadge>
-                </TableCell>
-                <TableCell className="dashboard-signs-table__td dashboard-signs-table__td--category py-3 px-4 align-middle hidden lg:table-cell">
-                  <CategoryBadge category={sign.category} className="px-2.5 py-1">
-                    {categoryLabel}
-                  </CategoryBadge>
-                </TableCell>
-                <TableCell className="dashboard-signs-table__td dashboard-signs-table__td--description py-3 px-4 align-middle hidden md:table-cell whitespace-normal">
-                  <p className="dashboard-signs-table__desc dashboard-text__caption line-clamp-3">
-                    {sign.description}
-                  </p>
-                </TableCell>
-                <TableCell className="dashboard-signs-table__td dashboard-signs-table__td--action py-3 px-4 align-middle text-center whitespace-nowrap">
-                  <div
-                    className="signs-row-actions inline-flex items-center justify-center gap-1.5"
-                    role="group"
-                    aria-label={labels.action}
-                  >
-                    <button
-                      type="button"
-                      title={labels.view}
-                      aria-label={labels.view}
-                      onClick={() => onSelect(sign)}
-                      className="signs-row-action signs-row-action--view inline-flex items-center justify-center w-8 h-8 rounded-lg transition-opacity cursor-pointer"
-                      style={{
-                        background: c.gradient,
-                        color: '#fff',
-                        boxShadow: `0 2px 8px ${c.glow}`,
-                      }}
-                    >
-                      <Eye size={15} strokeWidth={2} />
-                    </button>
-                    {canManage && (
-                      <>
-                        <button
-                          type="button"
-                          title={labels.edit}
-                          aria-label={labels.edit}
-                          onClick={() => onEdit?.(sign)}
-                          className="signs-row-action signs-row-action--edit inline-flex items-center justify-center w-8 h-8 rounded-lg border bg-background cursor-pointer transition-colors hover:bg-muted"
-                        >
-                          <Pencil size={15} strokeWidth={2} />
-                        </button>
-                        <button
-                          type="button"
-                          title={labels.delete}
-                          aria-label={labels.delete}
-                          onClick={() => onDelete?.(sign)}
-                          className="signs-row-action signs-row-action--delete inline-flex items-center justify-center w-8 h-8 rounded-lg border border-red-200/80 text-red-600 cursor-pointer transition-colors hover:bg-red-50"
-                        >
-                          <Trash2 size={15} strokeWidth={2} />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
+    <TableRow className="enforcement-page__table-row">
+      <TableCell className="text-center">
+        <div className="signs-table-img-wrap mx-auto">
+          <SignImage
+            sign={sign}
+            size={56}
+            showcase
+            strictProbe={!canManage}
+            hideFallback={!canManage}
+            onUnavailable={hideCard}
+            className="signs-table-img"
+          />
+        </div>
+      </TableCell>
+      <TableCell>
+        <SignNameLabels sign={sign} size="sm" />
+        <span className="enforcement-page__code-pill mt-1.5 inline-flex lg:hidden">
+          {sign.sign_code}
+        </span>
+        <CategoryBadge category={sign.category} className="mt-1.5 lg:hidden px-2.5 py-0.5" variant="soft">
+          {categoryLabel}
+        </CategoryBadge>
+      </TableCell>
+      <TableCell className="hidden lg:table-cell">
+        <CategoryBadge category={sign.category} className="px-2.5 py-1" variant="soft">
+          {categoryLabel}
+        </CategoryBadge>
+      </TableCell>
+      <TableCell className="hidden md:table-cell">
+        <p className="enforcement-page__cell-secondary line-clamp-2" title={sign.description}>
+          {sign.description}
+        </p>
+      </TableCell>
+      <TableCell>
+        <div className="enforcement-page__table-actions mgmt-table__actions">
+          <CrudRowActions
+            onView={() => onSelect(sign)}
+            onEdit={canManage ? () => onEdit?.(sign) : undefined}
+            onDelete={canManage ? () => onDelete?.(sign) : undefined}
+          />
+        </div>
+      </TableCell>
+    </TableRow>
   );
 }
 
 function SignsTableSkeleton({ rows = 8 }: { rows?: number }) {
   return (
-    <div className="dashboard-signs-table__shell rounded-xl overflow-hidden w-full">
-      <div className="dashboard-signs-table__skeleton-head px-4 py-3 border-b">
-        <div className="h-3 w-3/4 max-w-md rounded animate-pulse" style={{ background: 'rgba(37,99,235,0.08)' }} />
-      </div>
-      <div className="divide-y divide-border/40">
-        {[...Array(rows)].map((_, i) => (
-          <div key={i} className="flex items-center gap-4 p-3">
-            <div className="w-14 h-14 rounded-xl animate-pulse flex-shrink-0" style={{ background: 'rgba(37,99,235,0.06)' }} />
-            <div className="flex-1 space-y-2">
-              <div className="h-4 w-40 rounded animate-pulse" style={{ background: 'rgba(37,99,235,0.06)' }} />
-              <div className="h-3 w-24 rounded animate-pulse" style={{ background: 'rgba(37,99,235,0.05)' }} />
-            </div>
-          </div>
-        ))}
-      </div>
+    <div className="overflow-x-auto">
+      <Table className="enforcement-page__table mgmt-table__grid signs-page__table">
+        <TableHeader>
+          <TableRow className="enforcement-page__table-head">
+            {[...Array(5)].map((_, i) => (
+              <TableHead key={i} className="enforcement-page__th">
+                <div className="enforcement-page__skeleton h-3 w-16" />
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {[...Array(rows)].map((_, i) => (
+            <TableRow key={i}>
+              {[...Array(5)].map((__, j) => (
+                <TableCell key={j}>
+                  <div className="enforcement-page__skeleton h-8 w-full max-w-[8rem]" />
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }
@@ -757,6 +686,7 @@ export function TrafficSignsPage() {
   const [editSign, setEditSign] = useState<TrafficSign | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TrafficSign | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [tab, setTab] = useState<SignsTab>('catalog');
 
   const setView = (mode: SignViewMode) => {
     setViewMode(mode);
@@ -865,272 +795,273 @@ export function TrafficSignsPage() {
   const CAT_KEYS: SignCategory[] = ['prohibitory', 'warning', 'mandatory', 'informative'];
   const catLabel = (cat: SignCategory) => t(`signCategories.${cat}`);
 
-  const categoryFilter = (
-    <div className="flex gap-2 flex-wrap">
-      <button
-        type="button"
-        onClick={() => setCategory('all')}
-        className="signs-filter-chip px-3.5 py-2 rounded-xl transition-all cursor-pointer"
-        style={category === 'all'
-          ? { background: 'linear-gradient(135deg,#0F172A,#1E293B)', color: '#fff', boxShadow: '0 4px 10px rgba(15,23,42,0.3)' }
-          : { background: 'var(--muted)', color: 'var(--muted-foreground)', border: '1px solid rgba(37,99,235,0.08)' }
-        }
-      >
-        {t('pages.signs.allCategory')}
-        <span className="ml-1 opacity-70">({counts.all})</span>
-      </button>
-      {CAT_KEYS.map(cat => {
-        const c = CAT[cat];
-        const active = category === cat;
-        return (
-          <button
-            key={cat}
-            type="button"
-            onClick={() => setCategory(cat)}
-            className={`signs-filter-chip signs-filter-chip--${cat} ${active ? 'signs-filter-chip--active' : ''} px-3.5 py-2 rounded-xl transition-all cursor-pointer font-bold`}
-            style={active
-              ? {
-                  ...categoryBadgeStyle(cat, 'solid'),
-                  boxShadow: `0 4px 14px ${c.glow}`,
-                  transform: 'translateY(-1px)',
-                }
-              : {
-                  ...categoryBadgeStyle(cat, 'soft'),
-                }
-            }
-          >
-            {catLabel(cat)}
-          </button>
-        );
-      })}
-    </div>
-  );
+  const openCategoryFromTab = (cat: SignCategory) => {
+    setCategory(cat);
+    setTab('catalog');
+  };
 
   return (
-    <div className="dashboard-home dashboard-page--signs flex flex-col gap-5 min-h-0">
+    <div className="enforcement-page enforcement-page--signs dashboard-home dashboard-page--signs signs-page--enterprise">
+      <div className="enforcement-page__hero">
+        <div className="enforcement-page__hero-glow--primary" aria-hidden />
+        <div className="enforcement-page__hero-glow--secondary" aria-hidden />
+        <div className="enforcement-page__hero-inner signs-page__hero-inner">
+          <div>
+            <div className="enforcement-page__eyebrow">
+              <span className="enforcement-page__eyebrow-icon">
+                <BookOpen size={14} />
+              </span>
+              {canManage ? t('pages.signs.manageEyebrow') : t('pages.signs.eyebrow')}
+            </div>
+            <h1 className="enforcement-page__title">{t('pages.signs.title')}</h1>
+            <p className="enforcement-page__subtitle">
+              {(canManage ? t('pages.signs.manageSubtitle') : t('pages.signs.subtitle')).replace('{count}', String(signs.length))}
+            </p>
+          </div>
+          <div className="signs-page__hero-actions">
+            {canManage && tab === 'catalog' ? (
+              <button
+                type="button"
+                className="enforcement-page__hero-btn enforcement-page__hero-btn--teal"
+                onClick={openCreate}
+              >
+                <Plus size={16} aria-hidden />
+                {t('pages.signs.addSign')}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="enforcement-page__hero-btn enforcement-page__hero-btn--outline"
+              onClick={() => setTab(tab === 'categories' ? 'catalog' : 'categories')}
+            >
+              <Tags size={15} aria-hidden />
+              {tab === 'categories' ? t('pages.signs.tabCatalog') : t('pages.signs.tabCategories')}
+            </button>
+          </div>
+        </div>
+      </div>
 
-      {/* ── HERO BANNER ── */}
-      <div
-        className="dashboard-welcome--hero relative overflow-hidden rounded-2xl flex-shrink-0"
-        style={{ background: 'linear-gradient(135deg,#0A1628 0%,#1E1B4B 60%,#0A1628 100%)', border: '1px solid rgba(255,255,255,0.06)' }}
-      >
-        <div className="absolute top-0 right-0 w-72 h-72 rounded-full -translate-y-20 translate-x-20 pointer-events-none"
-          style={{ background: 'radial-gradient(circle,rgba(37,99,235,0.2) 0%,transparent 70%)' }} />
-        <div className="absolute bottom-0 left-1/4 w-48 h-48 rounded-full translate-y-20 pointer-events-none"
-          style={{ background: 'radial-gradient(circle,rgba(16,185,129,0.12) 0%,transparent 70%)' }} />
-
-        <div className="relative p-5 lg:p-6">
-          <div className="flex items-start justify-between flex-wrap gap-4">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'rgba(37,99,235,0.22)' }}>
-                  <BookOpen size={14} style={{ color: '#60A5FA' }} />
-                </div>
-                <span className="dashboard-welcome__eyebrow" style={{ color: 'rgba(96,165,250,0.9)' }}>
-                  {canManage ? t('pages.signs.manageEyebrow') : t('pages.signs.eyebrow')}
-                </span>
+      <div className="enforcement-page__stat-grid signs-kpi-grid">
+        <button
+          type="button"
+          onClick={() => {
+            setTab('catalog');
+            setCategory('all');
+          }}
+          className={`enforcement-page__stat-card enforcement-page__stat-card--teal signs-kpi-card${tab === 'catalog' && category === 'all' ? ' is-active' : ''}`}
+        >
+          <div className="enforcement-page__stat-icon enforcement-page__stat-icon--teal">
+            <LayoutGrid size={18} />
+          </div>
+          <div className="enforcement-page__stat-copy">
+            <p className="enforcement-page__stat-value">{counts.all}</p>
+            <p className="enforcement-page__stat-label enforcement-page__stat-label--teal">
+              {t('pages.signs.allCategory')}
+            </p>
+          </div>
+        </button>
+        {CAT_KEYS.map((cat) => {
+          const Icon = CAT_ICONS[cat];
+          const active = tab === 'catalog' && cat === category;
+          const tone =
+            cat === 'prohibitory' ? 'rose'
+              : cat === 'warning' ? 'amber'
+                : cat === 'mandatory' ? 'blue'
+                  : 'emerald';
+          return (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => {
+                setTab('catalog');
+                setCategory(cat === category ? 'all' : cat);
+              }}
+              className={`enforcement-page__stat-card enforcement-page__stat-card--${tone} signs-kpi-card${active ? ' is-active' : ''}`}
+            >
+              <div className={`enforcement-page__stat-icon enforcement-page__stat-icon--${tone}`}>
+                <Icon size={18} />
               </div>
-              <h1 className="dashboard-welcome__title text-white">{t('pages.signs.title')}</h1>
-              <p className="dashboard-welcome__meta mt-1" style={{ color: 'rgba(148,163,184,0.7)' }}>
-                {(canManage ? t('pages.signs.manageSubtitle') : t('pages.signs.subtitle')).replace('{count}', String(signs.length))}
-              </p>
+              <div className="enforcement-page__stat-copy">
+                <p className="enforcement-page__stat-value">{counts[cat]}</p>
+                <p className={`enforcement-page__stat-label enforcement-page__stat-label--${tone}`}>
+                  {catLabel(cat)}
+                </p>
+              </div>
+              <ChevronRight size={16} className="signs-kpi-card__chev" aria-hidden />
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="enforcement-page__toolbar signs-page__tabs-toolbar" role="tablist" aria-label={t('pages.signs.title')}>
+        <div className="enforcement-page__filters signs-page__tabs">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'catalog'}
+            onClick={() => setTab('catalog')}
+            className={cn('enforcement-page__filter-btn signs-page__tab', tab === 'catalog' && 'is-active enforcement-page__filter-btn--active')}
+          >
+            <BookOpen size={13} className="inline mr-1.5 -mt-px" aria-hidden />
+            {t('pages.signs.tabCatalog')}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'categories'}
+            onClick={() => setTab('categories')}
+            className={cn('enforcement-page__filter-btn signs-page__tab', tab === 'categories' && 'is-active enforcement-page__filter-btn--active')}
+          >
+            <Tags size={13} className="inline mr-1.5 -mt-px" aria-hidden />
+            {t('pages.signs.tabCategories')}
+          </button>
+        </div>
+      </div>
+
+      {tab === 'categories' ? (
+        <SignCategoriesManagementPanel signs={signs} onSelectCategory={openCategoryFromTab} />
+      ) : (
+        <>
+          <div className="enforcement-page__toolbar">
+            <div className="signs-page__toolbar-row">
+              <div className="enforcement-page__search-wrap signs-page__search">
+                <Search size={14} className="enforcement-page__search-icon" />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={t('pages.signs.searchPlaceholder')}
+                  className="enforcement-page__search"
+                />
+              </div>
+              <div className="enforcement-page__filters signs-page__filters">
+                <FilterSelect
+                  tone="blue"
+                  className="signs-page__filter-select"
+                  value={category}
+                  onValueChange={(v) => setCategory(v as SignCategory | 'all')}
+                  ariaLabel={t('pages.signs.allCategory')}
+                  options={[
+                    { value: 'all', label: `${t('pages.signs.allCategory')} (${counts.all})` },
+                    ...CAT_KEYS.map((cat) => ({
+                      value: cat,
+                      label: `${catLabel(cat)} (${counts[cat]})`,
+                    })),
+                  ]}
+                />
+              </div>
+              <div className="signs-page__view-toggle">
+                <SignsViewToggle
+                  mode={viewMode}
+                  onChange={setView}
+                  viewAsLabel={t('pages.signs.viewAs')}
+                  cardLabel={t('pages.signs.viewCard')}
+                  listLabel={t('pages.signs.viewList')}
+                />
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* ── SIGN CATEGORIES ── */}
-      <div className="signs-category-tray">
-        <div className="signs-category-tray__head">
-          <div className="signs-category-tray__head-icon">
-            <BookOpen size={17} />
-          </div>
-          <h2 className="signs-category-tray__title">{t('signCategories.title')}</h2>
-        </div>
-        <div className="signs-category-grid">
-          {CAT_KEYS.map(cat => {
-            const c = CAT[cat];
-            const Icon = CAT_ICONS[cat];
-            const active = cat === category;
-            return (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => setCategory(cat === category ? 'all' : cat)}
-                className={`signs-category-stat-card signs-category-stat-card--${cat}${active ? ' signs-category-stat-card--active' : ''}`}
-                style={active ? { background: c.gradient, boxShadow: `0 8px 22px ${c.glow}` } : undefined}
-              >
-                <div
-                  className="signs-category-stat-card__icon"
-                  style={active ? { background: 'rgba(255,255,255,0.22)', color: '#ffffff' } : undefined}
-                >
-                  <Icon size={20} strokeWidth={2.15} />
-                </div>
-                <div className="signs-category-stat-card__copy">
-                  <p className="signs-category-stat-card__meta">
-                    <span className="signs-category-stat-card__value">{counts[cat]}</span>
-                    <span className="signs-category-stat-card__unit">{t('pages.signs.signsUnit')}</span>
-                  </p>
-                  <p className="signs-category-stat-card__label">{catLabel(cat)}</p>
-                </div>
-                <ChevronRight size={18} className="signs-category-stat-card__chev" />
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ── MAIN PAGE: catalog + toolbar + content ── */}
-      <section
-        className="dashboard-signs-page flex flex-col flex-1 min-h-0 rounded-2xl overflow-hidden"
-        style={{ background: 'var(--card)', border: '1px solid rgba(37,99,235,0.08)', boxShadow: '0 4px 24px rgba(15,23,42,0.06)' }}
-      >
-        {/* Page header — gradient */}
-        <div
-          className="dashboard-panel-header relative px-5 pt-4 pb-10 flex-shrink-0"
-          style={{ background: 'linear-gradient(135deg,#1D4ED8 0%,#2563EB 50%,#06B6D4 100%)' }}
-        >
-          <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full pointer-events-none"
-            style={{ background: 'rgba(255,255,255,0.08)' }} />
-          <div className="relative flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.22)' }}>
-                <BookOpen size={18} color="white" />
-              </div>
-              <div className="min-w-0">
-                <p className="dashboard-card__title text-white leading-tight">{t('pages.signs.catalogTitle')}</p>
-                <p className="dashboard-panel__subtitle mt-0.5">
+          <div className="enforcement-page__panel enforcement-page__panel--signs">
+            <div className="signs-page__panel-head">
+              <div>
+                <p className="signs-page__panel-title">{t('pages.signs.catalogTitle')}</p>
+                <p className="signs-page__panel-subtitle">
                   {t('pages.signs.shownCount').replace('{count}', String(filtered.length))}
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              {canManage && (
-                <button
-                  type="button"
-                  onClick={openCreate}
-                  className="signs-add-btn"
-                  aria-label={t('pages.signs.addSign')}
-                >
-                  <span className="signs-add-btn__icon" aria-hidden>
-                    <Plus size={18} strokeWidth={2.5} />
-                  </span>
-                  <span className="signs-add-btn__label">{t('pages.signs.addSign')}</span>
-                </button>
-              )}
-              <SignsViewToggle
-                mode={viewMode}
-                onChange={setView}
-                variant="onDark"
-                viewAsLabel={t('pages.signs.viewAs')}
-                cardLabel={t('pages.signs.viewCard')}
-                listLabel={t('pages.signs.viewList')}
-              />
-            </div>
-          </div>
-        </div>
 
-        {/* Toolbar — overlaps header */}
-        <div className="relative -mt-5 mx-4 mb-0 flex-shrink-0 z-[1]">
-          <div
-            className="rounded-2xl p-4 space-y-3"
-            style={{ background: 'var(--card)', border: '1px solid rgba(37,99,235,0.1)', boxShadow: '0 8px 24px rgba(15,23,42,0.08)' }}
-          >
-            <div className="relative">
-              <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder={t('pages.signs.searchPlaceholder')}
-                className="signs-search-input w-full pl-10 pr-4 py-3 rounded-xl bg-muted/30 text-foreground outline-none transition-all"
-                style={{ border: '1.5px solid rgba(37,99,235,0.1)' }}
-                onFocus={e => {
-                  (e.currentTarget as HTMLElement).style.borderColor = '#2563EB';
-                  (e.currentTarget as HTMLElement).style.boxShadow = '0 0 0 3px rgba(37,99,235,0.1)';
-                }}
-                onBlur={e => {
-                  (e.currentTarget as HTMLElement).style.borderColor = 'rgba(37,99,235,0.1)';
-                  (e.currentTarget as HTMLElement).style.boxShadow = '';
-                }}
-              />
-            </div>
-            {categoryFilter}
-          </div>
-        </div>
-
-        {/* Scrollable page body — grid cards or full-width table */}
-        <div
-          className={`flex-1 min-h-[420px] overflow-y-auto pb-5 pt-3 ${
-            viewMode === 'list' ? 'px-0' : 'px-4'
-          }`}
-        >
-          {loading ? (
-            viewMode === 'grid' ? (
-              <SignsCardGridSkeleton count={14} />
-            ) : (
-              <div className="mx-4"><SignsTableSkeleton /></div>
-            )
-          ) : filtered.length === 0 ? (
-            <div className="text-center py-20 px-4">
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
-                style={{ background: 'rgba(37,99,235,0.06)' }}>
-                <BookOpen size={28} style={{ color: 'rgba(37,99,235,0.25)' }} />
+            {loading ? (
+              viewMode === 'grid' ? (
+                <SignsCardGridSkeleton count={14} />
+              ) : (
+                <SignsTableSkeleton />
+              )
+            ) : filtered.length === 0 ? (
+              viewMode === 'list' ? (
+                <Table className="enforcement-page__table mgmt-table__grid">
+                  <TableBody>
+                    <TableEmptyState
+                      colSpan={5}
+                      tone="teal"
+                      icon={<BookOpen size={28} />}
+                      title={t('pages.signs.noResults')}
+                      subtitle={t('pages.signs.noResultsHint')}
+                      action={canManage ? {
+                        label: t('pages.signs.addSign'),
+                        onClick: openCreate,
+                        icon: <Plus size={15} />,
+                      } : undefined}
+                    />
+                  </TableBody>
+                </Table>
+              ) : (
+                <EmptyStatePanel
+                  tone="teal"
+                  icon={<BookOpen size={28} />}
+                  title={t('pages.signs.noResults')}
+                  subtitle={t('pages.signs.noResultsHint')}
+                  action={canManage ? {
+                    label: t('pages.signs.addSign'),
+                    onClick: openCreate,
+                    icon: <Plus size={15} />,
+                  } : undefined}
+                  className="m-4"
+                />
+              )
+            ) : viewMode === 'grid' ? (
+              <div className="signs-card-grid">
+                {pagination.pageItems.map((sign) => (
+                  <div key={sign.id} className="signs-card-grid__slot min-w-0">
+                    <SignCardItem
+                      sign={sign}
+                      categoryLabel={catLabel(sign.category)}
+                      onSelect={() => openSignDetail(sign)}
+                      canManage={canManage}
+                      onEdit={() => openEdit(sign)}
+                      onDelete={() => setDeleteTarget(sign)}
+                    />
+                  </div>
+                ))}
               </div>
-              <p className="dashboard-card__title" style={{ color: 'var(--muted-foreground)' }}>{t('pages.signs.noResults')}</p>
-              <p className="dashboard-text__caption mt-1">{t('pages.signs.noResultsHint')}</p>
-            </div>
-          ) : viewMode === 'grid' ? (
-            <div className="signs-card-grid">
-              {pagination.pageItems.map(sign => (
-                <div key={sign.id} className="signs-card-grid__slot min-w-0">
-                  <SignCardItem
-                    sign={sign}
-                    categoryLabel={catLabel(sign.category)}
-                    onSelect={() => openSignDetail(sign)}
-                    canManage={canManage}
-                    onEdit={() => openEdit(sign)}
-                    onDelete={() => setDeleteTarget(sign)}
-                  />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="mx-4">
-            <SignsTable
-              signs={pagination.pageItems}
-              catLabel={catLabel}
-              onSelect={openSignDetail}
-              canManage={canManage}
-              onEdit={openEdit}
-              onDelete={setDeleteTarget}
-              labels={{
-                image: t('pages.signs.listColImage'),
-                sign: t('pages.signs.listColSign'),
-                category: t('pages.signs.listColCategory'),
-                description: t('pages.signs.listColDescription'),
-                action: t('pages.signs.listColAction'),
-                view: t('pages.signs.viewDetails'),
-                edit: t('common.edit'),
-                delete: t('common.delete'),
-              }}
-            />
-            </div>
-          )}
-        </div>
+            ) : (
+              <SignsTable
+                signs={pagination.pageItems}
+                catLabel={catLabel}
+                onSelect={openSignDetail}
+                canManage={canManage}
+                onEdit={openEdit}
+                onDelete={setDeleteTarget}
+                labels={{
+                  image: t('pages.signs.listColImage'),
+                  sign: t('pages.signs.listColSign'),
+                  category: t('pages.signs.listColCategory'),
+                  description: t('pages.signs.listColDescription'),
+                  action: t('pages.signs.listColAction'),
+                  view: t('pages.signs.viewDetails'),
+                  edit: t('common.edit'),
+                  delete: t('common.delete'),
+                }}
+              />
+            )}
 
-        {!loading && filtered.length > 0 && (
-          <footer className="signs-catalog-footer flex-shrink-0">
-            <TablePagination pagination={pagination} labelKey="pagination.label.signs" variant="footer" />
-          </footer>
-        )}
-      </section>
+            {!loading && filtered.length > 0 ? (
+              <TablePagination pagination={pagination} labelKey="pagination.label.signs" />
+            ) : null}
+          </div>
+        </>
+      )}
 
       {/* ── DETAIL MODAL ── */}
       <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
         <DialogContent
-          className={`dashboard-signs-dialog flex flex-col max-w-none p-0 gap-0 overflow-hidden rounded-[1.35rem] border-0 ${
+          accent={
+            selected?.category === 'prohibitory' ? 'rose'
+              : selected?.category === 'warning' ? 'amber'
+                : selected?.category === 'mandatory' ? 'blue'
+                  : 'teal'
+          }
+          className={`dashboard-signs-dialog signs-detail-popup flex flex-col max-w-none p-0 gap-0 overflow-hidden rounded-[1.35rem] border-0 ${
             selected && (!dialogHero || !hasSignImage(selected)) ? 'dashboard-signs-dialog--no-hero' : ''
           }`}
         >
@@ -1291,7 +1222,7 @@ export function TrafficSignsPage() {
             onSaved={handleSignSaved}
           />
           <Dialog open={!!deleteTarget} onOpenChange={open => !open && setDeleteTarget(null)}>
-            <DialogContent className="max-w-md">
+            <DialogContent accent="danger" className="max-w-md">
               <DialogHeader>
                 <DialogTitle>{t('pages.signs.deleteSign')}</DialogTitle>
               </DialogHeader>

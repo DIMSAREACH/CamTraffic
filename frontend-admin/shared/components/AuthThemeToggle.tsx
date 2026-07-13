@@ -23,7 +23,7 @@ export function AuthThemeToggle() {
       aria-label={isDark ? t('theme.light') : t('theme.dark')}
       title={t('theme.label')}
     >
-      {isDark ? <Sun size={18} /> : <Moon size={18} />}
+      {isDark ? <Sun size={17} strokeWidth={1.75} /> : <Moon size={17} strokeWidth={1.75} />}
     </button>
   );
 }

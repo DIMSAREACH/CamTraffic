@@ -151,7 +151,10 @@ export function FineManagement() {
       if (user.role === 'admin') data = await finesAPI.getAll();
       else if (user.role === 'police') data = await finesAPI.getByPolice(user.id);
       else data = await finesAPI.getByDriver(user.id);
-      setFines(data);
+      setFines(data.map((f) => {
+        const n = typeof f.amount === 'number' ? f.amount : Number(f.amount);
+        return { ...f, amount: Number.isFinite(n) ? n : 0 };
+      }));
     } finally {
       if (!silent) setLoading(false);
     }
@@ -187,7 +190,12 @@ export function FineManagement() {
   }), [fines]);
 
   const totalRevenue = useMemo(
-    () => fines.filter((f) => f.status === 'paid').reduce((sum, f) => sum + f.amount, 0),
+    () => fines
+      .filter((f) => f.status === 'paid')
+      .reduce((sum, f) => {
+        const n = typeof f.amount === 'number' ? f.amount : Number(f.amount);
+        return sum + (Number.isFinite(n) ? n : 0);
+      }, 0),
     [fines],
   );
 
