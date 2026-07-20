@@ -6,6 +6,17 @@ User = get_user_model()
 
 
 class HealthAPITest(APITestCase):
+    def test_root_is_public(self):
+        res = self.client.get('/')
+        self.assertEqual(res.status_code, 200)
+        body = res.json()
+        self.assertTrue(body['success'])
+        self.assertEqual(body['data']['health'], '/health/')
+
+    def test_root_head(self):
+        res = self.client.head('/')
+        self.assertEqual(res.status_code, 200)
+
     def test_health_is_public(self):
         res = self.client.get('/health/')
         self.assertEqual(res.status_code, 200)

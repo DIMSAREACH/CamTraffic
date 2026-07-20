@@ -8,6 +8,21 @@ from core.responses import error_response, success_response
 from config.monitoring import get_system_status
 
 
+class ApiRootView(APIView):
+    """Public root for load balancers and hosting probes (Render, etc.)."""
+
+    permission_classes = [AllowAny]
+    throttle_classes = []
+
+    def get(self, request):
+        return success_response({
+            'status': 'ok',
+            'service': 'camtraffic-api',
+            'health': '/health/',
+            'api': '/api/',
+        })
+
+
 class HealthView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = []

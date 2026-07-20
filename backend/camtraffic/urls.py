@@ -4,9 +4,10 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
-from core.health_views import HealthReadyView, HealthView, MonitoringStatusView
+from core.health_views import ApiRootView, HealthReadyView, HealthView, MonitoringStatusView
 
 urlpatterns = [
+    path('', ApiRootView.as_view(), name='api-root'),
     path('admin/', admin.site.urls),
     path('health/', HealthView.as_view(), name='health'),
     path('health/ready/', HealthReadyView.as_view(), name='health-ready'),
