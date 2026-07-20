@@ -27,7 +27,9 @@ COPY backend/ /app/backend/
 COPY ai/ /app/ai/
 COPY deploy/gunicorn/gunicorn.conf.py /app/deploy/gunicorn/gunicorn.conf.py
 COPY deploy/scripts/render_web_start.sh /app/deploy/scripts/render_web_start.sh
-RUN chmod +x /app/deploy/scripts/render_web_start.sh
+RUN chmod +x /app/deploy/scripts/render_web_start.sh \
+    && test -f /app/backend/infrastructure/migrations/0005_phase4_officers_stations.py \
+    && test -f /app/backend/users/migrations/0009_phase4_officers_stations.py
 
 WORKDIR /app/backend
 
