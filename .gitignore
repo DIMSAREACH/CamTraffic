@@ -49,7 +49,7 @@ Thumbs.db
 .local-prod/
 _extract_*.txt
 _t*.txt
-_*.py
+/_*.py
 _result_*.txt
 
 # Optional large reference data (uncomment if you keep PDFs/images outside repo)
