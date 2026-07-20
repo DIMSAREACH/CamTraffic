@@ -140,6 +140,14 @@ html.dark .enforcement-page__stat-card--slate {
   border-color: rgba(148, 163, 184, 0.24) !important;
 }
 
+html.dark .enforcement-page__stat-card .enforcement-page__stat-value {
+  color: #f8fafc;
+}
+
+html.dark .enforcement-page__stat-card .enforcement-page__stat-label {
+  color: #cbd5e1;
+}
+
 .enforcement-page__stat-card:hover {
   transform: translateY(-2px);
   box-shadow:

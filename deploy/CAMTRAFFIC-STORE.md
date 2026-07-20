@@ -28,7 +28,7 @@ app.camtraffic.store   →  YOUR_VPS_IP
 api.camtraffic.store   →  YOUR_VPS_IP
 ```
 
-Optional: **CAA** `0 issue "letsencrypt.org"`.
+Optional: **CAA** at apex — if you use CAA, allow `letsencrypt.org` and `pki.goog` (see [`deploy/DNS-RENDER-VERIFY.md`](../DNS-RENDER-VERIFY.md)). **Remove all AAAA** records before pointing subdomains to Render.
 
 Verify:
 

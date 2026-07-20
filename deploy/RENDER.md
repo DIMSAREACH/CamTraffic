@@ -53,6 +53,8 @@ Map your own hostnames to the three Render services. Render issues **free TLS** 
 
 Render shows a **DNS record** for each (usually **CNAME** `subdomain` → `something.onrender.com`). Copy exactly what the dashboard shows.
 
+**Verification failed (AAAA / CAA)?** Follow **[`deploy/DNS-RENDER-VERIFY.md`](DNS-RENDER-VERIFY.md)** — delete all **AAAA** records, fix **CAA**, use **DNS only** on Cloudflare, one **CNAME** per host.
+
 ### 2. DNS at your registrar (camtraffic.store)
 
 Create records Render asks for, typically:
@@ -110,6 +112,35 @@ https://app.camtraffic.store/       → user portal
 Login still uses **admin** hostname for administrators (`admin@camtraffic.demo` / `CamTraffic@2026!` or bootstrap env).
 
 More (Resend, OAuth consoles): [`deploy/CAMTRAFFIC-STORE.md`](CAMTRAFFIC-STORE.md)
+
+### Troubleshooting: `net::ERR_NAME_NOT_RESOLVED` for `api.camtraffic.store`
+
+The browser cannot resolve the hostname — **DNS is missing or not propagated yet**. This is not fixed in application code.
+
+**Works immediately (until DNS is ready):** On **camtraffic-admin** and **camtraffic-user** static sites, set:
+
+```env
+VITE_API_URL=https://camtraffic-api.onrender.com/api
+```
+
+Manual Deploy both sites. Keep using `https://camtraffic-admin.onrender.com` in the browser (or your admin custom domain only after *that* DNS record exists too).
+
+**Permanent fix (custom API hostname):**
+
+1. **camtraffic-api → Settings → Custom Domains →** add `api.camtraffic.store`. Copy Render’s **CNAME target** (e.g. `camtraffic-api.onrender.com`).
+2. At your **domain registrar** (where you bought `camtraffic.store`), add:
+
+   | Type | Host / name | Value |
+   |------|-------------|--------|
+   | CNAME | `api` | *(exact target from Render)* |
+
+3. Wait until Render shows the domain **Verified** (often 5–30 minutes; up to 48h).
+4. Test: `nslookup api.camtraffic.store` or open `https://api.camtraffic.store/health/` in a browser.
+5. Then set `VITE_API_URL=https://api.camtraffic.store/api` and redeploy admin + user static sites.
+
+Do **not** point frontends at `api.camtraffic.store` until step 4 succeeds.
+
+**Render says it couldn’t verify (AAAA / CAA):** see **[`deploy/DNS-RENDER-VERIFY.md`](DNS-RENDER-VERIFY.md)**.
 
 ## Environment
 

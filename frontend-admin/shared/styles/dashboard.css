@@ -7355,7 +7355,7 @@ html.dark .enforcement-page {
   --enforcement-action-pill-border: rgba(249, 115, 22, 0.32);
   --enforcement-filter-count-bg: rgba(99, 102, 241, 0.2);
   --enforcement-filter-count-text: #c7d2fe;
-  --enforcement-empty-subtitle: #94a3b8;
+  --enforcement-empty-subtitle: #cbd5e1;
   --enforcement-skeleton: rgba(56, 189, 248, 0.1);
   --enforcement-empty-icon-bg: rgba(239, 68, 68, 0.14);
   --enforcement-empty-icon-color: rgba(248, 113, 113, 0.55);
@@ -12489,7 +12489,19 @@ html.dark .enforcement-page--vehicles .enforcement-page__stat-label--teal,
 html.dark .enforcement-page--vehicles .enforcement-page__stat-label--blue,
 html.dark .enforcement-page--vehicles .enforcement-page__stat-label--amber,
 html.dark .enforcement-page--vehicles .enforcement-page__stat-label--slate {
-  color: var(--enforcement-text-muted);
+  color: #cbd5e1;
+}
+
+html.dark .enforcement-page--vehicles .enforcement-page__stat-value {
+  color: #f8fafc;
+}
+
+html.dark .enforcement-page--vehicles .enforcement-page__empty-subtitle {
+  color: #cbd5e1;
+}
+
+html.dark .enforcement-page--vehicles .enforcement-page__empty-title {
+  color: #f1f5f9;
 }
 
 .enforcement-page--vehicles .enforcement-page__panel--vehicles {
@@ -15985,6 +15997,13 @@ html.dark .enforcement-page--notifications .enforcement-page__panel--notificatio
 }
 
 .notifications-page__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 17rem;
   padding: 3rem 1.5rem;
   text-align: center;
 }
