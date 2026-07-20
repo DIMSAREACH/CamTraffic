@@ -39,6 +39,10 @@ Custom superusers you create manually are unchanged; demo passwords are reset ea
 
 Requires `frontend-*/shared/vite/build.ts` in Git (used by `vite.config.ts`).
 
+**SPA routing (`/admin/profile` 404):** Each frontend includes `public/_redirects` (copied to `dist/`) so Render serves `index.html` for client routes. After pulling latest `main`, **rebuild and redeploy** both static sites. Direct URLs like `/admin/profile` must not 404.
+
+**Favicon:** `public/favicon.svg` + `_redirects` rule for `/favicon.ico`.
+
 ## Custom domains (`camtraffic.store` on Render)
 
 Map your own hostnames to the three Render services. Render issues **free TLS** after DNS verifies.
