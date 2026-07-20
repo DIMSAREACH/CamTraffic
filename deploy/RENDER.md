@@ -8,6 +8,10 @@
 | Health check path | `/health/` (or `/` after api-root) |
 | Docker command | *(default from Dockerfile — uses `deploy/scripts/render_web_start.sh`)* |
 
+Gunicorn listens on Render’s **`PORT`** (set automatically). Do not hard-code `GUNICORN_BIND=0.0.0.0:8000` only — the image reads `PORT` when present.
+
+If deploy exits immediately (e.g. status **128**), check **Logs** for `bad interpreter` on the start script (Windows CRLF). Shell scripts in Git must use LF (see repo `.gitattributes`).
+
 On each deploy the API runs migrations and syncs **demo login accounts** (disable with `CAMTRAFFIC_SYNC_DEMO_ACCOUNTS=false`).
 
 **Demo admin login (after redeploy):**
