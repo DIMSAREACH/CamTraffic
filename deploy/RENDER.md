@@ -188,6 +188,22 @@ Demo accounts are synced automatically on deploy (`seed_demo --accounts-only`). 
 python manage.py seed_demo
 ```
 
+## AI detect returns **500** on Render
+
+Hosted instances are memory-limited and **do not ship YOLO weights** in Git. Set on **camtraffic-api**:
+
+```env
+AI_USE_MOCK=True
+AI_WARMUP_MODELS=False
+AI_VEHICLE_ENABLED=False
+AI_PLATE_OCR_ENABLED=False
+```
+
+- **Mock** uses filename/hash heuristics (good for demo uploads with sign-related filenames).
+- **Vehicle / plate OCR** pull large models (YOLO download + EasyOCR) and often OOM on free/small plans.
+
+Redeploy the API after changing env. For real YOLO on a VPS, use `npm run docker:prod:up` with `ai/weights/best_v2.pt` on disk and `AI_USE_MOCK=False`.
+
 ## Email (password reset)
 
 Set on the API service:

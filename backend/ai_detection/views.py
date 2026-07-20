@@ -229,9 +229,9 @@ class DetectSignView(APIView):
                         or payload.get('display_title')
                         or 'ស្លាកមិនស្គាល់'
                     ),
-                    confidence=result['confidence'],
-                    description=payload.get('description') or result['description'],
-                    guidance=payload.get('guidance') or result['guidance'],
+                    confidence=float(result.get('confidence') or 0),
+                    description=payload.get('description') or result.get('description') or '',
+                    guidance=payload.get('guidance') or result.get('guidance') or '',
                     processing_time=result.get('processing_time', 0),
                     model_version=result.get('detection_engine', 'yolo'),
                     detected_vehicles=vehicles,
@@ -325,6 +325,9 @@ class DetectSignView(APIView):
                     notif_message,
                     is_violation=bool(enforcement.get('violation')),
                 )
+        except Exception as e:
+            logger.exception('Detection save/enforcement failed')
+            return error_response(f'Detection could not be saved: {e}', status_code=503)
         finally:
             cleanup_temp_files([tmp_path, detect_path, *extra_cleanup])
 
@@ -531,9 +534,9 @@ class DetectVideoView(APIView):
                         or payload.get('display_title')
                         or 'ស្លាកមិនស្គាល់'
                     ),
-                    confidence=result['confidence'],
-                    description=payload.get('description') or result['description'],
-                    guidance=payload.get('guidance') or result['guidance'],
+                    confidence=float(result.get('confidence') or 0),
+                    description=payload.get('description') or result.get('description') or '',
+                    guidance=payload.get('guidance') or result.get('guidance') or '',
                     processing_time=result.get('processing_time', 0),
                     model_version=result.get('detection_engine', 'yolo'),
                     detected_vehicles=vehicles,
