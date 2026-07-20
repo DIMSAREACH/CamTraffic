@@ -54,7 +54,12 @@ if _on_render or os.getenv('AI_HOSTED_LITE', '').lower() == 'true':
     _weights_path = Path(AI_MODEL_PATH)  # noqa: F405
     if not _weights_path.is_file():
         AI_USE_MOCK = True  # noqa: F405
-    if os.getenv('AI_PLATE_OCR_ENABLED') is None:
+    if os.getenv('AI_FORCE_FULL_PIPELINE', '').lower() != 'true':
         AI_PLATE_OCR_ENABLED = False  # noqa: F405
-    if os.getenv('AI_VEHICLE_ENABLED') is None:
+        AI_VEHICLE_ENABLED = False  # noqa: F405
+        if not _weights_path.is_file():
+            AI_USE_MOCK = True  # noqa: F405
+    elif os.getenv('AI_PLATE_OCR_ENABLED') is None:
+        AI_PLATE_OCR_ENABLED = False  # noqa: F405
+    elif os.getenv('AI_VEHICLE_ENABLED') is None:
         AI_VEHICLE_ENABLED = False  # noqa: F405

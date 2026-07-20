@@ -24,6 +24,11 @@ def api_media_url(_request, field) -> str:
     if not path.startswith('/'):
         media = settings.MEDIA_URL.rstrip('/')
         path = f'{media}/{name.lstrip("/")}'
+    public_base = (getattr(settings, 'PUBLIC_API_URL', None) or '').strip().rstrip('/')
+    if public_base:
+        return f'{public_base}{path}'
+    if _request is not None:
+        return _request.build_absolute_uri(path)
     return path
 
 

@@ -1,15 +1,25 @@
-/** Same-origin path for Django /media URLs (Vite proxy or production deploy). */
-function sameOriginMediaPath(path: string): string {
+/** API origin for /media paths when admin/user static sites call a separate API host. */
+function apiMediaOrigin(): string {
+  const apiBase = import.meta.env.VITE_API_URL || '/api';
+  if (typeof apiBase === 'string' && apiBase.startsWith('http')) {
+    return apiBase.replace(/\/api\/?$/, '') || apiBase;
+  }
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  return 'http://127.0.0.1:8000';
+}
+
+/** Browser-loadable URL for Django /media paths (cross-origin API + static SPA). */
+function resolveMediaPath(path: string): string {
   const normalized = path.startsWith('/') ? path : `/${path}`;
+  if (normalized.startsWith('/media/')) {
+    return `${apiMediaOrigin()}${normalized}`;
+  }
   if (typeof window !== 'undefined') {
     return `${window.location.origin}${normalized}`;
   }
-  const apiBase = import.meta.env.VITE_API_URL || '/api';
-  if (apiBase.startsWith('/')) {
-    return normalized;
-  }
-  const origin = apiBase.replace(/\/api\/?$/, '') || 'http://127.0.0.1:8000';
-  return `${origin}${normalized}`;
+  return normalized;
 }
 
 /** Resolve profile_image or API media fields to a browser-loadable URL. */
@@ -20,18 +30,10 @@ export function getProfileImageUrl(profileImage?: string | null): string | null 
   }
 
   if (/^https?:\/\//i.test(profileImage)) {
-    try {
-      const parsed = new URL(profileImage);
-      if (parsed.pathname.startsWith('/media/')) {
-        return sameOriginMediaPath(`${parsed.pathname}${parsed.search}`);
-      }
-    } catch {
-      return profileImage;
-    }
     return profileImage;
   }
 
-  return sameOriginMediaPath(profileImage);
+  return resolveMediaPath(profileImage);
 }
 
 const DETECTION_MEDIA_FIELDS = [

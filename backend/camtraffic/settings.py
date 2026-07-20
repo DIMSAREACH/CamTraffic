@@ -202,7 +202,8 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
 
-# OAuth (Google / GitHub) — user portal social login
+PUBLIC_API_URL = os.getenv('PUBLIC_API_URL', '').strip().rstrip('/')
+SERVE_MEDIA = os.getenv('SERVE_MEDIA', 'True').lower() == 'true'
 GOOGLE_OAUTH_CLIENT_ID = os.getenv('GOOGLE_OAUTH_CLIENT_ID', '')
 GOOGLE_OAUTH_CLIENT_SECRET = os.getenv('GOOGLE_OAUTH_CLIENT_SECRET', '')
 GITHUB_OAUTH_CLIENT_ID = os.getenv('GITHUB_OAUTH_CLIENT_ID', '')

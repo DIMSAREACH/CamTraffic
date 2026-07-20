@@ -145,7 +145,10 @@ class DetectSignView(APIView):
         except Exception as e:
             cleanup_temp_files([tmp_path, detect_path, *extra_cleanup])
             logger.exception('Detection failed for upload %s', image.name)
-            return error_response(f'Detection failed: {e}', status_code=500)
+            return error_response(
+                f'Detection failed: {e}. On hosted deploy set AI_USE_MOCK=True and disable vehicle/OCR.',
+                status_code=503,
+            )
 
         storage_path = jpeg_path or tmp_path
         storage_name = f'detect-{uuid.uuid4().hex[:12]}.jpg'
@@ -285,15 +288,19 @@ class DetectSignView(APIView):
 
             enforcement: dict = {}
             if not sign_only:
-                enforcement = apply_pipeline_enforcement(
-                    request=request,
-                    sign_result=result,
-                    plate_result=plate_result,
-                    vehicles=vehicles,
-                    log=log,
-                    payload=payload,
-                )
-                payload.update(enforcement)
+                try:
+                    enforcement = apply_pipeline_enforcement(
+                        request=request,
+                        sign_result=result,
+                        plate_result=plate_result,
+                        vehicles=vehicles,
+                        log=log,
+                        payload=payload,
+                    )
+                    payload.update(enforcement)
+                except Exception:
+                    logger.exception('Pipeline enforcement skipped')
+                    enforcement = {}
 
             pipeline_enforcement = enforcement.get('pipeline_enforcement') or {}
             payload['pipeline'] = build_pipeline_steps(

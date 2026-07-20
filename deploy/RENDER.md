@@ -204,6 +204,10 @@ AI_PLATE_OCR_ENABLED=False
 
 Redeploy the API after changing env. For real YOLO on a VPS, use `npm run docker:prod:up` with `ai/weights/best_v2.pt` on disk and `AI_USE_MOCK=False`.
 
+**Settings `/api/settings/*_config/` 404:** fixed in API — missing keys return **200** with empty `{}`. Redeploy API.
+
+**Images 404 (`/media/...` or filename on admin domain):** set `PUBLIC_API_URL=https://api.camtraffic.store`, `SERVE_MEDIA=True` on API, and rebuild admin/user with `VITE_API_URL=https://api.camtraffic.store/api`.
+
 ## Email (password reset)
 
 Set on the API service:

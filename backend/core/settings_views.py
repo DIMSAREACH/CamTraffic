@@ -5,9 +5,30 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
 from core.audit_service import log_audit
+from core.default_settings import DEFAULT_SETTING_DESCRIPTIONS
 from core.models import SystemSetting
 from core.permissions import IsAdmin
 from core.responses import error_response, success_response
+
+
+def _setting_payload(row: SystemSetting | None, key: str) -> dict:
+    if row is None:
+        return {
+            'id': None,
+            'key': key,
+            'value': {},
+            'description': DEFAULT_SETTING_DESCRIPTIONS.get(key, ''),
+            'is_public': False,
+            'updated_at': None,
+        }
+    return {
+        'id': str(row.id),
+        'key': row.key,
+        'value': row.value if row.value is not None else {},
+        'description': row.description,
+        'is_public': row.is_public,
+        'updated_at': row.updated_at.isoformat() if row.updated_at else None,
+    }
 
 
 class SystemSettingListView(APIView):
@@ -65,33 +86,24 @@ class SystemSettingDetailView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def get(self, request, key):
-        try:
-            row = SystemSetting.objects.get(key=key)
-        except SystemSetting.DoesNotExist:
-            return error_response('Setting not found', status_code=status.HTTP_404_NOT_FOUND)
-        return success_response({
-            'id': str(row.id),
-            'key': row.key,
-            'value': row.value,
-            'description': row.description,
-            'is_public': row.is_public,
-        })
+        row = SystemSetting.objects.filter(key=key).first()
+        return success_response(_setting_payload(row, key))
 
     def patch(self, request, key):
-        try:
-            row = SystemSetting.objects.get(key=key)
-        except SystemSetting.DoesNotExist:
-            return error_response('Setting not found', status_code=status.HTTP_404_NOT_FOUND)
+        defaults = {
+            'description': DEFAULT_SETTING_DESCRIPTIONS.get(key, ''),
+            'is_public': False,
+        }
         if 'value' in request.data:
-            row.value = request.data['value']
+            defaults['value'] = request.data['value']
         if 'description' in request.data:
-            row.description = request.data['description']
+            defaults['description'] = request.data['description']
         if 'is_public' in request.data:
-            row.is_public = bool(request.data['is_public'])
-        row.save()
+            defaults['is_public'] = bool(request.data['is_public'])
+        row, created = SystemSetting.objects.update_or_create(key=key, defaults=defaults)
         log_audit(
             user=request.user,
-            action='update',
+            action='create' if created else 'update',
             resource='system_setting',
             resource_id=row.id,
             request=request,
