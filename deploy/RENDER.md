@@ -83,3 +83,5 @@ RESEND_FROM_EMAIL=CamTraffic <noreply@your-verified-domain.com>
 ```
 
 Without this, `/api/auth/password-reset/` returns **503** with a clear message (not 500).
+
+Full variable list (placeholders): `deploy/env/.env.render.example`
