@@ -125,3 +125,18 @@ class UsersAPITest(APITestCase):
         rows = payload.get('results') or payload.get('data') or []
         emails = [row['email'] for row in rows]
         self.assertIn('api-driver@test.kh', emails)
+
+
+class PasswordResetAPITest(APITestCase):
+    def setUp(self):
+        User.objects.create_user(
+            email='reset@test.kh',
+            password='Reset@12345',
+            full_name='Reset User',
+            role='driver',
+        )
+
+    def test_password_reset_without_email_returns_503_not_500(self):
+        res = self.client.post('/api/auth/password-reset/', {'email': 'reset@test.kh'})
+        self.assertIn(res.status_code, (400, 503))
+        self.assertFalse(res.json()['success'])

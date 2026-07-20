@@ -40,7 +40,7 @@ def from_email() -> str:
 
 
 def build_reset_link(user) -> tuple[str, str, str]:
-    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    uid = urlsafe_base64_encode(force_bytes(str(user.pk)))
     token = default_token_generator.make_token(user)
     base = _reset_base_url()
     link = f'{base}?uid={uid}&token={token}'
@@ -129,6 +129,12 @@ def request_password_reset(email: str) -> User:
             'not_found',
             'No account found with this email address.',
         )
+    except Exception as exc:
+        logger.exception('Password reset lookup failed for %s', email)
+        raise PasswordResetError(
+            'send_failed',
+            'Could not process the reset request. Please try again later.',
+        ) from exc
     if not user.is_active:
         raise PasswordResetError(
             'inactive',
@@ -137,17 +143,23 @@ def request_password_reset(email: str) -> User:
     if not email_configured() and not settings.DEBUG:
         raise PasswordResetError(
             'send_failed',
-            'Email delivery is not configured on the server.',
+            'Email delivery is not configured on the server. Contact an administrator or use demo login.',
         )
-    if not send_password_reset_email(user, to_email=email):
-        if settings.DEBUG:
-            # In local/dev, avoid blocking the flow when provider TLS/cert setup fails.
-            link = build_reset_link(user)[0]
-            print(f'\n[CamTraffic] Email send failed for {email}. Use this reset link locally:\n{link}\n')
-            logger.warning('Password reset email send failed in DEBUG mode: %s', get_last_send_error())
-            return user
+    try:
+        if not send_password_reset_email(user, to_email=email):
+            if settings.DEBUG:
+                link = build_reset_link(user)[0]
+                print(f'\n[CamTraffic] Email send failed for {email}. Use this reset link locally:\n{link}\n')
+                logger.warning('Password reset email send failed in DEBUG mode: %s', get_last_send_error())
+                return user
+            detail = get_last_send_error() or 'Could not send the reset email right now.'
+            raise PasswordResetError('send_failed', detail)
+    except PasswordResetError:
+        raise
+    except Exception as exc:
+        logger.exception('Password reset email failed for %s', email)
         raise PasswordResetError(
             'send_failed',
-            'Could not send the reset email right now. Please try again later or contact support.',
-        )
+            'Could not send the reset email. Please try again later or contact support.',
+        ) from exc
     return user

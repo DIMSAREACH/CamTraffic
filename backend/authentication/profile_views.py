@@ -1,3 +1,5 @@
+import logging
+
 from django.contrib.auth.models import update_last_login
 from django.db.models import ProtectedError
 from rest_framework import status
@@ -130,4 +132,10 @@ class LogoutOtherSessionsView(APIView):
 
 def finalize_successful_login(user, request) -> None:
     update_last_login(None, user)
-    record_login_event(user, request, success=True)
+    try:
+        record_login_event(user, request, success=True)
+    except Exception:
+        logging.getLogger(__name__).exception(
+            'Login audit write failed for %s — login still allowed',
+            user.email,
+        )

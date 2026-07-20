@@ -142,13 +142,18 @@ class PasswordResetRequestView(APIView):
         try:
             request_password_reset(serializer.validated_data['email'])
         except PasswordResetError as exc:
-            status_code = status.HTTP_404_NOT_FOUND if exc.code == 'not_found' else status.HTTP_400_BAD_REQUEST
+            if exc.code == 'not_found':
+                status_code = status.HTTP_404_NOT_FOUND
+            elif exc.code == 'send_failed':
+                status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+            else:
+                status_code = status.HTTP_400_BAD_REQUEST
             return error_response(exc.message, status_code=status_code)
         except Exception:
             logging.getLogger(__name__).exception('Password reset request failed')
             return error_response(
                 'Could not send the reset email. Please try again later.',
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
         email = serializer.validated_data['email'].strip()
         return success_response(

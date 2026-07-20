@@ -33,4 +33,4 @@ RUN mkdir -p logs media staticfiles backups
 
 EXPOSE 8000
 
-CMD ["gunicorn", "-c", "/app/deploy/gunicorn/gunicorn.conf.py", "camtraffic.wsgi:application"]
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn -c /app/deploy/gunicorn/gunicorn.conf.py camtraffic.wsgi:application"]
