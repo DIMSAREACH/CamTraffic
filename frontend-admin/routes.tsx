@@ -46,7 +46,6 @@ import { ForgotPasswordPage } from '@shared/pages/auth/ForgotPasswordPage';
 import { ResetPasswordPage } from '@shared/pages/auth/ResetPasswordPage';
 import { VerifyEmailPage } from '@shared/pages/auth/VerifyEmailPage';
 import { OAuthCallbackPage } from '@shared/pages/auth/OAuthCallbackPage';
-import { RedirectToUserPortal } from '@shared/components/PortalRedirect';
 
 export const router = createBrowserRouter([
   { path: '/', Component: AdminLoginPage },
@@ -107,7 +106,7 @@ export const router = createBrowserRouter([
       { path: 'notifications/details/:notificationId', Component: NotificationDetailsPage },
     ],
   },
-  { path: '/dashboard', Component: RedirectToUserPortal },
-  { path: '/dashboard/*', Component: RedirectToUserPortal },
+  { path: '/dashboard', loader: () => redirect('/admin/dashboard') },
+  { path: '/dashboard/*', loader: () => redirect('/admin/dashboard') },
   { path: '*', loader: () => redirect('/') },
 ]);

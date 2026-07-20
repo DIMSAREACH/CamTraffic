@@ -39,9 +39,16 @@ Custom superusers you create manually are unchanged; demo passwords are reset ea
 | Publish directory | `frontend-admin/dist` | `frontend-user/dist` |
 | Build env | `VITE_API_URL=https://camtraffic-api.onrender.com/api` | same |
 
+Optional cross-portal URLs (recommended on Render):
+
+| Admin static env | `VITE_USER_PORTAL_URL=https://camtraffic-user.onrender.com` |
+| User static env | `VITE_ADMIN_PORTAL_URL=https://camtraffic-admin.onrender.com` |
+
+Without these, production code infers sibling hosts (`camtraffic-admin` ↔ `camtraffic-user`, or `admin.*` ↔ `app.*`). Do **not** rely on dev ports (`:5173`) on hosted sites.
+
 Requires `frontend-*/shared/vite/build.ts` in Git (used by `vite.config.ts`).
 
-**SPA routing (`/admin/profile` 404):** Each frontend includes `public/_redirects` (copied to `dist/`) so Render serves `index.html` for client routes. After pulling latest `main`, **rebuild and redeploy** both static sites. Direct URLs like `/admin/profile` must not 404.
+**SPA routing (`/admin/profile` or `/dashboard` 404):** Each frontend includes `public/_redirects` and the build copies `index.html` → `dist/404.html` for Render fallback. **Admin** routes `/dashboard` → `/admin/dashboard` in the client router. Rebuild and redeploy both static sites after pulling `main`.
 
 **Favicon:** `public/favicon.svg` + `_redirects` rule for `/favicon.ico`.
 
