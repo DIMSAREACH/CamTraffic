@@ -6,7 +6,17 @@
 |---------|--------|
 | Dockerfile | `deploy/docker/Dockerfile.backend.prod` |
 | Health check path | `/health/` (or `/` after api-root) |
-| Docker command | `sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn -c /app/deploy/gunicorn/gunicorn.conf.py camtraffic.wsgi:application"` |
+| Docker command | *(default from Dockerfile — uses `deploy/scripts/render_web_start.sh`)* |
+
+On each deploy the API runs migrations and syncs **demo login accounts** (disable with `CAMTRAFFIC_SYNC_DEMO_ACCOUNTS=false`).
+
+**Demo admin login (after redeploy):**
+
+- Email: `admin@camtraffic.demo`
+- Password: `CamTraffic@2026!`
+- Portal: **admin** site (not user portal)
+
+Custom superusers you create manually are unchanged; demo passwords are reset each deploy for the four `@camtraffic.demo` accounts only when sync is enabled.
 
 ## URLs
 

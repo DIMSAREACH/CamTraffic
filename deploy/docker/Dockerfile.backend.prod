@@ -26,6 +26,8 @@ RUN pip install --upgrade pip \
 COPY backend/ /app/backend/
 COPY ai/ /app/ai/
 COPY deploy/gunicorn/gunicorn.conf.py /app/deploy/gunicorn/gunicorn.conf.py
+COPY deploy/scripts/render_web_start.sh /app/deploy/scripts/render_web_start.sh
+RUN chmod +x /app/deploy/scripts/render_web_start.sh
 
 WORKDIR /app/backend
 
@@ -33,4 +35,4 @@ RUN mkdir -p logs media staticfiles backups
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn -c /app/deploy/gunicorn/gunicorn.conf.py camtraffic.wsgi:application"]
+CMD ["/app/deploy/scripts/render_web_start.sh"]
