@@ -41,23 +41,37 @@ Use internal Postgres host and Redis URL from Render dashboards. Set `ALLOWED_HO
 
 Do not commit `deploy/env/.env.production` or paste database passwords in chat.
 
-## Demo login (Render Postgres)
+## Your own admin (no Render Shell)
+
+On each deploy, the API can create/update **your** admin from environment variables.
+
+**camtraffic-api → Environment → Add:**
+
+| Key | Value |
+|-----|--------|
+| `CAMTRAFFIC_BOOTSTRAP_ADMIN_EMAIL` | your email, e.g. `you@gmail.com` |
+| `CAMTRAFFIC_BOOTSTRAP_ADMIN_PASSWORD` | your strong password |
+| `CAMTRAFFIC_BOOTSTRAP_ADMIN_NAME` | optional display name, e.g. `Dimsa Reach` |
+
+Save → **Redeploy**. On startup the API runs `bootstrap_admin_env` (password is updated every deploy if these vars are set).
+
+Sign in on the **admin** static site with that email and password.
+
+**Or use demo admin** (no extra env; synced each deploy):
+
+| Email | Password |
+|--------|----------|
+| `admin@camtraffic.demo` | `CamTraffic@2026!` |
+
+## Demo login (all accounts)
 
 Forgot-password email needs `RESEND_API_KEY` (or SMTP). Until then, use seeded accounts — **not** password reset.
 
-In **camtraffic-api** → **Shell**:
+Demo accounts are synced automatically on deploy (`seed_demo --accounts-only`). Shell is optional:
 
 ```bash
 python manage.py seed_demo
 ```
-
-| Portal | Email | Password |
-|--------|--------|----------|
-| Admin | `admin@camtraffic.demo` | `CamTraffic@2026!` |
-| User (officer) | `officer@camtraffic.demo` | `CamTraffic@2026!` |
-| User (driver) | `driver@camtraffic.demo` | `CamTraffic@2026!` |
-
-Pick the correct portal tab (admin vs user / officer vs driver). Wrong portal returns **401/403**, not a server bug.
 
 ## Email (password reset)
 

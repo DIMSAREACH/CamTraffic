@@ -11,4 +11,6 @@ if [ "${CAMTRAFFIC_SYNC_DEMO_ACCOUNTS:-true}" = "true" ]; then
   python manage.py seed_demo --accounts-only --reset-passwords
 fi
 
+python manage.py bootstrap_admin_env
+
 exec gunicorn -c /app/deploy/gunicorn/gunicorn.conf.py camtraffic.wsgi:application
