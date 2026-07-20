@@ -93,7 +93,7 @@ npm run test:e2e
 
 ## Production deployment
 
-See [`deploy/README.md`](deploy/README.md) and [`docs/INSTALLATION-GUIDE.md`](docs/INSTALLATION-GUIDE.md).
+See [`deploy/README.md`](deploy/README.md), [`deploy/CAMTRAFFIC-STORE.md`](deploy/CAMTRAFFIC-STORE.md) (domain **camtraffic.store**), and [`docs/INSTALLATION-GUIDE.md`](docs/INSTALLATION-GUIDE.md).
 
 ```bash
 npm run docker:prod:up

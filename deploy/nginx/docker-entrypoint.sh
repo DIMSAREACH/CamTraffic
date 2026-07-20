@@ -1,6 +1,7 @@
 #!/bin/sh
 set -eu
 
+export DOMAIN_ROOT="${DOMAIN_ROOT:-camtraffic.store}"
 export DOMAIN_WWW="${DOMAIN_WWW:-www.camtraffic.store}"
 export DOMAIN_ADMIN="${DOMAIN_ADMIN:-admin.camtraffic.store}"
 export DOMAIN_USER="${DOMAIN_USER:-app.camtraffic.store}"
@@ -47,12 +48,12 @@ server {
 
 server {
     listen 80;
-    server_name ${DOMAIN_WWW};
+    server_name ${DOMAIN_WWW} ${DOMAIN_ROOT};
     return 301 http://${DOMAIN_ADMIN}\$request_uri;
 }
 EOF
 else
-  envsubst '${DOMAIN_WWW} ${DOMAIN_ADMIN} ${DOMAIN_USER} ${DOMAIN_API}' \
+  envsubst '${DOMAIN_ROOT} ${DOMAIN_WWW} ${DOMAIN_ADMIN} ${DOMAIN_USER} ${DOMAIN_API}' \
     < /etc/nginx/templates/camtraffic.conf.template \
     > /etc/nginx/conf.d/camtraffic.conf
 fi

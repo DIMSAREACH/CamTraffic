@@ -33,3 +33,15 @@ if USE_REDIS:  # noqa: F405
             'KEY_PREFIX': 'camtraffic',
         }
     }
+
+# Cross-origin browser calls from Render static sites and camtraffic.store subdomains.
+# Override with CORS_ALLOW_RENDER_ORIGINS=false or CORS_ALLOW_CAMTRAFFIC_STORE=false if needed.
+if os.getenv('CORS_ALLOW_RENDER_ORIGINS', 'true').lower() == 'true':
+    _render_origin = r'^https://[\w-]+\.onrender\.com$'
+    if _render_origin not in CORS_ALLOWED_ORIGIN_REGEXES:  # noqa: F405
+        CORS_ALLOWED_ORIGIN_REGEXES.append(_render_origin)  # noqa: F405
+
+if os.getenv('CORS_ALLOW_CAMTRAFFIC_STORE', 'true').lower() == 'true':
+    _store_origin = r'^https://([\w-]+\.)?camtraffic\.store$'
+    if _store_origin not in CORS_ALLOWED_ORIGIN_REGEXES:  # noqa: F405
+        CORS_ALLOWED_ORIGIN_REGEXES.append(_store_origin)  # noqa: F405

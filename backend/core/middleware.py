@@ -56,20 +56,29 @@ class SecurityHardeningMiddleware:
 
     def __call__(self, request):
         if request.method == 'POST' and request.path == LOGIN_PATH:
-            if self._is_rate_limited(request):
-                return JsonResponse(
-                    {'success': False, 'message': 'Too many login attempts. Please try again in a few minutes.'},
-                    status=429,
-                )
+            try:
+                if self._is_rate_limited(request):
+                    return JsonResponse(
+                        {
+                            'success': False,
+                            'message': 'Too many login attempts. Please try again in a few minutes.',
+                        },
+                        status=429,
+                    )
+            except Exception:
+                logger.exception('Login rate limit check failed; allowing request')
 
         response = self.get_response(request)
         self._apply_security_headers(response)
 
         if request.method == 'POST' and request.path == LOGIN_PATH:
-            if response.status_code in (401, 403):
-                self._record_failed_attempt(request)
-            elif response.status_code == 200:
-                self._clear_attempts(request)
+            try:
+                if response.status_code in (401, 403):
+                    self._record_failed_attempt(request)
+                elif response.status_code == 200:
+                    self._clear_attempts(request)
+            except Exception:
+                logger.exception('Login rate limit update failed')
 
         return response
 

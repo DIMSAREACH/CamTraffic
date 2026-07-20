@@ -39,9 +39,89 @@ Custom superusers you create manually are unchanged; demo passwords are reset ea
 
 Requires `frontend-*/shared/vite/build.ts` in Git (used by `vite.config.ts`).
 
+## Custom domains (`camtraffic.store` on Render)
+
+Map your own hostnames to the three Render services. Render issues **free TLS** after DNS verifies.
+
+### 1. Add domains in Render
+
+| Service | Settings → Custom Domains | Hostname to add |
+|---------|---------------------------|-----------------|
+| **camtraffic-api** (Web, Docker) | Add Custom Domain | `api.camtraffic.store` |
+| **camtraffic-admin** (Static) | Add Custom Domain | `admin.camtraffic.store` |
+| **camtraffic-user** (Static) | Add Custom Domain | `app.camtraffic.store` |
+
+Render shows a **DNS record** for each (usually **CNAME** `subdomain` → `something.onrender.com`). Copy exactly what the dashboard shows.
+
+### 2. DNS at your registrar (camtraffic.store)
+
+Create records Render asks for, typically:
+
+| Type | Name / Host | Value (example — use Render’s value) |
+|------|-------------|----------------------------------------|
+| CNAME | `api` | `camtraffic-api.onrender.com` |
+| CNAME | `admin` | `camtraffic-admin.onrender.com` |
+| CNAME | `app` | `camtraffic-user.onrender.com` |
+
+Wait until Render shows **Verified** (can take a few minutes up to 48h).
+
+**Apex (`camtraffic.store`) and `www`:** Render static/API custom domains are **subdomains only**. For root/www, use your registrar’s **redirect** to `https://admin.camtraffic.store`, or Cloudflare **Redirect Rules** — do not point apex CNAME at Render unless your DNS provider supports ALIAS/ANAME to Render’s target.
+
+### 3. Update API environment
+
+After `api.camtraffic.store` is verified, edit **camtraffic-api → Environment**:
+
+```env
+ALLOWED_HOSTS=api.camtraffic.store,camtraffic-api.onrender.com,.onrender.com
+CORS_ALLOWED_ORIGINS=https://admin.camtraffic.store,https://app.camtraffic.store
+OAUTH_FRONTEND_CALLBACK_URL=https://app.camtraffic.store/auth/oauth/callback
+FRONTEND_PASSWORD_RESET_URL=https://app.camtraffic.store/reset-password
+```
+
+Remove old-only origins if you no longer use `*.onrender.com` URLs in the browser:
+
+```env
+# remove or replace:
+# CORS_ALLOWED_ORIGINS=https://camtraffic-admin.onrender.com,...
+```
+
+**Save → Redeploy** the API.
+
+Full template: `deploy/env/.env.render.camtraffic.store.example`
+
+### 4. Rebuild static sites (critical)
+
+Custom domains do **not** change the baked-in API URL. Set **Environment** on **each** static site:
+
+| Key | Value |
+|-----|--------|
+| `VITE_API_URL` | `https://api.camtraffic.store/api` |
+
+Trigger **Manual Deploy** on admin and user static sites.
+
+### 5. Verify
+
+```text
+https://api.camtraffic.store/health/
+https://admin.camtraffic.store/     → admin login
+https://app.camtraffic.store/       → user portal
+```
+
+Login still uses **admin** hostname for administrators (`admin@camtraffic.demo` / `CamTraffic@2026!` or bootstrap env).
+
+More (Resend, OAuth consoles): [`deploy/CAMTRAFFIC-STORE.md`](CAMTRAFFIC-STORE.md)
+
 ## Environment
 
 Use internal Postgres host and Redis URL from Render dashboards. Set `ALLOWED_HOSTS` to your `*.onrender.com` hostname and `CORS_ALLOWED_ORIGINS` to your static site URLs.
+
+**CORS / login blocked from admin or user static site:** On the API service set:
+
+```env
+CORS_ALLOWED_ORIGINS=https://camtraffic-admin.onrender.com,https://camtraffic-user.onrender.com
+```
+
+Production also allows `https://*.onrender.com` and `https://*.camtraffic.store` via regex (disable with `CORS_ALLOW_RENDER_ORIGINS=false`). Redeploy API after env changes.
 
 Do not commit `deploy/env/.env.production` or paste database passwords in chat.
 
@@ -89,3 +169,5 @@ RESEND_FROM_EMAIL=CamTraffic <noreply@your-verified-domain.com>
 Without this, `/api/auth/password-reset/` returns **503** with a clear message (not 500).
 
 Full variable list (placeholders): `deploy/env/.env.render.example`
+
+**Custom domain (camtraffic.store):** [`deploy/CAMTRAFFIC-STORE.md`](CAMTRAFFIC-STORE.md) and `deploy/env/.env.render.camtraffic.store.example`

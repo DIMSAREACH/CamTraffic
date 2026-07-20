@@ -4,18 +4,21 @@
 
 | Host | Purpose |
 |------|---------|
+| `camtraffic.store` | Redirect → admin (apex) |
 | `admin.camtraffic.store` | Admin portal |
 | `app.camtraffic.store` | User portal (driver + officer) |
 | `api.camtraffic.store` | REST API |
 | `www.camtraffic.store` | Redirect → admin |
 
-Override in `deploy/env/.env.production` (`DOMAIN_*` variables).
+Override in `deploy/env/.env.production` (`DOMAIN_*` variables). Full runbook: [`deploy/CAMTRAFFIC-STORE.md`](../CAMTRAFFIC-STORE.md).
 
 ## DNS configuration
 
 Create **A records** pointing to your VPS public IP:
 
 ```
+camtraffic.store        →  YOUR_VPS_IP
+www.camtraffic.store    →  YOUR_VPS_IP
 admin.camtraffic.store  →  YOUR_VPS_IP
 app.camtraffic.store    →  YOUR_VPS_IP
 api.camtraffic.store    →  YOUR_VPS_IP

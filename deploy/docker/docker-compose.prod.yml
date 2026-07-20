@@ -139,6 +139,7 @@ services:
       - '${HTTP_PORT:-80}:80'
       - '${HTTPS_PORT:-443}:443'
     environment:
+      DOMAIN_ROOT: ${DOMAIN_ROOT:-camtraffic.store}
       DOMAIN_WWW: ${DOMAIN_WWW:-www.camtraffic.store}
       DOMAIN_ADMIN: ${DOMAIN_ADMIN:-admin.camtraffic.store}
       DOMAIN_USER: ${DOMAIN_USER:-app.camtraffic.store}

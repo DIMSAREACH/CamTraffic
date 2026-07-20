@@ -13,6 +13,7 @@ if [[ -f "$ENV_FILE" ]]; then
   set +a
 fi
 
+DOMAIN_ROOT="${DOMAIN_ROOT:-camtraffic.store}"
 DOMAIN_ADMIN="${DOMAIN_ADMIN:-admin.camtraffic.store}"
 DOMAIN_USER="${DOMAIN_USER:-app.camtraffic.store}"
 DOMAIN_API="${DOMAIN_API:-api.camtraffic.store}"
@@ -29,6 +30,7 @@ compose run --rm certbot \
   -d "$DOMAIN_ADMIN" \
   -d "$DOMAIN_USER" \
   -d "$DOMAIN_API" \
-  -d "$DOMAIN_WWW"
+  -d "$DOMAIN_WWW" \
+  -d "$DOMAIN_ROOT"
 
 echo "Certificates issued. Restart nginx: npm run docker:prod:restart"
