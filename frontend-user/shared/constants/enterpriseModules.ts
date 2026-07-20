@@ -40,12 +40,12 @@ export const POLICE_ENTERPRISE_MODULES: EnterpriseModule[] = [
   {
     id: 'detection',
     labelKey: 'sidebar.modules.aiDetection',
-    path: R.aiDetectionSource,
+    path: R.aiDetection,
     roles: ['police'],
-    matchPrefixes: [R.aiDetectionSource, R.aiDetection, R.aiLogs],
+    matchPrefixes: [R.aiDetectionSource, R.aiDetection, R.aiDetectionNew, R.aiLogs],
     subNav: [
-      { labelKey: 'sidebar.subNav.detectionSource', path: R.aiDetectionSource },
-      { labelKey: 'sidebar.subNav.liveDetection', path: R.aiDetection },
+      { labelKey: 'sidebar.subNav.detectionDashboard', path: R.aiDetection },
+      { labelKey: 'sidebar.subNav.newDetection', path: R.aiDetectionNew },
       { labelKey: 'sidebar.subNav.detectionHistory', path: R.aiLogs },
     ],
   },
@@ -100,7 +100,13 @@ export const POLICE_ENTERPRISE_MODULES: EnterpriseModule[] = [
     labelKey: 'sidebar.modules.reports',
     path: R.reports,
     roles: ['police'],
-    matchPrefixes: [R.reports],
+    matchPrefixes: [R.reports, R.reportsCenter, R.reportsAnalytics, R.reportsScheduled],
+    subNav: [
+      { labelKey: 'sidebar.subNav.reportsDashboard', path: R.reports },
+      { labelKey: 'sidebar.subNav.reportCenter', path: R.reportsCenter },
+      { labelKey: 'sidebar.subNav.reportAnalytics', path: R.reportsAnalytics },
+      { labelKey: 'sidebar.subNav.scheduledReports', path: R.reportsScheduled },
+    ],
   },
   {
     id: 'notifications',

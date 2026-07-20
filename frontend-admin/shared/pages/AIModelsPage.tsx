@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router';
+import { useNavigate } from 'react-router';
 import {
-  Brain, CheckCircle, Download, Eye, Pencil, Plus, Rocket, Search, Trash2, Upload, Zap,
+  Brain, CheckCircle, Download, Plus, Rocket, Search, Upload, Zap,
 } from 'lucide-react';
 import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
@@ -9,13 +9,21 @@ import { Label } from '@shared/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@shared/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@shared/components/ui/table';
 import { TableEmptyState } from '@shared/components/ui/TableEmptyState';
+import { CrudRowActions } from '@shared/components/admin/CrudRowActions';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { aiModelsAPI } from '@shared/services/api';
 import { toast } from 'sonner';
 import { AIMlopsHero } from '@shared/components/admin/AIMlopsHero';
 import type { AIModelVersion } from '@shared/types';
-import { enrichAIModels, formatPct, type EnrichedAIModel, type ModelUiStatus } from '@shared/utils/aiModelUi';
+import {
+  enrichAIModels,
+  formatPct,
+  MODEL_STATUS_META,
+  modelStatusLabel,
+  type EnrichedAIModel,
+  type ModelUiStatus,
+} from '@shared/utils/aiModelUi';
 
 const DEMO_MODELS: AIModelVersion[] = [
   {
@@ -50,6 +58,7 @@ const DEMO_MODELS: AIModelVersion[] = [
 export function AIModelsPage() {
   const { t } = useLanguage();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [models, setModels] = useState<EnrichedAIModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -174,22 +183,18 @@ export function AIModelsPage() {
         </select>
       </div>
 
-      <div className="ai-mlops-panel">
-        <div className="ai-mlops-panel__body overflow-x-auto !pt-3">
-          <Table className="enforcement-page__table">
+      <div className="enforcement-page__panel">
+        <div className="overflow-x-auto">
+          <Table className="enforcement-page__table mgmt-table__grid ai-models-table">
             <TableHeader>
               <TableRow className="enforcement-page__table-head">
-                {[
-                  tr('aiMlops.colModelName', 'Model Name'),
-                  tr('aiMlops.colVersion', 'Version'),
-                  tr('aiMlops.colDataset', 'Dataset'),
-                  tr('aiMlops.colAccuracy', 'Accuracy'),
-                  tr('aiMlops.colStatus', 'Status'),
-                  tr('aiMlops.colCreated', 'Created'),
-                  tr('aiMlops.colAction', 'Action'),
-                ].map((h) => (
-                  <TableHead key={h} className="enforcement-page__th">{h}</TableHead>
-                ))}
+                <TableHead className="enforcement-page__th text-left ai-models-table__col--model">{tr('aiMlops.colModelName', 'Model Name')}</TableHead>
+                <TableHead className="enforcement-page__th text-left ai-models-table__col--version">{tr('aiMlops.colVersion', 'Version')}</TableHead>
+                <TableHead className="enforcement-page__th text-left ai-models-table__col--dataset">{tr('aiMlops.colDataset', 'Dataset')}</TableHead>
+                <TableHead className="enforcement-page__th text-left ai-models-table__col--accuracy">{tr('aiMlops.colAccuracy', 'Accuracy')}</TableHead>
+                <TableHead className="enforcement-page__th text-left ai-models-table__col--status">{tr('aiMlops.colStatus', 'Status')}</TableHead>
+                <TableHead className="enforcement-page__th text-left ai-models-table__col--date">{tr('aiMlops.colCreated', 'Created')}</TableHead>
+                <TableHead className="enforcement-page__th text-left ai-models-table__col--action">{tr('aiMlops.colAction', 'Action')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -210,47 +215,51 @@ export function AIModelsPage() {
                   subtitle={tr('aiModels.emptyHint', 'Register a YOLO model version to manage detection weights.')}
                   action={{ label: tr('aiMlops.add', 'Add'), onClick: () => setOpen(true), icon: <Plus size={15} /> }}
                 />
-              ) : filtered.map((m) => (
-                <TableRow key={m.id} className={`enforcement-page__table-row${m.is_active ? ' ai-models-page__row--active' : ''}`}>
-                  <TableCell><span className="ai-mlops-name">{m.name}</span></TableCell>
-                  <TableCell><span className="ai-mlops-version">{m.version}</span></TableCell>
-                  <TableCell>{m.dataset}</TableCell>
-                  <TableCell><span className="ai-mlops-acc">{formatPct(m.accuracy)}</span></TableCell>
-                  <TableCell>
-                    <span className={`ai-mlops-badge ai-mlops-badge--${m.status}`}>
-                      {m.is_active ? <CheckCircle size={11} /> : null}
-                      {m.status === 'active'
-                        ? tr('aiMlops.statusActive', 'Active')
-                        : m.status === 'archive'
-                          ? tr('aiMlops.statusArchive', 'Archive')
-                          : m.status === 'training'
-                            ? tr('aiMlops.statusTraining', 'Training')
-                            : tr('aiMlops.statusDraft', 'Draft')}
-                    </span>
-                  </TableCell>
-                  <TableCell>{new Date(m.uploaded_at).toLocaleDateString()}</TableCell>
-                  <TableCell>
-                    <div className="ai-mlops-actions">
-                      <Link to={`/admin/ai-models/${m.id}`} className="ai-mlops-action ai-mlops-action--view">
-                        <Eye size={12} /> {tr('aiMlops.view', 'View')}
-                      </Link>
-                      {!m.is_active && (
-                        <button type="button" className="ai-mlops-action ai-mlops-action--deploy" onClick={() => void handleActivate(m.id)}>
-                          <Rocket size={12} /> {tr('aiMlops.deploy', 'Deploy')}
-                        </button>
-                      )}
-                      <button type="button" className="ai-mlops-action ai-mlops-action--edit" onClick={() => toast.message(tr('aiMlops.editHint', 'Edit metadata from Model Details'))}>
-                        <Pencil size={12} /> {tr('aiMlops.edit', 'Edit')}
-                      </button>
-                      {!m.is_active && (
-                        <button type="button" className="ai-mlops-action ai-mlops-action--delete" onClick={() => toast.message(tr('aiMlops.deleteHint', 'Archive models instead of hard-delete in production'))}>
-                          <Trash2 size={12} /> {tr('aiMlops.delete', 'Delete')}
-                        </button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+              ) : filtered.map((m) => {
+                const st = MODEL_STATUS_META[m.status];
+                return (
+                  <TableRow key={m.id} className={`enforcement-page__table-row${m.is_active ? ' ai-models-page__row--active' : ''}`}>
+                    <TableCell className="ai-models-table__col--model">
+                      <div className="mgmt-table__stack">
+                        <p className="mgmt-table__stack-title" title={m.description || m.name}>{m.name}</p>
+                        <p className="mgmt-table__stack-meta" title={m.model_file}>{m.model_file}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="ai-models-table__col--version"><span className="enforcement-page__code-pill" title={m.version}>{m.version}</span></TableCell>
+                    <TableCell className="ai-models-table__col--dataset"><span className="enforcement-page__cell-body">{m.dataset}</span></TableCell>
+                    <TableCell className="ai-models-table__col--accuracy"><span className="mgmt-table__amount">{formatPct(m.accuracy)}</span></TableCell>
+                    <TableCell className="ai-models-table__col--status">
+                      <span className="enforcement-page__badge" style={{ background: st.bg, color: st.color }}>
+                        {m.is_active ? <CheckCircle size={11} /> : null}
+                        {modelStatusLabel(m.status, tr)}
+                      </span>
+                    </TableCell>
+                    <TableCell className="ai-models-table__col--date"><span className="mgmt-table__date">{new Date(m.uploaded_at).toLocaleDateString()}</span></TableCell>
+                    <TableCell className="ai-models-table__col--action">
+                      <div className="enforcement-page__table-actions mgmt-table__actions">
+                        <CrudRowActions
+                          onView={() => navigate(`/admin/ai-models/${m.id}`)}
+                          onEdit={() => toast.message(tr('aiMlops.editHint', 'Edit metadata from Model Details'))}
+                          onDelete={!m.is_active
+                            ? () => toast.message(tr('aiMlops.deleteHint', 'Archive models instead of hard-delete in production'))
+                            : undefined}
+                        />
+                        {!m.is_active ? (
+                          <button
+                            type="button"
+                            className="enforcement-page__action-btn enforcement-page__action-btn--success"
+                            onClick={() => void handleActivate(m.id)}
+                            aria-label={tr('aiMlops.deploy', 'Deploy')}
+                            title={tr('aiMlops.deploy', 'Deploy')}
+                          >
+                            <Rocket size={13} />
+                          </button>
+                        ) : null}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>

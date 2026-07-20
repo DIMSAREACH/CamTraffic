@@ -22,6 +22,8 @@ urlpatterns = [
     path('detect/', DetectSignView.as_view(), name='ai-detect'),
     path('detect-video/', DetectVideoView.as_view(), name='ai-detect-video'),
     path('process-frame/', ProcessFrameView.as_view(), name='ai-process-frame'),
+    # Frontend webcam snapshot endpoint (posts multipart image or camera_id)
+    path('capture-webcam/', ProcessFrameView.as_view(), name='ai-capture-webcam'),
     path('tts/', KhmerTTSView.as_view(), name='ai-tts'),
     path('logs/', DetectionLogListView.as_view(), name='ai-logs'),
     path('logs/export/', DetectionLogExportView.as_view(), name='ai-logs-export'),

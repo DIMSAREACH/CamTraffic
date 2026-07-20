@@ -1,4 +1,4 @@
-"""Resolve and load the active traffic sign catalog (236-class or 10-class thesis set)."""
+"""Resolve and load the active traffic sign catalog (236-class full or production 50-class set)."""
 from __future__ import annotations
 
 import json
@@ -104,6 +104,21 @@ def _read_training_status() -> dict:
         return {}
 
 
+def _production_catalog_class_count() -> int:
+    """Read total_classes from the production catalog file (historically named *_10.json)."""
+    if not CATALOG_10_PATH.is_file():
+        return 0
+    try:
+        payload = json.loads(CATALOG_10_PATH.read_text(encoding='utf-8'))
+    except (json.JSONDecodeError, OSError):
+        return 0
+    if isinstance(payload, dict):
+        return int(payload.get('total_classes') or len(payload.get('signs') or []) or 0)
+    if isinstance(payload, list):
+        return len(payload)
+    return 0
+
+
 def resolve_catalog_path() -> Path:
     env_path = _env_catalog_path()
     if env_path:
@@ -111,6 +126,11 @@ def resolve_catalog_path() -> Path:
 
     status = _read_training_status()
     class_count = int(status.get('yolo_class_count') or 0)
+    production_count = _production_catalog_class_count()
+    # Active YOLO class count matches the production catalog (10- or 50-class).
+    if production_count and class_count == production_count and CATALOG_10_PATH.is_file():
+        return CATALOG_10_PATH
+    # Legacy: older training_status with exactly 10 classes.
     if class_count == 10 and CATALOG_10_PATH.is_file():
         return CATALOG_10_PATH
 

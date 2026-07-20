@@ -352,6 +352,24 @@ def recognize_plate(image_path: str, vehicles: list[dict] | None = None) -> dict
         logger.warning('Plate OCR skipped — file not found: %s', image_path)
         return empty
 
+    from .ocr_remote_client import (
+        map_remote_ocr_to_plate_result,
+        ocr_service_enabled,
+        read_plate_via_ocr_service,
+    )
+
+    if ocr_service_enabled():
+        try:
+            remote_data = read_plate_via_ocr_service(path, vehicles)
+            result = map_remote_ocr_to_plate_result(remote_data)
+            if result.get('plate_text'):
+                result['matched_vehicle'] = link_plate_to_vehicle(result['plate_text'])
+                return enrich_plate_result(result['plate_text'], result)
+            if remote_data.get('plate_region_found') or remote_data.get('raw_reads'):
+                return result
+        except Exception as exc:
+            logger.warning('ocr-service unavailable (%s); falling back to embedded OCR', exc)
+
     try:
         image = cv2.imread(str(path))
         if image is None:

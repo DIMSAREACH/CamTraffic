@@ -2,7 +2,7 @@ import logging
 
 from django.contrib.auth import get_user_model
 from rest_framework import parsers, status
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import AuthenticationFailed, ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -42,6 +42,9 @@ class LoginView(TokenObtainPairView):
                 else status.HTTP_401_UNAUTHORIZED
             )
             return error_response(message, status_code=code)
+        except AuthenticationFailed:
+            # Expected for wrong password / unknown email (SimpleJWT).
+            return error_response(LOGIN_INVALID_CREDENTIALS, status_code=status.HTTP_401_UNAUTHORIZED)
         except Exception:
             logging.getLogger(__name__).exception('Unexpected login failure')
             return error_response(LOGIN_INVALID_CREDENTIALS, status_code=status.HTTP_401_UNAUTHORIZED)

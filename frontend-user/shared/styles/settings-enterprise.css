@@ -1097,7 +1097,7 @@ html.dark .dashboard-page--settings .settings-page__card-value { color: #f1f5f9;
 
 /* User / officer settings */
 .settings-page--enterprise.enforcement-page--user-settings {
-  --enforcement-hero-bg: linear-gradient(135deg, #020617 0%, #0f172a 35%, #0e7490 100%);
+  --enforcement-hero-bg: linear-gradient(135deg, #020617 0%, #1e1b4b 38%, #4c1d95 100%);
 }
 
 .settings-page--enterprise .settings-page__locale-panel {
@@ -1114,10 +1114,34 @@ html.dark .settings-page--enterprise .settings-page__locale-panel {
 }
 
 .settings-page--enterprise .settings-page__locale-btn--active {
-  background: linear-gradient(135deg, #2563eb, #06b6d4) !important;
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed) !important;
   border-color: transparent !important;
   color: #fff !important;
-  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.28);
+  box-shadow: 0 8px 18px rgba(139, 92, 246, 0.32);
+}
+
+.dashboard-page--settings .settings-page__card--link {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.dashboard-page--settings .settings-page__card--link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1);
+}
+
+.dashboard-page--settings .settings-page__card--violet {
+  border-color: rgba(139, 92, 246, 0.24);
+}
+
+.dashboard-page--settings .settings-page__card-icon--violet {
+  background: rgba(139, 92, 246, 0.12);
+  color: #7c3aed;
 }
 
 @media (max-width: 1024px) {

@@ -58,14 +58,24 @@ def resolve_driver(*, driver_id=None, plate_result: dict | None = None):
 
     matched = (plate_result or {}).get('matched_vehicle') or {}
     vehicle_pk = matched.get('id')
-    if not vehicle_pk:
+    plate_text = (plate_result or {}).get('plate_text')
+    if not vehicle_pk and not plate_text:
         return None
 
-    vehicle = (
-        Vehicle.objects.select_related('driver', 'driver__user', 'owner')
-        .filter(pk=vehicle_pk)
-        .first()
-    )
+    vehicle = None
+    if vehicle_pk:
+        vehicle = (
+            Vehicle.objects.select_related('driver', 'driver__user', 'owner')
+            .filter(pk=vehicle_pk)
+            .first()
+        )
+    elif plate_text:
+        vehicle = (
+            Vehicle.objects.select_related('driver', 'driver__user', 'owner')
+            .filter(plate_number__iexact=plate_text)
+            .first()
+        )
+
     if not vehicle:
         return None
     if vehicle.driver_id:
@@ -87,6 +97,11 @@ def resolve_vehicle(*, plate_result: dict | None = None, vehicles: list[dict] | 
     matched = (plate_result or {}).get('matched_vehicle') or {}
     if matched.get('id'):
         return Vehicle.objects.filter(pk=matched['id']).first()
+
+    plate_text = (plate_result or {}).get('plate_text')
+    if plate_text:
+        return Vehicle.objects.filter(plate_number__iexact=plate_text).first()
+
     return None
 
 

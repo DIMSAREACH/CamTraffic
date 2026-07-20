@@ -190,7 +190,7 @@ CORS_ALLOWED_ORIGINS = [
     o.strip()
     for o in os.getenv(
         'CORS_ALLOWED_ORIGINS',
-        'http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174',
+        'http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:3000,http://127.0.0.1:3000',
     ).split(',')
     if o.strip()
 ]
@@ -305,6 +305,15 @@ AI_PLATE_OCR_LANGUAGES = [
 # Full pipeline: auto-evaluate violations on detect (defense demo)
 AI_PIPELINE_DEMO_VIOLATION = os.getenv('AI_PIPELINE_DEMO_VIOLATION', 'True').lower() == 'true'
 AI_PIPELINE_AUTO_CREATE_VIOLATION = os.getenv('AI_PIPELINE_AUTO_CREATE_VIOLATION', 'True').lower() == 'true'
+
+# Enterprise v2 — optional FastAPI ai-vision-service (see services/ai-vision-service/)
+AI_VISION_SERVICE_URL = os.getenv('AI_VISION_SERVICE_URL', '').strip()
+
+# Enterprise v2 — optional OCR microservice (see services/ocr-service/)
+OCR_SERVICE_URL = os.getenv('OCR_SERVICE_URL', '').strip()
+
+# Enterprise v2 — optional RTSP stream gateway (see services/stream-gateway/)
+STREAM_GATEWAY_URL = os.getenv('STREAM_GATEWAY_URL', '').strip()
 
 # Gemini Vision — optional backup only (AI_DETECTION_MODE=hybrid + flags below)
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')

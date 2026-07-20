@@ -1,16 +1,18 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect } from 'react';
 import {
   Car, FileText, AlertTriangle, CheckCircle, Clock, ArrowRight,
-  Sparkles, RefreshCw, Zap, Scale, Shield,
+  RefreshCw, Scale, Shield, CreditCard, BookOpen,
 } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { formatAppDate, greetingKey, formatAppCurrency } from '@shared/i18n/localeFormat';
 import { WelcomeProfileAvatar } from '@shared/components/WelcomeProfileAvatar';
+import { Button } from '@shared/components/ui/button';
 import { useDriverDashboardStats } from '@shared/hooks/queries/useDashboardQueries';
 import { EMPTY_DRIVER_STATS } from '@shared/constants/emptyDashboard';
 import { DASHBOARD_PALETTE } from '@shared/constants/chartPalette';
+import { USER_PORTAL_ROUTES } from '@shared/constants/portalRoutes';
 import type { Fine } from '@shared/types';
 import { toast } from 'sonner';
 
@@ -23,55 +25,24 @@ const STATUS_BADGE: Record<string, { bg: string; color: string; accent: string }
   dismissed: { bg: 'rgba(100,116,139,0.12)', color: '#475569', accent: '#64748B' },
 };
 
-function KpiCard({ title, value, note, icon, palette }: {
-  title: string; value: string | number; note: string; icon: ReactNode;
-  palette: (typeof C)[number];
-}) {
-  return (
-    <div
-      className="user-dashboard-kpi relative overflow-hidden rounded-2xl p-5 text-white shadow-lg"
-      style={{ background: palette.grad, boxShadow: `0 12px 32px ${palette.soft}` }}
-    >
-      <div className="absolute top-0 right-0 w-32 h-32 rounded-full -translate-y-8 translate-x-8"
-        style={{ background: 'rgba(255,255,255,0.08)' }} />
-      <div className="absolute bottom-0 left-0 w-16 h-16 rounded-full translate-y-6 -translate-x-4"
-        style={{ background: 'rgba(255,255,255,0.05)' }} />
-      <div className="relative z-[1] flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="dashboard-kpi__label">{title}</p>
-          <p className="dashboard-kpi__value mt-2">{value}</p>
-          <p className="dashboard-kpi__sub mt-1">{note}</p>
-        </div>
-        <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0 backdrop-blur-sm border border-white/20">
-          {icon}
-        </div>
-      </div>
-    </div>
-  );
-}
+const VIOLATION_REASONS = [
+  { key: 'runningRedLight', value: 'Running Red Light' },
+  { key: 'speeding', value: 'Speeding (above limit)' },
+  { key: 'noHelmet', value: 'No Helmet (Motorcycle)' },
+  { key: 'noSeatbelt', value: 'No Seatbelt' },
+  { key: 'illegalParking', value: 'Illegal Parking' },
+  { key: 'wrongWay', value: 'Wrong Way on One-Way Street' },
+  { key: 'mobilePhone', value: 'Using Mobile Phone While Driving' },
+  { key: 'failureToStop', value: 'Failure to Stop at Stop Sign' },
+  { key: 'noValidLicense', value: 'No Valid License' },
+  { key: 'recklessDriving', value: 'Reckless Driving' },
+  { key: 'speedingSchoolZone', value: 'Speeding in School Zone' },
+  { key: 'noRegistration', value: 'No Vehicle Registration' },
+] as const;
 
-function PanelCard({ title, accent, icon, action, children }: {
-  title: string; accent: string; icon: ReactNode; action?: ReactNode; children: ReactNode;
-}) {
-  return (
-    <div className="user-dashboard-panel">
-      <div className="user-dashboard-panel__bar" style={{ background: accent }} />
-      <div className="p-5">
-        <div className="flex items-center justify-between mb-4 gap-3">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm"
-              style={{ background: `${accent}18`, color: accent }}>
-              {icon}
-            </div>
-            <h3 className="dashboard-card__title truncate">{title}</h3>
-          </div>
-          {action}
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
+const REASON_VALUE_TO_KEY = Object.fromEntries(
+  VIOLATION_REASONS.map((reason) => [reason.value, reason.key]),
+) as Record<string, typeof VIOLATION_REASONS[number]['key']>;
 
 export function DriverDashboard() {
   const { user } = useAuth();
@@ -93,28 +64,63 @@ export function DriverDashboard() {
 
   const loading = isLoading && !data;
 
-  const quickActions = [
-    { label: t('dashboard.qaMyViolations'), desc: t('dashboard.qaMyViolationsDesc'), icon: <Shield size={22} />, path: '/dashboard/violations', palette: C[0], badge: null },
-    { label: t('dashboard.qaMyAppeals'), desc: t('dashboard.qaMyAppealsDesc'), icon: <Scale size={22} />, path: '/dashboard/appeals', palette: C[1], badge: null },
-    { label: t('dashboard.qaMyVehicles'), desc: t('dashboard.qaMyVehiclesDesc'), icon: <Car size={22} />, path: '/dashboard/vehicles', palette: C[2], badge: null },
-    { label: t('dashboard.qaMyFines'), desc: t('dashboard.qaMyFinesDesc'), icon: <FileText size={22} />, path: '/dashboard/fines', palette: C[5], badge: stats?.pending ? t('dashboard.pendingBadge', { count: stats.pending }) : null },
-  ];
+  const translateReason = (reason: string) => {
+    const key = REASON_VALUE_TO_KEY[reason];
+    if (key) return t(`fines.reasons.${key}`);
+    return reason;
+  };
+
+  const statusLabel = (status: string) => t(`fines.status.${status}` as 'fines.status.pending');
 
   const statCards = [
-    { title: t('dashboard.statMyVehicles'), value: stats?.vehicles ?? 0, icon: <Car size={18} />, note: t('dashboard.noteRegistered'), palette: C[1] },
-    { title: t('dashboard.statTotalFines'), value: stats?.total_fines ?? 0, icon: <FileText size={18} />, note: t('dashboard.noteAllTime'), palette: C[6] },
-    { title: t('dashboard.statOutstanding'), value: stats?.pending ?? 0, icon: <Clock size={18} />, note: t('dashboard.noteNeedPayment'), palette: C[5] },
-    { title: t('dashboard.statAmountOwed'), value: formatAppCurrency(locale, stats?.owed ?? 0), icon: <AlertTriangle size={18} />, note: t('dashboard.noteUsdTotal'), palette: C[4] },
+    { tone: 'teal', icon: Car, value: String(stats?.vehicles ?? 0), label: t('dashboard.statMyVehicles') },
+    { tone: 'blue', icon: FileText, value: String(stats?.total_fines ?? 0), label: t('dashboard.statTotalFines') },
+    { tone: 'amber', icon: Clock, value: String(stats?.pending ?? 0), label: t('dashboard.statOutstanding') },
+    { tone: 'rose', icon: AlertTriangle, value: formatAppCurrency(locale, stats?.owed ?? 0), label: t('dashboard.statAmountOwed') },
+  ];
+
+  const quickActions = [
+    {
+      label: t('dashboard.qaMyFines'),
+      desc: t('dashboard.qaMyFinesDesc'),
+      icon: FileText,
+      tone: C[5],
+      badge: stats?.pending ? t('dashboard.pendingBadge', { count: stats.pending }) : null,
+      onClick: () => navigate(USER_PORTAL_ROUTES.fines),
+    },
+    {
+      label: t('dashboard.qaMyVehicles'),
+      desc: t('dashboard.qaMyVehiclesDesc'),
+      icon: Car,
+      tone: C[2],
+      badge: null as string | null,
+      onClick: () => navigate(USER_PORTAL_ROUTES.vehicles),
+    },
+    {
+      label: t('dashboard.qaMyAppeals'),
+      desc: t('dashboard.qaMyAppealsDesc'),
+      icon: Scale,
+      tone: C[1],
+      badge: null,
+      onClick: () => navigate(USER_PORTAL_ROUTES.appeals),
+    },
+    {
+      label: t('sidebar.modules.trafficRules'),
+      desc: t('trafficRules.subtitle'),
+      icon: BookOpen,
+      tone: C[6],
+      badge: null,
+      onClick: () => navigate(USER_PORTAL_ROUTES.trafficRules),
+    },
   ];
 
   if (loading) {
     return (
-      <div className="dashboard-home space-y-5">
-        <div className="h-1.5 rounded-full animate-pulse" style={{ background: 'rgba(37,99,235,0.12)' }} />
-        <div className="h-[120px] rounded-3xl animate-pulse" style={{ background: 'rgba(37,99,235,0.07)' }} />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="enforcement-page enforcement-page--driver-dashboard driver-dashboard-page admin-dashboard-page space-y-4">
+        <div className="h-[120px] rounded-2xl animate-pulse" style={{ background: 'rgba(37,99,235,0.07)' }} />
+        <div className="enforcement-page__stat-grid">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-[110px] rounded-2xl animate-pulse" style={{ background: 'rgba(37,99,235,0.07)' }} />
+            <div key={i} className="h-[88px] rounded-2xl animate-pulse bg-white/60 dark:bg-slate-800/40" />
           ))}
         </div>
       </div>
@@ -123,267 +129,266 @@ export function DriverDashboard() {
 
   if (isError && !data) {
     return (
-      <div className="rounded-2xl bg-white p-8 text-center shadow-sm" style={{ border: '1px solid rgba(37,99,235,0.1)' }}>
-        <p className="text-slate-700 font-semibold mb-2">{t('dashboard.loadErrorTitle')}</p>
-        <p className="text-sm text-slate-500 mb-4">{t('dashboard.loadErrorHint')}</p>
-        <button
-          type="button"
-          onClick={() => { void refetch(); }}
-          disabled={isFetching}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold"
-          style={{ background: C[1].grad }}
-        >
-          <RefreshCw size={16} /> {t('dashboard.retry')}
-        </button>
+      <div className="enforcement-page enforcement-page--driver-dashboard driver-dashboard-page admin-dashboard-page">
+        <div className="enforcement-page__panel p-8 text-center space-y-4">
+          <p className="font-semibold text-slate-800 dark:text-slate-100">{t('dashboard.loadErrorTitle')}</p>
+          <p className="text-sm text-slate-500">{t('dashboard.loadErrorHint')}</p>
+          <Button type="button" onClick={() => { void refetch(); }} disabled={isFetching} className="gap-2">
+            <RefreshCw size={16} /> {t('dashboard.retry')}
+          </Button>
+        </div>
       </div>
     );
   }
 
   const firstName = user?.full_name.split(' ')[0] ?? '';
+  const hasOutstanding = (stats?.owed ?? 0) > 0;
 
   return (
-    <div className="dashboard-home space-y-5">
-      <div
-        className="user-dashboard-hero dashboard-welcome--hero relative overflow-hidden rounded-3xl p-6 lg:p-7"
-        style={{
-          background: 'linear-gradient(135deg, #0B1220 0%, #1E1B4B 42%, #134E4A 100%)',
-          border: '1px solid rgba(255,255,255,0.08)',
-        }}
-      >
-        {C.slice(0, 5).map((c, i) => (
-          <div
-            key={c.name}
-            className="user-dashboard-hero__orb"
-            style={{
-              background: `radial-gradient(circle, ${c.solid}55 0%, transparent 70%)`,
-              top: i % 2 === 0 ? '-18%' : 'auto',
-              bottom: i % 2 === 1 ? '-22%' : 'auto',
-              left: `${6 + i * 14}%`,
-              width: `${100 + i * 24}px`,
-              height: `${100 + i * 24}px`,
-            }}
-          />
-        ))}
-        <div className="relative flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center gap-4 min-w-0">
+    <div className="enforcement-page enforcement-page--driver-dashboard driver-dashboard-page admin-dashboard-page">
+      <div className="enforcement-page__hero">
+        <div className="enforcement-page__hero-glow--primary" aria-hidden />
+        <div className="enforcement-page__hero-glow--secondary" aria-hidden />
+        <div className="enforcement-page__hero-inner driver-dashboard-hero__inner">
+          <div className="flex items-start gap-4 min-w-0">
             <WelcomeProfileAvatar role="driver" variant="welcome" />
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: C[2].grad }}>
-                  <Sparkles size={14} className="text-white" />
-                </div>
-                <span className="dashboard-welcome__eyebrow">{t('dashboard.driverPortal')}</span>
+            <div className="min-w-0">
+              <div className="enforcement-page__eyebrow">
+                <span className="enforcement-page__eyebrow-icon">
+                  <Car size={14} />
+                </span>
+                {t('dashboard.driverPortal')}
               </div>
-              <h1 className="dashboard-welcome__title">
-                {t(greetingKey(now.getHours()))}, {firstName}!
+              <h1 className="enforcement-page__title">
+                {t(greetingKey(now.getHours()))}, {firstName}
               </h1>
-              <p className="dashboard-welcome__meta mt-1">
-                {formatAppDate(locale, now)}
+              <p className="enforcement-page__subtitle driver-dashboard-hero__subtitle">
+                {t('dashboard.driverWelcome', { name: user?.full_name ?? '' })} · {formatAppDate(locale, now)}
               </p>
             </div>
           </div>
-
-          <div className="flex flex-wrap gap-3">
-            {(stats?.owed ?? 0) > 0 ? (
-              <div
-                className="user-dashboard-balance flex items-center gap-3 px-4 py-3 rounded-2xl"
-                style={{ borderTop: `3px solid ${C[5].solid}` }}
-              >
-                <AlertTriangle size={18} style={{ color: '#fda4af' }} />
-                <div>
-                  <p className="user-dashboard-balance__label text-[11px] uppercase tracking-wide">{t('dashboard.outstandingBalance')}</p>
-                  <p className="user-dashboard-balance__amount text-lg">{formatAppCurrency(locale, stats?.owed ?? 0)}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => navigate('/dashboard/fines')}
-                  className="px-3 py-2 rounded-xl text-white text-xs font-bold flex items-center gap-1 ml-1"
-                  style={{ background: C[5].grad, boxShadow: `0 8px 20px ${C[5].soft}` }}
-                >
-                  {t('dashboard.payNow')} <ArrowRight size={12} />
-                </button>
-              </div>
-            ) : (
-              <div
-                className="px-4 py-3 rounded-2xl text-center min-w-[8rem]"
-                style={{ borderTop: `3px solid ${C[3].solid}`, background: 'rgba(255,255,255,0.06)' }}
-              >
-                <div className="flex items-center justify-center gap-1.5 mb-1">
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: C[3].solid, boxShadow: `0 0 8px ${C[3].solid}` }} />
-                  <span className="dashboard-welcome__status-label">{t('dashboard.driveSafe')}</span>
-                </div>
-                <p className="dashboard-welcome__status-value" style={{ color: C[3].solid }}>{t('users.active')}</p>
-              </div>
-            )}
-            <div
-              className="px-4 py-3 rounded-2xl text-center min-w-[7rem] hidden sm:block"
-              style={{ borderTop: `3px solid ${C[0].solid}`, background: 'rgba(255,255,255,0.06)' }}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => { void refetch(); }}
+              disabled={isFetching}
+              className="enforcement-page__hero-btn enforcement-page__hero-btn--outline"
             >
-              <div className="flex items-center justify-center gap-1.5 mb-1">
-                <Zap size={12} style={{ color: C[0].solid }} />
-                <span className="dashboard-welcome__status-label">AI</span>
-              </div>
-              <p className="dashboard-welcome__status-value">{t('dashboard.qaAiBadge')}</p>
-            </div>
+              <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
+              {t('dashboard.refreshData')}
+            </button>
+            {hasOutstanding ? (
+              <button
+                type="button"
+                onClick={() => navigate(USER_PORTAL_ROUTES.fines)}
+                className="enforcement-page__hero-btn"
+              >
+                {t('dashboard.payNow')} <ArrowRight size={14} />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => navigate(USER_PORTAL_ROUTES.trafficRules)}
+                className="enforcement-page__hero-btn"
+              >
+                <BookOpen size={14} />
+                {t('sidebar.modules.trafficRules')}
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((s) => (
-          <KpiCard key={s.title} {...s} />
-        ))}
-      </div>
-
-      <div className="user-dashboard-section">
-        <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
-          <h2 className="dashboard-section__title">{t('dashboard.quickActions')}</h2>
-          <span className="dashboard-section__subtitle">{t('dashboard.quickActionsHint')}</span>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {quickActions.map((a) => (
-            <button
-              key={a.label}
-              type="button"
-              onClick={() => navigate(a.path)}
-              className="user-dashboard-action text-left rounded-2xl p-5 relative overflow-hidden min-h-[168px] flex flex-col justify-end"
-              style={{ background: a.palette.grad, boxShadow: `0 10px 28px ${a.palette.soft}` }}
-            >
-              <div className="absolute top-0 right-0 w-24 h-24 rounded-full -translate-y-8 translate-x-8"
-                style={{ background: 'rgba(255,255,255,0.12)' }} />
-              {a.badge && (
-                <span className="user-dashboard-action__badge">{a.badge}</span>
-              )}
-              <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3 relative z-[1] border border-white/25 text-white">
-                {a.icon}
+      <div className="enforcement-page__stat-grid mb-4">
+        {statCards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <div key={card.label} className={`enforcement-page__stat-card enforcement-page__stat-card--${card.tone}`}>
+              <div className={`enforcement-page__stat-icon enforcement-page__stat-icon--${card.tone}`}>
+                <Icon size={18} />
               </div>
-              <p className="user-dashboard-action__title">{a.label}</p>
-              <p className="user-dashboard-action__desc mt-1 line-clamp-2">{a.desc}</p>
-              <span className="user-dashboard-action__link">
-                {t('dashboard.open')} <ArrowRight size={12} />
-              </span>
-            </button>
-          ))}
+              <div className="enforcement-page__stat-copy">
+                <p className="enforcement-page__stat-value">{card.value}</p>
+                <p className={`enforcement-page__stat-label enforcement-page__stat-label--${card.tone}`}>
+                  {card.label}
+                </p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="enforcement-page__panel driver-dashboard-quick-panel mb-4">
+        <div className="driver-dashboard-quick-panel__head">
+          <h2 className="dashboard-section__title">{t('dashboard.quickActions')}</h2>
+          <p className="dashboard-section__subtitle">{t('dashboard.quickActionsHint')}</p>
+        </div>
+        <div className="driver-dashboard-quick-grid">
+          {quickActions.map((action) => {
+            const Icon = action.icon;
+            return (
+              <button
+                key={action.label}
+                type="button"
+                onClick={action.onClick}
+                className="driver-dashboard-quick-card"
+              >
+                <div
+                  className="driver-dashboard-quick-card__icon"
+                  style={{ background: `${action.tone.solid}14`, color: action.tone.solid, borderColor: `${action.tone.solid}28` }}
+                >
+                  <Icon size={20} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="driver-dashboard-quick-card__title">{action.label}</p>
+                    {action.badge && (
+                      <span className="driver-dashboard-quick-card__badge">{action.badge}</span>
+                    )}
+                  </div>
+                  <p className="driver-dashboard-quick-card__desc">{action.desc}</p>
+                </div>
+                <ArrowRight size={16} className="driver-dashboard-quick-card__arrow shrink-0" />
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <PanelCard
-          title={t('dashboard.recentFines')}
-          accent={C[5].solid}
-          icon={<FileText size={16} />}
-          action={(
-            <button
-              type="button"
-              onClick={() => navigate('/dashboard/fines')}
-              className="user-dashboard-panel__link text-[13px] flex items-center gap-1 flex-shrink-0"
-            >
-              {t('dashboard.viewAll')} <ArrowRight size={12} />
-            </button>
-          )}
-        >
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="enforcement-page__panel driver-dashboard-panel">
+          <div className="driver-dashboard-panel__head flex items-start justify-between gap-3">
+            <div>
+              <div className="enforcement-page__eyebrow driver-dashboard-panel__eyebrow">
+                <span className="enforcement-page__eyebrow-icon">
+                  <FileText size={14} />
+                </span>
+                {t('dashboard.recentFines')}
+              </div>
+              <p className="driver-dashboard-panel__subtitle">{t('dashboard.driverRecentFinesSubtitle')}</p>
+            </div>
+            {(stats?.recent_fines?.length ?? 0) > 0 && (
+              <button
+                type="button"
+                onClick={() => navigate(USER_PORTAL_ROUTES.fines)}
+                className="driver-dashboard-panel__link"
+              >
+                {t('dashboard.viewAll')} <ArrowRight size={12} />
+              </button>
+            )}
+          </div>
+
           {!stats?.recent_fines?.length ? (
-            <div className="text-center py-10 rounded-xl" style={{ background: C[3].soft, border: `1px dashed ${C[3].solid}44` }}>
-              <CheckCircle size={32} className="mx-auto mb-2.5" style={{ color: C[3].solid }} />
-              <p className="text-sm font-semibold" style={{ color: '#334155' }}>{t('dashboard.noRecentFines')}</p>
-              <p className="text-sm mt-1" style={{ color: '#64748b' }}>{t('dashboard.driveSafe')}</p>
+            <div className="driver-dashboard-empty">
+              <CheckCircle size={32} className="mx-auto mb-3 opacity-30" style={{ color: C[3].solid }} />
+              <p className="text-sm font-medium text-slate-500">{t('dashboard.noRecentFines')}</p>
+              <p className="text-xs text-slate-400 mt-1">{t('dashboard.driveSafe')}</p>
             </div>
           ) : (
-            <div className="space-y-2.5">
-              {stats.recent_fines.map((f) => {
+            <div className="space-y-2">
+              {stats.recent_fines.map((f: Fine) => {
                 const badge = STATUS_BADGE[f.status] || STATUS_BADGE.dismissed;
                 return (
-                  <div
+                  <button
                     key={f.id}
-                    className="flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer"
-                    style={{ background: '#F8FAFC', borderLeft: `3px solid ${badge.accent}` }}
-                    onClick={() => navigate('/dashboard/fines')}
-                    onKeyDown={(e) => e.key === 'Enter' && navigate('/dashboard/fines')}
-                    role="button"
-                    tabIndex={0}
+                    type="button"
+                    onClick={() => navigate(USER_PORTAL_ROUTES.fines)}
+                    className="driver-dashboard-fine-row"
+                    style={{ borderLeftColor: badge.accent }}
                   >
-                    <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                      style={{ background: badge.bg, color: badge.color }}>
+                    <div
+                      className="driver-dashboard-fine-row__icon"
+                      style={{ background: badge.bg, color: badge.color }}
+                    >
                       <FileText size={15} />
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="user-dashboard-list-item__title truncate">{f.reason}</p>
-                      <p className="user-dashboard-list-item__meta mt-0.5">{new Date(f.created_at).toLocaleDateString()}</p>
+                    <div className="min-w-0 flex-1 text-left">
+                      <p className="enforcement-page__cell-primary truncate">{translateReason(f.reason)}</p>
+                      <p className="enforcement-page__cell-mono mt-0.5">
+                        {new Date(f.created_at).toLocaleDateString(locale === 'km' ? 'km-KH' : 'en-US')}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-2 ml-2 flex-shrink-0">
-                      <span className="user-dashboard-list-item__amount">{formatAppCurrency(locale, f.amount)}</span>
-                      <span className="user-dashboard-status-pill px-2 py-0.5 rounded-full"
-                        style={{ background: badge.bg, color: badge.color }}>
-                        {t(`fines.status.${f.status}`)}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="enforcement-page__cell-primary font-bold">
+                        {formatAppCurrency(locale, f.amount)}
+                      </span>
+                      <span
+                        className="enforcement-page__code-pill text-[10px]"
+                        style={{ background: badge.bg, color: badge.color }}
+                      >
+                        {statusLabel(f.status)}
                       </span>
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
           )}
-        </PanelCard>
+        </div>
 
-        <PanelCard
-          title={t('dashboard.recentFines')}
-          accent={C[5].solid}
-          icon={<FileText size={16} />}
-          action={(
+        <div className="enforcement-page__panel driver-dashboard-panel">
+          <div className="driver-dashboard-panel__head flex items-start justify-between gap-3">
+            <div>
+              <div className="enforcement-page__eyebrow driver-dashboard-panel__eyebrow">
+                <span className="enforcement-page__eyebrow-icon">
+                  <CreditCard size={14} />
+                </span>
+                {t('dashboard.driverPaymentSummary')}
+              </div>
+              <p className="driver-dashboard-panel__subtitle">{t('dashboard.driverPaymentSummarySub')}</p>
+            </div>
             <button
               type="button"
-              onClick={() => navigate('/dashboard/fines')}
-              className="user-dashboard-panel__link text-[13px] flex items-center gap-1 flex-shrink-0"
-              style={{ color: C[5].dark }}
+              onClick={() => navigate(USER_PORTAL_ROUTES.finesPayments)}
+              className="driver-dashboard-panel__link"
             >
               {t('dashboard.viewAll')} <ArrowRight size={12} />
             </button>
-          )}
-        >
-          {!stats?.recent_fines?.length ? (
-            <div className="text-center py-10 rounded-xl" style={{ background: C[5].soft, border: `1px dashed ${C[5].solid}44` }}>
-              <FileText size={32} className="mx-auto mb-2.5" style={{ color: C[5].solid }} />
-              <p className="text-sm font-semibold" style={{ color: '#334155' }}>{t('dashboard.noFinesYet')}</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="enforcement-page__stat-card enforcement-page__stat-card--emerald !p-4">
+              <div className="enforcement-page__stat-copy text-center w-full">
+                <p className="enforcement-page__stat-value">{stats?.paid ?? 0}</p>
+                <p className="enforcement-page__stat-label enforcement-page__stat-label--emerald">
+                  {t('dashboard.paidFines')}
+                </p>
+              </div>
+            </div>
+            <div className="enforcement-page__stat-card enforcement-page__stat-card--rose !p-4">
+              <div className="enforcement-page__stat-copy text-center w-full">
+                <p className="enforcement-page__stat-value">{stats?.pending ?? 0}</p>
+                <p className="enforcement-page__stat-label enforcement-page__stat-label--rose">
+                  {t('dashboard.statOutstanding')}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {hasOutstanding ? (
+            <div className="rounded-xl p-4 flex items-center justify-between gap-3 flex-wrap border border-rose-200/60 bg-rose-50/60 dark:bg-rose-950/20 dark:border-rose-900/40">
+              <div>
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t('dashboard.outstandingBalance')}</p>
+                <p className="text-xl font-bold mt-0.5 text-rose-700 dark:text-rose-300">
+                  {formatAppCurrency(locale, stats?.owed ?? 0)}
+                </p>
+              </div>
               <button
                 type="button"
-                onClick={() => navigate('/dashboard/violations')}
-                className="mt-3 px-4 py-2 rounded-xl text-white text-xs font-semibold"
-                style={{ background: C[5].grad }}
+                onClick={() => navigate(USER_PORTAL_ROUTES.fines)}
+                className="enforcement-page__hero-btn"
               >
-                {t('dashboard.qaMyViolations')}
+                {t('dashboard.payNow')} <ArrowRight size={14} />
               </button>
             </div>
           ) : (
-            <div className="space-y-2.5">
-              {stats.recent_fines.map((f, i) => {
-                const badge = STATUS_BADGE[f.status] ?? STATUS_BADGE.pending;
-                const tone = C[i % C.length];
-                return (
-                  <div
-                    key={f.id}
-                    className="flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer"
-                    style={{ background: tone.soft, border: `1px solid ${tone.solid}22` }}
-                    onClick={() => navigate('/dashboard/fines')}
-                    onKeyDown={(e) => e.key === 'Enter' && navigate('/dashboard/fines')}
-                    role="button"
-                    tabIndex={0}
-                  >
-                    <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                      style={{ background: badge.bg, color: badge.color }}>
-                      <FileText size={15} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="user-dashboard-list-item__title truncate">{f.reason}</p>
-                      <p className="user-dashboard-list-item__meta mt-0.5">{new Date(f.created_at).toLocaleDateString()}</p>
-                    </div>
-                    <span className="user-dashboard-list-item__amount flex-shrink-0">
-                      {formatAppCurrency(locale, f.amount)}
-                    </span>
-                  </div>
-                );
-              })}
+            <div className="driver-dashboard-empty">
+              <Shield size={32} className="mx-auto mb-3 opacity-30" style={{ color: C[3].solid }} />
+              <p className="text-sm font-medium text-slate-500">{t('dashboard.driverComplianceClear')}</p>
+              <p className="text-xs text-slate-400 mt-1">{t('dashboard.driveSafe')}</p>
             </div>
           )}
-        </PanelCard>
+        </div>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-"""Shared helpers for sign-catalog tests (thesis 10-class vs full 236-class)."""
+"""Shared helpers for sign-catalog tests (production catalog vs full 236-class)."""
 from __future__ import annotations
 
 import os
@@ -8,13 +8,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 FULL_CATALOG_PATH = ROOT / 'ai' / 'sign_catalog.json'
 
-# Official PW03 code -> thesis short code (catalog_10).
-SHORT_CODES: dict[str, str] = {
-    'PW03-R1-04': 'R1-04',
-    'PW03-R1-01': 'R1-01',
-    'PW03-R1-02': 'R1-02',
-    'PW03-R1-03': 'R1-03',
-    'PW03-R2-10': 'R2-10',
+# Official PW03 / short thesis codes <-> production catalog display codes.
+CODE_ALIASES: dict[str, set[str]] = {
+    'PW03-R1-04': {'R1-04', 'PROH-001'},
+    'PW03-R1-01': {'R1-01', 'PROH-002'},
+    'PW03-R1-02': {'R1-02', 'PROH-003'},
+    'PW03-R1-03': {'R1-03', 'PROH-004'},
+    'PW03-R2-10': {'R2-10', 'PROH-005'},
+    'M-032': {'MAN-001'},
 }
 
 
@@ -25,11 +26,10 @@ def equivalent_sign_codes(*codes: str) -> set[str]:
         if not code:
             continue
         allowed.add(code)
-        if code in SHORT_CODES:
-            allowed.add(SHORT_CODES[code])
-        for official, short in SHORT_CODES.items():
-            if code == short:
-                allowed.add(official)
+        for official, aliases in CODE_ALIASES.items():
+            group = {official, *aliases}
+            if code in group:
+                allowed.update(group)
     return allowed
 
 

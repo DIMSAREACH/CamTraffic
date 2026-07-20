@@ -53,6 +53,10 @@ docker compose up -d --build
 | Path | Description |
 |------|-------------|
 | `backend/` | Django REST API + AI pipeline |
+| `services/ai-vision-service/` | FastAPI AI microservice (Enterprise v2) |
+| `services/ocr-service/` | FastAPI OCR / ANPR microservice (Enterprise v2) |
+| `services/stream-gateway/` | RTSP ingest + frame dispatch (Enterprise v2) |
+| `apps/citizen/` | Next.js citizen PWA (Enterprise v2) |
 | `frontend-admin/` | Administrator portal |
 | `frontend-user/` | Police & driver portal |
 | `packages/` | Shared `@camtraffic/*` libraries |
@@ -104,6 +108,8 @@ npm run docker:prod:up
 ## Documentation
 
 - [`docs/README.md`](docs/README.md) — documentation index  
+- [`docs/enterprise/README.md`](docs/enterprise/README.md) — **Enterprise v2 specification** (nationwide deployment)  
+- [`docs/enterprise/IMPLEMENTATION-ROADMAP.md`](docs/enterprise/IMPLEMENTATION-ROADMAP.md) — v2 implementation phases  
 - [`docs/CHECKLIST.md`](docs/CHECKLIST.md) — 440-task master checklist (440/440 done)  
 - [`docs/INSTALLATION-GUIDE.md`](docs/INSTALLATION-GUIDE.md) — setup guide  
 - [`docs/final-year-project/thesis/`](docs/final-year-project/thesis/) — thesis chapters  

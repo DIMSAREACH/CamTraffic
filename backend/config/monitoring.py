@@ -38,9 +38,18 @@ def check_ai_weights() -> dict:
     return {'status': 'missing', 'path': str(weights)}
 
 
+def check_ai_vision_service() -> dict:
+    try:
+        from ai_detection.remote_client import check_vision_service_health
+
+        return check_vision_service_health()
+    except Exception as exc:
+        return {'status': 'error', 'detail': str(exc)}
+
+
 def get_system_status() -> dict:
     disk = shutil.disk_usage(Path(settings.BASE_DIR).parent)
-    return {
+    payload = {
         'service': 'camtraffic-api',
         'python': sys.version.split()[0],
         'debug': settings.DEBUG,
@@ -49,3 +58,14 @@ def get_system_status() -> dict:
         'ai_weights': check_ai_weights(),
         'disk_free_gb': round(disk.free / 1_073_741_824, 2),
     }
+    if getattr(settings, 'AI_VISION_SERVICE_URL', ''):
+        payload['ai_vision_service'] = check_ai_vision_service()
+    if getattr(settings, 'OCR_SERVICE_URL', ''):
+        from ai_detection.ocr_remote_client import check_ocr_service_health
+
+        payload['ocr_service'] = check_ocr_service_health()
+    if getattr(settings, 'STREAM_GATEWAY_URL', ''):
+        from ai_detection.stream_remote_client import check_stream_gateway_health
+
+        payload['stream_gateway'] = check_stream_gateway_health()
+    return payload

@@ -46,6 +46,7 @@ Thumbs.db
 .cursor/
 
 # Agent / local scratch (do not commit)
+.local-prod/
 _extract_*.txt
 _t*.txt
 _*.py

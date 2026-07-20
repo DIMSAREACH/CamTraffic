@@ -8,7 +8,13 @@ import { useLanguage } from '@shared/context/LanguageContext';
 import { aiModelsAPI } from '@shared/services/api';
 import { toast } from 'sonner';
 import { AIMlopsHero } from '@shared/components/admin/AIMlopsHero';
-import { enrichAIModels, formatPct, type EnrichedAIModel } from '@shared/utils/aiModelUi';
+import {
+  enrichAIModels,
+  formatPct,
+  MODEL_STATUS_META,
+  modelStatusLabel,
+  type EnrichedAIModel,
+} from '@shared/utils/aiModelUi';
 import type { AIModelVersion } from '@shared/types';
 
 const DEMO_MODELS: AIModelVersion[] = [
@@ -117,54 +123,72 @@ export function AIDeploymentsPage() {
         </div>
       ) : null}
 
-      <section className="ai-mlops-panel">
-        <header className="ai-mlops-panel__head">
+      <section>
+        <header className="ai-mlops-panel__head !px-0 !pt-0">
           <div>
             <h2 className="ai-mlops-panel__title">{tr('aiMlops.availableVersions', 'Available versions')}</h2>
             <p className="ai-mlops-panel__sub">{tr('aiMlops.availableVersionsSub', 'Promote a version to production or keep current deployment')}</p>
           </div>
         </header>
-        <div className="ai-mlops-panel__body overflow-x-auto">
-          <Table className="enforcement-page__table">
-            <TableHeader>
-              <TableRow className="enforcement-page__table-head">
-                {[tr('aiMlops.colModel', 'Model'), tr('aiMlops.colVersion', 'Version'), tr('aiMlops.colAccuracy', 'Accuracy'), tr('aiMlops.colStatus', 'Status'), tr('aiMlops.colAction', 'Action')].map((h) => (
-                  <TableHead key={h} className="enforcement-page__th">{h}</TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                [...Array(3)].map((_, i) => (
-                  <TableRow key={i}>
-                    {[...Array(5)].map((__, j) => <TableCell key={j}><div className="enforcement-page__skeleton" /></TableCell>)}
-                  </TableRow>
-                ))
-              ) : models.length === 0 ? (
-                <TableEmptyState colSpan={5} tone="violet" icon={<Rocket size={28} />} title={tr('aiModels.empty', 'No AI models registered')} />
-              ) : models.map((m) => (
-                <TableRow key={m.id} className="enforcement-page__table-row">
-                  <TableCell><span className="ai-mlops-name">{m.name}</span></TableCell>
-                  <TableCell><span className="ai-mlops-version">{m.version}</span></TableCell>
-                  <TableCell><span className="ai-mlops-acc">{formatPct(m.accuracy)}</span></TableCell>
-                  <TableCell>
-                    <span className={`ai-mlops-badge ai-mlops-badge--${m.is_active ? 'active' : 'draft'}`}>
-                      {m.is_active ? tr('aiMlops.statusActive', 'Active') : tr('aiMlops.statusDraft', 'Draft')}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    {m.is_active ? (
-                      <span className="text-xs text-slate-500">{tr('aiMlops.inProduction', 'In production')}</span>
-                    ) : (
-                      <button type="button" className="ai-mlops-action ai-mlops-action--deploy" onClick={() => void handleActivate(m.id)}>
-                        <RotateCcw size={12} /> {tr('aiMlops.rollbackOrDeploy', 'Deploy / Roll back')}
-                      </button>
-                    )}
-                  </TableCell>
+        <div className="enforcement-page__panel">
+          <div className="overflow-x-auto">
+            <Table className="enforcement-page__table mgmt-table__grid ai-models-table">
+              <TableHeader>
+                <TableRow className="enforcement-page__table-head">
+                  <TableHead className="enforcement-page__th text-left ai-models-table__col--model">{tr('aiMlops.colModel', 'Model')}</TableHead>
+                  <TableHead className="enforcement-page__th text-left ai-models-table__col--version">{tr('aiMlops.colVersion', 'Version')}</TableHead>
+                  <TableHead className="enforcement-page__th text-left ai-models-table__col--accuracy">{tr('aiMlops.colAccuracy', 'Accuracy')}</TableHead>
+                  <TableHead className="enforcement-page__th text-left ai-models-table__col--status">{tr('aiMlops.colStatus', 'Status')}</TableHead>
+                  <TableHead className="enforcement-page__th text-left ai-models-table__col--action">{tr('aiMlops.colAction', 'Action')}</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  [...Array(3)].map((_, i) => (
+                    <TableRow key={i}>
+                      {[...Array(5)].map((__, j) => <TableCell key={j}><div className="enforcement-page__skeleton" /></TableCell>)}
+                    </TableRow>
+                  ))
+                ) : models.length === 0 ? (
+                  <TableEmptyState colSpan={5} tone="violet" icon={<Rocket size={28} />} title={tr('aiModels.empty', 'No AI models registered')} />
+                ) : models.map((m) => {
+                  const status = m.is_active ? 'active' as const : 'draft' as const;
+                  const st = MODEL_STATUS_META[status];
+                  return (
+                    <TableRow key={m.id} className={`enforcement-page__table-row${m.is_active ? ' ai-models-page__row--active' : ''}`}>
+                      <TableCell className="ai-models-table__col--model">
+                        <div className="mgmt-table__stack">
+                          <p className="mgmt-table__stack-title" title={m.description || m.name}>{m.name}</p>
+                          <p className="mgmt-table__stack-meta">{m.dataset}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="ai-models-table__col--version"><span className="enforcement-page__code-pill" title={m.version}>{m.version}</span></TableCell>
+                      <TableCell className="ai-models-table__col--accuracy"><span className="mgmt-table__amount">{formatPct(m.accuracy)}</span></TableCell>
+                      <TableCell className="ai-models-table__col--status">
+                        <span className="enforcement-page__badge" style={{ background: st.bg, color: st.color }}>
+                          {m.is_active ? <CheckCircle size={11} /> : null}
+                          {modelStatusLabel(status, tr)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="ai-models-table__col--action">
+                        {m.is_active ? (
+                          <span className="enforcement-page__cell-secondary">{tr('aiMlops.inProduction', 'In production')}</span>
+                        ) : (
+                          <button
+                            type="button"
+                            className="enforcement-page__action-btn enforcement-page__action-btn--success"
+                            onClick={() => void handleActivate(m.id)}
+                          >
+                            <RotateCcw size={13} /> {tr('aiMlops.rollbackOrDeploy', 'Deploy / Roll back')}
+                          </button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       </section>
     </div>

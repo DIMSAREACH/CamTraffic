@@ -13,10 +13,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     libgl1 \
     libglib2.0-0 \
+    libxcb1 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY backend/requirements.txt /app/requirements.txt
-RUN pip install --upgrade pip && pip install -r requirements.txt
+# CPU wheels only — default Linux torch pulls CUDA (~2GB+) and OOMs Docker Desktop / small VPS.
+RUN pip install --upgrade pip \
+    && pip install --upgrade-strategy only-if-needed \
+        torch torchvision --index-url https://download.pytorch.org/whl/cpu \
+    && pip install --upgrade-strategy only-if-needed -r requirements.txt
 
 COPY backend/ /app/backend/
 COPY ai/ /app/ai/

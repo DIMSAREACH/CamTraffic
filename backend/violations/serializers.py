@@ -21,7 +21,7 @@ class ViolationEvaluateSerializer(serializers.Serializer):
 
 
 class ViolationCreateSerializer(serializers.Serializer):
-    driver_id = serializers.UUIDField()
+    driver_id = serializers.UUIDField(required=False, allow_null=True)
     class_key = serializers.CharField(max_length=80)
     observed_action = serializers.CharField(max_length=50)
     sign_code = serializers.CharField(max_length=30, required=False, allow_blank=True)

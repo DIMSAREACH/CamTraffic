@@ -7,6 +7,7 @@ import {
   Building2,
   Camera,
   Car,
+  CheckCircle2,
   Cloud,
   Database,
   HardDrive,
@@ -25,6 +26,8 @@ import {
   Upload,
   UserCog,
   Cpu,
+  Code2,
+  Monitor,
 } from 'lucide-react';
 import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
@@ -403,6 +406,7 @@ export function AdminSystemSettingsPage() {
     storage_pct: 72,
   });
   const [backupMeta, setBackupMeta] = useState({ last: '—', location: 'Cloud Storage', schedule: 'Daily' });
+  const [platformStats, setPlatformStats] = useState({ detections: 0, accuracy: 0, users: 0 });
 
   const load = useCallback(async () => {
     const keys = [
@@ -449,6 +453,11 @@ export function AdminSystemSettingsPage() {
         ai: (statsRes.value.total_detections ?? 0) >= 0 ? 'running' : 'idle',
         database: 'healthy',
         storage_pct: 72,
+      });
+      setPlatformStats({
+        detections: statsRes.value.total_detections ?? 0,
+        accuracy: statsRes.value.detection_accuracy ?? 0,
+        users: statsRes.value.total_users ?? 0,
       });
     } else {
       setStatus((s) => ({ ...s, system: 'degraded', database: 'degraded' }));
@@ -538,6 +547,7 @@ export function AdminSystemSettingsPage() {
 
   const statusCards = [
     {
+      id: 'system',
       label: tr('systemSettings.statusSystem', 'System'),
       value:
         status.system === 'online'
@@ -547,6 +557,7 @@ export function AdminSystemSettingsPage() {
       icon: Server,
     },
     {
+      id: 'ai',
       label: tr('systemSettings.statusAi', 'AI Service'),
       value:
         status.ai === 'running'
@@ -556,6 +567,7 @@ export function AdminSystemSettingsPage() {
       icon: Cpu,
     },
     {
+      id: 'database',
       label: tr('systemSettings.statusDatabase', 'Database'),
       value:
         status.database === 'healthy'
@@ -565,6 +577,7 @@ export function AdminSystemSettingsPage() {
       icon: Database,
     },
     {
+      id: 'storage',
       label: tr('systemSettings.statusStorage', 'Storage'),
       value: tr('systemSettings.statusStorageUsed', '{pct}% Used').replace(
         '{pct}',
@@ -575,64 +588,211 @@ export function AdminSystemSettingsPage() {
     },
   ] as const;
 
+  const allSystemsHealthy =
+    status.system === 'online' && status.ai === 'running' && status.database === 'healthy';
+
   const renderPanel = () => {
     switch (category) {
       case 'overview':
         return (
-          <ConfigPanel
-            title={tr('systemSettings.overviewTitle', 'System Settings')}
-            description={tr(
-              'systemSettings.overviewHint',
-              'Monitor platform health and jump to a configuration category',
-            )}
-          >
-            <div className="settings-shell__status">
+          <div className="settings-shell__panel-body settings-overview">
+            <div
+              className={cn(
+                'settings-overview__health',
+                allSystemsHealthy
+                  ? 'settings-overview__health--ok'
+                  : 'settings-overview__health--warn',
+              )}
+            >
+              <span className="settings-overview__health-icon" aria-hidden>
+                {allSystemsHealthy ? <CheckCircle2 size={20} /> : <Activity size={20} />}
+              </span>
+              <div className="settings-overview__health-copy">
+                <p className="settings-overview__health-title">
+                  {allSystemsHealthy
+                    ? tr('systemSettings.healthAllOk', 'All core services are operational')
+                    : tr('systemSettings.healthAttention', 'Some services need attention')}
+                </p>
+                <p className="settings-overview__health-desc">
+                  {tr(
+                    'systemSettings.overviewHint',
+                    'Monitor platform health and jump to a configuration category',
+                  )}
+                </p>
+              </div>
+              <div className="settings-overview__health-stats">
+                <div className="settings-overview__health-stat">
+                  <span className="settings-overview__health-stat-value">
+                    {platformStats.detections.toLocaleString()}
+                  </span>
+                  <span className="settings-overview__health-stat-label">
+                    {tr('systemSettings.statDetections', 'Detections')}
+                  </span>
+                </div>
+                <div className="settings-overview__health-stat">
+                  <span className="settings-overview__health-stat-value">
+                    {platformStats.accuracy > 0 ? `${platformStats.accuracy}%` : '—'}
+                  </span>
+                  <span className="settings-overview__health-stat-label">
+                    {tr('systemSettings.statAccuracy', 'AI accuracy')}
+                  </span>
+                </div>
+                <div className="settings-overview__health-stat">
+                  <span className="settings-overview__health-stat-value">
+                    {platformStats.users.toLocaleString()}
+                  </span>
+                  <span className="settings-overview__health-stat-label">
+                    {tr('systemSettings.statUsers', 'Portal users')}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <section className="settings-overview__section">
               <h3 className="settings-shell__section-label">
                 {tr('systemSettings.systemStatus', 'System Status')}
               </h3>
               <div className="settings-shell__status-grid">
-                {statusCards.map(({ label, value, tone, icon: Icon }) => (
-                  <div key={label} className={cn('settings-shell__status-card', `settings-shell__status-card--${tone}`)}>
+                {statusCards.map(({ id, label, value, tone, icon: Icon }) => (
+                  <div
+                    key={id}
+                    className={cn('settings-shell__status-card', `settings-shell__status-card--${tone}`)}
+                  >
                     <span className={cn('settings-shell__status-icon', `settings-shell__status-icon--${tone}`)}>
                       <Icon size={16} />
                     </span>
-                    <div>
+                    <div className="settings-overview__status-body">
                       <p className="settings-shell__status-label">{label}</p>
                       <p className="settings-shell__status-value">
                         <span className={cn('settings-shell__dot', `settings-shell__dot--${tone}`)} />
                         {value}
                       </p>
+                      {id === 'storage' ? (
+                        <div className="settings-overview__storage-bar" aria-hidden>
+                          <span
+                            className={cn(
+                              'settings-overview__storage-fill',
+                              status.storage_pct > 85 && 'settings-overview__storage-fill--warn',
+                            )}
+                            style={{ width: `${status.storage_pct}%` }}
+                          />
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
+            </section>
 
-            <div>
+            <section className="settings-overview__section">
+              <h3 className="settings-shell__section-label">
+                {tr('systemSettings.platformSnapshot', 'Platform snapshot')}
+              </h3>
+              <div className="settings-overview__snapshot-grid">
+                <div className="settings-overview__snapshot-card">
+                  <Building2 size={15} />
+                  <div>
+                    <p className="settings-overview__snapshot-label">
+                      {tr('systemSettings.systemName', 'System Name')}
+                    </p>
+                    <p className="settings-overview__snapshot-value">{general.system_name}</p>
+                  </div>
+                </div>
+                <div className="settings-overview__snapshot-card">
+                  <Cpu size={15} />
+                  <div>
+                    <p className="settings-overview__snapshot-label">
+                      {tr('systemSettings.defaultModel', 'Default AI Model')}
+                    </p>
+                    <p className="settings-overview__snapshot-value">{aiConfig.default_model}</p>
+                  </div>
+                </div>
+                <div className="settings-overview__snapshot-card">
+                  <HardDrive size={15} />
+                  <div>
+                    <p className="settings-overview__snapshot-label">
+                      {tr('systemSettings.lastBackup', 'Last Backup')}
+                    </p>
+                    <p className="settings-overview__snapshot-value">{backupMeta.last}</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="settings-overview__section">
               <h3 className="settings-shell__section-label">
                 {tr('systemSettings.quickSettings', 'Quick Settings')}
               </h3>
-              <div className="settings-shell__quick-grid">
-                {CATEGORIES.filter((c) => c.id !== 'overview').slice(0, 6).map((item) => {
-                  const Icon = item.icon;
+              <div className="settings-overview__quick-groups">
+                {groupedCategories.map((group) => {
+                  const items = group.items.filter((item) => item.id !== 'overview');
+                  if (!items.length) return null;
                   return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className={cn('settings-shell__quick-item', `settings-shell__quick-item--${item.tone}`)}
-                      onClick={() => setCategory(item.id)}
-                    >
-                      <span className={cn('settings-shell__quick-icon', `settings-shell__quick-icon--${item.tone}`)}>
-                        <Icon size={15} />
-                      </span>
-                      <span>{tr(item.labelKey, item.fallback)}</span>
-                      <ArrowRight size={14} className="settings-shell__quick-arrow" />
-                    </button>
+                    <div key={group.id} className="settings-overview__quick-group">
+                      <p className="settings-overview__quick-group-label">
+                        {tr(group.labelKey, group.fallback)}
+                      </p>
+                      <div className="settings-shell__quick-grid">
+                        {items.map((item) => {
+                          const Icon = item.icon;
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              className={cn(
+                                'settings-shell__quick-item',
+                                `settings-shell__quick-item--${item.tone}`,
+                              )}
+                              onClick={() => setCategory(item.id)}
+                            >
+                              <span
+                                className={cn(
+                                  'settings-shell__quick-icon',
+                                  `settings-shell__quick-icon--${item.tone}`,
+                                )}
+                              >
+                                <Icon size={15} />
+                              </span>
+                              <span className="settings-overview__quick-label">
+                                {tr(item.labelKey, item.fallback)}
+                              </span>
+                              <ArrowRight size={14} className="settings-shell__quick-arrow" />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   );
                 })}
               </div>
-            </div>
-          </ConfigPanel>
+            </section>
+
+            {auditRows.length > 0 ? (
+              <section className="settings-overview__section">
+                <div className="settings-overview__section-head">
+                  <h3 className="settings-shell__section-label settings-overview__section-label">
+                    {tr('systemSettings.recentActivity', 'Recent activity')}
+                  </h3>
+                  <Link to="/admin/audit-logs" className="settings-shell__ghost-link">
+                    {tr('systemSettings.viewFullAudit', 'View full audit log')}
+                    <ArrowRight size={14} />
+                  </Link>
+                </div>
+                <ul className="settings-overview__activity-list">
+                  {auditRows.slice(0, 5).map((row) => (
+                    <li key={row.id} className="settings-overview__activity-item">
+                      <span className="settings-overview__activity-time">
+                        {formatAuditTime(row.timestamp)}
+                      </span>
+                      <span className="settings-overview__activity-user">{row.user_name || '—'}</span>
+                      <span className="settings-overview__activity-action">{row.action}</span>
+                      <span className="settings-overview__activity-module">{row.resource}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+          </div>
         );
 
       case 'general':
@@ -1457,43 +1617,154 @@ export function AdminSystemSettingsPage() {
           </ConfigPanel>
         );
 
-      case 'system':
+      case 'system': {
+        const serverHealthy = status.database === 'healthy';
+        const systemInfoSections = [
+          {
+            title: tr('systemSettings.systemInfoStack', 'Technology Stack'),
+            items: [
+              {
+                label: tr('systemSettings.systemInfoVersion', 'Application Version'),
+                value: 'v1.0.0',
+                icon: Server,
+                tone: 'info',
+              },
+              {
+                label: tr('systemSettings.systemInfoBackend', 'Backend'),
+                value: 'Django + DRF',
+                icon: Database,
+                tone: 'indigo',
+              },
+              {
+                label: tr('systemSettings.systemInfoFrontend', 'Frontend'),
+                value: 'React + Vite',
+                icon: Monitor,
+                tone: 'cyan',
+              },
+              {
+                label: tr('systemSettings.systemInfoDatabase', 'Database'),
+                value: 'PostgreSQL / MySQL',
+                icon: Cloud,
+                tone: 'emerald',
+              },
+            ],
+          },
+          {
+            title: tr('systemSettings.systemInfoRuntime', 'AI & Runtime'),
+            items: [
+              {
+                label: tr('systemSettings.systemInfoAiFramework', 'AI Framework'),
+                value: 'YOLOv11 + PaddleOCR',
+                icon: Cpu,
+                tone: 'cyan',
+              },
+              {
+                label: tr('systemSettings.systemInfoPython', 'Python Version'),
+                value: '3.12',
+                icon: Code2,
+                tone: 'amber',
+              },
+              {
+                label: tr('systemSettings.systemInfoGpu', 'GPU'),
+                value: aiConfig.gpu || 'RTX 4090',
+                icon: Activity,
+                tone: 'violet',
+              },
+              {
+                label: tr('systemSettings.systemInfoServerStatus', 'Server Status'),
+                value: serverHealthy
+                  ? tr('systemSettings.statusHealthy', 'Healthy')
+                  : tr('systemSettings.statusDegraded', 'Degraded'),
+                icon: Activity,
+                tone: serverHealthy ? 'success' : 'amber',
+                showDot: true,
+              },
+            ],
+          },
+        ] as const;
+
         return (
           <ConfigPanel
             title={tr('systemSettings.systemInfoTitle', 'System Information')}
             description={tr('systemSettings.systemInfoHint', 'Runtime stack and environment summary')}
           >
-            <div className="settings-page__grid">
-              {(
-                [
-                  ['Application Version', 'v1.0.0'],
-                  ['Backend', 'Django + DRF'],
-                  ['Frontend', 'React + Vite'],
-                  ['Database', 'PostgreSQL / MySQL'],
-                  ['AI Framework', 'YOLOv11 + PaddleOCR'],
-                  ['Python Version', '3.12'],
-                  ['GPU', aiConfig.gpu || 'RTX 4090'],
-                  [
-                    'Server Status',
-                    status.database === 'healthy'
-                      ? tr('systemSettings.statusHealthy', 'Healthy')
-                      : tr('systemSettings.statusDegraded', 'Degraded'),
-                  ],
-                ] as const
-              ).map(([label, value]) => (
-                <div key={label} className="settings-page__card">
-                  <span className="settings-page__card-icon settings-page__card-icon--neutral">
-                    <Info size={16} />
-                  </span>
-                  <div>
-                    <p className="settings-page__card-label">{label}</p>
-                    <p className="settings-page__card-value">{value}</p>
+            <div className="settings-shell__sysinfo-body">
+              <div className="settings-shell__sysinfo-hero">
+                <span className="settings-shell__sysinfo-hero-icon">
+                  <Info size={20} />
+                </span>
+                <div className="settings-shell__sysinfo-hero-copy">
+                  <p className="settings-shell__sysinfo-hero-title">
+                    {general.system_name || 'CamTraffic'}
+                  </p>
+                  <p className="settings-shell__sysinfo-hero-sub">
+                    {tr('systemSettings.systemInfoDeploy', 'Production deployment')} · v1.0.0
+                  </p>
+                </div>
+                <span
+                  className={cn(
+                    'settings-shell__sysinfo-badge',
+                    serverHealthy
+                      ? 'settings-shell__sysinfo-badge--success'
+                      : 'settings-shell__sysinfo-badge--amber',
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'settings-shell__dot',
+                      serverHealthy ? 'settings-shell__dot--success' : 'settings-shell__dot--amber',
+                    )}
+                  />
+                  {serverHealthy
+                    ? tr('systemSettings.statusHealthy', 'Healthy')
+                    : tr('systemSettings.statusDegraded', 'Degraded')}
+                </span>
+              </div>
+
+              {systemInfoSections.map((section) => (
+                <div key={section.title} className="settings-shell__sysinfo-section">
+                  <h3 className="settings-shell__section-label">{section.title}</h3>
+                  <div className="settings-shell__sysinfo-grid">
+                    {section.items.map((item) => {
+                      const { label, value, icon: Icon, tone } = item;
+                      const showDot = 'showDot' in item && item.showDot;
+                      return (
+                        <div
+                          key={label}
+                          className={cn('settings-shell__sysinfo-card', `settings-shell__sysinfo-card--${tone}`)}
+                        >
+                          <span
+                            className={cn(
+                              'settings-shell__sysinfo-icon',
+                              `settings-shell__sysinfo-icon--${tone}`,
+                            )}
+                          >
+                            <Icon size={16} />
+                          </span>
+                          <div className="settings-shell__sysinfo-card-copy">
+                            <p className="settings-shell__sysinfo-label">{label}</p>
+                            <p className="settings-shell__sysinfo-value">
+                              {showDot ? (
+                                <span
+                                  className={cn(
+                                    'settings-shell__dot',
+                                    tone === 'success' ? 'settings-shell__dot--success' : 'settings-shell__dot--amber',
+                                  )}
+                                />
+                              ) : null}
+                              {value}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               ))}
             </div>
           </ConfigPanel>
         );
+      }
 
       default:
         return null;
@@ -1630,12 +1901,21 @@ export function AdminSystemSettingsPage() {
                 {tr(activeCategory.labelKey, activeCategory.fallback)}
               </p>
               <h2 id="settings-panel-title" className="settings-shell__panel-heading">
-                {tr(activeCategory.labelKey, activeCategory.fallback)}
+                {category === 'overview'
+                  ? tr('systemSettings.overviewTitle', 'Platform overview')
+                  : tr(activeCategory.labelKey, activeCategory.fallback)}
               </h2>
+              {category === 'overview' ? (
+                <p className="settings-shell__panel-subheading">
+                  {general.organization}
+                </p>
+              ) : null}
             </div>
-            <span className={cn('settings-shell__panel-pill', `settings-shell__panel-pill--${activeCategory.tone}`)}>
-              {tr(activeCategory.labelKey, activeCategory.fallback)}
-            </span>
+            {category !== 'overview' ? (
+              <span className={cn('settings-shell__panel-pill', `settings-shell__panel-pill--${activeCategory.tone}`)}>
+                {tr(activeCategory.labelKey, activeCategory.fallback)}
+              </span>
+            ) : null}
           </div>
           <div className="settings-shell__panel-scroll">
             {renderPanel()}

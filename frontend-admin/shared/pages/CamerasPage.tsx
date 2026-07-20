@@ -382,7 +382,6 @@ function CameraFeedPreview({
   onEdit,
   onDelete,
   canManage,
-  switcherSlot,
   t,
 }: {
   camera: Camera | null;
@@ -392,7 +391,6 @@ function CameraFeedPreview({
   onEdit?: () => void;
   onDelete?: () => void;
   canManage?: boolean;
-  switcherSlot?: ReactNode;
   t: (key: string, vars?: Record<string, string | number>) => string;
 }) {
   const [feedState, setFeedState] = useState<FeedState>('idle');
@@ -500,11 +498,12 @@ function CameraFeedPreview({
   }
 
   const TypeIcon = TYPE_ICON[camera.camera_type] ?? Video;
-  const isLive = feedState === 'ready' && camera.status === 'active' && autoRefresh;
+  const isStreaming = feedState === 'ready';
+  const isLive = isStreaming && autoRefresh;
 
   return (
-    <div className="cameras-preview-body cameras-preview-body--fill">
-      <div className="cameras-preview-toolbar">
+    <div className={cn('cameras-preview-body cameras-preview-body--fill', isLive && 'cameras-preview-body--live')}>
+      <div className="cameras-preview-toolbar cameras-preview-toolbar--compact">
         <div className="cameras-preview-toolbar__status">
           {isLive && (
             <span className="cameras-live-badge">
@@ -569,28 +568,35 @@ function CameraFeedPreview({
         </div>
       )}
 
-      <div className="cameras-feed-viewport cameras-feed-viewport--hero">
+      <div className={cn(
+        'cameras-feed-viewport cameras-feed-viewport--hero',
+        isLive && 'cameras-feed-viewport--live',
+        feedState !== 'ready' && feedState !== 'loading' && 'cameras-feed-viewport--clean-empty',
+      )}>
         {feedState === 'offline' && (
           <FeedOverlay
-            icon={<WifiOff size={40} strokeWidth={1.5} />}
+            tone="offline"
+            icon={<WifiOff size={28} strokeWidth={1.5} />}
             title={t('pages.cameras.feedOffline')}
             hint={t('pages.cameras.feedOfflineHint')}
           />
         )}
         {feedState === 'no_source' && (
           <FeedOverlay
-            icon={<ImageOff size={40} strokeWidth={1.5} />}
+            tone="idle"
+            icon={<ImageOff size={28} strokeWidth={1.5} />}
             title={t('pages.cameras.feedNoSource')}
             hint={t('pages.cameras.feedNoSourceHint')}
           />
         )}
         {feedState === 'error' && (
           <FeedOverlay
-            icon={<AlertTriangle size={40} strokeWidth={1.5} />}
+            tone="error"
+            icon={<AlertTriangle size={28} strokeWidth={1.5} />}
             title={t('pages.cameras.feedError')}
             hint={t('pages.cameras.feedErrorHint')}
             action={
-              <Button variant="secondary" size="sm" onClick={onManualRefresh} className="cameras-action-btn mt-4 gap-1.5">
+              <Button variant="secondary" size="sm" onClick={onManualRefresh} className="cameras-action-btn mt-3 gap-1.5">
                 <RefreshCw size={14} />
                 {t('pages.cameras.retry')}
               </Button>
@@ -609,35 +615,60 @@ function CameraFeedPreview({
               key={src}
               src={src}
               alt={camera.name}
-              className="cameras-feed-image"
+              className="cameras-feed-image cameras-feed-image--live"
               onLoad={handleLoad}
               onError={handleError}
             />
           </>
         )}
-        {isLive && (
-          <div className="cameras-feed-hud cameras-feed-hud--rec" aria-hidden>
-            <span className="cameras-feed-hud__rec-dot" />
-            REC
-          </div>
-        )}
-        <div className="cameras-feed-hud cameras-feed-hud--status">
-          <span className="cameras-feed-hud__item">
-            <Radio size={12} className={autoRefresh ? 'cameras-feed-hud__live' : ''} />
-            {autoRefresh
-              ? t('pages.cameras.autoRefreshOn', { seconds: POLL_INTERVAL_MS / 1000 })
-              : t('pages.cameras.autoRefreshOff')}
-          </span>
-          {lastUpdated && feedState === 'ready' && (
-            <span className="cameras-feed-hud__item cameras-feed-hud__time">
-              {t('pages.cameras.lastUpdated', { time: lastUpdated.toLocaleTimeString() })}
-            </span>
-          )}
-        </div>
-        <div className="cameras-feed-corner" aria-hidden />
-      </div>
 
-      {switcherSlot}
+        <div className="cameras-feed-chrome" aria-hidden={feedState === 'loading'}>
+          <div className="cameras-feed-chrome__top">
+            {isLive ? (
+              <span className="cameras-feed-chip cameras-feed-chip--live">
+                <span className="cameras-feed-chip__dot" />
+                {t('pages.cameras.liveBadge')}
+                <span className="cameras-feed-chip__interval">{POLL_INTERVAL_MS / 1000}s</span>
+              </span>
+            ) : isStreaming ? (
+              <span className="cameras-feed-chip cameras-feed-chip--paused">
+                <Pause size={11} aria-hidden />
+                {t('pages.cameras.streamPaused')}
+              </span>
+            ) : feedState === 'offline' ? (
+              <span className="cameras-feed-chip cameras-feed-chip--offline">
+                {t('pages.cameras.status.inactive')}
+              </span>
+            ) : feedState === 'error' ? (
+              <span className="cameras-feed-chip cameras-feed-chip--error">
+                {t('pages.cameras.feedError')}
+              </span>
+            ) : feedState === 'no_source' ? (
+              <span className="cameras-feed-chip cameras-feed-chip--idle">
+                {t('pages.cameras.feedNoSource')}
+              </span>
+            ) : null}
+
+            {isStreaming && lastUpdated && (
+              <span className="cameras-feed-hud cameras-feed-hud--status cameras-feed-hud--inline">
+                <span className="cameras-feed-hud__item cameras-feed-hud__time">
+                  {t('pages.cameras.lastUpdated', { time: lastUpdated.toLocaleTimeString() })}
+                </span>
+              </span>
+            )}
+          </div>
+
+          <div className="cameras-feed-chrome__meta">
+            <p className="cameras-feed-chrome__title">{camera.name}</p>
+            <p className="cameras-feed-chrome__road">{camera.road_name || t('pages.cameras.previewSubtitle')}</p>
+          </div>
+        </div>
+
+        <span className="cameras-feed-corner cameras-feed-corner--tl" aria-hidden />
+        <span className="cameras-feed-corner cameras-feed-corner--tr" aria-hidden />
+        <span className="cameras-feed-corner cameras-feed-corner--bl" aria-hidden />
+        <span className="cameras-feed-corner cameras-feed-corner--br" aria-hidden />
+      </div>
     </div>
   );
 }
@@ -647,14 +678,16 @@ function FeedOverlay({
   title,
   hint,
   action,
+  tone = 'idle',
 }: {
   icon: ReactNode;
   title: string;
   hint: string;
   action?: ReactNode;
+  tone?: 'offline' | 'idle' | 'error';
 }) {
   return (
-    <div className="cameras-feed-overlay">
+    <div className={cn('cameras-feed-overlay', `cameras-feed-overlay--${tone}`)}>
       <div className="cameras-feed-overlay__icon">{icon}</div>
       <p className="cameras-feed-overlay__title">{title}</p>
       <p className="cameras-feed-overlay__hint">{hint}</p>
@@ -959,7 +992,7 @@ export function CamerasPage() {
             />
           </div>
 
-          <div className="cameras-list">
+          <div className="cameras-list" role="listbox" aria-label={t('pages.cameras.listTitle')}>
             {loading && (
               <div className="cameras-list__loading">
                 <Loader2 size={20} className="animate-spin" />
@@ -1034,18 +1067,6 @@ export function CamerasPage() {
                   canManage={canManage}
                   onEdit={() => selected && openEditForm(selected)}
                   onDelete={() => selected && void handleDeleteCamera(selected)}
-                  switcherSlot={cameras.length > 1 ? (
-                    <div className="cameras-feed-dock" aria-label={t('pages.cameras.switchCamera')}>
-                      <LiveCameraDashboardPanel
-                        cameras={cameras}
-                        refreshTick={refreshTick}
-                        selectedId={selectedId}
-                        onSelect={setSelectedId}
-                        compact
-                        dock
-                      />
-                    </div>
-                  ) : null}
                   t={t}
                 />
               </div>

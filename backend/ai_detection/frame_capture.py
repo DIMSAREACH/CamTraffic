@@ -31,6 +31,16 @@ def capture_camera_frame(camera_id) -> tuple[str | None, str | None]:
     tmp.close()
     fname = f'camera_{camera.code or camera.id}.jpg'
 
+    from .stream_remote_client import capture_snapshot_via_gateway, stream_gateway_enabled
+
+    if stream_gateway_enabled():
+        jpeg = capture_snapshot_via_gateway(str(camera_id), rtsp_url=url)
+        if jpeg:
+            Path(tmp_path).write_bytes(jpeg)
+            camera.last_ping = timezone.now()
+            camera.save(update_fields=['last_ping'])
+            return tmp_path, fname
+
     try:
         if url.lower().startswith(('rtsp://', 'rtsps://')):
             import cv2

@@ -9,9 +9,9 @@ const reuseExistingServer = !process.env.CI;
 /** Dedicated ports so E2E does not fight with `npm run dev` on 5173/5174. */
 const userPort = process.env.E2E_USER_PORT || '5183';
 const adminPort = process.env.E2E_ADMIN_PORT || '5184';
-/** Vite uses host `localhost`; on Windows 127.0.0.1 may not reach it. */
-const userBase = process.env.E2E_USER_URL || `http://localhost:${userPort}`;
-const adminBase = process.env.E2E_ADMIN_URL || `http://localhost:${adminPort}`;
+/** Match Vite `server.host` (127.0.0.1) — `localhost` can miss the dev server on Windows. */
+const userBase = process.env.E2E_USER_URL || `http://127.0.0.1:${userPort}`;
+const adminBase = process.env.E2E_ADMIN_URL || `http://127.0.0.1:${adminPort}`;
 
 export default defineConfig({
   testDir: e2eDir,

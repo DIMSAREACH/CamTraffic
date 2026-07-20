@@ -4,6 +4,7 @@ export const USER_PORTAL_BASE = '/dashboard';
 export const USER_PORTAL_ROUTES = {
   dashboard: USER_PORTAL_BASE,
   aiDetection: `${USER_PORTAL_BASE}/ai-detection`,
+  aiDetectionNew: `${USER_PORTAL_BASE}/ai-detection/new`,
   aiDetectionSource: `${USER_PORTAL_BASE}/ai-detection/source`,
   cameras: `${USER_PORTAL_BASE}/cameras`,
   signs: `${USER_PORTAL_BASE}/signs`,
@@ -17,6 +18,9 @@ export const USER_PORTAL_ROUTES = {
   unknownVehicles: `${USER_PORTAL_BASE}/unknown-vehicles`,
   driverSearch: `${USER_PORTAL_BASE}/driver-search`,
   reports: `${USER_PORTAL_BASE}/reports`,
+  reportsCenter: `${USER_PORTAL_BASE}/reports/center`,
+  reportsAnalytics: `${USER_PORTAL_BASE}/reports/analytics`,
+  reportsScheduled: `${USER_PORTAL_BASE}/reports/scheduled`,
   notifications: `${USER_PORTAL_BASE}/notifications`,
   profile: `${USER_PORTAL_BASE}/profile`,
   settings: `${USER_PORTAL_BASE}/settings`,

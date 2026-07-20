@@ -1,10 +1,10 @@
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@camtraffic/query';
 import { useNavigate } from 'react-router';
 import {
   FileText, Clock, Search, Plus, MapPin, Shield, TrendingUp, AlertCircle, Car,
-  RefreshCw, ArrowRight, Camera, ScanSearch,
+  RefreshCw, ArrowRight, ScanSearch, Brain, Cctv,
 } from 'lucide-react';
 import { RielIcon } from '@shared/components/RielIcon';
 import { Button } from '@shared/components/ui/button';
@@ -14,10 +14,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/components/ui/select';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
-import { formatAppDate, formatAppCurrency, khrToUsd } from '@shared/i18n/localeFormat';
+import { formatAppDate, formatAppCurrency, greetingKey, khrToUsd } from '@shared/i18n/localeFormat';
 import { WelcomeProfileAvatar } from '@shared/components/WelcomeProfileAvatar';
 import { finesAPI } from '@shared/services/api';
-import { usePoliceDashboardStats } from '@shared/hooks/queries/useDashboardQueries';
+import { usePoliceDashboardStats, useCameraLiveStatus } from '@shared/hooks/queries/useDashboardQueries';
 import { EMPTY_POLICE_STATS } from '@shared/constants/emptyDashboard';
 import { DASHBOARD_PALETTE } from '@shared/constants/chartPalette';
 import { USER_PORTAL_ROUTES } from '@shared/constants/portalRoutes';
@@ -52,65 +52,12 @@ const REASON_VALUE_TO_KEY = Object.fromEntries(
   VIOLATION_REASONS.map((reason) => [reason.value, reason.key]),
 ) as Record<string, typeof VIOLATION_REASONS[number]['key']>;
 
-function KpiCard({ title, value, note, icon, palette }: {
-  title: string; value: string | number; note: string; icon: ReactNode;
-  palette: (typeof C)[number];
-}) {
-  return (
-    <div
-      className="user-dashboard-kpi relative overflow-hidden rounded-2xl p-5 text-white shadow-lg"
-      style={{ background: palette.grad, boxShadow: `0 12px 32px ${palette.soft}` }}
-    >
-      <div className="absolute top-0 right-0 w-32 h-32 rounded-full -translate-y-8 translate-x-8"
-        style={{ background: 'rgba(255,255,255,0.08)' }} />
-      <div className="absolute bottom-0 left-0 w-16 h-16 rounded-full translate-y-6 -translate-x-4"
-        style={{ background: 'rgba(255,255,255,0.05)' }} />
-      <div className="relative z-[1] flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="dashboard-kpi__label">{title}</p>
-          <p className="dashboard-kpi__value mt-2">{value}</p>
-          <p className="dashboard-kpi__sub mt-1 opacity-80">{note}</p>
-        </div>
-        <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0 backdrop-blur-sm border border-white/20">
-          {icon}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PanelCard({ title, subtitle, accent, icon, action, children }: {
-  title: string; subtitle?: string; accent: string; icon: ReactNode;
-  action?: ReactNode; children: ReactNode;
-}) {
-  return (
-    <div className="user-dashboard-panel h-full">
-      <div className="user-dashboard-panel__bar" style={{ background: accent }} />
-      <div className="p-5">
-        <div className="flex items-center justify-between mb-4 gap-3">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm"
-              style={{ background: `${accent}18`, color: accent }}>
-              {icon}
-            </div>
-            <div className="min-w-0">
-              <h3 className="dashboard-section__title leading-tight">{title}</h3>
-              {subtitle && <p className="dashboard-section__subtitle">{subtitle}</p>}
-            </div>
-          </div>
-          {action}
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
-
 export function PoliceDashboard() {
   const { user } = useAuth();
   const { t, locale } = useLanguage();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const now = new Date();
   const {
     data,
     isLoading,
@@ -118,7 +65,10 @@ export function PoliceDashboard() {
     isFetching,
     refetch,
   } = usePoliceDashboardStats(user?.id);
+  const { data: cameraLive } = useCameraLiveStatus();
   const stats = data ?? EMPTY_POLICE_STATS;
+  const cameraSummary = cameraLive?.summary ?? { active: 0, offline: 0, total: 0 };
+
   const [searchLicense, setSearchLicense] = useState('');
   const [searchResult, setSearchResult] = useState<{ driver: User | null; fines: Fine[]; vehicles: Vehicle[] } | null>(null);
   const [searching, setSearching] = useState(false);
@@ -176,68 +126,61 @@ export function PoliceDashboard() {
   const statusLabel = (status: string) => t(`fines.status.${status}` as 'fines.status.pending');
 
   const openIssueFine = (driver: User) => {
-    setFineForm(f => ({ ...f, driver_id: driver.id }));
+    setFineForm((f) => ({ ...f, driver_id: driver.id }));
     setIssueFineOpen(true);
   };
 
-  const kpiCards = [
-    { title: t('dashboard.policeTotalIssued'), value: stats?.total_issued ?? 0, note: t('dashboard.policeNoteTotalIssued'), icon: <FileText size={18} />, palette: C[1] },
-    { title: t('dashboard.policeTodayFines'), value: stats?.today_issued ?? 0, note: t('dashboard.policeNoteToday'), icon: <TrendingUp size={18} />, palette: C[5] },
-    { title: t('dashboard.policePending'), value: stats?.pending ?? 0, note: t('dashboard.policeNotePending'), icon: <Clock size={18} />, palette: C[4] },
-    { title: t('dashboard.revenue'), value: formatAppCurrency(locale, stats?.revenue ?? 0), note: t('dashboard.policeNoteRevenue'), icon: <RielIcon size={18} />, palette: C[2] },
+  const statCards = [
+    { tone: 'blue', icon: FileText, value: String(stats.total_issued), label: t('dashboard.policeTotalIssued') },
+    { tone: 'amber', icon: TrendingUp, value: String(stats.today_issued), label: t('dashboard.policeTodayFines') },
+    { tone: 'rose', icon: Clock, value: String(stats.pending), label: t('dashboard.policePending') },
+    { tone: 'teal', icon: RielIcon, value: formatAppCurrency(locale, stats.revenue), label: t('dashboard.revenue') },
   ];
 
   const quickActions = [
     {
       label: t('dashboard.qaPoliceIssueFine'),
       desc: t('dashboard.qaPoliceIssueFineDesc'),
-      icon: <Plus size={22} />,
-      palette: C[0],
+      icon: Plus,
+      tone: C[1],
       badge: null as string | null,
       onClick: () => setIssueFineOpen(true),
     },
     {
       label: t('dashboard.qaPoliceFines'),
       desc: t('dashboard.qaPoliceFinesDesc'),
-      icon: <FileText size={22} />,
-      palette: C[1],
-      badge: stats?.pending ? t('dashboard.pendingBadge', { count: stats.pending }) : null,
+      icon: FileText,
+      tone: C[5],
+      badge: stats.pending ? t('dashboard.pendingBadge', { count: stats.pending }) : null,
       onClick: () => navigate(USER_PORTAL_ROUTES.fines),
     },
     {
       label: t('sidebar.nav.aiDetection'),
-      desc: t('aiDetection.heroTitle'),
-      icon: <Camera size={22} />,
-      palette: C[3],
+      desc: t('aiCenter.heroTitle'),
+      icon: Brain,
+      tone: C[0],
       badge: null,
-      onClick: () => navigate(USER_PORTAL_ROUTES.aiDetection),
+      onClick: () => navigate(USER_PORTAL_ROUTES.aiDetectionNew),
     },
     {
-      label: t('dashboard.qaPoliceAiLogs'),
-      desc: t('dashboard.qaPoliceAiLogsDesc'),
-      icon: <Camera size={22} />,
-      palette: C[6],
-      badge: null,
-      onClick: () => navigate(USER_PORTAL_ROUTES.aiLogs),
-    },
-    {
-      label: t('dashboard.qaPoliceUnknown'),
-      desc: t('dashboard.qaPoliceUnknownDesc'),
-      icon: <ScanSearch size={22} />,
-      palette: C[8],
-      badge: null,
-      onClick: () => navigate(USER_PORTAL_ROUTES.unknownVehicles),
+      label: t('dashboard.liveCameras'),
+      desc: cameraSummary.total > 0
+        ? t('dashboard.liveCamerasSub', { offline: cameraSummary.offline })
+        : t('dashboard.liveCamerasEmpty'),
+      icon: Cctv,
+      tone: C[2],
+      badge: cameraSummary.total > 0 ? `${cameraSummary.active}/${cameraSummary.total}` : null,
+      onClick: () => navigate(USER_PORTAL_ROUTES.cameras),
     },
   ];
 
   if (loading) {
     return (
-      <div className="dashboard-home space-y-5">
-        <div className="h-1.5 rounded-full animate-pulse" style={{ background: 'rgba(239,68,68,0.12)' }} />
-        <div className="h-[120px] rounded-3xl animate-pulse" style={{ background: 'rgba(239,68,68,0.07)' }} />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="enforcement-page enforcement-page--police-dashboard police-dashboard-page admin-dashboard-page space-y-4">
+        <div className="h-[120px] rounded-2xl animate-pulse" style={{ background: 'rgba(37,99,235,0.07)' }} />
+        <div className="enforcement-page__stat-grid">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-[110px] rounded-2xl animate-pulse" style={{ background: 'rgba(239,68,68,0.07)' }} />
+            <div key={i} className="h-[88px] rounded-2xl animate-pulse bg-white/60 dark:bg-slate-800/40" />
           ))}
         </div>
       </div>
@@ -246,202 +189,187 @@ export function PoliceDashboard() {
 
   if (isError && !data) {
     return (
-      <div className="rounded-2xl bg-white p-8 text-center shadow-sm" style={{ border: '1px solid rgba(239,68,68,0.12)' }}>
-        <p className="text-slate-700 font-semibold mb-2">{t('dashboard.loadErrorTitle')}</p>
-        <p className="text-sm text-slate-500 mb-4">{t('dashboard.loadErrorHint')}</p>
-        <button
-          type="button"
-          onClick={() => { void refetch(); }}
-          disabled={isFetching}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold"
-          style={{ background: C[0].grad }}
-        >
-          <RefreshCw size={16} /> {t('dashboard.retry')}
-        </button>
+      <div className="enforcement-page enforcement-page--police-dashboard police-dashboard-page admin-dashboard-page">
+        <div className="enforcement-page__panel p-8 text-center space-y-4">
+          <p className="font-semibold text-slate-800 dark:text-slate-100">{t('dashboard.loadErrorTitle')}</p>
+          <p className="text-sm text-slate-500">{t('dashboard.loadErrorHint')}</p>
+          <Button type="button" onClick={() => { void refetch(); }} disabled={isFetching} className="gap-2">
+            <RefreshCw size={16} /> {t('dashboard.retry')}
+          </Button>
+        </div>
       </div>
     );
   }
 
+  const firstName = user?.full_name.split(' ')[0] ?? '';
+
   return (
-    <div className="dashboard-home space-y-5">
-      <div
-        className="user-dashboard-hero dashboard-welcome--hero relative overflow-hidden rounded-3xl p-6 lg:p-7"
-        style={{
-          background: 'linear-gradient(135deg, #0B1220 0%, #1E1B4B 42%, #134E4A 100%)',
-          border: '1px solid rgba(255,255,255,0.08)',
-        }}
-      >
-        {C.slice(0, 4).map((c, i) => (
-          <div
-            key={c.name}
-            className="user-dashboard-hero__orb"
-            style={{
-              background: `radial-gradient(circle, ${c.solid}60 0%, transparent 72%)`,
-              top: `${6 + i * 20}%`,
-              left: `${-4 + i * 3}%`,
-              width: `${100 + i * 28}px`,
-              height: `${100 + i * 28}px`,
-            }}
-          />
-        ))}
-        <div className="relative flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center gap-4 min-w-0">
+    <div className="enforcement-page enforcement-page--police-dashboard police-dashboard-page admin-dashboard-page">
+      <div className="enforcement-page__hero">
+        <div className="enforcement-page__hero-glow--primary" aria-hidden />
+        <div className="enforcement-page__hero-glow--secondary" aria-hidden />
+        <div className="enforcement-page__hero-inner police-dashboard-hero__inner">
+          <div className="flex items-start gap-4 min-w-0">
             <WelcomeProfileAvatar role="police" variant="welcome" />
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: C[0].grad }}>
-                  <Shield size={14} className="text-white" />
-                </div>
-                <span className="dashboard-welcome__eyebrow" style={{ color: C[0].solid }}>{t('dashboard.policePortal')}</span>
+            <div className="min-w-0">
+              <div className="enforcement-page__eyebrow">
+                <span className="enforcement-page__eyebrow-icon">
+                  <Shield size={14} />
+                </span>
+                {t('dashboard.policePortal')}
               </div>
-              <h1 className="dashboard-welcome__title text-white">
-                {t('dashboard.policeTitle')}
+              <h1 className="enforcement-page__title">
+                {t(greetingKey(now.getHours()))}, {firstName}
               </h1>
-              <p className="dashboard-welcome__meta mt-1">
-                {t('dashboard.policeWelcome', { name: user?.full_name ?? '' })} — {formatAppDate(locale, new Date())}
+              <p className="enforcement-page__subtitle police-dashboard-hero__subtitle">
+                {t('dashboard.policeWelcome', { name: user?.full_name ?? '' })} · {formatAppDate(locale, now)}
               </p>
             </div>
           </div>
-
-          <div className="flex flex-wrap gap-3">
-            <div
-              className="px-4 py-3 rounded-2xl text-center min-w-[7rem]"
-              style={{ borderTop: `3px solid ${C[1].solid}`, background: 'rgba(255,255,255,0.06)' }}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => { void refetch(); }}
+              disabled={isFetching}
+              className="enforcement-page__hero-btn enforcement-page__hero-btn--outline"
             >
-              <div className="flex items-center justify-center gap-1.5 mb-1">
-                <TrendingUp size={12} style={{ color: C[1].solid }} />
-                <span className="dashboard-welcome__status-label">{t('dashboard.policeTodayFines')}</span>
-              </div>
-              <p className="dashboard-welcome__status-value" style={{ color: C[1].solid }}>{stats?.today_issued ?? 0}</p>
-            </div>
-            <div
-              className="px-4 py-3 rounded-2xl text-center min-w-[7rem]"
-              style={{ borderTop: `3px solid ${C[4].solid}`, background: 'rgba(255,255,255,0.06)' }}
-            >
-              <div className="flex items-center justify-center gap-1.5 mb-1">
-                <Clock size={12} style={{ color: C[4].solid }} />
-                <span className="dashboard-welcome__status-label">{t('dashboard.policePending')}</span>
-              </div>
-              <p className="dashboard-welcome__status-value" style={{ color: C[4].solid }}>{stats?.pending ?? 0}</p>
-            </div>
-            <div
-              className="px-4 py-3 rounded-2xl text-center min-w-[7rem] hidden sm:block"
-              style={{ borderTop: `3px solid ${C[3].solid}`, background: 'rgba(255,255,255,0.06)' }}
-            >
-              <div className="flex items-center justify-center gap-1.5 mb-1">
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: C[3].solid, boxShadow: `0 0 8px ${C[3].solid}` }} />
-                <span className="dashboard-welcome__status-label">{t('dashboard.policeOnDuty')}</span>
-              </div>
-              <p className="dashboard-welcome__status-value" style={{ color: C[3].solid }}>{t('dashboard.policeActiveShift')}</p>
-            </div>
+              <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
+              {t('dashboard.refreshData')}
+            </button>
             <button
               type="button"
               onClick={() => setIssueFineOpen(true)}
-              className="flex items-center gap-2 px-4 py-3 rounded-2xl text-white text-sm font-semibold transition-all active:scale-[0.98] self-center"
-              style={{ background: C[1].grad, boxShadow: `0 8px 24px ${C[1].soft}` }}
+              className="enforcement-page__hero-btn"
             >
-              <Plus size={16} /> {t('dashboard.issueFine')}
+              <Plus size={15} /> {t('dashboard.issueFine')}
             </button>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpiCards.map((k) => (
-          <KpiCard key={k.title} {...k} />
-        ))}
-      </div>
-
-      <div className="user-dashboard-section">
-        <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
-          <h2 className="dashboard-section__title">{t('dashboard.quickActions')}</h2>
-          <span className="dashboard-section__subtitle">{t('dashboard.quickActionsHint')}</span>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {quickActions.map((a) => (
-            <button
-              key={a.label}
-              type="button"
-              onClick={a.onClick}
-              className="user-dashboard-action text-left rounded-2xl p-5 relative overflow-hidden min-h-[168px] flex flex-col justify-end"
-              style={{ background: a.palette.grad, boxShadow: `0 10px 28px ${a.palette.soft}` }}
-            >
-              <div className="absolute top-0 right-0 w-24 h-24 rounded-full -translate-y-8 translate-x-8"
-                style={{ background: 'rgba(255,255,255,0.12)' }} />
-              {a.badge && (
-                <span className="user-dashboard-action__badge">{a.badge}</span>
-              )}
-              <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center mb-3 relative z-[1] border border-white/25 text-white">
-                {a.icon}
+      <div className="enforcement-page__stat-grid mb-4">
+        {statCards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <div key={card.label} className={`enforcement-page__stat-card enforcement-page__stat-card--${card.tone}`}>
+              <div className={`enforcement-page__stat-icon enforcement-page__stat-icon--${card.tone}`}>
+                <Icon size={18} />
               </div>
-              <p className="user-dashboard-action__title">{a.label}</p>
-              <p className="user-dashboard-action__desc mt-1 line-clamp-2">{a.desc}</p>
-              <span className="user-dashboard-action__link">
-                {t('dashboard.open')} <ArrowRight size={12} />
-              </span>
-            </button>
-          ))}
+              <div className="enforcement-page__stat-copy">
+                <p className="enforcement-page__stat-value">{card.value}</p>
+                <p className={`enforcement-page__stat-label enforcement-page__stat-label--${card.tone}`}>
+                  {card.label}
+                </p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="enforcement-page__panel police-dashboard-quick-panel mb-4">
+        <div className="police-dashboard-quick-panel__head">
+          <h2 className="dashboard-section__title">{t('dashboard.quickActions')}</h2>
+          <p className="dashboard-section__subtitle">{t('dashboard.quickActionsHint')}</p>
+        </div>
+        <div className="police-dashboard-quick-grid">
+          {quickActions.map((action) => {
+            const Icon = action.icon;
+            return (
+              <button
+                key={action.label}
+                type="button"
+                onClick={action.onClick}
+                className="police-dashboard-quick-card"
+              >
+                <div
+                  className="police-dashboard-quick-card__icon"
+                  style={{ background: `${action.tone.solid}14`, color: action.tone.solid, borderColor: `${action.tone.solid}28` }}
+                >
+                  <Icon size={20} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="police-dashboard-quick-card__title">{action.label}</p>
+                    {action.badge && (
+                      <span className="police-dashboard-quick-card__badge">{action.badge}</span>
+                    )}
+                  </div>
+                  <p className="police-dashboard-quick-card__desc">{action.desc}</p>
+                </div>
+                <ArrowRight size={16} className="police-dashboard-quick-card__arrow shrink-0" />
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <PanelCard
-          title={t('dashboard.licenseLookupTitle')}
-          subtitle={t('dashboard.licenseLookupSubtitle')}
-          accent={C[1].solid}
-          icon={<Search size={16} />}
-        >
-          <div className="flex gap-3 mb-4">
-            <div className="relative flex-1">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="enforcement-page__panel police-dashboard-panel">
+          <div className="police-dashboard-panel__head">
+            <div className="enforcement-page__eyebrow police-dashboard-panel__eyebrow">
+              <span className="enforcement-page__eyebrow-icon">
+                <Search size={14} />
+              </span>
+              {t('dashboard.licenseLookupTitle')}
+            </div>
+            <p className="police-dashboard-panel__subtitle">{t('dashboard.licenseLookupSubtitle')}</p>
+          </div>
+
+          <div className="enforcement-page__toolbar police-dashboard-toolbar">
+            <div className="enforcement-page__search-wrap flex-1">
+              <Search size={14} className="enforcement-page__search-icon" />
               <input
                 value={searchLicense}
-                onChange={e => setSearchLicense(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                onChange={(e) => setSearchLicense(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 placeholder={t('fines.licensePlaceholder')}
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-50 text-sm text-slate-700 outline-none transition-all"
-                style={{ border: `1.5px solid ${C[1].solid}22` }}
-                onFocus={e => { (e.currentTarget as HTMLElement).style.borderColor = C[1].solid; (e.currentTarget as HTMLElement).style.boxShadow = `0 0 0 3px ${C[1].soft}`; }}
-                onBlur={e => { (e.currentTarget as HTMLElement).style.borderColor = `${C[1].solid}22`; (e.currentTarget as HTMLElement).style.boxShadow = ''; }}
+                className="enforcement-page__search"
               />
             </div>
             <button
               type="button"
               onClick={handleSearch}
               disabled={searching}
-              className="px-5 py-2.5 rounded-xl text-white text-sm font-semibold flex items-center gap-2 transition-all disabled:opacity-60"
-              style={{ background: C[1].grad, boxShadow: `0 4px 12px ${C[1].soft}`, minWidth: 100 }}
+              className="enforcement-page__hero-btn shrink-0"
             >
               {searching
                 ? <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                : <><Search size={14} /><span>{t('common.search')}</span></>
+                : <><Search size={14} />{t('common.search')}</>
               }
             </button>
           </div>
 
           {searchResult?.driver && (
-            <div className="rounded-xl p-4" style={{ background: C[2].soft, border: `1.5px solid ${C[2].solid}33` }}>
+            <div className="police-dashboard-lookup-result">
               <div className="flex items-start justify-between flex-wrap gap-3">
                 <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-sm font-black shadow-md flex-shrink-0"
-                    style={{ background: C[1].grad }}>
-                    {searchResult.driver.full_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-sm font-black shadow-md flex-shrink-0"
+                    style={{ background: C[1].grad }}
+                  >
+                    {searchResult.driver.full_name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
                   </div>
                   <div>
-                    <p className="font-bold text-slate-800 text-[15px]">{searchResult.driver.full_name}</p>
-                    <p className="text-xs text-slate-500 mt-0.5 font-mono">{searchResult.driver.license_no} · {searchResult.driver.phone}</p>
-                    <div className="flex gap-3 text-[12px] mt-2">
-                      <span className="flex items-center gap-1 px-2 py-0.5 rounded-full font-semibold" style={{ background: C[1].soft, color: C[1].dark }}>
-                        <Car size={11} /> {t('dashboard.vehicleCount', { count: searchResult.vehicles.length })}
+                    <p className="enforcement-page__cell-primary">{searchResult.driver.full_name}</p>
+                    <p className="enforcement-page__cell-mono mt-0.5">
+                      {searchResult.driver.license_no} · {searchResult.driver.phone}
+                    </p>
+                    <div className="flex gap-2 flex-wrap mt-2">
+                      <span className="enforcement-page__code-pill">
+                        <Car size={11} className="inline mr-1" />
+                        {t('dashboard.vehicleCount', { count: searchResult.vehicles.length })}
                       </span>
-                      <span className="flex items-center gap-1 px-2 py-0.5 rounded-full font-semibold" style={{ background: C[5].soft, color: C[5].dark }}>
-                        <AlertCircle size={11} /> {t('dashboard.outstandingCount', { count: searchResult.fines.filter(f => f.status !== 'paid' && f.status !== 'dismissed').length })}
+                      <span className="enforcement-page__code-pill enforcement-page__code-pill--action">
+                        <AlertCircle size={11} className="inline mr-1" />
+                        {t('dashboard.outstandingCount', {
+                          count: searchResult.fines.filter((f) => f.status !== 'paid' && f.status !== 'dismissed').length,
+                        })}
                       </span>
                     </div>
                     {searchResult.vehicles.length > 0 && (
                       <div className="mt-2.5 flex flex-wrap gap-1.5">
-                        {searchResult.vehicles.map(v => (
-                          <span key={v.id} className="text-[11px] px-2.5 py-1 rounded-lg text-slate-700 font-mono font-semibold"
-                            style={{ background: '#fff', border: `1px solid ${C[1].solid}22`, boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}>
+                        {searchResult.vehicles.map((v) => (
+                          <span key={v.id} className="enforcement-page__code-pill">
                             {v.plate_number} — {v.model}
                           </span>
                         ))}
@@ -452,8 +380,7 @@ export function PoliceDashboard() {
                 <button
                   type="button"
                   onClick={() => openIssueFine(searchResult.driver!)}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-white text-sm font-semibold"
-                  style={{ background: C[5].grad, boxShadow: `0 4px 12px ${C[5].soft}` }}
+                  className="enforcement-page__hero-btn"
                 >
                   <Plus size={15} /> {t('dashboard.issueFine')}
                 </button>
@@ -462,133 +389,184 @@ export function PoliceDashboard() {
           )}
 
           {searchResult && !searchResult.driver && (
-            <div className="text-center py-6 rounded-xl" style={{ background: '#FAFBFF', border: `1px dashed ${C[1].solid}33` }}>
-              <Search size={28} className="mx-auto mb-2" style={{ color: `${C[1].solid}44` }} />
-              <p className="text-slate-400 text-sm">{t('dashboard.noDriverForLicense', { license: searchLicense })}</p>
+            <div className="police-dashboard-empty">
+              <Search size={28} className="mx-auto mb-2 opacity-30" />
+              <p className="text-sm text-slate-500">{t('dashboard.noDriverForLicense', { license: searchLicense })}</p>
             </div>
           )}
-        </PanelCard>
 
-        <PanelCard
-          title={t('dashboard.recentFinesIssued')}
-          subtitle={t('dashboard.recentFinesSubtitle')}
-          accent={C[6].solid}
-          icon={<FileText size={16} />}
-          action={stats?.recent && stats.recent.length > 0 ? (
-            <button
-              type="button"
-              onClick={() => navigate(USER_PORTAL_ROUTES.fines)}
-              className="user-dashboard-panel__link flex items-center gap-1 flex-shrink-0"
-            >
-              {t('dashboard.viewAll')} <ArrowRight size={12} />
-            </button>
-          ) : undefined}
-        >
-          {!stats?.recent?.length ? (
-            <div className="text-center py-12 rounded-xl" style={{ background: '#FAFBFF', border: '1px dashed rgba(37,99,235,0.1)' }}>
-              <Shield size={36} className="mx-auto mb-3" style={{ color: 'rgba(37,99,235,0.2)' }} />
-              <p className="text-slate-400 text-sm font-medium">{t('dashboard.noFinesIssuedYet')}</p>
-              <p className="text-slate-300 text-xs mt-1">{t('dashboard.noFinesIssuedHint')}</p>
+          {!searchResult && (
+            <div className="police-dashboard-empty">
+              <ScanSearch size={28} className="mx-auto mb-2 opacity-30" />
+              <p className="text-sm text-slate-500">{t('dashboard.licenseLookupSubtitle')}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="enforcement-page__panel police-dashboard-panel">
+          <div className="police-dashboard-panel__head flex items-start justify-between gap-3">
+            <div>
+              <div className="enforcement-page__eyebrow police-dashboard-panel__eyebrow">
+                <span className="enforcement-page__eyebrow-icon">
+                  <FileText size={14} />
+                </span>
+                {t('dashboard.recentFinesIssued')}
+              </div>
+              <p className="police-dashboard-panel__subtitle">{t('dashboard.recentFinesSubtitle')}</p>
+            </div>
+            {stats.recent.length > 0 && (
+              <button
+                type="button"
+                onClick={() => navigate(USER_PORTAL_ROUTES.fines)}
+                className="police-dashboard-panel__link"
+              >
+                {t('dashboard.viewAll')} <ArrowRight size={12} />
+              </button>
+            )}
+          </div>
+
+          {!stats.recent.length ? (
+            <div className="police-dashboard-empty">
+              <Shield size={32} className="mx-auto mb-3 opacity-20" />
+              <p className="text-sm font-medium text-slate-500">{t('dashboard.noFinesIssuedYet')}</p>
+              <p className="text-xs text-slate-400 mt-1">{t('dashboard.noFinesIssuedHint')}</p>
             </div>
           ) : (
-            <div className="space-y-2.5">
-              {stats.recent.map(f => {
+            <div className="space-y-2">
+              {stats.recent.map((f) => {
                 const badge = STATUS_BADGE[f.status] || STATUS_BADGE.dismissed;
                 return (
-                  <div
+                  <button
                     key={f.id}
-                    className="flex items-center gap-3 p-3.5 rounded-xl transition-all cursor-pointer"
-                    style={{ background: '#F8FAFC', borderLeft: `3px solid ${badge.accent}` }}
+                    type="button"
                     onClick={() => navigate(USER_PORTAL_ROUTES.fines)}
-                    onKeyDown={(e) => e.key === 'Enter' && navigate(USER_PORTAL_ROUTES.fines)}
-                    role="button"
-                    tabIndex={0}
+                    className="police-dashboard-fine-row w-full text-left"
+                    style={{ borderLeftColor: badge.accent }}
                   >
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ background: badge.bg, color: badge.color }}>
+                    <div
+                      className="police-dashboard-fine-row__icon"
+                      style={{ background: badge.bg, color: badge.color }}
+                    >
                       <FileText size={15} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="user-dashboard-list-item__title">{f.driver_name}</p>
-                      <p className="user-dashboard-list-item__meta truncate">{translateReason(f.reason)}</p>
+                      <p className="enforcement-page__cell-primary">{f.driver_name}</p>
+                      <p className="enforcement-page__cell-secondary truncate">{translateReason(f.reason)}</p>
                       <div className="flex items-center gap-1 text-xs text-slate-400 mt-0.5">
                         <MapPin size={10} />{f.location}
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-1.5 ml-2 flex-shrink-0">
-                      <span className="user-dashboard-list-item__amount">{formatAppCurrency(locale, f.amount)}</span>
-                      <span className="user-dashboard-status-pill px-2 py-0.5 rounded-full"
-                        style={{ background: badge.bg, color: badge.color }}>
+                    <div className="flex flex-col items-end gap-1.5 shrink-0">
+                      <span className="enforcement-page__amount">{formatAppCurrency(locale, f.amount)}</span>
+                      <span
+                        className="enforcement-page__badge text-[11px]"
+                        style={{ background: badge.bg, color: badge.color }}
+                      >
                         {statusLabel(f.status)}
                       </span>
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
           )}
-        </PanelCard>
+        </div>
       </div>
 
       <Dialog open={issueFineOpen} onOpenChange={setIssueFineOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md" accent="rose">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: C[1].grad }}>
-                <FileText size={15} className="text-white" />
+              <div className="enforcement-page__dialog-icon enforcement-page__dialog-icon--rose">
+                <FileText size={15} />
               </div>
-              {t('fines.issueNewFine')}
+              <span className="enforcement-page__dialog-title">{t('fines.issueNewFine')}</span>
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <Label>{t('fines.driverLicense')} *</Label>
+              <Label className="enforcement-page__form-label">{t('fines.driverLicense')} *</Label>
               <div className="flex gap-2 mt-1">
-                <Input placeholder={t('fines.licensePlaceholder')} value={searchLicense} onChange={e => setSearchLicense(e.target.value)} className="flex-1" />
-                <Button size="sm" variant="outline" onClick={async () => {
-                  if (!searchLicense.trim()) return;
-                  const r = await finesAPI.searchByLicense(searchLicense.trim());
-                  if (r.driver) {
-                    setFineForm(f => ({ ...f, driver_id: r.driver!.id }));
-                    setSearchResult(r);
-                    toast.success(`${t('fines.lookup')}: ${r.driver.full_name}`);
-                  } else toast.error(t('fines.toastDriverNotFound'));
-                }}>{t('fines.lookup')}</Button>
+                <Input
+                  placeholder={t('fines.licensePlaceholder')}
+                  value={searchLicense}
+                  onChange={(e) => setSearchLicense(e.target.value)}
+                  className="flex-1"
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    if (!searchLicense.trim()) return;
+                    const r = await finesAPI.searchByLicense(searchLicense.trim());
+                    if (r.driver) {
+                      setFineForm((f) => ({ ...f, driver_id: r.driver!.id }));
+                      setSearchResult(r);
+                      toast.success(`${t('fines.lookup')}: ${r.driver.full_name}`);
+                    } else toast.error(t('fines.toastDriverNotFound'));
+                  }}
+                >
+                  {t('fines.lookup')}
+                </Button>
               </div>
-              {searchResult?.driver && <p className="text-xs mt-1 font-semibold" style={{ color: '#059669' }}>✓ {searchResult.driver.full_name}</p>}
+              {searchResult?.driver && (
+                <p className="text-xs mt-1 font-semibold text-emerald-600">✓ {searchResult.driver.full_name}</p>
+              )}
             </div>
             <div>
-              <Label>{t('fines.vehiclePlateLabel')}</Label>
-              <Input className="mt-1" placeholder={t('fines.platePlaceholder')} value={fineForm.vehicle_plate} onChange={e => setFineForm(f => ({ ...f, vehicle_plate: e.target.value }))} />
+              <Label className="enforcement-page__form-label">{t('fines.vehiclePlateLabel')}</Label>
+              <Input
+                className="mt-1"
+                placeholder={t('fines.platePlaceholder')}
+                value={fineForm.vehicle_plate}
+                onChange={(e) => setFineForm((f) => ({ ...f, vehicle_plate: e.target.value }))}
+              />
             </div>
             <div>
-              <Label>{t('fines.violationLabel')} *</Label>
-              <Select onValueChange={v => setFineForm(f => ({ ...f, reason: v }))}>
+              <Label className="enforcement-page__form-label">{t('fines.violationLabel')} *</Label>
+              <Select onValueChange={(v) => setFineForm((f) => ({ ...f, reason: v }))}>
                 <SelectTrigger className="mt-1"><SelectValue placeholder={t('fines.selectViolation')} /></SelectTrigger>
                 <SelectContent>
-                  {VIOLATION_REASONS.map(r => (
+                  {VIOLATION_REASONS.map((r) => (
                     <SelectItem key={r.key} value={r.value}>{t(`fines.reasons.${r.key}`)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label>{t('fines.amountLabel')} *</Label>
-              <Input className="mt-1" type="number" min="0" step="100" placeholder={t('fines.amountPlaceholder')} value={fineForm.amount} onChange={e => setFineForm(f => ({ ...f, amount: e.target.value }))} />
+              <Label className="enforcement-page__form-label">{t('fines.amountLabel')} *</Label>
+              <Input
+                className="mt-1"
+                type="number"
+                min="0"
+                step="100"
+                placeholder={t('fines.amountPlaceholder')}
+                value={fineForm.amount}
+                onChange={(e) => setFineForm((f) => ({ ...f, amount: e.target.value }))}
+              />
             </div>
             <div>
-              <Label>{t('fines.locationLabel')} *</Label>
-              <Input className="mt-1" placeholder={t('fines.locationPlaceholder')} value={fineForm.location} onChange={e => setFineForm(f => ({ ...f, location: e.target.value }))} />
+              <Label className="enforcement-page__form-label">{t('fines.locationLabel')} *</Label>
+              <Input
+                className="mt-1"
+                placeholder={t('fines.locationPlaceholder')}
+                value={fineForm.location}
+                onChange={(e) => setFineForm((f) => ({ ...f, location: e.target.value }))}
+              />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIssueFineOpen(false)}>{t('fines.cancel')}</Button>
             <button
-              onClick={handleIssueFine} disabled={issuing}
-              className="px-4 py-2 rounded-lg text-white text-sm font-semibold flex items-center gap-2 transition-all disabled:opacity-60"
-              style={{ background: C[1].grad, boxShadow: `0 4px 12px ${C[1].soft}` }}
+              type="button"
+              onClick={handleIssueFine}
+              disabled={issuing}
+              className="enforcement-page__hero-btn disabled:opacity-60"
             >
-              {issuing ? <><span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />{t('fines.issuing')}</> : <><Plus size={14} />{t('fines.issueFine')}</>}
+              {issuing
+                ? <><span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />{t('fines.issuing')}</>
+                : <><Plus size={14} />{t('fines.issueFine')}</>
+              }
             </button>
           </DialogFooter>
         </DialogContent>

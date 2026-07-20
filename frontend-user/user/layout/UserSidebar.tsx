@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router';
+import { useLocation } from 'react-router';
 import {
   LayoutDashboard, Car, FileText, Camera, Cctv,
   BookOpen, BarChart3, Bell, User, CreditCard, MessageCircle,
@@ -59,29 +59,30 @@ export function UserSidebar({ collapsed, onToggle, unreadCount = 0, isMobile = f
 
   const initials = user?.full_name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'U';
   const roleLabel = user?.role ? t(ROLE_LABEL_KEY[user.role]) : '';
+  const avatarGradient = 'linear-gradient(135deg, #8b5cf6, #7c3aed)';
 
   const afterNavClick = () => {
     if (isMobile) onToggle();
   };
 
-  const gradient = user?.role === 'police'
-    ? 'linear-gradient(135deg, #7c3aed, #4f46e5)'
-    : 'linear-gradient(135deg, #06b6d4, #0891b2)';
-
   return (
     <aside
       className={cn(
-        'app-sidebar app-sidebar--user app-sidebar--enterprise',
+        'app-sidebar app-sidebar--admin app-sidebar--enterprise',
         expanded ? 'app-sidebar--expanded' : 'app-sidebar--collapsed',
         isMobile && 'app-sidebar--mobile',
       )}
     >
-      <div className="app-sidebar__accent-bar app-sidebar__accent-bar--spectrum" aria-hidden>
-        <span style={{ background: 'linear-gradient(90deg, #8B5CF6, #3B82F6, #06B6D4, #10B981, #F59E0B, #F43F5E, #6366F1)' }} />
-      </div>
+      <div className="app-sidebar__accent-bar" aria-hidden />
 
       <div className={cn('app-sidebar__header', !expanded && !isMobile && 'app-sidebar__header--collapsed')}>
-        <SidebarBrandToggle collapsed={!expanded} variant="user" onToggle={onToggle} isMobile={isMobile} />
+        <SidebarBrandToggle
+          collapsed={!expanded}
+          variant="admin"
+          homePath="/dashboard"
+          onToggle={onToggle}
+          isMobile={isMobile}
+        />
         {isMobile && (
           <button
             type="button"
@@ -114,21 +115,15 @@ export function UserSidebar({ collapsed, onToggle, unreadCount = 0, isMobile = f
           <div className="sidebar-user-section sidebar-fade-when-collapsed">
             <p className="sidebar-user-section__label">{t('sidebar.user')}</p>
             <div className="sidebar-user-section__divider" aria-hidden />
-            <Link
-              to="/dashboard/profile"
-              onClick={afterNavClick}
-              className="sidebar-user-card sidebar-user-card--link"
-              data-role={user.role ?? 'driver'}
-            >
+            <div className="sidebar-user-card" data-role={user.role ?? 'driver'}>
               <div className="sidebar-user-card__top">
                 <NavbarProfileAvatar
                   initials={initials}
                   alt={user.full_name}
                   profileImage={user.profile_image}
-                  gradient={gradient}
+                  gradient={avatarGradient}
                   size="sm"
-                  showStatus
-                  className="[&_.app-navbar__avatar-status]:border-[#0f172a]"
+                  showStatus={false}
                 />
                 <div className="sidebar-user-card__identity min-w-0 flex-1">
                   <p className="sidebar-user-card__name truncate" title={user.full_name}>
@@ -148,23 +143,20 @@ export function UserSidebar({ collapsed, onToggle, unreadCount = 0, isMobile = f
                   {user.email}
                 </p>
               </div>
-            </Link>
+            </div>
           </div>
         )}
 
         {user && (
           <div className="sidebar-user-avatar--collapsed sidebar-show-when-collapsed">
-            <Link to="/dashboard/profile" title={t('sidebar.modules.profile')} onClick={afterNavClick}>
-              <NavbarProfileAvatar
-                initials={initials}
-                alt={user.full_name}
-                profileImage={user.profile_image}
-                gradient={gradient}
-                size="xs"
-                showStatus
-                className="[&_.app-navbar__avatar-status]:border-[#0f172a] [&_.app-navbar__avatar-status--sm]:w-2.5 [&_.app-navbar__avatar-status--sm]:h-2.5"
-              />
-            </Link>
+            <NavbarProfileAvatar
+              initials={initials}
+              alt={user.full_name}
+              profileImage={user.profile_image}
+              gradient={avatarGradient}
+              size="xs"
+              showStatus={false}
+            />
           </div>
         )}
       </div>

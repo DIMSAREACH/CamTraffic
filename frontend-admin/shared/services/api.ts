@@ -280,7 +280,7 @@ export const violationsAPI = USE_MOCK ? mockApi.violationsAPI : {
     return unwrap(await apiClient.post('/violations/evaluate/', data));
   },
   async create(data: {
-    driver_id: string;
+    driver_id?: string;
     class_key: string;
     observed_action: string;
     sign_code?: string;

@@ -27,8 +27,8 @@ interface NavbarProps {
 
 const ROLE_GRADIENT: Record<string, { gradient: string; glow: string; accent: string; badge: string }> = {
   admin:  { gradient: 'linear-gradient(135deg,#8B5CF6,#7C3AED)', glow: 'rgba(139,92,246,0.35)', accent: '#A78BFA', badge: 'ADMIN' },
-  police: { gradient: 'linear-gradient(135deg,#2563EB,#1D4ED8)', glow: 'rgba(37,99,235,0.35)',   accent: '#60A5FA', badge: 'OFFICER' },
-  driver: { gradient: 'linear-gradient(135deg,#06B6D4,#0891B2)', glow: 'rgba(6,182,212,0.35)',   accent: '#22D3EE', badge: 'DRIVER' },
+  police: { gradient: 'linear-gradient(135deg,#8B5CF6,#7C3AED)', glow: 'rgba(139,92,246,0.35)', accent: '#A78BFA', badge: 'OFFICER' },
+  driver: { gradient: 'linear-gradient(135deg,#8B5CF6,#7C3AED)', glow: 'rgba(139,92,246,0.35)', accent: '#A78BFA', badge: 'DRIVER' },
 };
 
 function shortRoleLabelKey(role: string | undefined): string {
@@ -60,14 +60,13 @@ export function Navbar({
   const displayUsername = getDisplayUsername(user?.email);
   const roleStyle = user?.role ? ROLE_GRADIENT[user.role] : null;
   const pathPrefix = location.pathname.startsWith('/admin') ? '/admin' : '/dashboard';
-  const isAdminPortal = location.pathname.startsWith('/admin');
   const menuHover =
     'app-navbar__menu-item flex items-center gap-2.5 py-2.5 px-3 rounded-lg cursor-pointer bg-transparent';
 
   const accentStyle = {
     '--navbar-accent': page.color,
-    '--navbar-accent-secondary': isAdminPortal ? '#06b6d4' : '#22d3ee',
-    '--navbar-accent-tertiary': isAdminPortal ? '#8b5cf6' : '#6366f1',
+    '--navbar-accent-secondary': '#06b6d4',
+    '--navbar-accent-tertiary': '#8b5cf6',
   } as CSSProperties;
 
   useEffect(() => {
@@ -87,7 +86,7 @@ export function Navbar({
     <header
       className={cn(
         'app-navbar relative flex flex-row flex-nowrap items-center flex-shrink-0 z-30',
-        isAdminPortal ? 'app-navbar--admin' : 'app-navbar--user',
+        'app-navbar--admin',
         sidebarCollapsed && 'app-navbar--sidebar-collapsed',
       )}
       style={accentStyle}

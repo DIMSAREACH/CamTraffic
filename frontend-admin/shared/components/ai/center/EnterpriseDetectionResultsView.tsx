@@ -7,6 +7,7 @@ import {
 import { AnnotatedDetectionImage } from '@shared/components/ai/center/AnnotatedDetectionImage';
 import { DetectionObjectDetailsDrawer } from '@shared/components/ai/center/DetectionObjectDetailsDrawer';
 import type { CenterDetectionResult } from '@shared/components/ai/center/DetectionCenterResultsPanel';
+import { violationsAPI } from '@shared/services/api';
 import { useLanguage } from '@shared/context/LanguageContext';
 import {
   buildDetectionObjectRows,
@@ -82,6 +83,7 @@ export function EnterpriseDetectionResultsView({
   const speechLocale = locale === 'en' ? 'en' : 'km';
   const [selectedObject, setSelectedObject] = useState<DetectionObjectRow | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [savingViolation, setSavingViolation] = useState(false);
 
   const displaySrc = result.annotated_processed_image || result.uploaded_image || previewSrc || '';
   const objects = useMemo(
@@ -106,17 +108,42 @@ export function EnterpriseDetectionResultsView({
     a.click();
   };
 
-  const handleCreateViolation = () => {
+  const handleCreateViolation = async () => {
+    if (savingViolation) return;
     if (violationRecord?.id) {
       navigate('/admin/violations');
       return;
     }
-    if (hasViolation) {
-      toast.info(t('aiCenter.violationReadyHint'));
-      navigate('/admin/violations');
+    if (!hasViolation) {
+      toast.info(t('aiCenter.noViolation'));
       return;
     }
-    toast.info(t('aiCenter.noViolation'));
+
+    const classKey = String(result.class_key || result.sign_code || '').trim();
+    const observedAction = String(result.violation_evaluation?.observed_action || '').trim();
+    if (!classKey || !observedAction) {
+      toast.error(t('aiCenter.violationSaveFailed') || 'Unable to save violation: missing sign or action');
+      return;
+    }
+
+    setSavingViolation(true);
+    try {
+      const violation = await violationsAPI.create({
+        class_key: classKey,
+        observed_action: observedAction,
+        sign_code: result.sign_code || undefined,
+        ai_detection_log_id: result.log_id != null ? String(result.log_id) : undefined,
+      });
+      toast.success(t('aiCenter.violationSaved').replace('{id}', String(violation.id)));
+      navigate('/admin/violations');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(
+        t('aiCenter.violationSaveFailed') || `Failed to save violation: ${message}`,
+      );
+    } finally {
+      setSavingViolation(false);
+    }
   };
 
   const openObject = (row: DetectionObjectRow) => {
@@ -429,10 +456,10 @@ export function EnterpriseDetectionResultsView({
             type="button"
             className="enterprise-ai-btn enterprise-ai-btn--danger"
             onClick={handleCreateViolation}
-            disabled={!hasViolation && !violationRecord}
+            disabled={savingViolation || (!hasViolation && !violationRecord)}
           >
             <Shield size={15} />
-            {t('aiCenter.createViolation')}
+            {savingViolation ? t('common.saving') : t('aiCenter.createViolation')}
           </button>
           <button type="button" className="enterprise-ai-btn enterprise-ai-btn--secondary" onClick={onExport}>
             <Save size={15} />

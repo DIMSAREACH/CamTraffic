@@ -42,12 +42,12 @@ html.dark .enforcement-page__hero {
   background: radial-gradient(circle, rgba(16, 185, 129, 0.22) 0%, transparent 70%) !important;
 }
 
-/* Default eyebrow — brand blue (enforcement pages override below) */
-.enforcement-page__eyebrow {
+/* Hero eyebrow — light text for dark hero backgrounds only */
+.enforcement-page__hero .enforcement-page__eyebrow {
   color: rgba(147, 197, 253, 0.95);
 }
 
-.enforcement-page__eyebrow-icon {
+.enforcement-page__hero .enforcement-page__eyebrow-icon {
   background: rgba(37, 99, 235, 0.22);
   color: #93c5fd;
   border: 1px solid rgba(147, 197, 253, 0.18);
@@ -295,17 +295,65 @@ html.dark .enforcement-page__stat-card--rose {
 }
 
 .enforcement-page--settings {
-  --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #1e293b 42%, #1e3a8a 100%);
+  --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #1e1b4b 42%, #4c1d95 100%);
 }
 
 .enforcement-page--settings .enforcement-page__eyebrow {
-  color: rgba(191, 219, 254, 0.98);
+  color: rgba(196, 181, 253, 0.98);
 }
 
 .enforcement-page--settings .enforcement-page__eyebrow-icon {
-  background: rgba(37, 99, 235, 0.24);
-  color: #93c5fd;
-  border-color: rgba(147, 197, 253, 0.22);
+  background: rgba(139, 92, 246, 0.24);
+  color: #ddd6fe;
+  border-color: rgba(196, 181, 253, 0.22);
+}
+
+/* Officer & driver dashboards — clean enforcement-page layout */
+.enforcement-page--police-dashboard,
+.enforcement-page--driver-dashboard {
+  --police-accent: #2563eb;
+  --police-accent-soft: rgba(37, 99, 235, 0.12);
+  --driver-accent: #0d9488;
+  --driver-accent-soft: rgba(13, 148, 136, 0.12);
+}
+
+.enforcement-page--police-dashboard .enforcement-page__hero-inner,
+.enforcement-page--driver-dashboard .enforcement-page__hero-inner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.enforcement-page--police-dashboard .police-dashboard-hero__subtitle,
+.enforcement-page--driver-dashboard .driver-dashboard-hero__subtitle {
+  color: rgba(226, 232, 240, 0.82);
+  max-width: 36rem;
+}
+
+.enforcement-page--police-dashboard .enforcement-page__stat-grid,
+.enforcement-page--driver-dashboard .enforcement-page__stat-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 1024px) {
+  .enforcement-page--police-dashboard .enforcement-page__stat-grid,
+  .enforcement-page--driver-dashboard .enforcement-page__stat-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.enforcement-page--police-dashboard .police-dashboard-quick-grid,
+.enforcement-page--driver-dashboard .driver-dashboard-quick-grid {
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+@media (min-width: 640px) {
+  .enforcement-page--police-dashboard .police-dashboard-quick-grid,
+  .enforcement-page--driver-dashboard .driver-dashboard-quick-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* ── App shell — richer page background ──────────────────────── */

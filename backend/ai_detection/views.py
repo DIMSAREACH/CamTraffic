@@ -407,8 +407,8 @@ class DetectionLogDetailView(APIView):
 
 
 class DetectionLogReviewView(APIView):
-    """Approve or reject a detection log (admin only)."""
-    permission_classes = [IsAuthenticated, IsAdmin]
+    """Approve or reject a detection log (admin or police)."""
+    permission_classes = [IsAuthenticated, IsPoliceOrAdmin]
 
     def patch(self, request, pk):
         log = AIDetectionLog.objects.filter(pk=pk).first()

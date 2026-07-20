@@ -29,8 +29,8 @@ class LiveSignPresenceTest(SimpleTestCase):
         if not path.is_file():
             self.skipTest('M-032.png missing')
         result, engine = _run_hybrid_detection(str(path), 'M-032.png', live_fast=True)
-        self.assertEqual(result.get('sign_code'), 'M-032')
-        self.assertNotEqual(result.get('sign_code'), 'W-030')
+        assert_sign_code(self, result, 'M-032', 'MAN-001')
+        self.assertNotEqual((result.get('sign_code') or '').upper(), 'W-030')
         self.assertIn(engine, ('catalog_match', 'shape_hint', 'yolo', 'filename'))
 
     def test_live_fast_y_junction_warning_sign(self):

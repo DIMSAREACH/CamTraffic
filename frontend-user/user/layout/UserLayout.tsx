@@ -11,6 +11,7 @@ import { useLiveData } from '@shared/hooks/useLiveData';
 import { notificationsAPI } from '@shared/services/api';
 import { isUserPortalRouteAllowed, USER_PORTAL_ROUTES } from '@shared/constants/portalRoutes';
 import { resolveUserEnterpriseModule } from '@shared/constants/enterpriseModules';
+import { UserFooter } from '@user/layout/UserFooter';
 import { EnterpriseModuleSubNav } from '@shared/components/layout/EnterpriseModuleSubNav';
 import { cn } from '@shared/components/ui/utils';
 
@@ -89,11 +90,15 @@ export function UserLayout() {
 
   if (isLoading) {
     return (
-      <div className="w-full h-full flex items-center justify-center"
-        style={{ background: 'linear-gradient(145deg, #070F1F 0%, #0A1628 50%, #0D1B3E 100%)' }}>
+      <div
+        className="w-full h-full flex items-center justify-center"
+        style={{ background: 'linear-gradient(145deg, #070F1F 0%, #1a0f2e 50%, #0D1B3E 100%)' }}
+      >
         <div className="text-center">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
-            style={{ background: 'linear-gradient(135deg, #7c3aed, #06b6d4)' }}>
+          <div
+            className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
+            style={{ background: 'linear-gradient(135deg, #7C3AED, #6D28D9)' }}
+          >
             <Shield size={28} className="text-white" />
           </div>
           <p className="text-white text-[15px] font-bold">CamTraffic</p>
@@ -105,6 +110,7 @@ export function UserLayout() {
   if (!user || user.role === 'admin') return null;
 
   const isProfilePage = location.pathname.includes('/profile');
+  const isCamerasPage = location.pathname.includes('/cameras');
   const activeModule = user ? resolveUserEnterpriseModule(location.pathname, user.role) : null;
 
   return (
@@ -162,12 +168,27 @@ export function UserLayout() {
           mobileMenuButtonRef={menuButtonRef}
           mobileMenuOpen={mobileOpen}
         />
-        <main id="main-content" className="flex-1 overflow-y-auto" tabIndex={-1}>
-          <div className={cn('app-dashboard relative app-dashboard--user', isProfilePage ? 'app-dashboard--profile-route' : 'p-5 lg:p-6')}>
+        <main
+          id="main-content"
+          className={cn(
+            'flex-1 min-h-0',
+            isCamerasPage ? 'overflow-hidden flex flex-col' : 'overflow-y-auto',
+          )}
+          tabIndex={-1}
+        >
+          <div
+            className={cn(
+              'app-dashboard app-dashboard--admin relative',
+              isCamerasPage ? 'app-dashboard--cameras-route' : '',
+              isProfilePage ? 'app-dashboard--profile-route' : '',
+              !isCamerasPage && !isProfilePage && 'p-5 lg:p-6',
+            )}
+          >
             {activeModule && <EnterpriseModuleSubNav module={activeModule} />}
             <Outlet key={locale} />
           </div>
         </main>
+        <UserFooter />
       </div>
     </div>
   );

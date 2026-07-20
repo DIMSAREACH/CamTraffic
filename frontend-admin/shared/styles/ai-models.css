@@ -947,9 +947,100 @@ html.dark .ai-mlops-info-item__value {
   color: #c4b5fd;
 }
 
+.enforcement-page--ai-mlops .enforcement-page__panel {
+  overflow: hidden;
+}
+
 .enforcement-page--ai-mlops .enforcement-page__table-head {
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(14, 165, 233, 0.07) 100%);
-  border-bottom: 1px solid rgba(124, 58, 237, 0.12);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.18) 0%, rgba(6, 182, 212, 0.1) 100%);
+  border-bottom: 2px solid rgba(37, 99, 235, 0.16);
+}
+
+html.dark .enforcement-page--ai-mlops .enforcement-page__table-head {
+  background: linear-gradient(135deg, rgba(29, 78, 216, 0.28) 0%, rgba(30, 41, 59, 0.92) 100%);
+  border-bottom-color: rgba(96, 165, 250, 0.2);
+}
+
+/* Prevent long model names from overlapping version / accuracy pills */
+.enforcement-page--ai-mlops .ai-models-table {
+  min-width: 56rem;
+}
+
+.enforcement-page--ai-mlops .ai-models-table [data-slot='table'],
+.enforcement-page--ai-mlops .ai-models-table.enforcement-page__table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.enforcement-page--ai-mlops .ai-models-table [data-slot='table-cell'],
+.enforcement-page--ai-mlops .ai-models-table [data-slot='table-head'] {
+  overflow: hidden;
+  vertical-align: middle;
+}
+
+.enforcement-page--ai-mlops .ai-models-table [data-slot='table-cell'] {
+  white-space: normal !important;
+}
+
+.enforcement-page--ai-mlops .ai-models-table__col--model {
+  width: 28%;
+}
+
+.enforcement-page--ai-mlops .ai-models-table__col--version {
+  width: 12%;
+}
+
+.enforcement-page--ai-mlops .ai-models-table__col--accuracy {
+  width: 10%;
+}
+
+.enforcement-page--ai-mlops .ai-models-table__col--epoch {
+  width: 8%;
+}
+
+.enforcement-page--ai-mlops .ai-models-table__col--dataset {
+  width: 14%;
+}
+
+.enforcement-page--ai-mlops .ai-models-table__col--status {
+  width: 10%;
+}
+
+.enforcement-page--ai-mlops .ai-models-table__col--date {
+  width: 10%;
+}
+
+.enforcement-page--ai-mlops .ai-models-table__col--action {
+  width: 12%;
+}
+
+.enforcement-page--ai-mlops .ai-models-table .mgmt-table__stack {
+  max-width: 100%;
+}
+
+.enforcement-page--ai-mlops .ai-models-table .mgmt-table__stack-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.enforcement-page--ai-mlops .ai-models-table .mgmt-table__stack-meta {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.enforcement-page--ai-mlops .ai-models-table .enforcement-page__code-pill,
+.enforcement-page--ai-mlops .ai-models-table .mgmt-table__amount,
+.enforcement-page--ai-mlops .ai-models-table .enforcement-page__badge {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ai-mlops-empty {
@@ -1012,6 +1103,38 @@ html.dark .ai-mlops-workflow__title {
   margin: 0.2rem 0 0;
   font-size: 0.75rem;
   color: #64748b;
+}
+
+/* Real-data train CLI block */
+.ai-mlops-cli {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(15, 118, 110, 0.2);
+  background: linear-gradient(135deg, rgba(240, 253, 250, 0.95), rgba(255, 255, 255, 0.98));
+}
+
+html.dark .ai-mlops-cli {
+  background: rgba(15, 23, 42, 0.55);
+  border-color: rgba(45, 212, 191, 0.22);
+}
+
+.ai-mlops-cli__cmd {
+  flex: 1 1 16rem;
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: #134e4a;
+  word-break: break-all;
+  white-space: pre-wrap;
+}
+
+html.dark .ai-mlops-cli__cmd {
+  color: #99f6e4;
 }
 
 /* Secondary tool cards (CVAT / OCR) */

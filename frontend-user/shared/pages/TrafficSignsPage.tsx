@@ -829,14 +829,16 @@ export function TrafficSignsPage() {
                 {t('pages.signs.addSign')}
               </button>
             ) : null}
-            <button
-              type="button"
-              className="enforcement-page__hero-btn enforcement-page__hero-btn--outline"
-              onClick={() => setTab(tab === 'categories' ? 'catalog' : 'categories')}
-            >
-              <Tags size={15} aria-hidden />
-              {tab === 'categories' ? t('pages.signs.tabCatalog') : t('pages.signs.tabCategories')}
-            </button>
+            {canManage ? (
+              <button
+                type="button"
+                className="enforcement-page__hero-btn enforcement-page__hero-btn--outline"
+                onClick={() => setTab(tab === 'categories' ? 'catalog' : 'categories')}
+              >
+                <Tags size={15} aria-hidden />
+                {tab === 'categories' ? t('pages.signs.tabCatalog') : t('pages.signs.tabCategories')}
+              </button>
+            ) : null}
           </div>
         </div>
       </div>
@@ -893,30 +895,32 @@ export function TrafficSignsPage() {
         })}
       </div>
 
-      <div className="enforcement-page__toolbar signs-page__tabs-toolbar" role="tablist" aria-label={t('pages.signs.title')}>
-        <div className="enforcement-page__filters signs-page__tabs">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === 'catalog'}
-            onClick={() => setTab('catalog')}
-            className={cn('enforcement-page__filter-btn signs-page__tab', tab === 'catalog' && 'is-active enforcement-page__filter-btn--active')}
-          >
-            <BookOpen size={13} className="inline mr-1.5 -mt-px" aria-hidden />
-            {t('pages.signs.tabCatalog')}
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === 'categories'}
-            onClick={() => setTab('categories')}
-            className={cn('enforcement-page__filter-btn signs-page__tab', tab === 'categories' && 'is-active enforcement-page__filter-btn--active')}
-          >
-            <Tags size={13} className="inline mr-1.5 -mt-px" aria-hidden />
-            {t('pages.signs.tabCategories')}
-          </button>
+      {canManage ? (
+        <div className="enforcement-page__toolbar signs-page__tabs-toolbar" role="tablist" aria-label={t('pages.signs.title')}>
+          <div className="enforcement-page__filters signs-page__tabs">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === 'catalog'}
+              onClick={() => setTab('catalog')}
+              className={cn('enforcement-page__filter-btn signs-page__tab', tab === 'catalog' && 'is-active enforcement-page__filter-btn--active')}
+            >
+              <BookOpen size={13} className="inline mr-1.5 -mt-px" aria-hidden />
+              {t('pages.signs.tabCatalog')}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === 'categories'}
+              onClick={() => setTab('categories')}
+              className={cn('enforcement-page__filter-btn signs-page__tab', tab === 'categories' && 'is-active enforcement-page__filter-btn--active')}
+            >
+              <Tags size={13} className="inline mr-1.5 -mt-px" aria-hidden />
+              {t('pages.signs.tabCategories')}
+            </button>
+          </div>
         </div>
-      </div>
+      ) : null}
 
       {tab === 'categories' ? (
         <SignCategoriesManagementPanel signs={signs} onSelectCategory={openCategoryFromTab} />

@@ -160,12 +160,20 @@ export function AdminLayout() {
           mobileMenuButtonRef={menuButtonRef}
           mobileMenuOpen={mobileOpen}
         />
-        <main id="main-content" className="flex-1 min-h-0 overflow-y-auto" tabIndex={-1}>
+        <main
+          id="main-content"
+          className={cn(
+            'flex-1 min-h-0',
+            isCamerasPage ? 'overflow-hidden flex flex-col' : 'overflow-y-auto',
+          )}
+          tabIndex={-1}
+        >
           <div
             className={cn(
               'app-dashboard app-dashboard--admin relative',
-              isCamerasPage ? 'app-dashboard--cameras-route' : '',
-              isProfilePage ? 'app-dashboard--profile-route' : 'p-5 lg:p-6',
+              isCamerasPage && 'app-dashboard--cameras-route',
+              isProfilePage && 'app-dashboard--profile-route',
+              !isCamerasPage && !isProfilePage && 'p-5 lg:p-6',
             )}
           >
             {activeModule && <EnterpriseModuleSubNav module={activeModule} />}

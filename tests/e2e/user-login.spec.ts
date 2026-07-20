@@ -1,9 +1,5 @@
 import { test, expect } from '@playwright/test';
-
-async function openDriverTab(page: import('@playwright/test').Page) {
-  await page.goto('/');
-  await page.getByRole('button', { name: /^driver$/i }).click();
-}
+import { openDriverTab } from './helpers/login';
 
 test.describe('User portal login smoke', () => {
   test('driver tab shows login form', async ({ page }) => {
