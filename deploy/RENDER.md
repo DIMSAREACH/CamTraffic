@@ -1,5 +1,7 @@
 # CamTraffic on Render (Docker API)
 
+**End-to-end checklist:** [`deploy/RENDER-COMPLETE-RUNBOOK.md`](RENDER-COMPLETE-RUNBOOK.md) (Phases 0–8, 100% demo on Render).
+
 ## Web Service
 
 | Setting | Value |
