@@ -11,6 +11,8 @@ import { useLiveData } from '@shared/hooks/useLiveData';
 import { getUserDevUrl } from '@shared/utils/portal';
 import { notificationsAPI } from '@shared/services/api';
 import { AdminFooter } from '@admin/layout/AdminFooter';
+import { EnterpriseModuleSubNav } from '@shared/components/layout/EnterpriseModuleSubNav';
+import { resolveAdminEnterpriseModule } from '@shared/constants/enterpriseModules';
 import { cn } from '@shared/components/ui/utils';
 
 export function AdminLayout() {
@@ -40,17 +42,17 @@ export function AdminLayout() {
 
   useEffect(() => {
     if (!user) return;
-    notificationsAPI.getByUser(user.id).then((ns) =>
-      setUnreadCount(ns.filter((n) => !n.is_read).length),
-    );
+    notificationsAPI.getByUser(user.id)
+      .then((ns) => setUnreadCount(ns.filter((n) => !n.is_read).length))
+      .catch(() => { /* ignore poll errors (e.g. 429) */ });
   }, [user]);
 
   useLiveData(() => {
     if (!user) return;
-    notificationsAPI.getByUser(user.id).then((ns) =>
-      setUnreadCount(ns.filter((n) => !n.is_read).length),
-    );
-  }, 30_000, Boolean(user));
+    return notificationsAPI.getByUser(user.id)
+      .then((ns) => setUnreadCount(ns.filter((n) => !n.is_read).length))
+      .catch(() => undefined);
+  }, 60_000, Boolean(user));
 
   useEffect(() => {
     closeMobile();
@@ -101,6 +103,7 @@ export function AdminLayout() {
 
   const isCamerasPage = location.pathname.includes('/cameras');
   const isProfilePage = location.pathname.includes('/profile');
+  const activeModule = resolveAdminEnterpriseModule(location.pathname);
 
   return (
     <div
@@ -151,20 +154,30 @@ export function AdminLayout() {
       <div className="app-layout-main flex-1 flex flex-col min-w-0 overflow-hidden">
         <Navbar
           unreadCount={unreadCount}
+          onUnreadCountChange={setUnreadCount}
           sidebarCollapsed={collapsed}
           onSidebarToggle={toggleCollapsed}
           onMobileMenuOpen={openMobile}
           mobileMenuButtonRef={menuButtonRef}
           mobileMenuOpen={mobileOpen}
         />
-        <main id="main-content" className="flex-1 min-h-0 overflow-y-auto" tabIndex={-1}>
+        <main
+          id="main-content"
+          className={cn(
+            'flex-1 min-h-0',
+            isCamerasPage ? 'overflow-hidden flex flex-col' : 'overflow-y-auto',
+          )}
+          tabIndex={-1}
+        >
           <div
             className={cn(
               'app-dashboard app-dashboard--admin relative',
-              isCamerasPage ? 'app-dashboard--cameras-route' : '',
-              isProfilePage ? 'app-dashboard--profile-route' : 'p-5 lg:p-6',
+              isCamerasPage && 'app-dashboard--cameras-route',
+              isProfilePage && 'app-dashboard--profile-route',
+              !isCamerasPage && !isProfilePage && 'p-5 lg:p-6',
             )}
           >
+            {activeModule && <EnterpriseModuleSubNav module={activeModule} />}
             <Outlet key={locale} />
           </div>
         </main>

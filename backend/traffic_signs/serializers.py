@@ -2,6 +2,8 @@ import json
 
 from rest_framework import serializers
 
+from core.media_urls import api_media_url
+
 from .models import TrafficSign
 
 
@@ -31,11 +33,7 @@ class TrafficSignSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         if instance.image:
-            request = self.context.get('request')
-            if request:
-                data['image'] = request.build_absolute_uri(instance.image.url)
-            else:
-                data['image'] = instance.image.url
+            data['image'] = api_media_url(self.context.get('request'), instance.image)
         else:
             data['image'] = ''
         return data

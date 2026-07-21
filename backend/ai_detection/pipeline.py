@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import time
 
 from django.conf import settings
@@ -11,6 +12,8 @@ from .result_compose import VEHICLE_LABELS_KM, compose_detection_payload
 from .services import _is_live_capture_filename, detect_traffic_sign
 from .vehicle_detection import detect_vehicles, vehicle_detection_enabled
 from .vehicle_tracking import track_vehicles, vehicle_tracking_enabled
+
+logger = logging.getLogger(__name__)
 
 PIPELINE_STEP_IDS = (
     'upload',
@@ -300,9 +303,36 @@ def run_detection_pipeline(
     Execute pipeline in order: vehicle → plate region → OCR → sign (parallel metadata).
     Returns sign_result, vehicles, plate_result, payload (without log_id / pipeline steps).
     """
-    started = time.perf_counter()
     live_capture = _is_live_capture_filename(original_filename or detect_path)
     track_session = (track_session or '').strip()
+
+    from .remote_client import vision_service_enabled
+
+    use_remote = vision_service_enabled()
+    if use_remote and live_capture and track_session and vehicle_tracking_enabled():
+        use_remote = False
+        logger.info('Using local pipeline — vehicle tracking session requires embedded MOT')
+
+    if use_remote:
+        try:
+            from .remote_pipeline import run_remote_detection_pipeline
+
+            return run_remote_detection_pipeline(
+                detect_path,
+                original_filename=original_filename,
+                sign_only=sign_only,
+                catalog_sign_code=catalog_sign_code,
+                track_session=track_session,
+                live_fast=live_fast,
+                unified_prep=unified_prep,
+            )
+        except Exception as exc:
+            logger.warning(
+                'ai-vision-service unavailable (%s); falling back to local pipeline',
+                exc,
+            )
+
+    started = time.perf_counter()
 
     vehicles: list[dict] = []
     plate_result = _empty_plate_result()

@@ -61,7 +61,17 @@ def _get_vehicle_model():
     from ultralytics import YOLO
 
     path = _resolve_vehicle_model_path()
-    _VEHICLE_MODEL = YOLO(str(path))
+    if not path.is_file():
+        logger.warning(
+            'Vehicle YOLO weights not found at %s — skipping vehicle detection (no auto-download in production)',
+            path,
+        )
+        return None
+    try:
+        _VEHICLE_MODEL = YOLO(str(path))
+    except Exception:
+        logger.exception('Failed to load vehicle YOLO: %s', path)
+        return None
     return _VEHICLE_MODEL
 
 
@@ -104,6 +114,8 @@ def detect_vehicles(image_path: str) -> list[dict]:
 
     try:
         model = _get_vehicle_model()
+        if model is None:
+            return []
         threshold = _confidence_threshold()
         results = model.predict(
             source=str(path),

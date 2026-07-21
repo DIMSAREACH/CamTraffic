@@ -86,7 +86,9 @@
 .signs-form-dialog [data-slot='dialog-header'].signs-form-dialog__header.ct-dialog-header,
 .signs-form-dialog .signs-form-dialog__header.ct-dialog-header,
 .cameras-form-dialog [data-slot='dialog-header'].cameras-form-dialog__header.ct-dialog-header,
-.cameras-form-dialog .cameras-form-dialog__header.ct-dialog-header {
+.cameras-form-dialog .cameras-form-dialog__header.ct-dialog-header,
+.roles-form-dialog [data-slot='dialog-header'].roles-form-dialog__header.ct-dialog-header,
+.roles-form-dialog .roles-form-dialog__header.ct-dialog-header {
   border-bottom: none !important;
   padding: 1.25rem 3.25rem 1.125rem 1.375rem !important;
   position: relative;
@@ -113,8 +115,19 @@
   background: linear-gradient(135deg, #3730a3 0%, #4f46e5 32%, #2563eb 62%, #0891b2 100%) !important;
 }
 
+.roles-form-dialog [data-slot='dialog-header'].roles-form-dialog__header--create.ct-dialog-header,
+.roles-form-dialog .roles-form-dialog__header--create.ct-dialog-header {
+  background: linear-gradient(135deg, #312e81 0%, #4f46e5 32%, #6366f1 58%, #2563eb 100%) !important;
+}
+
+.roles-form-dialog [data-slot='dialog-header'].roles-form-dialog__header--edit.ct-dialog-header,
+.roles-form-dialog .roles-form-dialog__header--edit.ct-dialog-header {
+  background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 35%, #4f46e5 62%, #2563eb 100%) !important;
+}
+
 .signs-form-dialog .signs-form-dialog__header.ct-dialog-header::before,
-.cameras-form-dialog .cameras-form-dialog__header.ct-dialog-header::before {
+.cameras-form-dialog .cameras-form-dialog__header.ct-dialog-header::before,
+.roles-form-dialog .roles-form-dialog__header.ct-dialog-header::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -123,7 +136,8 @@
 }
 
 .signs-form-dialog .signs-form-dialog__header.ct-dialog-header::after,
-.cameras-form-dialog .cameras-form-dialog__header.ct-dialog-header::after {
+.cameras-form-dialog .cameras-form-dialog__header.ct-dialog-header::after,
+.roles-form-dialog .roles-form-dialog__header.ct-dialog-header::after {
   content: '';
   position: absolute;
   inset: auto 0 0;
@@ -135,7 +149,9 @@
 .signs-form-dialog .signs-form-dialog__header.ct-dialog-header [data-slot='dialog-title'],
 .signs-form-dialog .signs-form-dialog__title,
 .cameras-form-dialog .cameras-form-dialog__header.ct-dialog-header [data-slot='dialog-title'],
-.cameras-form-dialog .cameras-form-dialog__title {
+.cameras-form-dialog .cameras-form-dialog__title,
+.roles-form-dialog .roles-form-dialog__header.ct-dialog-header [data-slot='dialog-title'],
+.roles-form-dialog .roles-form-dialog__title {
   position: relative;
   z-index: 1;
   color: #ffffff !important;
@@ -148,7 +164,9 @@
 .signs-form-dialog .signs-form-dialog__header.ct-dialog-header [data-slot='dialog-description'],
 .signs-form-dialog .signs-form-dialog__desc,
 .cameras-form-dialog .cameras-form-dialog__header.ct-dialog-header [data-slot='dialog-description'],
-.cameras-form-dialog .cameras-form-dialog__desc {
+.cameras-form-dialog .cameras-form-dialog__desc,
+.roles-form-dialog .roles-form-dialog__header.ct-dialog-header [data-slot='dialog-description'],
+.roles-form-dialog .roles-form-dialog__desc {
   position: relative;
   z-index: 1;
   color: rgba(255, 255, 255, 0.96) !important;
@@ -159,7 +177,8 @@
 }
 
 .signs-form-dialog .signs-form-dialog__eyebrow,
-.cameras-form-dialog .cameras-form-dialog__eyebrow {
+.cameras-form-dialog .cameras-form-dialog__eyebrow,
+.roles-form-dialog .roles-form-dialog__eyebrow {
   position: relative;
   z-index: 1;
   color: #ffffff !important;
@@ -169,7 +188,8 @@
 }
 
 .signs-form-dialog .signs-form-dialog__icon,
-.cameras-form-dialog .cameras-form-dialog__icon {
+.cameras-form-dialog .cameras-form-dialog__icon,
+.roles-form-dialog .roles-form-dialog__icon {
   position: relative;
   z-index: 1;
   background: #ffffff !important;
@@ -178,10 +198,20 @@
     0 8px 20px rgba(15, 23, 42, 0.22);
 }
 
+.roles-form-dialog .roles-form-dialog__icon {
+  color: #4f46e5 !important;
+}
+
+.roles-form-dialog .roles-form-dialog__header--edit .roles-form-dialog__icon {
+  color: #3730a3 !important;
+}
+
 .signs-form-dialog > [data-slot='dialog-close'].ct-dialog-close,
 .signs-form-dialog > button[data-slot='dialog-close'].ct-dialog-close,
 .cameras-form-dialog > [data-slot='dialog-close'].ct-dialog-close,
-.cameras-form-dialog > button[data-slot='dialog-close'].ct-dialog-close {
+.cameras-form-dialog > button[data-slot='dialog-close'].ct-dialog-close,
+.roles-form-dialog > [data-slot='dialog-close'].ct-dialog-close,
+.roles-form-dialog > button[data-slot='dialog-close'].ct-dialog-close {
   border-radius: 999px !important;
   border: 1px solid rgba(255, 255, 255, 0.32) !important;
   background: rgba(255, 255, 255, 0.16) !important;
@@ -192,7 +222,9 @@
 .signs-form-dialog > [data-slot='dialog-close'].ct-dialog-close:hover,
 .signs-form-dialog > button[data-slot='dialog-close'].ct-dialog-close:hover,
 .cameras-form-dialog > [data-slot='dialog-close'].ct-dialog-close:hover,
-.cameras-form-dialog > button[data-slot='dialog-close'].ct-dialog-close:hover {
+.cameras-form-dialog > button[data-slot='dialog-close'].ct-dialog-close:hover,
+.roles-form-dialog > [data-slot='dialog-close'].ct-dialog-close:hover,
+.roles-form-dialog > button[data-slot='dialog-close'].ct-dialog-close:hover {
   background: rgba(255, 255, 255, 0.28) !important;
   border-color: rgba(255, 255, 255, 0.48) !important;
   color: #ffffff !important;
@@ -201,6 +233,10 @@
 
 .signs-form-dialog.ct-dialog-panel[data-dialog-accent='teal'] {
   border-top: 4px solid #06b6d4 !important;
+}
+
+.roles-form-dialog.ct-dialog-panel[data-dialog-accent='violet'] {
+  --dialog-header-bg: transparent;
 }
 
 .cameras-form-dialog.ct-dialog-panel[data-dialog-accent='blue'] {
@@ -518,7 +554,8 @@ button.ct-dialog-close,
 .signs-form-dialog.ct-dialog-panel,
 .vehicles-view-dialog.ct-dialog-panel,
 .violations-view-dialog.ct-dialog-panel,
-.fines-view-dialog.ct-dialog-panel {
+.fines-view-dialog.ct-dialog-panel,
+.roles-form-dialog.ct-dialog-panel {
   border-radius: 1rem !important;
 }
 
@@ -532,7 +569,8 @@ button.ct-dialog-close,
 .vehicles-view-dialog.ct-dialog-panel > :not([data-slot='dialog-close']),
 .violations-view-dialog.ct-dialog-panel > :not([data-slot='dialog-close']),
 .fines-view-dialog.ct-dialog-panel > :not([data-slot='dialog-close']),
-.cameras-form-dialog.ct-dialog-panel > :not([data-slot='dialog-close']) {
+.cameras-form-dialog.ct-dialog-panel > :not([data-slot='dialog-close']),
+.roles-form-dialog.ct-dialog-panel > :not([data-slot='dialog-close']) {
   padding: 0;
 }
 

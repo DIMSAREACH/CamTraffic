@@ -1,7 +1,7 @@
 export type UserRole = 'admin' | 'police' | 'driver';
 export type FineStatus = 'pending' | 'paid' | 'overdue' | 'dismissed' | 'disputed';
 export type SignCategory = 'warning' | 'prohibitory' | 'mandatory' | 'informative';
-export type NotificationType = 'fine' | 'system' | 'detection' | 'alert';
+export type NotificationType = 'fine' | 'violation' | 'system' | 'detection' | 'alert';
 
 export interface User {
   id: string;
@@ -17,6 +17,8 @@ export interface User {
   last_login?: string | null;
   auth_provider?: 'email' | 'google' | 'github';
   is_active: boolean;
+  deleted_at?: string | null;
+  is_superuser?: boolean;
   email_verified?: boolean;
 }
 
@@ -81,8 +83,8 @@ export interface LoginOptions {
 }
 
 export interface Vehicle {
-  id: number;
-  owner_id: number;
+  id: string;
+  owner_id: string;
   owner_name: string;
   plate_number: string;
   vehicle_type: 'car' | 'motorcycle' | 'truck' | 'bus' | 'tuk-tuk';
@@ -333,9 +335,11 @@ export interface ReportSignCount {
 }
 
 export interface ReportLocationRow {
-  name: string;
-  fines: number;
-  detections: number;
+  name?: string;
+  /** Backend alias for name (camera — road). */
+  location?: string;
+  fines?: number;
+  detections?: number;
 }
 
 export interface ReportHourCount {
@@ -354,7 +358,7 @@ export type CameraStatus = 'active' | 'inactive' | 'maintenance';
 export type CameraType = 'fixed' | 'ptz' | 'speed';
 
 export interface Road {
-  id: number;
+  id: string;
   name: string;
   road_type: RoadType;
   length_km?: number | null;
@@ -370,10 +374,10 @@ export interface Road {
 }
 
 export interface Camera {
-  id: number;
-  road_id: number;
+  id: string;
+  road_id: string;
   road_name: string;
-  road?: number;
+  road?: string;
   name: string;
   code: string;
   model: string;
@@ -540,4 +544,54 @@ export interface SystemBackupItem {
   filename: string;
   size_bytes: number;
   created_at: string;
+}
+
+export type ImportDataType = 'users' | 'vehicles' | 'signs' | 'cameras' | 'violations';
+
+export type ImportRowStatus = 'ok' | 'error' | 'skip' | 'success' | 'failed';
+
+export interface ImportRowReport {
+  row: number;
+  status: ImportRowStatus;
+  errors: string[];
+  data: Record<string, unknown>;
+}
+
+export interface ImportValidateCounts {
+  total: number;
+  valid: number;
+  skipped: number;
+  failed: number;
+  success: number;
+  error: number;
+}
+
+export interface ImportValidateResult {
+  job_id: string;
+  import_type: ImportDataType;
+  file_name: string;
+  rows: ImportRowReport[];
+  counts: ImportValidateCounts;
+}
+
+export interface ImportJobSummary {
+  id: string;
+  import_type: ImportDataType;
+  file_name: string;
+  status: string;
+  created_by_email?: string | null;
+  created_by_name?: string | null;
+  total_rows: number;
+  valid_rows: number;
+  success_count: number;
+  failed_count: number;
+  skipped_count: number;
+  created_at: string;
+}
+
+export interface ImportTypeInfo {
+  type: ImportDataType;
+  label: string;
+  unique_key: string;
+  columns: Array<{ key: string; required: boolean; note: string }>;
 }

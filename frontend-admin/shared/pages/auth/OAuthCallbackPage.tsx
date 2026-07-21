@@ -4,7 +4,7 @@ import { Loader2, AlertCircle } from 'lucide-react';
 import { AuthPageBackground } from '@shared/components/auth/AuthPageBackground';
 import { useAuth } from '@shared/context/AuthContext';
 import { authAPI } from '@shared/services/api';
-import { getAdminDevUrl } from '@shared/utils/portal';
+import { getAdminDevUrl, getUserDevUrl } from '@shared/utils/portal';
 
 const IS_ADMIN_SURFACE = import.meta.env.VITE_PORTAL_SURFACE === 'admin';
 
@@ -67,7 +67,11 @@ export function OAuthCallbackPage() {
           }
           return;
         }
-        navigate('/dashboard', { replace: true });
+        if (IS_ADMIN_SURFACE) {
+          window.location.assign(getUserDevUrl('/dashboard'));
+        } else {
+          navigate('/dashboard', { replace: true });
+        }
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'Social sign-in failed.');
       }

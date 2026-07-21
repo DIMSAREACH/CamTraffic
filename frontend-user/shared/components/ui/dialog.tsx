@@ -53,15 +53,48 @@ function DialogOverlay({
   );
 }
 
+function DialogTitle({
+  className,
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Title>) {
+  return (
+    <DialogPrimitive.Title
+      data-slot="dialog-title"
+      className={cn("text-[length:1.0625rem] leading-snug font-semibold tracking-tight", className)}
+      {...props}
+    />
+  );
+}
+
+function treeIncludesDialogTitle(node: React.ReactNode): boolean {
+  let found = false;
+  React.Children.forEach(node, (child) => {
+    if (found || !React.isValidElement(child)) return;
+    if (child.type === DialogTitle) {
+      found = true;
+      return;
+    }
+    const childProps = child.props as { children?: React.ReactNode };
+    if (treeIncludesDialogTitle(childProps.children)) {
+      found = true;
+    }
+  });
+  return found;
+}
+
 function DialogContent({
   className,
   children,
   accent = "blue",
+  accessibleTitle,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   accent?: DialogAccent;
+  /** Used when the dialog has a custom visual header without DialogTitle */
+  accessibleTitle?: string;
 }) {
   const { t } = useLanguage();
+  const hasTitle = treeIncludesDialogTitle(children);
 
   return (
     <DialogPortal>
@@ -73,8 +106,12 @@ function DialogContent({
           "ct-dialog-panel w-full max-w-[calc(100%-2rem)] sm:max-w-lg",
           className,
         )}
+        aria-describedby={undefined}
         {...props}
       >
+        {!hasTitle ? (
+          <DialogTitle className="sr-only">{accessibleTitle || 'Dialog'}</DialogTitle>
+        ) : null}
         {children}
         <DialogPrimitive.Close
           type="button"
@@ -111,19 +148,6 @@ function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
         "ct-dialog-footer flex flex-col-reverse sm:flex-row sm:justify-end",
         className,
       )}
-      {...props}
-    />
-  );
-}
-
-function DialogTitle({
-  className,
-  ...props
-}: React.ComponentProps<typeof DialogPrimitive.Title>) {
-  return (
-    <DialogPrimitive.Title
-      data-slot="dialog-title"
-      className={cn("text-[length:1.0625rem] leading-snug font-semibold tracking-tight", className)}
       {...props}
     />
   );

@@ -1,18 +1,34 @@
 # CamTraffic — Nginx reverse proxy + static SPA bundles (admin + user)
+# Builds need monorepo packages/ (Vite aliases @camtraffic/store|query).
+
 FROM node:22-bookworm-slim AS build-admin
+WORKDIR /src
+COPY frontend-admin/package*.json ./frontend-admin/
 WORKDIR /src/frontend-admin
-COPY frontend-admin/package*.json ./
 RUN npm ci
-COPY frontend-admin/ ./
+WORKDIR /src
+COPY tsconfig.base.json ./
+COPY packages/store ./packages/store
+COPY packages/query ./packages/query
+COPY packages/types ./packages/types
+COPY frontend-admin/ ./frontend-admin/
+WORKDIR /src/frontend-admin
 ARG VITE_API_URL=https://api.camtraffic.store/api
 ENV VITE_API_URL=$VITE_API_URL
 RUN npm run build
 
 FROM node:22-bookworm-slim AS build-user
+WORKDIR /src
+COPY frontend-user/package*.json ./frontend-user/
 WORKDIR /src/frontend-user
-COPY frontend-user/package*.json ./
 RUN npm ci
-COPY frontend-user/ ./
+WORKDIR /src
+COPY tsconfig.base.json ./
+COPY packages/store ./packages/store
+COPY packages/query ./packages/query
+COPY packages/types ./packages/types
+COPY frontend-user/ ./frontend-user/
+WORKDIR /src/frontend-user
 ARG VITE_API_URL=https://api.camtraffic.store/api
 ENV VITE_API_URL=$VITE_API_URL
 RUN npm run build

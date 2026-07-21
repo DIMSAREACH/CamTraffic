@@ -1,7 +1,7 @@
 export type UserRole = 'admin' | 'police' | 'driver';
 export type FineStatus = 'pending' | 'paid' | 'overdue' | 'dismissed' | 'disputed';
 export type SignCategory = 'warning' | 'prohibitory' | 'mandatory' | 'informative';
-export type NotificationType = 'fine' | 'system' | 'detection' | 'alert';
+export type NotificationType = 'fine' | 'violation' | 'system' | 'detection' | 'alert';
 
 export interface User {
   id: string;
@@ -17,6 +17,8 @@ export interface User {
   last_login?: string | null;
   auth_provider?: 'email' | 'google' | 'github';
   is_active: boolean;
+  deleted_at?: string | null;
+  is_superuser?: boolean;
   email_verified?: boolean;
 }
 
@@ -81,8 +83,8 @@ export interface LoginOptions {
 }
 
 export interface Vehicle {
-  id: number;
-  owner_id: number;
+  id: string;
+  owner_id: string;
   owner_name: string;
   plate_number: string;
   vehicle_type: 'car' | 'motorcycle' | 'truck' | 'bus' | 'tuk-tuk';
@@ -349,7 +351,7 @@ export type CameraStatus = 'active' | 'inactive' | 'maintenance';
 export type CameraType = 'fixed' | 'ptz' | 'speed';
 
 export interface Road {
-  id: number;
+  id: string;
   name: string;
   road_type: RoadType;
   length_km?: number | null;
@@ -365,10 +367,10 @@ export interface Road {
 }
 
 export interface Camera {
-  id: number;
-  road_id: number;
+  id: string;
+  road_id: string;
   road_name: string;
-  road?: number;
+  road?: string;
   name: string;
   code: string;
   model: string;

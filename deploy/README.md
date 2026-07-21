@@ -74,6 +74,7 @@ GitHub Actions: `.github/workflows/ci.yml` — validate, test, Docker build.
 
 ## Related docs
 
+- [`deploy/CAMTRAFFIC-STORE.md`](CAMTRAFFIC-STORE.md) — DNS, TLS, and env for **camtraffic.store**
 - `deploy/env/.env.production.example` — 30+ production variables
 - `deploy/env/BACKUP.md` — backup strategy
 - `docs/final-year-project/STAGE10-PRODUCTION-DEPLOYMENT-REPORT.md` — thesis runbook

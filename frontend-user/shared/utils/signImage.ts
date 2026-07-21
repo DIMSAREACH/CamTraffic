@@ -130,17 +130,12 @@ export function resolveSignMediaUrl(image?: string | null): string | null {
   if (!image?.trim()) return null;
   const raw = image.trim();
 
-  if (raw.startsWith('http') || raw.startsWith('blob:') || raw.startsWith('data:')) {
-    if (typeof window !== 'undefined') {
-      try {
-        const parsed = new URL(raw);
-        if (parsed.pathname.startsWith('/media/')) {
-          return `${window.location.origin}${parsed.pathname}`;
-        }
-      } catch {
-        /* use raw */
-      }
-    }
+  if (raw.startsWith('blob:') || raw.startsWith('data:')) {
+    return raw;
+  }
+
+  // Absolute URLs (API host or Cloudflare R2 / S3) — never rewrite onto the SPA origin.
+  if (raw.startsWith('http://') || raw.startsWith('https://')) {
     return raw;
   }
 
@@ -156,13 +151,7 @@ export function resolveSignMediaUrl(image?: string | null): string | null {
           : `/media/${raw.replace(/^signs\//, 'signs/')}`,
   );
 
-  if (typeof window !== 'undefined') {
-    return `${window.location.origin}${path}`;
-  }
-
-  const apiBase = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
-  const origin = apiBase.replace(/\/api\/?$/, '') || 'http://127.0.0.1:8000';
-  return `${origin}${path}`;
+  return getProfileImageUrl(path);
 }
 
 export function signHasResolvableImage(image?: string | null): string | null {

@@ -1,6 +1,9 @@
 import { useEffect, useRef } from 'react';
 
-/** Poll a data loader on an interval for near-real-time list pages. */
+/** Poll a data loader on an interval for near-real-time list pages.
+ * Does not run on mount — pair with an initial useEffect load to avoid
+ * double-fetching that burns API rate limits under React StrictMode.
+ */
 export function useLiveData(
   loader: () => void | Promise<void>,
   intervalMs = 30_000,
@@ -25,15 +28,13 @@ export function useLiveData(
           await runLoader();
           nextDelay = intervalMs;
         } catch {
-          nextDelay = Math.min(Math.max(nextDelay * 2, intervalMs), 120_000);
+          // Back off harder on failures (including 429 throttle).
+          nextDelay = Math.min(Math.max(nextDelay * 2, intervalMs), 300_000);
         }
         schedule(nextDelay);
       }, delay);
     };
 
-    void runLoader().catch(() => {
-      nextDelay = Math.min(intervalMs * 2, 120_000);
-    });
     schedule(intervalMs);
 
     return () => {

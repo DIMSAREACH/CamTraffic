@@ -42,12 +42,12 @@ html.dark .enforcement-page__hero {
   background: radial-gradient(circle, rgba(16, 185, 129, 0.22) 0%, transparent 70%) !important;
 }
 
-/* Default eyebrow — brand blue (enforcement pages override below) */
-.enforcement-page__eyebrow {
+/* Hero eyebrow — light text for dark hero backgrounds only */
+.enforcement-page__hero .enforcement-page__eyebrow {
   color: rgba(147, 197, 253, 0.95);
 }
 
-.enforcement-page__eyebrow-icon {
+.enforcement-page__hero .enforcement-page__eyebrow-icon {
   background: rgba(37, 99, 235, 0.22);
   color: #93c5fd;
   border: 1px solid rgba(147, 197, 253, 0.18);
@@ -133,6 +133,19 @@ html.dark .enforcement-page__stat-card--emerald {
 html.dark .enforcement-page__stat-card--rose {
   background: linear-gradient(145deg, rgba(15, 23, 42, 0.85) 0%, rgba(190, 18, 60, 0.28) 100%) !important;
   border-color: rgba(251, 113, 133, 0.22) !important;
+}
+
+html.dark .enforcement-page__stat-card--slate {
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.88) 0%, rgba(51, 65, 85, 0.42) 100%) !important;
+  border-color: rgba(148, 163, 184, 0.24) !important;
+}
+
+html.dark .enforcement-page__stat-card .enforcement-page__stat-value {
+  color: #f8fafc;
+}
+
+html.dark .enforcement-page__stat-card .enforcement-page__stat-label {
+  color: #cbd5e1;
 }
 
 .enforcement-page__stat-card:hover {
@@ -226,7 +239,7 @@ html.dark .enforcement-page__stat-card--rose {
 }
 
 .enforcement-page--reports {
-  --enforcement-hero-bg: linear-gradient(135deg, #1a1208 0%, #451a03 42%, #1e1b4b 100%);
+  --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #0c4a6e 42%, #134e4a 100%);
 }
 
 .enforcement-page--ai-dashboard,
@@ -290,9 +303,70 @@ html.dark .enforcement-page__stat-card--rose {
   --enforcement-hero-bg: linear-gradient(135deg, #0f172a 0%, #334155 48%, #1e1b4b 100%);
 }
 
-.enforcement-page--settings,
 .enforcement-page--backup {
-  --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #1e293b 48%, #1e1b4b 100%);
+  --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #1e293b 42%, #1e3a8a 100%);
+}
+
+.enforcement-page--settings {
+  --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #1e1b4b 42%, #4c1d95 100%);
+}
+
+.enforcement-page--settings .enforcement-page__eyebrow {
+  color: rgba(196, 181, 253, 0.98);
+}
+
+.enforcement-page--settings .enforcement-page__eyebrow-icon {
+  background: rgba(139, 92, 246, 0.24);
+  color: #ddd6fe;
+  border-color: rgba(196, 181, 253, 0.22);
+}
+
+/* Officer & driver dashboards — clean enforcement-page layout */
+.enforcement-page--police-dashboard,
+.enforcement-page--driver-dashboard {
+  --police-accent: #2563eb;
+  --police-accent-soft: rgba(37, 99, 235, 0.12);
+  --driver-accent: #0d9488;
+  --driver-accent-soft: rgba(13, 148, 136, 0.12);
+}
+
+.enforcement-page--police-dashboard .enforcement-page__hero-inner,
+.enforcement-page--driver-dashboard .enforcement-page__hero-inner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.enforcement-page--police-dashboard .police-dashboard-hero__subtitle,
+.enforcement-page--driver-dashboard .driver-dashboard-hero__subtitle {
+  color: rgba(226, 232, 240, 0.82);
+  max-width: 36rem;
+}
+
+.enforcement-page--police-dashboard .enforcement-page__stat-grid,
+.enforcement-page--driver-dashboard .enforcement-page__stat-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 1024px) {
+  .enforcement-page--police-dashboard .enforcement-page__stat-grid,
+  .enforcement-page--driver-dashboard .enforcement-page__stat-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.enforcement-page--police-dashboard .police-dashboard-quick-grid,
+.enforcement-page--driver-dashboard .driver-dashboard-quick-grid {
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+@media (min-width: 640px) {
+  .enforcement-page--police-dashboard .police-dashboard-quick-grid,
+  .enforcement-page--driver-dashboard .driver-dashboard-quick-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* ── App shell — richer page background ──────────────────────── */

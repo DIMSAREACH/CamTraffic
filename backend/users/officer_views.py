@@ -89,8 +89,24 @@ class OfficerDetailView(generics.RetrieveUpdateDestroyAPIView):
         user = instance.user
         if user.pk == request.user.pk:
             return error_response('You cannot delete your own officer account.', status_code=status.HTTP_400_BAD_REQUEST)
-        user.delete()
-        return success_response(message='Officer deleted')
+        if user.role == 'admin':
+            return error_response(
+                'Administrator accounts cannot be deleted from the officers list.',
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+        from users.profile_services import safe_delete_user
+
+        try:
+            hard_deleted, _deactivated, message = safe_delete_user(user)
+        except Exception as exc:
+            return error_response(str(exc), status_code=status.HTTP_400_BAD_REQUEST)
+        if hard_deleted:
+            return success_response(message='Officer deleted')
+        instance.refresh_from_db()
+        return success_response(
+            OfficerSerializer(instance).data,
+            message=message.replace('Account', 'Officer', 1).replace('User', 'Officer', 1),
+        )
 
 
 class PoliceStationListCreateView(generics.ListCreateAPIView):
@@ -135,17 +151,30 @@ class PoliceStationDetailView(generics.RetrieveUpdateDestroyAPIView):
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        # Normalize blank optional fields so PATCH from the admin UI does not fail
+        # when the client omits or clears city/region/phone/address.
+        data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
+        for key in ('city', 'region', 'address', 'phone'):
+            if key in data and data.get(key) is None:
+                data[key] = ''
+        serializer = self.get_serializer(instance, data=data, partial=partial)
         serializer.is_valid(raise_exception=True)
         station = serializer.save()
         return success_response(PoliceStationSerializer(station).data, message='Police station updated')
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        if instance.officers.exists():
-            return error_response(
-                'Cannot delete station with assigned officers — reassign officers first.',
-                status_code=status.HTTP_400_BAD_REQUEST,
+        officer_count = instance.officers.count()
+        if officer_count:
+            # Soft-close: keep FK integrity for assigned officers instead of hard 400.
+            instance.status = 'inactive'
+            instance.save(update_fields=['status', 'updated_at'])
+            return success_response(
+                PoliceStationSerializer(instance).data,
+                message=(
+                    f'Station has {officer_count} assigned officer(s), so it was marked inactive '
+                    'instead of deleted. Reassign officers to remove it permanently.'
+                ),
             )
         instance.delete()
         return success_response(message='Police station deleted')
@@ -169,7 +198,7 @@ class DriverListCreateView(generics.ListCreateAPIView):
 
     def get_permissions(self):
         if self.request.method == 'POST':
-            return [IsAuthenticated(), IsAdmin()]
+            return [IsAuthenticated(), IsPoliceOrAdmin()]
         return super().get_permissions()
 
     def list(self, request, *args, **kwargs):
@@ -198,8 +227,10 @@ class DriverDetailView(generics.RetrieveUpdateDestroyAPIView):
         return DriverSerializer
 
     def get_permissions(self):
-        if self.request.method in ('PUT', 'PATCH', 'DELETE'):
+        if self.request.method == 'DELETE':
             return [IsAuthenticated(), IsAdmin()]
+        if self.request.method in ('PUT', 'PATCH'):
+            return [IsAuthenticated(), IsPoliceOrAdmin()]
         return super().get_permissions()
 
     def retrieve(self, request, *args, **kwargs):
@@ -218,5 +249,19 @@ class DriverDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        instance.user.delete()
-        return success_response(message='Driver deleted')
+        user = instance.user
+        if user.pk == request.user.pk:
+            return error_response('You cannot delete your own account.', status_code=status.HTTP_400_BAD_REQUEST)
+        from users.profile_services import safe_delete_user
+
+        try:
+            hard_deleted, _deactivated, message = safe_delete_user(user)
+        except Exception as exc:
+            return error_response(str(exc), status_code=status.HTTP_400_BAD_REQUEST)
+        if hard_deleted:
+            return success_response(message='Driver deleted')
+        instance.refresh_from_db()
+        return success_response(
+            DriverSerializer(instance).data,
+            message=message.replace('Account', 'Driver', 1).replace('User', 'Driver', 1),
+        )

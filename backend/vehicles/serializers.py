@@ -4,7 +4,7 @@ from .models import Vehicle
 
 
 class VehicleSerializer(serializers.ModelSerializer):
-    owner_id = serializers.IntegerField(source='owner.id', read_only=True)
+    owner_id = serializers.UUIDField(source='owner.id', read_only=True)
     owner_name = serializers.CharField(source='owner.full_name', read_only=True)
 
     class Meta:

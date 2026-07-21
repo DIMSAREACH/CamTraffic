@@ -194,16 +194,16 @@ export const mockUsers: User[] = [
 ];
 
 export const mockVehicles: Vehicle[] = [
-  { id: 1, owner_id: 4, owner_name: 'Kosal Pich', plate_number: '2AA 1234', vehicle_type: 'car', model: 'Toyota Camry 2022', color: 'Silver', year: 2022, created_at: '2024-02-05T08:00:00Z' },
-  { id: 2, owner_id: 4, owner_name: 'Kosal Pich', plate_number: '3BB 5678', vehicle_type: 'motorcycle', model: 'Honda Wave 125', color: 'Black', year: 2021, created_at: '2024-02-05T08:00:00Z' },
-  { id: 3, owner_id: 5, owner_name: 'Vanna Sok', plate_number: '1CC 9012', vehicle_type: 'car', model: 'Lexus RX350 2023', color: 'White', year: 2023, created_at: '2024-02-12T08:00:00Z' },
-  { id: 4, owner_id: 6, owner_name: 'Pisey Mao', plate_number: '4DD 3456', vehicle_type: 'tuk-tuk', model: 'Electric Tuk-Tuk', color: 'Blue', year: 2022, created_at: '2024-02-20T08:00:00Z' },
-  { id: 5, owner_id: 7, owner_name: 'Ratana Heng', plate_number: '2EE 7890', vehicle_type: 'motorcycle', model: 'Yamaha Exciter 155', color: 'Red', year: 2023, created_at: '2024-03-05T08:00:00Z' },
-  { id: 6, owner_id: 10, owner_name: 'Chenda Ros', plate_number: '3FF 2345', vehicle_type: 'car', model: 'Hyundai Tucson 2021', color: 'Dark Grey', year: 2021, created_at: '2024-03-25T08:00:00Z' },
-  { id: 7, owner_id: 5, owner_name: 'Vanna Sok', plate_number: '5GG 6789', vehicle_type: 'motorcycle', model: 'Kawasaki Z400', color: 'Green', year: 2022, created_at: '2024-04-01T08:00:00Z' },
-  { id: 8, owner_id: 4, owner_name: 'Kosal Pich', plate_number: '2AK 7788', vehicle_type: 'car', model: 'Toyota Hilux 2023', color: 'White', year: 2023, created_at: '2025-11-12T08:00:00Z' },
-  { id: 9, owner_id: 4, owner_name: 'Kosal Pich', plate_number: '1PP 4455', vehicle_type: 'motorcycle', model: 'Honda PCX 160', color: 'Grey', year: 2024, created_at: '2026-01-08T08:00:00Z' },
-  { id: 10, owner_id: 6, owner_name: 'Pisey Mao', plate_number: '6HH 1122', vehicle_type: 'car', model: 'Mazda CX-5 2022', color: 'Red', year: 2022, created_at: '2025-08-20T08:00:00Z' },
+  { id: '1', owner_id: '4', owner_name: 'Kosal Pich', plate_number: '2AA 1234', vehicle_type: 'car', model: 'Toyota Camry 2022', color: 'Silver', year: 2022, created_at: '2024-02-05T08:00:00Z' },
+  { id: '2', owner_id: '4', owner_name: 'Kosal Pich', plate_number: '3BB 5678', vehicle_type: 'motorcycle', model: 'Honda Wave 125', color: 'Black', year: 2021, created_at: '2024-02-05T08:00:00Z' },
+  { id: '3', owner_id: '5', owner_name: 'Vanna Sok', plate_number: '1CC 9012', vehicle_type: 'car', model: 'Lexus RX350 2023', color: 'White', year: 2023, created_at: '2024-02-12T08:00:00Z' },
+  { id: '4', owner_id: '6', owner_name: 'Pisey Mao', plate_number: '4DD 3456', vehicle_type: 'tuk-tuk', model: 'Electric Tuk-Tuk', color: 'Blue', year: 2022, created_at: '2024-02-20T08:00:00Z' },
+  { id: '5', owner_id: '7', owner_name: 'Ratana Heng', plate_number: '2EE 7890', vehicle_type: 'motorcycle', model: 'Yamaha Exciter 155', color: 'Red', year: 2023, created_at: '2024-03-05T08:00:00Z' },
+  { id: '6', owner_id: '10', owner_name: 'Chenda Ros', plate_number: '3FF 2345', vehicle_type: 'car', model: 'Hyundai Tucson 2021', color: 'Dark Grey', year: 2021, created_at: '2024-03-25T08:00:00Z' },
+  { id: '7', owner_id: '5', owner_name: 'Vanna Sok', plate_number: '5GG 6789', vehicle_type: 'motorcycle', model: 'Kawasaki Z400', color: 'Green', year: 2022, created_at: '2024-04-01T08:00:00Z' },
+  { id: '8', owner_id: '4', owner_name: 'Kosal Pich', plate_number: '2AK 7788', vehicle_type: 'car', model: 'Toyota Hilux 2023', color: 'White', year: 2023, created_at: '2025-11-12T08:00:00Z' },
+  { id: '9', owner_id: '4', owner_name: 'Kosal Pich', plate_number: '1PP 4455', vehicle_type: 'motorcycle', model: 'Honda PCX 160', color: 'Grey', year: 2024, created_at: '2026-01-08T08:00:00Z' },
+  { id: '10', owner_id: '6', owner_name: 'Pisey Mao', plate_number: '6HH 1122', vehicle_type: 'car', model: 'Mazda CX-5 2022', color: 'Red', year: 2022, created_at: '2025-08-20T08:00:00Z' },
 ];
 
 export const mockTrafficSigns: TrafficSign[] = [
@@ -494,7 +494,7 @@ export const AI_DETECTION_RESULTS = [
 
 export const mockRoads: Road[] = [
   {
-    id: 1,
+    id: '1',
     name: 'Monivong Blvd — Chamkar Mon',
     road_type: 'urban',
     length_km: 4.2,
@@ -509,7 +509,7 @@ export const mockRoads: Road[] = [
     updated_at: '2025-06-01T10:00:00Z',
   },
   {
-    id: 2,
+    id: '2',
     name: 'NR6 Highway — Kandal',
     road_type: 'highway',
     length_km: 18.5,
@@ -527,8 +527,8 @@ export const mockRoads: Road[] = [
 
 export const mockCameras: Camera[] = [
   {
-    id: 1,
-    road_id: 1,
+    id: '1',
+    road_id: '1',
     road_name: 'Monivong Blvd — Chamkar Mon',
     name: 'Monivong Intersection Cam A',
     code: 'CAM-PP-001',
@@ -543,8 +543,8 @@ export const mockCameras: Camera[] = [
     updated_at: '2025-06-01T10:00:00Z',
   },
   {
-    id: 2,
-    road_id: 1,
+    id: '2',
+    road_id: '1',
     road_name: 'Monivong Blvd — Chamkar Mon',
     name: 'Monivong Intersection Cam B',
     code: 'CAM-PP-002',
@@ -559,8 +559,8 @@ export const mockCameras: Camera[] = [
     updated_at: '2025-06-01T10:00:00Z',
   },
   {
-    id: 3,
-    road_id: 2,
+    id: '3',
+    road_id: '2',
     road_name: 'NR6 Highway — Kandal',
     name: 'NR6 Speed Cam East',
     code: 'CAM-KD-001',
@@ -575,8 +575,8 @@ export const mockCameras: Camera[] = [
     updated_at: '2025-06-01T10:00:00Z',
   },
   {
-    id: 4,
-    road_id: 2,
+    id: '4',
+    road_id: '2',
     road_name: 'NR6 Highway — Kandal',
     name: 'NR6 Backup Cam',
     code: 'CAM-KD-002',

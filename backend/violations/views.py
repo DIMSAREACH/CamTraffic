@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
 from ai_detection.models import AIDetectionLog
+from ai_detection.pipeline_enforcement import resolve_driver, resolve_vehicle
 from core.permissions import IsAdmin, IsPoliceOrAdmin
 from core.responses import error_response, success_response
 from infrastructure.models import Camera, Road
@@ -94,10 +95,30 @@ class ViolationListCreateView(generics.ListCreateAPIView):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
-        try:
-            driver = Driver.objects.select_related('user').get(pk=data['driver_id'])
-        except Driver.DoesNotExist:
-            return error_response('Driver not found', status_code=status.HTTP_404_NOT_FOUND)
+        driver = None
+        detection_log = None
+        if data.get('driver_id'):
+            try:
+                driver = Driver.objects.select_related('user').get(pk=data['driver_id'])
+            except Driver.DoesNotExist:
+                return error_response('Driver not found', status_code=status.HTTP_404_NOT_FOUND)
+        elif data.get('ai_detection_log_id'):
+            detection_log = AIDetectionLog.objects.select_related('matched_vehicle__driver__user').filter(
+                pk=data['ai_detection_log_id'],
+            ).first()
+            plate_result = {}
+            if detection_log:
+                if detection_log.matched_vehicle_id:
+                    plate_result['matched_vehicle'] = {'id': str(detection_log.matched_vehicle_id)}
+                elif detection_log.detected_plate:
+                    plate_result['plate_text'] = detection_log.detected_plate
+                driver = resolve_driver(driver_id=None, plate_result=plate_result)
+
+        if not driver:
+            return error_response(
+                'Driver is required to create violation records',
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
 
         evaluation = evaluate_violation(
             class_key=data['class_key'],
@@ -112,7 +133,8 @@ class ViolationListCreateView(generics.ListCreateAPIView):
             officer, _ = Officer.objects.get_or_create(
                 user=request.user,
                 defaults={
-                    'badge_no': f'BADGE-{request.user.id:05d}',
+                    # user.id may be a UUID; avoid integer-style formatting
+                    'badge_no': f'BADGE-{request.user.id}',
                     'rank': 'Officer',
                     'department': 'Traffic Police',
                 },
@@ -121,6 +143,8 @@ class ViolationListCreateView(generics.ListCreateAPIView):
         vehicle = None
         if data.get('vehicle_id'):
             vehicle = Vehicle.objects.filter(pk=data['vehicle_id']).first()
+        elif data.get('ai_detection_log_id') and detection_log:
+            vehicle = resolve_vehicle(plate_result=plate_result)
 
         camera = Camera.objects.filter(pk=data['camera_id']).first() if data.get('camera_id') else None
         road = Road.objects.filter(pk=data['road_id']).first() if data.get('road_id') else None

@@ -1,5 +1,6 @@
 """Password reset email helper."""
 import logging
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -15,10 +16,24 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 DEFAULT_RESET_URL = 'http://localhost:5173/reset-password'
+# Hostnames that currently have no public DNS — never put these in emails.
+_BROKEN_RESET_HOSTS = frozenset({'app.camtraffic.store'})
+_FALLBACK_RESET_URL = 'https://camtraffic-user.onrender.com/reset-password'
 
 
 def _reset_base_url() -> str:
-    return getattr(settings, 'FRONTEND_PASSWORD_RESET_URL', DEFAULT_RESET_URL).rstrip('/')
+    raw = getattr(settings, 'FRONTEND_PASSWORD_RESET_URL', DEFAULT_RESET_URL).rstrip('/')
+    from urllib.parse import urlparse
+
+    host = (urlparse(raw).hostname or '').lower()
+    if host in _BROKEN_RESET_HOSTS:
+        logger.warning(
+            'FRONTEND_PASSWORD_RESET_URL host %s has no DNS; using %s',
+            host,
+            _FALLBACK_RESET_URL,
+        )
+        return _FALLBACK_RESET_URL
+    return raw or DEFAULT_RESET_URL
 
 
 def smtp_configured() -> bool:
@@ -39,11 +54,26 @@ def from_email() -> str:
     )
 
 
-def build_reset_link(user) -> tuple[str, str, str]:
-    uid = urlsafe_base64_encode(force_bytes(user.pk))
-    token = default_token_generator.make_token(user)
+def frontend_reset_url(uid: str, token: str) -> str:
+    """SPA URL with query params (must be a hostname that resolves in DNS)."""
     base = _reset_base_url()
-    link = f'{base}?uid={uid}&token={token}'
+    return f'{base}?{urlencode({"uid": uid, "token": token})}'
+
+
+def build_reset_link(user) -> tuple[str, str, str]:
+    """Build the link placed in reset emails.
+
+    When PUBLIC_API_URL is set, emails use an API continue URL that 302-redirects
+    to FRONTEND_PASSWORD_RESET_URL. That way broken custom domains (e.g. missing
+    app.camtraffic.store DNS) do not strand users — the API host still works.
+    """
+    uid = urlsafe_base64_encode(force_bytes(str(user.pk)))
+    token = default_token_generator.make_token(user)
+    public = (getattr(settings, 'PUBLIC_API_URL', None) or '').strip().rstrip('/')
+    if public:
+        link = f'{public}/api/auth/password-reset/continue/?{urlencode({"uid": uid, "token": token})}'
+    else:
+        link = frontend_reset_url(uid, token)
     return link, uid, token
 
 
@@ -129,6 +159,12 @@ def request_password_reset(email: str) -> User:
             'not_found',
             'No account found with this email address.',
         )
+    except Exception as exc:
+        logger.exception('Password reset lookup failed for %s', email)
+        raise PasswordResetError(
+            'send_failed',
+            'Could not process the reset request. Please try again later.',
+        ) from exc
     if not user.is_active:
         raise PasswordResetError(
             'inactive',
@@ -137,17 +173,23 @@ def request_password_reset(email: str) -> User:
     if not email_configured() and not settings.DEBUG:
         raise PasswordResetError(
             'send_failed',
-            'Email delivery is not configured on the server.',
+            'Email delivery is not configured on the server. Contact an administrator or use demo login.',
         )
-    if not send_password_reset_email(user, to_email=email):
-        if settings.DEBUG:
-            # In local/dev, avoid blocking the flow when provider TLS/cert setup fails.
-            link = build_reset_link(user)[0]
-            print(f'\n[CamTraffic] Email send failed for {email}. Use this reset link locally:\n{link}\n')
-            logger.warning('Password reset email send failed in DEBUG mode: %s', get_last_send_error())
-            return user
+    try:
+        if not send_password_reset_email(user, to_email=email):
+            if settings.DEBUG:
+                link = build_reset_link(user)[0]
+                print(f'\n[CamTraffic] Email send failed for {email}. Use this reset link locally:\n{link}\n')
+                logger.warning('Password reset email send failed in DEBUG mode: %s', get_last_send_error())
+                return user
+            detail = get_last_send_error() or 'Could not send the reset email right now.'
+            raise PasswordResetError('send_failed', detail)
+    except PasswordResetError:
+        raise
+    except Exception as exc:
+        logger.exception('Password reset email failed for %s', email)
         raise PasswordResetError(
             'send_failed',
-            'Could not send the reset email right now. Please try again later or contact support.',
-        )
+            'Could not send the reset email. Please try again later or contact support.',
+        ) from exc
     return user

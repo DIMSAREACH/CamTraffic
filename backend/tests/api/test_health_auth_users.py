@@ -6,6 +6,17 @@ User = get_user_model()
 
 
 class HealthAPITest(APITestCase):
+    def test_root_is_public(self):
+        res = self.client.get('/')
+        self.assertEqual(res.status_code, 200)
+        body = res.json()
+        self.assertTrue(body['success'])
+        self.assertEqual(body['data']['health'], '/health/')
+
+    def test_root_head(self):
+        res = self.client.head('/')
+        self.assertEqual(res.status_code, 200)
+
     def test_health_is_public(self):
         res = self.client.get('/health/')
         self.assertEqual(res.status_code, 200)
@@ -114,3 +125,22 @@ class UsersAPITest(APITestCase):
         rows = payload.get('results') or payload.get('data') or []
         emails = [row['email'] for row in rows]
         self.assertIn('api-driver@test.kh', emails)
+
+
+class PasswordResetAPITest(APITestCase):
+    def setUp(self):
+        User.objects.create_user(
+            email='reset@test.kh',
+            password='Reset@12345',
+            full_name='Reset User',
+            role='driver',
+        )
+
+    def test_password_reset_without_email_returns_503_not_500(self):
+        from unittest.mock import patch
+
+        with patch('authentication.password_reset.email_configured', return_value=False):
+            with patch('authentication.password_reset.settings.DEBUG', False):
+                res = self.client.post('/api/auth/password-reset/', {'email': 'reset@test.kh'})
+        self.assertIn(res.status_code, (400, 503))
+        self.assertFalse(res.json()['success'])

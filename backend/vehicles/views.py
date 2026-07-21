@@ -81,7 +81,8 @@ class VehicleDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        if request.user.role not in ('admin',) and instance.owner_id != request.user.id:
+        # Admin/police may remove any vehicle; drivers may remove their own.
+        if request.user.role not in ('admin', 'police') and instance.owner_id != request.user.id:
             return error_response('Permission denied', status_code=status.HTTP_403_FORBIDDEN)
         instance.delete()
         return success_response(message='Vehicle removed')

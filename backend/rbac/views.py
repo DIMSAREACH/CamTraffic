@@ -2,7 +2,7 @@ from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
-from core.permissions import IsAdmin
+from core.permissions import IsAdminOrReadOnlySuperAdminWrite
 from core.responses import error_response, success_response
 
 from .models import Permission, Role, RolePermission
@@ -15,7 +15,7 @@ from .serializers import (
 
 
 class PermissionListView(generics.ListAPIView):
-    permission_classes = [IsAuthenticated, IsAdmin]
+    permission_classes = [IsAuthenticated, IsAdminOrReadOnlySuperAdminWrite]
     serializer_class = PermissionSerializer
     queryset = Permission.objects.all().order_by('resource', 'action_type')
 
@@ -25,7 +25,7 @@ class PermissionListView(generics.ListAPIView):
 
 
 class RoleListCreateView(generics.ListCreateAPIView):
-    permission_classes = [IsAuthenticated, IsAdmin]
+    permission_classes = [IsAuthenticated, IsAdminOrReadOnlySuperAdminWrite]
     queryset = Role.objects.all().order_by('role_name')
 
     def get_serializer_class(self):
@@ -49,7 +49,7 @@ class RoleListCreateView(generics.ListCreateAPIView):
 
 
 class RoleDetailView(generics.RetrieveUpdateDestroyAPIView):
-    permission_classes = [IsAuthenticated, IsAdmin]
+    permission_classes = [IsAuthenticated, IsAdminOrReadOnlySuperAdminWrite]
     queryset = Role.objects.all()
     lookup_url_kwarg = 'pk'
 
@@ -76,7 +76,7 @@ class RoleDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class RolePermissionAssignView(APIView):
-    permission_classes = [IsAuthenticated, IsAdmin]
+    permission_classes = [IsAuthenticated, IsAdminOrReadOnlySuperAdminWrite]
 
     def post(self, request, pk):
         try:

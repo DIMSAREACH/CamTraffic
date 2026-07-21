@@ -41,6 +41,9 @@ ai/datasets/
 | `sample_verification.py` | 10% per-class QA sample list |
 | `build_prohibitory_manifest.py` | `BATCH-REF-PROH-001` manifest |
 | `import_reference_vehicle_plate.py` | `BATCH-REF-VEH-PLATE-001` vehicle/plate seed import |
+| `prepare_dim_sareach_datasets.py` | **One-shot prep** from `Dim Sareach/Dataset/` (signs, CAM_TSR, Roboflow, VDO) |
+| `complete_reference_sign_splits.py` | 12 reference sign folders → `ai/datasets/splits/*_dim_sareach` |
+| `import_cam_tsr_data.py` | `Dataset/Data` street snapshots → `cam_tsr_street_signs_dim_sareach` |
 | `export_roboflow_annotations.py` | Roboflow labeled YOLO → annotations/exports |
 | `import_roboflow_zip.py` | Bulk Roboflow YOLO ZIP → raw buckets |
 | `dedup_images.py` | SHA-256 dedup (`--path` for raw folders) |
@@ -54,7 +57,9 @@ Legacy repo-root tools: `scripts/audit_dataset_quality.py`, `scripts/build_datas
 | `BATCH-REF-VEH-PLATE-001` | `Dim Sareach/Vichicle Detect/` (`Plate_Number`, `Vichicle&PlateNumber`, `Vichicle`) | 50 | 22 |
 
 ```bash
-# Roboflow imports (default paths under Reference/Dim Sareach/)
+# Roboflow imports (default: Reference/Dim Sareach/Dataset/)
+python ai/scripts/prepare_dim_sareach_datasets.py --skip-roboflow   # signs + CAM_TSR only
+python ai/scripts/prepare_dim_sareach_datasets.py                # full prep including Roboflow
 python ai/scripts/import_roboflow_zip.py --type vehicles --batch BATCH-ROBO-VEH-001
 python ai/scripts/import_roboflow_zip.py --type plates --batch BATCH-ROBO-PLATE-001
 python ai/scripts/collection_tracker.py --write-manifest

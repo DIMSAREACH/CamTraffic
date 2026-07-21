@@ -1,5 +1,7 @@
 # CamTraffic — Phase 9 Training
 
+**Module checklist (Image / Video / Webcam / Live):** [AI-DETECTION-MODULE-CHECKLIST.md](./AI-DETECTION-MODULE-CHECKLIST.md)
+
 ## YOLO (signs production model)
 
 ```bash

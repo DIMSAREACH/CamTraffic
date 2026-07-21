@@ -18,6 +18,15 @@ User = get_user_model()
 
 STATE_SALT = 'camtraffic-oauth-state'
 STATE_MAX_AGE = 600
+# app.camtraffic.store currently has no public DNS — never send it to Google/GitHub.
+_BROKEN_OAUTH_HOSTS = frozenset({'app.camtraffic.store'})
+_FALLBACK_OAUTH_CALLBACK = 'https://camtraffic-user.onrender.com/auth/oauth/callback'
+# Hosts allowed as OAuth redirect targets (must also be registered in Google/GitHub consoles).
+_ALLOWED_OAUTH_HOSTS = frozenset({
+    'camtraffic-user.onrender.com',
+    'localhost',
+    '127.0.0.1',
+})
 
 
 class OAuthError(Exception):
@@ -43,8 +52,34 @@ def oauth_configured(provider: str) -> bool:
     return False
 
 
+def sanitize_oauth_redirect_uri(uri: str | None) -> str:
+    """Prefer a resolvable callback host registered with Google/GitHub."""
+    from urllib.parse import urlparse
+
+    configured = (getattr(settings, 'OAUTH_FRONTEND_CALLBACK_URL', '') or '').strip()
+    fallback = configured.rstrip('/') or _FALLBACK_OAUTH_CALLBACK
+    fallback_host = (urlparse(fallback).hostname or '').lower()
+
+    candidate = (uri or '').strip() or fallback
+    parsed = urlparse(candidate)
+    host = (parsed.hostname or '').lower()
+    path = (parsed.path or '').rstrip('/') or '/auth/oauth/callback'
+
+    if host in _BROKEN_OAUTH_HOSTS:
+        return fallback if fallback_host not in _BROKEN_OAUTH_HOSTS else _FALLBACK_OAUTH_CALLBACK
+
+    # Reject unknown / wrong portal hosts (e.g. admin.onrender.com) — GitHub allows only one callback.
+    if host and host not in _ALLOWED_OAUTH_HOSTS and host != fallback_host:
+        return fallback if fallback_host not in _BROKEN_OAUTH_HOSTS else _FALLBACK_OAUTH_CALLBACK
+
+    scheme = parsed.scheme or 'https'
+    if host in ('localhost', '127.0.0.1'):
+        scheme = 'http'
+    return f'{scheme}://{host}{path}'
+
+
 def default_redirect_uri() -> str:
-    return settings.OAUTH_FRONTEND_CALLBACK_URL
+    return sanitize_oauth_redirect_uri(getattr(settings, 'OAUTH_FRONTEND_CALLBACK_URL', ''))
 
 
 def build_authorization_url(provider: str, redirect_uri: str | None = None) -> dict:
@@ -57,7 +92,11 @@ def build_authorization_url(provider: str, redirect_uri: str | None = None) -> d
             503,
         )
 
-    redirect_uri = redirect_uri or default_redirect_uri()
+    # GitHub OAuth Apps support a single Authorization callback URL — always use server config.
+    if provider == 'github':
+        redirect_uri = default_redirect_uri()
+    else:
+        redirect_uri = sanitize_oauth_redirect_uri(redirect_uri or default_redirect_uri())
     state = signing.dumps(
         {'provider': provider, 'redirect_uri': redirect_uri, 'nonce': secrets.token_urlsafe(16)},
         salt=STATE_SALT,
@@ -106,8 +145,11 @@ def exchange_code(
     if payload.get('provider') != provider:
         raise OAuthError('Provider mismatch. Please try again.', 400)
 
-    redirect_uri = redirect_uri or payload.get('redirect_uri') or default_redirect_uri()
-    if payload.get('redirect_uri') and payload['redirect_uri'] != redirect_uri:
+    redirect_uri = sanitize_oauth_redirect_uri(
+        redirect_uri or payload.get('redirect_uri') or default_redirect_uri()
+    )
+    state_redirect = sanitize_oauth_redirect_uri(payload.get('redirect_uri')) if payload.get('redirect_uri') else None
+    if state_redirect and state_redirect != redirect_uri:
         raise OAuthError('Redirect URI mismatch.', 400)
 
     if provider == 'google':
@@ -182,11 +224,17 @@ def _github_profile(code: str, redirect_uri: str) -> OAuthProfile:
     )
     if token_res.status_code != 200:
         raise OAuthError('GitHub sign-in failed. Could not exchange authorization code.', 400)
-    access_token = token_res.json().get('access_token')
+    token_payload = token_res.json() if token_res.content else {}
+    access_token = token_payload.get('access_token')
     if not access_token:
-        raise OAuthError('GitHub sign-in failed. No access token received.', 400)
+        gh_error = token_payload.get('error_description') or token_payload.get('error') or 'No access token received'
+        raise OAuthError(f'GitHub sign-in failed: {gh_error}', 400)
 
-    headers = {'Authorization': f'Bearer {access_token}', 'Accept': 'application/vnd.github+json'}
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Accept': 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+    }
     user_res = requests.get('https://api.github.com/user', headers=headers, timeout=15)
     if user_res.status_code != 200:
         raise OAuthError('GitHub sign-in failed. Could not load profile.', 400)
@@ -206,7 +254,11 @@ def _github_profile(code: str, redirect_uri: str) -> OAuthProfile:
                         email = item.get('email', '').strip().lower()
                         break
     if not email:
-        raise OAuthError('GitHub account has no public email. Add a verified email on GitHub.', 400)
+        raise OAuthError(
+            'GitHub account has no verified email. '
+            'On GitHub: Settings → Emails → add/verify an email (and allow it for OAuth).',
+            400,
+        )
     full_name = (data.get('name') or data.get('login') or email.split('@')[0]).strip()
     return OAuthProfile(provider='github', uid=uid, email=email, full_name=full_name)
 

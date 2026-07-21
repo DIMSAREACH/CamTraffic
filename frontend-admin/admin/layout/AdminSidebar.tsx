@@ -1,23 +1,22 @@
-import { Link, useLocation } from 'react-router';
+import { useLocation } from 'react-router';
+import { Search, Shield, X } from 'lucide-react';
 import {
   LayoutDashboard, Car, Users, FileText, Camera,
-  BookOpen, BarChart3, Bell, User, LogOut, Shield,
-  Activity, X, Cctv, AlertTriangle, Archive, Scale, ShieldAlert,
-  KeyRound, Building2, Database, Route, MapPin, Gauge,
+  BookOpen, BarChart3, Bell, User, Shield as ShieldIcon,
+  AlertTriangle, Scale, KeyRound, Route, Brain, Settings2,
+  Cctv, ShieldAlert, UserSearch,
 } from 'lucide-react';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { SidebarBrandToggle } from '@shared/components/layout/SidebarBrandToggle';
 import { NavbarProfileAvatar } from '@shared/components/NavbarProfileAvatar';
+import { EnterpriseSidebarNav } from '@shared/components/layout/EnterpriseSidebarNav';
 import { cn } from '@shared/components/ui/utils';
-
-interface NavItem {
-  labelKey: string;
-  path: string;
-  icon: React.ReactNode;
-  badge?: number;
-  section?: string;
-}
+import {
+  ADMIN_NAV_SECTIONS,
+  getAdminModuleById,
+  isAdminModuleActive,
+} from '@shared/constants/enterpriseModules';
 
 interface AdminSidebarProps {
   collapsed: boolean;
@@ -26,42 +25,33 @@ interface AdminSidebarProps {
   isMobile?: boolean;
 }
 
-const ADMIN_NAV: NavItem[] = [
-  { labelKey: 'sidebar.nav.dashboard', path: '/admin/dashboard', icon: <LayoutDashboard size={18} strokeWidth={1.75} />, section: 'main' },
-  { labelKey: 'sidebar.nav.aiDashboard', path: '/admin/ai-dashboard', icon: <Gauge size={18} strokeWidth={1.75} />, section: 'main' },
-  { labelKey: 'sidebar.nav.aiDetectionCenter', path: '/admin/ai-detection', icon: <Camera size={18} strokeWidth={1.75} />, section: 'main' },
-  { labelKey: 'sidebar.nav.cameras', path: '/admin/cameras', icon: <Cctv size={18} strokeWidth={1.75} />, section: 'main' },
-  { labelKey: 'sidebar.nav.cameraLocations', path: '/admin/camera-locations', icon: <MapPin size={18} strokeWidth={1.75} />, section: 'main' },
-  { labelKey: 'sidebar.nav.trafficSigns', path: '/admin/signs', icon: <BookOpen size={18} strokeWidth={1.75} />, section: 'main' },
-  { labelKey: 'sidebar.nav.fineManagement', path: '/admin/fines', icon: <FileText size={18} strokeWidth={1.75} />, section: 'manage' },
-  { labelKey: 'sidebar.nav.violationManagement', path: '/admin/violations', icon: <AlertTriangle size={18} strokeWidth={1.75} />, section: 'manage' },
-  { labelKey: 'sidebar.nav.appeals', path: '/admin/appeals', icon: <Scale size={18} strokeWidth={1.75} />, section: 'manage' },
-  { labelKey: 'sidebar.nav.allVehicles', path: '/admin/vehicles', icon: <Car size={18} strokeWidth={1.75} />, section: 'manage' },
-  { labelKey: 'sidebar.nav.vehicleOwners', path: '/admin/vehicle-owners', icon: <Users size={18} strokeWidth={1.75} />, section: 'manage' },
-  { labelKey: 'sidebar.nav.unknownVehicles', path: '/admin/unknown-vehicles', icon: <Car size={18} strokeWidth={1.75} />, section: 'manage' },
-  { labelKey: 'sidebar.nav.detectionLogs', path: '/admin/ai-logs', icon: <Activity size={18} strokeWidth={1.75} />, section: 'manage' },
-  { labelKey: 'sidebar.nav.evidenceArchive', path: '/admin/evidence', icon: <Archive size={18} strokeWidth={1.75} />, section: 'manage' },
-  { labelKey: 'sidebar.nav.auditLogs', path: '/admin/audit-logs', icon: <ShieldAlert size={18} strokeWidth={1.75} />, section: 'manage' },
-  { labelKey: 'sidebar.nav.userManagement', path: '/admin/users', icon: <Users size={18} strokeWidth={1.75} />, section: 'manage' },
-  { labelKey: 'sidebar.nav.roles', path: '/admin/roles', icon: <KeyRound size={18} strokeWidth={1.75} />, section: 'manage' },
-  { labelKey: 'sidebar.nav.officers', path: '/admin/officers', icon: <Building2 size={18} strokeWidth={1.75} />, section: 'manage' },
-  { labelKey: 'sidebar.nav.drivers', path: '/admin/drivers', icon: <Car size={18} strokeWidth={1.75} />, section: 'manage' },
-  { labelKey: 'sidebar.nav.roads', path: '/admin/roads', icon: <Route size={18} strokeWidth={1.75} />, section: 'manage' },
-  { labelKey: 'sidebar.nav.reports', path: '/admin/reports', icon: <BarChart3 size={18} strokeWidth={1.75} />, section: 'manage' },
-  { labelKey: 'sidebar.nav.backupRestore', path: '/admin/backup-restore', icon: <Database size={18} strokeWidth={1.75} />, section: 'manage' },
-  { labelKey: 'sidebar.nav.notifications', path: '/admin/notifications', icon: <Bell size={18} strokeWidth={1.75} />, section: 'account' },
-  { labelKey: 'sidebar.nav.myProfile', path: '/admin/profile', icon: <User size={18} strokeWidth={1.75} />, section: 'account' },
-];
+const MODULE_ICONS: Record<string, React.ReactNode> = {
+  dashboard: <LayoutDashboard size={18} strokeWidth={1.75} />,
+  'ai-detection': <Camera size={18} strokeWidth={1.75} />,
+  'ai-models': <Brain size={18} strokeWidth={1.75} />,
+  'traffic-signs': <BookOpen size={18} strokeWidth={1.75} />,
+  cameras: <Cctv size={18} strokeWidth={1.75} />,
+  roads: <Route size={18} strokeWidth={1.75} />,
+  vehicles: <Car size={18} strokeWidth={1.75} />,
+  drivers: <UserSearch size={18} strokeWidth={1.75} />,
+  officers: <ShieldIcon size={18} strokeWidth={1.75} />,
+  violations: <AlertTriangle size={18} strokeWidth={1.75} />,
+  fines: <FileText size={18} strokeWidth={1.75} />,
+  appeals: <Scale size={18} strokeWidth={1.75} />,
+  reports: <BarChart3 size={18} strokeWidth={1.75} />,
+  notifications: <Bell size={18} strokeWidth={1.75} />,
+  users: <Users size={18} strokeWidth={1.75} />,
+  roles: <KeyRound size={18} strokeWidth={1.75} />,
+  audit: <ShieldAlert size={18} strokeWidth={1.75} />,
+  profile: <User size={18} strokeWidth={1.75} />,
+  settings: <Settings2 size={18} strokeWidth={1.75} />,
+};
 
 export function AdminSidebar({ collapsed, onToggle, unreadCount = 0, isMobile = false }: AdminSidebarProps) {
   const { user, logout } = useAuth();
-  const { t, locale } = useLanguage();
+  const { t } = useLanguage();
   const location = useLocation();
   const expanded = isMobile || !collapsed;
-
-  const navItems = ADMIN_NAV.map((item) =>
-    item.labelKey === 'sidebar.nav.notifications' ? { ...item, badge: unreadCount } : item,
-  );
 
   const initials = user?.full_name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'A';
   const avatarGradient = 'linear-gradient(135deg, #8b5cf6, #7c3aed)';
@@ -70,45 +60,10 @@ export function AdminSidebar({ collapsed, onToggle, unreadCount = 0, isMobile = 
     if (isMobile) onToggle();
   };
 
-  const NavGroup = ({ labelKey, items }: { labelKey: string; items: NavItem[] }) => (
-    <div>
-      <p className="sidebar-nav__label sidebar-fade-when-collapsed">{t(labelKey)}</p>
-      <div className="sidebar-nav__divider sidebar-show-when-collapsed" aria-hidden />
-      <ul className="space-y-0.5 list-none m-0 p-0">
-        {items.map((item) => {
-          const isActive = location.pathname === item.path;
-          const label = t(item.labelKey);
-          return (
-            <li key={item.path}>
-              <Link
-                to={item.path}
-                title={!expanded ? label : undefined}
-                onClick={afterNavClick}
-                className={cn(
-                  'sidebar-nav__link',
-                  isActive && 'sidebar-nav__link--active',
-                  !expanded && 'sidebar-nav__link--collapsed',
-                )}
-              >
-                <span className="sidebar-nav__icon">{item.icon}</span>
-                <span className="sidebar-nav__link-text sidebar-fade-when-collapsed">{label}</span>
-                {item.badge != null && item.badge > 0 && (
-                  <span className="sidebar-nav__badge sidebar-fade-when-collapsed">
-                    {item.badge > 9 ? '9+' : item.badge}
-                  </span>
-                )}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-
   return (
     <aside
       className={cn(
-        'app-sidebar app-sidebar--admin',
+        'app-sidebar app-sidebar--admin app-sidebar--enterprise',
         expanded ? 'app-sidebar--expanded' : 'app-sidebar--collapsed',
         isMobile && 'app-sidebar--mobile',
       )}
@@ -134,10 +89,19 @@ export function AdminSidebar({ collapsed, onToggle, unreadCount = 0, isMobile = 
         )}
       </div>
 
-      <nav className="sidebar-nav">
-        <NavGroup labelKey="sidebar.main" items={navItems.filter((i) => i.section === 'main')} />
-        <NavGroup labelKey="sidebar.management" items={navItems.filter((i) => i.section === 'manage')} />
-        <NavGroup labelKey="sidebar.account" items={navItems.filter((i) => i.section === 'account')} />
+      <nav className="sidebar-nav sidebar-nav--enterprise sidebar-nav--categorized" aria-label={t('sidebar.enterpriseModules')}>
+        <EnterpriseSidebarNav
+          sections={ADMIN_NAV_SECTIONS}
+          getModule={getAdminModuleById}
+          isActive={(mod) => isAdminModuleActive(location.pathname, mod)}
+          icons={MODULE_ICONS}
+          fallbackIcon={<Search size={18} strokeWidth={1.75} />}
+          expanded={expanded}
+          unreadCount={unreadCount}
+          t={t}
+          onNavigate={afterNavClick}
+          onLogout={logout}
+        />
       </nav>
 
       <div className="sidebar-bottom">
@@ -187,23 +151,6 @@ export function AdminSidebar({ collapsed, onToggle, unreadCount = 0, isMobile = 
             />
           </div>
         )}
-
-        <div className="sidebar-footer">
-          <button
-            type="button"
-            onClick={() => {
-              if (isMobile) onToggle();
-              logout();
-            }}
-            title={!expanded ? t('sidebar.signOut') : undefined}
-            className={cn('sidebar-footer__logout', !expanded && 'sidebar-footer__logout--collapsed')}
-          >
-            <span className="sidebar-footer__icon">
-              <LogOut size={18} strokeWidth={1.75} />
-            </span>
-            <span className="sidebar-footer__logout-text sidebar-fade-when-collapsed">{t('sidebar.signOut')}</span>
-          </button>
-        </div>
       </div>
     </aside>
   );

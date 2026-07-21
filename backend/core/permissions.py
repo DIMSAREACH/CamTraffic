@@ -1,16 +1,41 @@
 """Role-based access control permissions.
 
 PRD role mapping:
-  Admin   → User.role == 'admin'
-  Officer → User.role == 'police'
-  Citizen → User.role == 'driver'
+  Admin       → User.role == 'admin'
+  Officer     → User.role == 'police'
+  Citizen     → User.role == 'driver'
+  Super Admin → User.is_superuser (optional elevated admin)
 """
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import SAFE_METHODS, BasePermission
 
 
 class IsAdmin(BasePermission):
     def has_permission(self, request, view):
         return request.user.is_authenticated and request.user.role == 'admin'
+
+
+class IsSuperAdmin(BasePermission):
+    """Elevated admin: manage other admins and the RBAC matrix."""
+
+    def has_permission(self, request, view):
+        user = request.user
+        return (
+            user.is_authenticated
+            and user.role == 'admin'
+            and bool(getattr(user, 'is_superuser', False))
+        )
+
+
+class IsAdminOrReadOnlySuperAdminWrite(BasePermission):
+    """Admins may read RBAC; only super-admins may create/update/delete roles."""
+
+    def has_permission(self, request, view):
+        user = request.user
+        if not user.is_authenticated or user.role != 'admin':
+            return False
+        if request.method in SAFE_METHODS:
+            return True
+        return bool(getattr(user, 'is_superuser', False))
 
 
 class IsPolice(BasePermission):
@@ -39,6 +64,7 @@ class IsPoliceOrAdmin(BasePermission):
 
 class IsOwnerOrAdmin(BasePermission):
     """Object-level: owner or admin."""
+
     def has_object_permission(self, request, view, obj):
         if request.user.role == 'admin':
             return True
@@ -56,6 +82,8 @@ from rbac.permissions import (  # noqa: E402
 
 __all__ = [
     'IsAdmin',
+    'IsSuperAdmin',
+    'IsAdminOrReadOnlySuperAdminWrite',
     'IsPolice',
     'IsDriver',
     'IsOfficer',

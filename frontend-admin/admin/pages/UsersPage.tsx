@@ -3,7 +3,7 @@ import { usePagination } from '@shared/hooks/usePagination';
 import { TablePagination } from '@shared/components/ui/TablePagination';
 import {
   Plus, Search, Trash2, ToggleLeft, ToggleRight, Users, Shield, Car,
-  BadgeCheck, UserPlus, Pencil, AlertCircle, CheckCircle, XCircle, Trash, Eye,
+  BadgeCheck, UserPlus, Pencil, AlertCircle, CheckCircle, XCircle, Trash, Eye, KeyRound,
 } from 'lucide-react';
 import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@shared/components/ui/table';
 import { TableEmptyState } from '@shared/components/ui/TableEmptyState';
 import { EntityDetailField, EntityViewDialog } from '@shared/components/admin/EntityViewDialog';
+import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { usersAPI } from '@shared/services/api';
 import { getPasswordValidationError, isStrongPassword, PASSWORD_REQUIREMENTS } from '@shared/utils/passwordPolicy';
@@ -92,6 +93,7 @@ function UserAvatar({
 
 export function UsersPage() {
   const { t } = useLanguage();
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -102,6 +104,12 @@ export function UsersPage() {
   const [saving, setSaving] = useState(false);
   const [deleteUser, setDeleteUser] = useState<User | null>(null);
   const [viewUser, setViewUser] = useState<User | null>(null);
+
+  const isSelf = (u: User) => Boolean(currentUser?.id) && String(u.id) === String(currentUser.id);
+  const isSuperAdmin = Boolean(currentUser?.is_superuser);
+  const isProtectedAdmin = (u: User) => u.role === 'admin' && !isSuperAdmin;
+  const cannotDeleteUser = (u: User) => isSelf(u) || isProtectedAdmin(u);
+  const cannotToggleUser = (u: User) => isSelf(u) || isProtectedAdmin(u);
 
   const loadUsers = async () => {
     setLoading(true);
@@ -186,25 +194,65 @@ export function UsersPage() {
   };
 
   const handleToggle = async (u: User) => {
+    if (cannotToggleUser(u)) {
+      toast.error(
+        isProtectedAdmin(u)
+          ? 'Administrator accounts cannot be deactivated here.'
+          : (t('users.cannotDeactivateSelf') !== 'users.cannotDeactivateSelf'
+            ? t('users.cannotDeactivateSelf')
+            : 'You cannot deactivate your own account.'),
+      );
+      return;
+    }
     try {
       await usersAPI.toggleActive(u.id);
       toast.success(`${u.full_name} ${u.is_active ? 'deactivated' : 'activated'}`);
       loadUsers();
-    } catch {
-      toast.error('Failed to update status');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update status');
     }
   };
 
   const handleDelete = async () => {
     if (!deleteUser) return;
+    if (cannotDeleteUser(deleteUser)) {
+      toast.error(
+        isProtectedAdmin(deleteUser)
+          ? 'Only a super administrator can manage other administrator accounts.'
+          : (t('users.cannotDeleteSelf') !== 'users.cannotDeleteSelf'
+            ? t('users.cannotDeleteSelf')
+            : 'You cannot delete your own account.'),
+      );
+      setDeleteUser(null);
+      return;
+    }
     const removedId = deleteUser.id;
     try {
-      await usersAPI.delete(removedId);
+      const result = await usersAPI.delete(removedId);
+      // Soft-delete keeps the row in DB but hides it from the Users table.
       setUsers((prev) => prev.filter((u) => u.id !== removedId));
-      toast.success('User deleted');
+      toast.success(result.message || 'User deleted');
       setDeleteUser(null);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to delete user');
+    }
+  };
+
+  const handleResetPassword = async (u: User) => {
+    if (isSelf(u)) {
+      toast.error('Use Profile → Change Password for your own account.');
+      return;
+    }
+    if (cannotToggleUser(u)) {
+      toast.error('Only a super administrator can reset another administrator password.');
+      return;
+    }
+    if (!window.confirm(`Send a password reset link to ${u.email}?`)) return;
+    try {
+      const result = await usersAPI.resetPassword(u.id);
+      toast.success(result.message || `Reset link sent to ${u.email}`);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Could not send reset link');
     }
   };
 
@@ -382,10 +430,27 @@ export function UsersPage() {
                         </button>
                         <button
                           type="button"
+                          className="users-page__action-btn users-page__action-btn--reset"
+                          onClick={() => handleResetPassword(u)}
+                          disabled={isSelf(u) || cannotToggleUser(u)}
+                          aria-label={t('users.resetPassword')}
+                          title={isSelf(u) ? t('users.resetPasswordSelf') : t('users.resetPasswordTitle')}
+                        >
+                          <KeyRound size={16} strokeWidth={2.35} />
+                        </button>
+                        <button
+                          type="button"
                           className="users-page__action-btn users-page__action-btn--delete"
                           onClick={() => setDeleteUser(u)}
+                          disabled={cannotDeleteUser(u)}
                           aria-label={t('common.delete')}
-                          title={t('common.delete')}
+                          title={cannotDeleteUser(u)
+                            ? (isProtectedAdmin(u)
+                              ? 'Administrator accounts cannot be deleted'
+                              : (t('users.cannotDeleteSelf') !== 'users.cannotDeleteSelf'
+                                ? t('users.cannotDeleteSelf')
+                                : 'You cannot delete your own account.'))
+                            : t('common.delete')}
                         >
                           <Trash2 size={16} strokeWidth={2.35} />
                         </button>
@@ -393,8 +458,15 @@ export function UsersPage() {
                           type="button"
                           className="users-page__action-btn users-page__action-btn--toggle"
                           onClick={() => handleToggle(u)}
+                          disabled={cannotToggleUser(u)}
                           aria-label={t('users.toggleStatus')}
-                          title={t('users.toggleStatus')}
+                          title={cannotToggleUser(u)
+                            ? (isProtectedAdmin(u)
+                              ? 'Administrator accounts cannot be deactivated here'
+                              : (t('users.cannotDeactivateSelf') !== 'users.cannotDeactivateSelf'
+                                ? t('users.cannotDeactivateSelf')
+                                : 'You cannot deactivate your own account.'))
+                            : t('users.toggleStatus')}
                         >
                           {u.is_active ? <ToggleRight size={16} strokeWidth={2.35} /> : <ToggleLeft size={16} strokeWidth={2.35} />}
                         </button>
@@ -456,7 +528,9 @@ export function UsersPage() {
               <Select value={form.role} onValueChange={(v) => setForm((f) => ({ ...f, role: v as UserRole }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin"><span className="flex items-center gap-2"><Shield size={14} /> {t('users.roleAdmin')}</span></SelectItem>
+                  {isSuperAdmin && (
+                    <SelectItem value="admin"><span className="flex items-center gap-2"><Shield size={14} /> {t('users.roleAdmin')}</span></SelectItem>
+                  )}
                   <SelectItem value="police"><span className="flex items-center gap-2"><BadgeCheck size={14} /> {t('users.rolePolice')}</span></SelectItem>
                   <SelectItem value="driver"><span className="flex items-center gap-2"><Car size={14} /> {t('users.roleDriver')}</span></SelectItem>
                 </SelectContent>

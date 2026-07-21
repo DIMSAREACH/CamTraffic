@@ -18,6 +18,11 @@ export function assertProductionDataMode(): void {
       'CamTraffic: VITE_USE_MOCK must be false for production builds. Use the Django backend and seed_production.',
     );
   }
+  if (IS_PROD_BUILD && import.meta.env.VITE_USE_SAMPLE_FALLBACK === 'true') {
+    throw new Error(
+      'CamTraffic: VITE_USE_SAMPLE_FALLBACK must be false for production builds. Use live API data only.',
+    );
+  }
 }
 
 export function dataModeLabel(): string {

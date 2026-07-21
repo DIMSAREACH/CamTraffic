@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'storages',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
@@ -48,14 +49,15 @@ INSTALLED_APPS = [
     'unknown_vehicles',
     'ai_models',
     'datasets',
+    'imports',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'core.middleware.RequestIdMiddleware',
     'core.middleware.RequestLoggingMiddleware',
     'core.middleware.SecurityHardeningMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -182,6 +184,39 @@ STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# Optional cloud media (Cloudflare R2 free tier or AWS S3). When enabled, uploads
+# leave the ephemeral Render disk and survive redeploys.
+USE_S3_MEDIA = os.getenv('USE_S3_MEDIA', 'False').lower() == 'true'
+if USE_S3_MEDIA:
+    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID', '')
+    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY', '')
+    AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME', '')
+    AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME', 'auto')
+    AWS_S3_ENDPOINT_URL = os.getenv('AWS_S3_ENDPOINT_URL', '').strip() or None
+    AWS_S3_CUSTOM_DOMAIN = os.getenv('AWS_S3_CUSTOM_DOMAIN', '').strip() or None
+    AWS_DEFAULT_ACL = None
+    AWS_QUERYSTRING_AUTH = False
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_S3_SIGNATURE_VERSION = 's3v4'
+    AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
+    # Keep keys under media/ so URLs look like …/media/signs/…
+    AWS_LOCATION = os.getenv('AWS_LOCATION', 'media').strip() or 'media'
+    STORAGES = {
+        'default': {
+            'BACKEND': 'storages.backends.s3boto3.S3Boto3Storage',
+        },
+        'staticfiles': {
+            'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+        },
+    }
+    if AWS_S3_CUSTOM_DOMAIN:
+        MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{AWS_LOCATION}/'
+
+# Large AI video uploads (default 500 MB; override with AI_VIDEO_MAX_MB).
+_AI_VIDEO_MAX_MB = max(1, int(os.getenv('AI_VIDEO_MAX_MB', '500')))
+DATA_UPLOAD_MAX_MEMORY_SIZE = min(10 * 1024 * 1024, _AI_VIDEO_MAX_MB * 1024 * 1024)
+FILE_UPLOAD_MAX_MEMORY_SIZE = DATA_UPLOAD_MAX_MEMORY_SIZE
 BACKUP_ROOT = BASE_DIR / 'backups'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -190,14 +225,24 @@ CORS_ALLOWED_ORIGINS = [
     o.strip()
     for o in os.getenv(
         'CORS_ALLOWED_ORIGINS',
-        'http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174',
+        'http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:3000,http://127.0.0.1:3000',
     ).split(',')
     if o.strip()
+]
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r.strip()
+    for r in os.getenv('CORS_ALLOWED_ORIGIN_REGEXES', '').split(',')
+    if r.strip()
 ]
 CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
 
-# OAuth (Google / GitHub) — user portal social login
+PUBLIC_API_URL = os.getenv('PUBLIC_API_URL', '').strip().rstrip('/')
+# Local disk media only when not using S3/R2.
+if USE_S3_MEDIA:
+    SERVE_MEDIA = False
+else:
+    SERVE_MEDIA = os.getenv('SERVE_MEDIA', 'True').lower() == 'true'
 GOOGLE_OAUTH_CLIENT_ID = os.getenv('GOOGLE_OAUTH_CLIENT_ID', '')
 GOOGLE_OAUTH_CLIENT_SECRET = os.getenv('GOOGLE_OAUTH_CLIENT_SECRET', '')
 GITHUB_OAUTH_CLIENT_ID = os.getenv('GITHUB_OAUTH_CLIENT_ID', '')
@@ -226,10 +271,21 @@ REST_FRAMEWORK = {
         'core.throttling.BurstRateThrottle',
         'core.throttling.SustainedRateThrottle',
     ),
+    # Local SPA navigation + StrictMode + live polling easily exceeds production-ish
+    # 2000/hour; keep generous DEBUG defaults and require explicit env in production.
     'DEFAULT_THROTTLE_RATES': {
-        'anon': os.getenv('API_THROTTLE_ANON', '60/min'),
-        'burst': os.getenv('API_THROTTLE_BURST', '120/min'),
-        'sustained': os.getenv('API_THROTTLE_SUSTAINED', '2000/hour'),
+        'anon': os.getenv(
+            'API_THROTTLE_ANON',
+            '600/min' if DEBUG else '60/min',
+        ),
+        'burst': os.getenv(
+            'API_THROTTLE_BURST',
+            '1200/min' if DEBUG else '120/min',
+        ),
+        'sustained': os.getenv(
+            'API_THROTTLE_SUSTAINED',
+            '50000/hour' if DEBUG else '2000/hour',
+        ),
     },
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'EXCEPTION_HANDLER': 'core.exceptions.custom_exception_handler',
@@ -294,6 +350,15 @@ AI_PLATE_OCR_LANGUAGES = [
 # Full pipeline: auto-evaluate violations on detect (defense demo)
 AI_PIPELINE_DEMO_VIOLATION = os.getenv('AI_PIPELINE_DEMO_VIOLATION', 'True').lower() == 'true'
 AI_PIPELINE_AUTO_CREATE_VIOLATION = os.getenv('AI_PIPELINE_AUTO_CREATE_VIOLATION', 'True').lower() == 'true'
+
+# Enterprise v2 — optional FastAPI ai-vision-service (see services/ai-vision-service/)
+AI_VISION_SERVICE_URL = os.getenv('AI_VISION_SERVICE_URL', '').strip()
+
+# Enterprise v2 — optional OCR microservice (see services/ocr-service/)
+OCR_SERVICE_URL = os.getenv('OCR_SERVICE_URL', '').strip()
+
+# Enterprise v2 — optional RTSP stream gateway (see services/stream-gateway/)
+STREAM_GATEWAY_URL = os.getenv('STREAM_GATEWAY_URL', '').strip()
 
 # Gemini Vision — optional backup only (AI_DETECTION_MODE=hybrid + flags below)
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
@@ -373,6 +438,27 @@ EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', 30))
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', '') or EMAIL_HOST_USER or 'noreply@camtraffic.kh'
+
+# ── Live payments (Stripe + KHQR / manual proof) ───────────────────────────────
+# PAYMENT_MODE: manual | stripe | khqr | live | auto
+PAYMENT_MODE = os.getenv('PAYMENT_MODE', 'manual')
+PAYMENT_CURRENCY = os.getenv('PAYMENT_CURRENCY', 'usd')
+PAYMENT_MANUAL_PROOF_ENABLED = os.getenv('PAYMENT_MANUAL_PROOF_ENABLED', 'True').lower() == 'true'
+STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
+STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
+STRIPE_SUCCESS_URL = os.getenv(
+    'STRIPE_SUCCESS_URL',
+    'http://localhost:5173/dashboard/fines?paid=1',
+)
+STRIPE_CANCEL_URL = os.getenv(
+    'STRIPE_CANCEL_URL',
+    'http://localhost:5173/dashboard/fines?cancel=1',
+)
+KHQR_MERCHANT_NAME = os.getenv('KHQR_MERCHANT_NAME', '')
+KHQR_MERCHANT_ACCOUNT = os.getenv('KHQR_MERCHANT_ACCOUNT', '')
+KHQR_MERCHANT_ACCOUNT_KHR = os.getenv('KHQR_MERCHANT_ACCOUNT_KHR', '')
+# Static ABA KHQR PNG served by user/admin SPA (public/payments/aba-khqr.png)
+KHQR_QR_IMAGE_URL = os.getenv('KHQR_QR_IMAGE_URL', '/payments/aba-khqr.png')
 
 LOGGING = build_logging_config(
     BASE_DIR,

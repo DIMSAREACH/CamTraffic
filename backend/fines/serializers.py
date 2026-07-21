@@ -62,7 +62,9 @@ class FineCreateSerializer(serializers.ModelSerializer):
 
 
 class FinePaymentSerializer(serializers.Serializer):
-    payment_method = serializers.ChoiceField(choices=['aba', 'wing', 'acleda', 'bank_transfer', 'cash'])
+    payment_method = serializers.ChoiceField(
+        choices=['aba', 'wing', 'acleda', 'bank_transfer', 'cash', 'stripe', 'khqr'],
+    )
     payment_reference = serializers.CharField(max_length=200)
     payment_screenshot = serializers.ImageField(required=False, allow_null=True)
 

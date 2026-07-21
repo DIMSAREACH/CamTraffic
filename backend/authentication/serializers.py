@@ -3,6 +3,7 @@ from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 from rest_framework import serializers
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from users.serializers import UserSerializer
@@ -36,8 +37,12 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         if not request:
             return
 
-        portal = (request.data.get('portal') or '').strip().lower()
-        expected_role = (request.data.get('role') or '').strip().lower()
+        raw = getattr(request, 'data', None)
+        if not isinstance(raw, dict):
+            raw = getattr(request, 'POST', {}) or {}
+
+        portal = (raw.get('portal') or '').strip().lower()
+        expected_role = (raw.get('role') or '').strip().lower()
 
         if portal == 'admin':
             if self.user.role != 'admin':
@@ -63,6 +68,8 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         try:
             data = super().validate(attrs)
+        except AuthenticationFailed as exc:
+            raise serializers.ValidationError(LOGIN_INVALID_CREDENTIALS) from exc
         except serializers.ValidationError as exc:
             detail = exc.detail
             if isinstance(detail, dict) and 'non_field_errors' in detail:

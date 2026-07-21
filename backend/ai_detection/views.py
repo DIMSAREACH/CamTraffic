@@ -145,7 +145,10 @@ class DetectSignView(APIView):
         except Exception as e:
             cleanup_temp_files([tmp_path, detect_path, *extra_cleanup])
             logger.exception('Detection failed for upload %s', image.name)
-            return error_response(f'Detection failed: {e}', status_code=500)
+            return error_response(
+                f'Detection failed: {e}. On hosted deploy set AI_USE_MOCK=True and disable vehicle/OCR.',
+                status_code=503,
+            )
 
         storage_path = jpeg_path or tmp_path
         storage_name = f'detect-{uuid.uuid4().hex[:12]}.jpg'
@@ -229,9 +232,9 @@ class DetectSignView(APIView):
                         or payload.get('display_title')
                         or 'ស្លាកមិនស្គាល់'
                     ),
-                    confidence=result['confidence'],
-                    description=payload.get('description') or result['description'],
-                    guidance=payload.get('guidance') or result['guidance'],
+                    confidence=float(result.get('confidence') or 0),
+                    description=payload.get('description') or result.get('description') or '',
+                    guidance=payload.get('guidance') or result.get('guidance') or '',
                     processing_time=result.get('processing_time', 0),
                     model_version=result.get('detection_engine', 'yolo'),
                     detected_vehicles=vehicles,
@@ -285,15 +288,19 @@ class DetectSignView(APIView):
 
             enforcement: dict = {}
             if not sign_only:
-                enforcement = apply_pipeline_enforcement(
-                    request=request,
-                    sign_result=result,
-                    plate_result=plate_result,
-                    vehicles=vehicles,
-                    log=log,
-                    payload=payload,
-                )
-                payload.update(enforcement)
+                try:
+                    enforcement = apply_pipeline_enforcement(
+                        request=request,
+                        sign_result=result,
+                        plate_result=plate_result,
+                        vehicles=vehicles,
+                        log=log,
+                        payload=payload,
+                    )
+                    payload.update(enforcement)
+                except Exception:
+                    logger.exception('Pipeline enforcement skipped')
+                    enforcement = {}
 
             pipeline_enforcement = enforcement.get('pipeline_enforcement') or {}
             payload['pipeline'] = build_pipeline_steps(
@@ -325,6 +332,9 @@ class DetectSignView(APIView):
                     notif_message,
                     is_violation=bool(enforcement.get('violation')),
                 )
+        except Exception as e:
+            logger.exception('Detection save/enforcement failed')
+            return error_response(f'Detection could not be saved: {e}', status_code=503)
         finally:
             cleanup_temp_files([tmp_path, detect_path, *extra_cleanup])
 
@@ -407,8 +417,8 @@ class DetectionLogDetailView(APIView):
 
 
 class DetectionLogReviewView(APIView):
-    """Approve or reject a detection log (admin only)."""
-    permission_classes = [IsAuthenticated, IsAdmin]
+    """Approve or reject a detection log (admin or police)."""
+    permission_classes = [IsAuthenticated, IsPoliceOrAdmin]
 
     def patch(self, request, pk):
         log = AIDetectionLog.objects.filter(pk=pk).first()
@@ -428,14 +438,22 @@ class DetectVideoView(APIView):
     permission_classes = [IsAuthenticated, IsPoliceOrAdmin]
 
     def post(self, request):
-        from .video_utils import ALLOWED_VIDEO_EXTENSIONS, extract_video_frames
+        from .video_utils import (
+            ALLOWED_VIDEO_EXTENSIONS,
+            MAX_VIDEO_UPLOAD_BYTES,
+            MAX_VIDEO_UPLOAD_MB,
+            build_annotated_preview_video,
+            extract_video_frames,
+        )
 
-        video = request.FILES.get('video')
+        video = request.FILES.get('video') or request.FILES.get('file')
         if not video:
-            return error_response('Video file is required (field: video)')
+            return error_response('Video file is required (field: video or file)')
         ext = os.path.splitext(video.name)[1].lower()
         if ext not in ALLOWED_VIDEO_EXTENSIONS:
             return error_response('Invalid video format. Use MP4, WEBM, MOV, or AVI.')
+        if getattr(video, 'size', 0) and video.size > MAX_VIDEO_UPLOAD_BYTES:
+            return error_response(f'Video must be under {MAX_VIDEO_UPLOAD_MB} MB')
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=ext or '.mp4') as tmp:
             for chunk in video.chunks():
@@ -455,6 +473,7 @@ class DetectVideoView(APIView):
             best_payload: dict | None = None
             best_score = -1.0
             frame_summaries: list[dict] = []
+            annotated_frame_paths: list[str] = []
 
             for frame_path, timestamp in sampled:
                 detect_path, jpeg_path, extra = prepare_detection_image(frame_path)
@@ -470,6 +489,19 @@ class DetectVideoView(APIView):
                     unified_prep=True,
                 )
                 payload = pipeline_out['payload']
+                result_frame = pipeline_out['sign_result']
+                yolo_raw_frame = result_frame.get('yolo_debug') or {}
+                frame_ann = draw_yolo_bbox_on_image(
+                    sign_prep.yolo_path,
+                    yolo_raw_frame.get('sign_bbox') if yolo_raw_frame else None,
+                    label=payload.get('sign_name_en') or '',
+                    confidence=float(yolo_raw_frame.get('confidence') or 0) if yolo_raw_frame else 0.0,
+                )
+                if frame_ann:
+                    cleanup.append(frame_ann)
+                    annotated_frame_paths.append(frame_ann)
+                else:
+                    annotated_frame_paths.append(sign_prep.yolo_path)
                 score = float(payload.get('display_confidence') or payload.get('confidence') or 0)
                 frame_summaries.append({
                     'timestamp_sec': round(timestamp, 2),
@@ -531,9 +563,9 @@ class DetectVideoView(APIView):
                         or payload.get('display_title')
                         or 'ស្លាកមិនស្គាល់'
                     ),
-                    confidence=result['confidence'],
-                    description=payload.get('description') or result['description'],
-                    guidance=payload.get('guidance') or result['guidance'],
+                    confidence=float(result.get('confidence') or 0),
+                    description=payload.get('description') or result.get('description') or '',
+                    guidance=payload.get('guidance') or result.get('guidance') or '',
                     processing_time=result.get('processing_time', 0),
                     model_version=result.get('detection_engine', 'yolo'),
                     detected_vehicles=vehicles,
@@ -564,6 +596,19 @@ class DetectVideoView(APIView):
                         File(handle),
                     )
                 payload['annotated_processed_image'] = api_media_path(saved)
+            if annotated_frame_paths:
+                preview_tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4')
+                preview_tmp.close()
+                cleanup.append(preview_tmp.name)
+                if build_annotated_preview_video(annotated_frame_paths, preview_tmp.name):
+                    from django.core.files.storage import default_storage
+
+                    with open(preview_tmp.name, 'rb') as handle:
+                        saved_vid = default_storage.save(
+                            f'ai/evidence/videos/annotated-preview-{uuid.uuid4().hex[:12]}.mp4',
+                            File(handle),
+                        )
+                    payload['annotated_preview_video'] = api_media_path(saved_vid)
             if log.vehicle_snapshot:
                 payload['vehicle_snapshot'] = api_media_url(request, log.vehicle_snapshot)
             if log.plate_snapshot:
@@ -647,6 +692,75 @@ class ProcessFrameView(DetectSignView):
                 os.unlink(path)
             except OSError:
                 pass
+
+
+class DetectionHubView(APIView):
+    """Discovery document for all detection input modes (Image / Video / Webcam / Live)."""
+
+    permission_classes = [IsAuthenticated, IsPoliceOrAdmin]
+
+    def get(self, request):
+        base = request.build_absolute_uri('/api/detection/').rstrip('/') + '/'
+        ai = request.build_absolute_uri('/api/ai/').rstrip('/') + '/'
+        return success_response({
+            'service': 'CamTraffic AI Detection',
+            'modes': {
+                'image': {
+                    'method': 'POST',
+                    'url': f'{base}image/',
+                    'legacy_url': f'{ai}detect/',
+                    'multipart': {'image': 'required (jpg, png, webp, avif)'},
+                },
+                'video': {
+                    'method': 'POST',
+                    'url': f'{base}video/',
+                    'legacy_url': f'{ai}detect-video/',
+                    'multipart': {'video': 'required (mp4, webm, mov, avi)'},
+                    'note': 'Samples frames; returns best detection + annotated preview MP4 + log.',
+                },
+                'webcam': {
+                    'method': 'POST',
+                    'url': f'{base}webcam/',
+                    'legacy_url': f'{ai}capture-webcam/',
+                    'multipart': {'image': 'browser camera frame (jpeg/png)'},
+                    'get': f'{base}webcam/',
+                },
+                'live': {
+                    'method': 'POST',
+                    'url': f'{base}live/',
+                    'legacy_url': f'{ai}process-frame/',
+                    'body': {'camera_id': 'registered infrastructure camera id'},
+                    'optional_multipart': {'image': 'override snapshot'},
+                },
+            },
+            'logs': f'{ai}logs/',
+            'stats': f'{ai}stats/',
+        })
+
+
+class DetectionWebcamView(APIView):
+    """Webcam: GET capabilities, POST same as capture-webcam / process-frame with image."""
+
+    permission_classes = [IsAuthenticated, IsPoliceOrAdmin]
+
+    def get(self, request):
+        base = request.build_absolute_uri('/api/detection/webcam/').rstrip('/') + '/'
+        return success_response({
+            'mode': 'webcam',
+            'method': 'POST',
+            'url': base,
+            'content_type': 'multipart/form-data',
+            'fields': {
+                'image': 'required — single frame from getUserMedia()',
+                'observed_action': 'optional — demo violation rule',
+                'auto_create_violation': 'optional — true/false',
+                'sign_only': 'optional — true for sign-only fast path',
+            },
+            'supported_formats': sorted(ALLOWED_UPLOAD_EXTENSIONS),
+        })
+
+    def post(self, request, *args, **kwargs):
+        return ProcessFrameView().post(request, *args, **kwargs)
 
 
 class DetectionPageStatsView(APIView):

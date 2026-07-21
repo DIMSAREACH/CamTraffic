@@ -2,6 +2,9 @@
 export const optimizeDeps = {
   include: [
     '@tanstack/react-query',
-    'zustand',
+    'zustand/react',
+    'zustand/vanilla',
+    'leaflet',
+    'react-leaflet',
   ],
 };

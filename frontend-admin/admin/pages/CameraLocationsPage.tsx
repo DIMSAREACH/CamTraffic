@@ -17,12 +17,12 @@ import { camerasAPI, roadsAPI } from '@shared/services/api';
 import { toast } from 'sonner';
 import type { Camera, CameraStatus, Road, RoadStatus } from '@shared/types';
 import { cn } from '@shared/components/ui/utils';
-
-const BBOX = { latMin: 11.4, latMax: 11.7, lngMin: 104.8, lngMax: 104.95 };
+import { LocationsMap, type LocationsMapPoint } from '../components/LocationsMap';
+import { CoordinatePickerMap } from '../components/CoordinatePickerMap';
 
 type TabId = 'cameras' | 'roads';
 
-type MapPoint = { id: number; name: string; lat: number; lng: number; kind: TabId };
+type MapPoint = LocationsMapPoint;
 
 const STATUS_META: Record<string, { bg: string; color: string; icon: ReactNode }> = {
   active: { bg: 'rgba(16,185,129,0.1)', color: '#059669', icon: <CheckCircle size={11} /> },
@@ -35,25 +35,24 @@ const TAB_FILTER_STYLE: Record<TabId, string> = {
   roads: 'linear-gradient(135deg, #059669, #047857)',
 };
 
-function toMapPos(lat: number, lng: number) {
-  const x = ((lng - BBOX.lngMin) / (BBOX.lngMax - BBOX.lngMin)) * 100;
-  const y = (1 - (lat - BBOX.latMin) / (BBOX.latMax - BBOX.latMin)) * 100;
-  return {
-    left: `${Math.min(98, Math.max(2, x))}%`,
-    top: `${Math.min(98, Math.max(2, y))}%`,
-  };
+/** API / Decimal serializers may return coords as strings. */
+function toCoord(v?: number | string | null): number | null {
+  if (v == null || v === '') return null;
+  const n = typeof v === 'number' ? v : Number(v);
+  return Number.isFinite(n) ? n : null;
 }
 
-function formatCoord(v?: number | null) {
-  if (v == null || Number.isNaN(v)) return null;
-  return v.toFixed(5);
+function formatCoord(v?: number | string | null) {
+  const n = toCoord(v);
+  if (n == null) return null;
+  return n.toFixed(5);
 }
 
-function hasCoords(lat?: number | null, lng?: number | null) {
-  return lat != null && lng != null && !Number.isNaN(lat) && !Number.isNaN(lng);
+function hasCoords(lat?: number | string | null, lng?: number | string | null) {
+  return toCoord(lat) != null && toCoord(lng) != null;
 }
 
-function CoordCell({ value, emptyLabel }: { value?: number | null; emptyLabel: string }) {
+function CoordCell({ value, emptyLabel }: { value?: number | string | null; emptyLabel: string }) {
   const formatted = formatCoord(value);
   if (!formatted) {
     return <span className="cam-loc__coord cam-loc__coord--missing">{emptyLabel}</span>;
@@ -118,27 +117,21 @@ export function CameraLocationsPage() {
   const roadPagination = usePagination(roadRows);
 
   const cameraMapPoints = useMemo((): MapPoint[] =>
-    cameras
-      .filter((item) => hasCoords(item.latitude, item.longitude))
-      .map((item) => ({
-        id: item.id,
-        name: item.name,
-        lat: item.latitude as number,
-        lng: item.longitude as number,
-        kind: 'cameras',
-      })),
+    cameras.flatMap((item) => {
+      const lat = toCoord(item.latitude);
+      const lng = toCoord(item.longitude);
+      if (lat == null || lng == null) return [];
+      return [{ id: item.id, name: item.name, lat, lng, kind: 'cameras' as const }];
+    }),
   [cameras]);
 
   const roadMapPoints = useMemo((): MapPoint[] =>
-    roads
-      .filter((item) => hasCoords(item.latitude, item.longitude))
-      .map((item) => ({
-        id: item.id,
-        name: item.name,
-        lat: item.latitude as number,
-        lng: item.longitude as number,
-        kind: 'roads',
-      })),
+    roads.flatMap((item) => {
+      const lat = toCoord(item.latitude);
+      const lng = toCoord(item.longitude);
+      if (lat == null || lng == null) return [];
+      return [{ id: item.id, name: item.name, lat, lng, kind: 'roads' as const }];
+    }),
   [roads]);
 
   const mapPoints = useMemo(
@@ -162,10 +155,10 @@ export function CameraLocationsPage() {
       : 0,
   }), [counts]);
 
-  const openEdit = (kind: TabId, id: number, name: string, latitude?: number | null, longitude?: number | null) => {
+  const openEdit = (kind: TabId, id: string | number, name: string, latitude?: number | string | null, longitude?: number | string | null) => {
     setEditItem({ kind, id, name });
-    setLat(latitude != null ? String(latitude) : '');
-    setLng(longitude != null ? String(longitude) : '');
+    setLat(latitude != null && latitude !== '' ? String(latitude) : '');
+    setLng(longitude != null && longitude !== '' ? String(longitude) : '');
   };
 
   const handleSave = async () => {
@@ -178,6 +171,10 @@ export function CameraLocationsPage() {
     }
     if (lng.trim() && Number.isNaN(longitude)) {
       toast.error(t('cameraLocations.invalidLng'));
+      return;
+    }
+    if ((latitude == null) !== (longitude == null)) {
+      toast.error(t('cameraLocations.coordsPairRequired'));
       return;
     }
     setSaving(true);
@@ -197,6 +194,14 @@ export function CameraLocationsPage() {
     }
   };
 
+  const pickCoords = (nextLat: number, nextLng: number) => {
+    setLat(nextLat.toFixed(7));
+    setLng(nextLng.toFixed(7));
+  };
+
+  const pickedLat = toCoord(lat);
+  const pickedLng = toCoord(lng);
+
   const columns = [
     { key: 'name', label: t('cameraLocations.colName'), className: 'cam-loc__col--name' },
     { key: 'lat', label: t('cameraLocations.colLat'), className: 'cam-loc__col--lat' },
@@ -212,23 +217,6 @@ export function CameraLocationsPage() {
       <span className="enforcement-page__badge" style={{ background: st.bg, color: st.color }}>
         {st.icon}{statusLabel(status)}
       </span>
-    );
-  };
-
-  const renderMapDot = (p: MapPoint) => {
-    const pos = toMapPos(p.lat, p.lng);
-    const dim = p.kind !== tab;
-    return (
-      <span
-        key={`${p.kind}-${p.id}`}
-        title={`${p.name} (${formatCoord(p.lat)}, ${formatCoord(p.lng)})`}
-        className={cn(
-          'cam-loc__map-dot',
-          p.kind === 'cameras' ? 'cam-loc__map-dot--camera' : 'cam-loc__map-dot--road',
-          dim && 'cam-loc__map-dot--dim',
-        )}
-        style={pos}
-      />
     );
   };
 
@@ -292,13 +280,13 @@ export function CameraLocationsPage() {
       <section className="cam-loc__workspace" aria-label={t('cameraLocations.mapTitle')}>
         <article className="cam-loc__map-card">
           <header className="cam-loc__card-hero cam-loc__card-hero--map">
-            <span className="cam-loc__card-hero-glow" aria-hidden />
-            <div className="cam-loc__card-hero-icon">
-              <Layers size={18} />
-            </div>
+            <span className="cam-loc__chart-dot cam-loc__chart-dot--map" aria-hidden />
             <div className="cam-loc__card-hero-copy">
               <h2 className="cam-loc__card-hero-title">{t('cameraLocations.mapTitle')}</h2>
               <p className="cam-loc__card-hero-sub">{t('cameraLocations.mapSubtitle')}</p>
+            </div>
+            <div className="cam-loc__card-hero-icon cam-loc__card-hero-icon--map">
+              <Layers size={16} />
             </div>
             <div className="cam-loc__card-hero-badge">
               <span className="cam-loc__card-hero-badge-value">{mapPoints.length}</span>
@@ -306,31 +294,22 @@ export function CameraLocationsPage() {
             </div>
           </header>
           <div className="cam-loc__map-body">
-            <div className="cam-loc__map-canvas" aria-label={t('cameraLocations.mapTitle')}>
-              <div className="cam-loc__map-grid" aria-hidden />
-              <div className="cam-loc__map-overlay" aria-hidden>
-                <span className="cam-loc__map-chip">{t('cameraLocations.mapRegion')}</span>
-              </div>
-              {mapPoints.length === 0 ? (
-                <div className="cam-loc__map-empty">
-                  <div className="cam-loc__map-empty-icon">
-                    <MapPin size={24} strokeWidth={1.75} />
-                  </div>
-                  <p className="cam-loc__map-empty-title">{t('cameraLocations.mapEmpty')}</p>
-                  <p className="cam-loc__map-empty-hint">{t('cameraLocations.mapEmptyHint')}</p>
-                </div>
-              ) : mapPoints.map(renderMapDot)}
-              <div className="cam-loc__map-legend" aria-label={t('cameraLocations.legend')}>
-                <span className="cam-loc__legend-item">
-                  <span className="cam-loc__legend-swatch cam-loc__legend-swatch--camera" />
-                  {t('cameraLocations.legendCameras')}
-                </span>
-                <span className="cam-loc__legend-item">
-                  <span className="cam-loc__legend-swatch cam-loc__legend-swatch--road" />
-                  {t('cameraLocations.legendRoads')}
-                </span>
-              </div>
-            </div>
+            <LocationsMap
+              points={mapPoints}
+              activeKind={tab}
+              ariaLabel={t('cameraLocations.mapTitle')}
+              regionLabel={t('cameraLocations.mapRegion')}
+              emptyTitle={t('cameraLocations.mapEmpty')}
+              emptyHint={t('cameraLocations.mapEmptyHint')}
+              camerasLabel={t('cameraLocations.legendCameras')}
+              roadsLabel={t('cameraLocations.legendRoads')}
+              layersLabel={t('cameraLocations.layers')}
+              mapTypeLabel={t('cameraLocations.mapType')}
+              defaultMapLabel={t('cameraLocations.mapDefault')}
+              satelliteLabel={t('cameraLocations.mapSatellite')}
+              terrainLabel={t('cameraLocations.mapTerrain')}
+              mapDetailsLabel={t('cameraLocations.mapDetails')}
+            />
             <footer className="cam-loc__map-foot">
               <p className="cam-loc__map-hint">{t('cameraLocations.mapHint')}</p>
               <div className="cam-loc__map-stats">
@@ -349,13 +328,13 @@ export function CameraLocationsPage() {
 
         <article className="cam-loc__coverage-card">
           <header className="cam-loc__card-hero cam-loc__card-hero--coverage">
-            <span className="cam-loc__card-hero-glow" aria-hidden />
-            <div className="cam-loc__card-hero-icon">
-              <BarChart3 size={18} />
-            </div>
+            <span className="cam-loc__chart-dot cam-loc__chart-dot--coverage" aria-hidden />
             <div className="cam-loc__card-hero-copy">
               <h2 className="cam-loc__card-hero-title">{t('cameraLocations.coverageTitle')}</h2>
               <p className="cam-loc__card-hero-sub">{t('cameraLocations.coverageSubtitle')}</p>
+            </div>
+            <div className="cam-loc__card-hero-icon cam-loc__card-hero-icon--coverage">
+              <BarChart3 size={16} />
             </div>
           </header>
           <div className="cam-loc__coverage-body">
@@ -410,13 +389,13 @@ export function CameraLocationsPage() {
 
       <section className="cam-loc__registry">
         <header className="cam-loc__card-hero cam-loc__card-hero--registry cam-loc__registry-hero">
-          <span className="cam-loc__card-hero-glow cam-loc__registry-glow" aria-hidden />
-          <div className="cam-loc__card-hero-icon cam-loc__registry-icon">
-            <MapPin size={18} />
-          </div>
+          <span className="cam-loc__chart-dot cam-loc__chart-dot--registry" aria-hidden />
           <div className="cam-loc__card-hero-copy cam-loc__registry-copy">
             <h2 className="cam-loc__card-hero-title cam-loc__registry-title">{t('cameraLocations.registryTitle')}</h2>
             <p className="cam-loc__card-hero-sub cam-loc__registry-sub">{t('cameraLocations.registrySubtitle')}</p>
+          </div>
+          <div className="cam-loc__card-hero-icon cam-loc__card-hero-icon--registry cam-loc__registry-icon">
+            <MapPin size={16} />
           </div>
         </header>
 
@@ -567,7 +546,7 @@ export function CameraLocationsPage() {
       </section>
 
       <Dialog open={!!editItem} onOpenChange={() => setEditItem(null)}>
-        <DialogContent accent="blue" className="max-w-md">
+        <DialogContent accent="blue" className="max-w-xl cam-loc__coords-dialog">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2.5">
               <div className="enforcement-page__dialog-icon enforcement-page__dialog-icon--primary">
@@ -579,15 +558,37 @@ export function CameraLocationsPage() {
             </DialogTitle>
           </DialogHeader>
           {editItem ? (
-            <div className="space-y-3 py-1">
-              <p className="text-sm text-muted-foreground">{editItem.name}</p>
-              <div>
-                <Label className="enforcement-page__form-label">{t('cameraLocations.colLat')}</Label>
-                <Input className="mt-1" value={lat} onChange={(e) => setLat(e.target.value)} placeholder="11.5564" />
-              </div>
-              <div>
-                <Label className="enforcement-page__form-label">{t('cameraLocations.colLng')}</Label>
-                <Input className="mt-1" value={lng} onChange={(e) => setLng(e.target.value)} placeholder="104.9282" />
+            <div className="cam-loc__coords-form space-y-3 py-1">
+              <p className="text-sm font-semibold text-foreground">{editItem.name}</p>
+              <CoordinatePickerMap
+                lat={pickedLat}
+                lng={pickedLng}
+                kind={editItem.kind}
+                onPick={pickCoords}
+                ariaLabel={t('cameraLocations.mapPickerLabel')}
+                hint={t('cameraLocations.mapPickerHint')}
+              />
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <Label className="enforcement-page__form-label">{t('cameraLocations.colLat')}</Label>
+                  <Input
+                    className="mt-1"
+                    value={lat}
+                    onChange={(e) => setLat(e.target.value)}
+                    placeholder="11.5564"
+                    inputMode="decimal"
+                  />
+                </div>
+                <div>
+                  <Label className="enforcement-page__form-label">{t('cameraLocations.colLng')}</Label>
+                  <Input
+                    className="mt-1"
+                    value={lng}
+                    onChange={(e) => setLng(e.target.value)}
+                    placeholder="104.9282"
+                    inputMode="decimal"
+                  />
+                </div>
               </div>
             </div>
           ) : null}

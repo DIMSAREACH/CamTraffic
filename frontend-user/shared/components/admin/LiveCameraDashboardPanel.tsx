@@ -29,7 +29,7 @@ function LiveCameraCard({
   selected: boolean;
   compact?: boolean;
   dock?: boolean;
-  onSelect: (id: number) => void;
+  onSelect: (id: string) => void;
 }) {
   const { t } = useLanguage();
   const meta = STATUS_STYLE[camera.status];
@@ -118,8 +118,8 @@ export function LiveCameraDashboardPanel({
 }: {
   cameras: Camera[];
   refreshTick: number;
-  selectedId: number | null;
-  onSelect: (id: number) => void;
+  selectedId: string | null;
+  onSelect: (id: string) => void;
   compact?: boolean;
   dock?: boolean;
 }) {

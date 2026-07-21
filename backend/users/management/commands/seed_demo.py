@@ -63,10 +63,16 @@ class Command(BaseCommand):
             action='store_true',
             help='Reset demo account passwords to the default demo password',
         )
+        parser.add_argument(
+            '--accounts-only',
+            action='store_true',
+            help='Only sync demo login accounts (skip seed_data — for hosted API boot)',
+        )
 
     @transaction.atomic
     def handle(self, *args, **options):
         reset_passwords = options['reset_passwords']
+        accounts_only = options['accounts_only']
         self.stdout.write('Seeding CamTraffic demo environment...')
 
         station, _ = PoliceStation.objects.get_or_create(
@@ -143,6 +149,11 @@ class Command(BaseCommand):
                         'status': 'active',
                     },
                 )
+
+        if accounts_only:
+            self.stdout.write(self.style.SUCCESS('Demo accounts synced (accounts-only).'))
+            self.stdout.write(f'  Admin: admin@camtraffic.demo / {DEMO_PASSWORD}')
+            return
 
         call_command('seed_violation_rules')
         call_command('seed_data')

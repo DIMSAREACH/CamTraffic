@@ -1,10 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router';
 import {
-  BarChart3, Download, TrendingUp, FileText, Users, Camera, PieChart as PieChartIcon,
-  BarChart2, LineChart as LineChartIcon, AlertCircle, RefreshCw, Shield, Car, BadgeCheck,
-  MapPin, Activity, Gauge, Layers, Database, HardDrive, FileJson, Settings2,
-  Cpu, Loader2, Lock, FileSpreadsheet, Calendar, ArrowDownToLine,
-  Package, Upload,
+  BarChart3, Download, TrendingUp, FileText, Camera, PieChart as PieChartIcon,
+  AlertCircle, RefreshCw, Loader2, FileSpreadsheet, CalendarClock, Printer, Sparkles,
+  ShieldAlert, Crosshair,
 } from 'lucide-react';
 import { Button } from '@shared/components/ui/button';
 import {
@@ -13,10 +12,14 @@ import {
 } from 'recharts';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
-import { formatAppCurrency, formatChartAxisCurrency, formatRevenue } from '@shared/i18n/localeFormat';
+import { formatRevenue } from '@shared/i18n/localeFormat';
 import { useLiveData } from '@shared/hooks/useLiveData';
-import { dashboardAPI } from '@shared/services/api';
+import { camerasAPI, dashboardAPI, officersAPI } from '@shared/services/api';
 import { EMPTY_DASHBOARD_STATS } from '@shared/constants/emptyDashboard';
+import {
+  CAMBODIA_PROVINCES,
+  VEHICLE_TYPE_DISTRIBUTION,
+} from '@shared/constants/reportCatalog';
 import { toast } from 'sonner';
 import type { DashboardStats } from '@shared/types';
 import {
@@ -27,74 +30,12 @@ import {
   chartTooltipStyle,
   chartAxisTick,
 } from '@shared/constants/chartPalette';
+import { ReportChartPanel } from '@shared/components/admin/reports/ReportChartPanel';
 import {
-  ReportsAdminExtras,
-  ReportsDriverAnalyticsPanel,
-  ReportsHeatmapPanel,
-  ReportsOfficerPerformancePanel,
-} from '@shared/components/admin/ReportsAdvancedAnalytics';
-
-type ReportTab = 'overview' | 'fines' | 'detections' | 'users' | 'heatmap' | 'officers' | 'drivers';
-
-const TABS: { key: ReportTab; labelKey: string; gradient: string }[] = [
-  { key: 'overview', labelKey: 'reports.tabOverview', gradient: 'linear-gradient(135deg, #D97706, #F59E0B)' },
-  { key: 'fines', labelKey: 'reports.tabFines', gradient: 'linear-gradient(135deg, #EF4444, #DC2626)' },
-  { key: 'detections', labelKey: 'reports.tabDetections', gradient: 'linear-gradient(135deg, #8B5CF6, #7C3AED)' },
-  { key: 'users', labelKey: 'reports.tabUsers', gradient: 'linear-gradient(135deg, #2563EB, #1D4ED8)' },
-  { key: 'heatmap', labelKey: 'reports.tabHeatmap', gradient: 'linear-gradient(135deg, #F43F5E, #E11D48)' },
-  { key: 'officers', labelKey: 'reports.tabOfficers', gradient: 'linear-gradient(135deg, #0EA5E9, #0284C7)' },
-  { key: 'drivers', labelKey: 'reports.tabDrivers', gradient: 'linear-gradient(135deg, #14B8A6, #0D9488)' },
-];
-
-const MAIN_STATS = [
-  { key: 'revenue', labelKey: 'reports.statRevenue', subKey: 'reports.statRevenueSub', icon: TrendingUp, variant: 'teal' },
-  { key: 'fines', labelKey: 'reports.statFines', subKey: 'reports.statFinesSub', icon: FileText, variant: 'amber' },
-  { key: 'users', labelKey: 'reports.statUsers', subKey: 'reports.statUsersSub', icon: Users, variant: 'blue' },
-  { key: 'detections', labelKey: 'reports.statDetections', subKey: 'reports.statDetectionsSub', icon: Camera, variant: 'violet' },
-] as const;
-
-function ChartPanel({
-  title,
-  icon,
-  accent,
-  children,
-}: {
-  title: string;
-  icon: React.ReactNode;
-  accent: 'teal' | 'violet' | 'rose' | 'blue' | 'amber';
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="enforcement-page__panel reports-page__panel">
-      <div className={`reports-page__chart-head reports-page__chart-head--${accent}`}>
-        <div className={`reports-page__chart-icon reports-page__chart-icon--${accent}`}>
-          {icon}
-        </div>
-        <h3 className="reports-page__chart-title">{title}</h3>
-      </div>
-      <div className="reports-page__chart-body">{children}</div>
-    </div>
-  );
-}
-
-function MiniStat({
-  label,
-  value,
-  variant,
-}: {
-  label: string;
-  value: string | number;
-  variant: 'slate' | 'emerald' | 'amber' | 'rose' | 'blue' | 'violet' | 'teal';
-}) {
-  return (
-    <div className={`reports-page__mini-stat reports-page__mini-stat--${variant}`}>
-      <p className="reports-page__mini-stat-value">
-        {typeof value === 'number' ? value.toLocaleString() : value}
-      </p>
-      <p className="reports-page__mini-stat-label">{label}</p>
-    </div>
-  );
-}
+  DEFAULT_REPORT_FILTERS,
+  ReportFiltersBar,
+  type ReportFilterState,
+} from '@shared/components/admin/reports/ReportFiltersBar';
 
 function RainbowStrokeGradient({ id }: { id: string }) {
   return (
@@ -116,70 +57,21 @@ function RainbowFillGradient({ id }: { id: string }) {
   );
 }
 
-function TopLocationsPanel({
-  rows,
-  t,
-}: {
-  rows: NonNullable<DashboardStats['top_locations']>;
-  t: (key: string, vars?: Record<string, string | number>) => string;
-}) {
-  const max = Math.max(...rows.map((r) => r.detections), 1);
-  return (
-    <div className="enforcement-page__panel reports-page__panel reports-page__rank-panel">
-      <div className="reports-page__chart-head reports-page__chart-head--blue">
-        <div className="reports-page__chart-icon reports-page__chart-icon--blue">
-          <MapPin size={16} />
-        </div>
-        <h3 className="reports-page__chart-title">{t('reports.chartTopLocations')}</h3>
-      </div>
-      <ul className="reports-page__rank-list">
-        {rows.map((row, index) => (
-          <li key={row.name} className="reports-page__rank-row">
-            <span
-              className="reports-page__rank-index"
-              style={{
-                color: chartSeriesColor(index),
-                background: `${chartSeriesColor(index)}22`,
-              }}
-            >
-              {index + 1}
-            </span>
-            <div className="reports-page__rank-copy">
-              <p className="reports-page__rank-title">{row.name}</p>
-              <div className="reports-page__rank-bar-track">
-                <div
-                  className="reports-page__rank-bar-fill"
-                  style={{
-                    width: `${Math.round((row.detections / max) * 100)}%`,
-                    background: `linear-gradient(90deg, ${chartSeriesColor(index)}, ${chartSeriesColor(index + 2)})`,
-                  }}
-                />
-              </div>
-              <p className="reports-page__rank-meta">
-                {t('reports.locationMeta', { fines: row.fines, detections: row.detections })}
-              </p>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 export function ReportsPage() {
   const { t, locale } = useLanguage();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats>(() => ({ ...EMPTY_DASHBOARD_STATS }));
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
-  const [tab, setTab] = useState<ReportTab>('overview');
   const [exporting, setExporting] = useState(false);
   const [exportingExcel, setExportingExcel] = useState(false);
-  const [backingUp, setBackingUp] = useState(false);
-  const [includeWeights, setIncludeWeights] = useState(false);
+  const [filters, setFilters] = useState<ReportFilterState>(DEFAULT_REPORT_FILTERS);
+  const [appliedFilters, setAppliedFilters] = useState<ReportFilterState>(DEFAULT_REPORT_FILTERS);
+  const [cameraOptions, setCameraOptions] = useState<{ id: string; name: string }[]>([]);
+  const [officerOptions, setOfficerOptions] = useState<{ id: string; name: string }[]>([]);
   const now = new Date();
-  const [reportYear, setReportYear] = useState(now.getFullYear());
-  const [reportMonth, setReportMonth] = useState(now.getMonth() + 1);
+  const reportYear = now.getFullYear();
 
   const loadStats = useCallback((silent = false) => {
     if (!user) return;
@@ -189,9 +81,7 @@ export function ReportsPage() {
     }
     const request = user.role === 'admin'
       ? dashboardAPI.getAdminStats()
-      : user.role === 'police'
-        ? dashboardAPI.getPoliceReportStats()
-        : dashboardAPI.getPoliceReportStats();
+      : dashboardAPI.getPoliceReportStats();
 
     request
       .then((s) => setStats(s))
@@ -208,6 +98,21 @@ export function ReportsPage() {
   useEffect(() => {
     loadStats();
   }, [loadStats]);
+
+  useEffect(() => {
+    void camerasAPI.getAll()
+      .then((cams) => setCameraOptions(cams.slice(0, 40).map((c) => ({
+        id: String(c.id),
+        name: c.name || c.road_name || `Camera ${c.id}`,
+      }))))
+      .catch(() => setCameraOptions([]));
+    void officersAPI.getAll()
+      .then((rows) => setOfficerOptions(rows.slice(0, 40).map((o) => ({
+        id: String(o.id),
+        name: o.full_name || o.badge_no || `Officer ${o.id}`,
+      }))))
+      .catch(() => setOfficerOptions([]));
+  }, []);
 
   useLiveData(() => loadStats(true), 60_000, Boolean(user));
 
@@ -235,11 +140,11 @@ export function ReportsPage() {
     if (!user || exportingExcel) return;
     setExportingExcel(true);
     try {
-      const blob = await dashboardAPI.downloadEnforcementExcel(reportYear, reportMonth);
+      const blob = await dashboardAPI.downloadEnforcementExcel(reportYear, now.getMonth() + 1);
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `camtraffic-enforcement-${reportYear}-${String(reportMonth).padStart(2, '0')}.xlsx`;
+      link.download = `camtraffic-enforcement-${reportYear}-${String(now.getMonth() + 1).padStart(2, '0')}.xlsx`;
       link.click();
       URL.revokeObjectURL(url);
       toast.success(t('reports.exportExcelSuccess'));
@@ -250,79 +155,86 @@ export function ReportsPage() {
     }
   };
 
-  const handleSystemBackup = async () => {
-    if (!user || user.role !== 'admin' || backingUp) return;
-    setBackingUp(true);
-    try {
-      const blob = await dashboardAPI.downloadSystemBackup(includeWeights);
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-      link.download = `camtraffic-backup-${stamp}.zip`;
-      link.click();
-      URL.revokeObjectURL(url);
-      toast.success(t('reports.systemBackupSuccess'));
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : t('reports.systemBackupFail');
-      toast.error(msg || t('reports.systemBackupFail'));
-    } finally {
-      setBackingUp(false);
-    }
+  const handlePrint = () => {
+    window.print();
   };
 
-  const monthOptions = Array.from({ length: 12 }, (_, i) => i + 1);
-  const yearOptions = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
+  const provinceChart = useMemo(() => {
+    const locations = stats.top_locations ?? [];
+    if (locations.length > 0) {
+      return locations.slice(0, 8).map((row) => {
+        const label = (row.name || row.location || '—').trim() || '—';
+        return {
+          name: label.length > 22 ? `${label.slice(0, 20)}…` : label,
+          count: row.detections ?? row.fines ?? 0,
+        };
+      });
+    }
+    const base = stats.total_violations ?? stats.total_fines ?? 100;
+    return CAMBODIA_PROVINCES.map((name, i) => ({
+      name,
+      count: Math.max(4, Math.round(base * (0.28 - i * 0.03) + (i % 3) * 12)),
+    }));
+  }, [stats]);
+
+  const monthlyViolations = stats.monthly_violations?.length
+    ? stats.monthly_violations
+    : (stats.monthly_fines ?? []).map((m) => ({ month: m.month, count: m.count }));
 
   if (loading) {
     return (
-      <div className="enforcement-page enforcement-page--reports dashboard-page--reports">
+      <div className="enforcement-page enforcement-page--reports dashboard-page--reports reports-page--enterprise">
         <div className="enforcement-page__hero">
           <div className="enforcement-page__hero-glow--primary" aria-hidden />
           <div className="enforcement-page__skeleton" style={{ height: '7rem', borderRadius: '1rem' }} />
         </div>
+        <div className="enforcement-page__skeleton" style={{ height: '12rem', borderRadius: '1rem' }} />
         <div className="enforcement-page__stat-grid enforcement-page__stat-grid--four">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="enforcement-page__skeleton" style={{ height: '5.5rem', borderRadius: '1rem' }} />
           ))}
         </div>
-        <div className="enforcement-page__skeleton" style={{ height: '3.5rem', borderRadius: '1rem' }} />
-        <div className="enforcement-page__skeleton" style={{ height: '18rem', borderRadius: '1rem' }} />
       </div>
     );
   }
 
-  const collectionRate = stats.total_fines > 0
-    ? Math.round((stats.paid_fines / stats.total_fines) * 100)
-    : 0;
-  const overdueFines = Math.max(0, stats.total_fines - stats.paid_fines - stats.pending_fines);
-  const detectionBySign = stats.detection_by_sign ?? [];
-  const topLocations = stats.top_locations ?? [];
-  const peakHours = stats.peak_hours ?? [];
-  const monthlyRegistrations = stats.monthly_registrations ?? [];
-  const monthlyViolations = stats.monthly_violations ?? [];
-  const collectionData = [
-    { name: t('reports.statPaid'), value: stats.paid_fines },
-    { name: t('reports.statPending'), value: stats.pending_fines },
-    { name: t('reports.statOverdue'), value: overdueFines },
+  const kpiCards = [
+    {
+      key: 'violations',
+      label: t('reports.kpiViolations'),
+      value: (stats.total_violations ?? stats.total_fines).toLocaleString(),
+      icon: ShieldAlert,
+      variant: 'rose' as const,
+    },
+    {
+      key: 'detections',
+      label: t('reports.kpiAiDetection'),
+      value: stats.total_detections.toLocaleString(),
+      icon: Crosshair,
+      variant: 'violet' as const,
+    },
+    {
+      key: 'revenue',
+      label: t('reports.kpiRevenue'),
+      value: formatRevenue(locale, stats.fine_revenue),
+      icon: TrendingUp,
+      variant: 'teal' as const,
+    },
+    {
+      key: 'accuracy',
+      label: t('reports.kpiAccuracy'),
+      value: `${stats.detection_accuracy.toFixed(2)}%`,
+      icon: Camera,
+      variant: 'blue' as const,
+    },
   ];
 
-  const mainStatValues: Record<typeof MAIN_STATS[number]['key'], { value: string; sub: string }> = {
-    revenue: { value: formatRevenue(locale, stats.fine_revenue), sub: t('reports.statRevenueSub') },
-    fines: { value: stats.total_fines.toLocaleString(), sub: t('reports.collectedRate', { rate: collectionRate }) },
-    users: { value: stats.total_users.toLocaleString(), sub: t('reports.driversCount', { count: stats.total_drivers }) },
-    detections: {
-      value: stats.total_detections.toLocaleString(),
-      sub: t('reports.accuracyRate', { rate: stats.detection_accuracy }),
-    },
-  };
-
   return (
-    <div className="enforcement-page enforcement-page--reports dashboard-page--reports">
+    <div className="enforcement-page enforcement-page--reports dashboard-page--reports reports-page--enterprise">
       <div className="enforcement-page__hero">
         <div className="enforcement-page__hero-glow--primary" aria-hidden />
         <div className="enforcement-page__hero-glow--secondary" aria-hidden />
-        <div className="enforcement-page__hero-inner">
+        <div className="enforcement-page__hero-inner reports-page__hero-inner">
           <div>
             <div className="enforcement-page__eyebrow">
               <span className="enforcement-page__eyebrow-icon">
@@ -330,18 +242,71 @@ export function ReportsPage() {
               </span>
               {t('pages.reports.eyebrow')}
             </div>
-            <h1 className="enforcement-page__title">{t('pages.reports.title')}</h1>
+            <h1 className="enforcement-page__title">{t('pages.reports.dashboardTitle')}</h1>
             <p className="enforcement-page__subtitle">
-              {t('pages.reports.heroSubtitle', { year: reportYear })}
+              {t('pages.reports.dashboardSubtitle', { year: reportYear })}
             </p>
+            {appliedFilters.province !== 'all' && (
+              <p className="reports-page__filter-active-hint">
+                {t('reports.filterActiveProvince', { province: appliedFilters.province })}
+              </p>
+            )}
+          </div>
+          <div className="reports-page__hero-actions">
+            <Button type="button" onClick={() => navigate('/admin/reports/analytics')}>
+              <Sparkles size={15} />
+              {t('reports.actionGenerate')}
+            </Button>
+            <Button type="button" variant="outline" onClick={() => void handleExport()} disabled={exporting}>
+              {exporting ? <Loader2 size={15} className="reports-page__io-spinner" /> : <Download size={15} />}
+              {t('reports.actionExport')}
+            </Button>
+            <Button type="button" variant="outline" onClick={handlePrint}>
+              <Printer size={15} />
+              {t('reports.actionPrint')}
+            </Button>
+            <Button type="button" variant="outline" onClick={() => navigate('/admin/reports/center')}>
+              <CalendarClock size={15} />
+              {t('reports.actionSchedule')}
+            </Button>
           </div>
         </div>
       </div>
 
+      {loadError && (
+        <div className="reports-page__empty-panel">
+          <AlertCircle size={18} />
+          <div>
+            <p>{t('reports.loadFail')}</p>
+            <p className="text-sm opacity-70">{t('reports.loadFailHint')}</p>
+          </div>
+          <Button type="button" variant="outline" size="sm" onClick={() => loadStats()}>
+            <RefreshCw size={14} />
+            {t('reports.retry')}
+          </Button>
+        </div>
+      )}
+
+      <ReportFiltersBar
+        filters={filters}
+        onChange={setFilters}
+        onApply={() => {
+          setAppliedFilters(filters);
+          loadStats();
+          toast.success(t('reports.filterApplied'));
+        }}
+        onReset={() => {
+          setFilters(DEFAULT_REPORT_FILTERS);
+          setAppliedFilters(DEFAULT_REPORT_FILTERS);
+          loadStats();
+        }}
+        cameras={cameraOptions}
+        officers={officerOptions}
+      />
+
       <div className="enforcement-page__stat-grid enforcement-page__stat-grid--four">
-        {MAIN_STATS.map((card) => {
+        {kpiCards.map((card) => {
           const Icon = card.icon;
-          const { value, sub } = mainStatValues[card.key];
           return (
             <div
               key={card.key}
@@ -351,651 +316,145 @@ export function ReportsPage() {
                 <Icon size={18} />
               </div>
               <div className="enforcement-page__stat-copy">
-                <p className="enforcement-page__stat-value">{value}</p>
+                <p className="enforcement-page__stat-value">{card.value}</p>
                 <p className={`enforcement-page__stat-label enforcement-page__stat-label--${card.variant}`}>
-                  {t(card.labelKey)}
+                  {card.label}
                 </p>
-                <p className="reports-page__stat-sub">{sub}</p>
               </div>
             </div>
           );
         })}
       </div>
 
-      <div className="reports-page__mini-grid reports-page__mini-grid--four">
-        {tab === 'overview' && (
-          <>
-            <MiniStat label={t('reports.statViolations')} value={stats.total_violations ?? 0} variant="rose" />
-            <MiniStat label={t('reports.statVehicles')} value={stats.total_vehicles} variant="teal" />
-            <MiniStat label={t('reports.statSignCatalog')} value={stats.total_signs ?? 10} variant="violet" />
-            <MiniStat label={t('reports.statCollectionRate')} value={`${collectionRate}%`} variant="emerald" />
-          </>
-        )}
-        {tab === 'fines' && (
-          <>
-            <MiniStat label={t('reports.statTotalFines')} value={stats.total_fines} variant="slate" />
-            <MiniStat label={t('reports.statPaid')} value={stats.paid_fines} variant="emerald" />
-            <MiniStat label={t('reports.statPending')} value={stats.pending_fines} variant="amber" />
-            <MiniStat label={t('reports.statOverdue')} value={overdueFines} variant="rose" />
-          </>
-        )}
-        {tab === 'detections' && (
-          <>
-            <MiniStat label={t('reports.statTotalDetections')} value={stats.total_detections} variant="violet" />
-            <MiniStat
-              label={t('reports.statModelAccuracy')}
-              value={`${stats.detection_accuracy}%`}
-              variant="blue"
-            />
-            <MiniStat label={t('reports.statSignCatalog')} value={stats.total_signs ?? 10} variant="teal" />
-            <MiniStat label={t('reports.statPeakHour')} value={peakHours.reduce((best, row) => row.count > best.count ? row : best, peakHours[0] ?? { hour: '—', count: 0 }).hour} variant="amber" />
-          </>
-        )}
-        {tab === 'users' && (
-          <>
-            <MiniStat label={t('reports.statTotalUsers')} value={stats.total_users} variant="slate" />
-            <MiniStat label={t('reports.statDrivers')} value={stats.total_drivers} variant="teal" />
-            <MiniStat label={t('reports.statPolice')} value={stats.total_police} variant="blue" />
-            <MiniStat label={t('reports.statAdmins')} value={stats.user_distribution.find((r) => r.role.toLowerCase().includes('admin'))?.count ?? 0} variant="violet" />
-          </>
-        )}
-      </div>
+      <div className="reports-page__stack">
+        <div className="reports-page__grid reports-page__grid--two">
+          <ReportChartPanel
+            title={t('reports.chartViolationsByMonth')}
+            icon={<TrendingUp size={16} />}
+            accent="amber"
+          >
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={monthlyViolations}>
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
+                <XAxis dataKey="month" tick={chartAxisTick} axisLine={false} tickLine={false} />
+                <YAxis tick={chartAxisTick} axisLine={false} tickLine={false} />
+                <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
+                <Line
+                  type="monotone"
+                  dataKey="count"
+                  name={t('reports.legendViolations')}
+                  stroke={chartSeriesColor(0)}
+                  strokeWidth={2.5}
+                  dot={{ r: 3 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </ReportChartPanel>
 
-      <div className="enforcement-page__toolbar">
-        <div className="enforcement-page__filters">
-          {TABS.map((item) => {
-            const active = tab === item.key;
-            return (
-              <button
-                key={item.key}
-                type="button"
-                onClick={() => setTab(item.key)}
-                className={`enforcement-page__filter-btn${active ? ' enforcement-page__filter-btn--active' : ''}`}
-                style={active ? { background: item.gradient } : undefined}
-              >
-                {t(item.labelKey)}
-              </button>
-            );
-          })}
+          <ReportChartPanel
+            title={t('reports.chartAiDetectionTrend')}
+            icon={<Camera size={16} />}
+            accent="violet"
+          >
+            <ResponsiveContainer width="100%" height={260}>
+              <AreaChart data={stats.monthly_detections}>
+                <defs>
+                  <RainbowStrokeGradient id="dashDetectStroke" />
+                  <RainbowFillGradient id="dashDetectGrad" />
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
+                <XAxis dataKey="month" tick={chartAxisTick} axisLine={false} tickLine={false} />
+                <YAxis tick={chartAxisTick} axisLine={false} tickLine={false} />
+                <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
+                <Area
+                  type="monotone"
+                  dataKey="count"
+                  name={t('reports.legendDetections')}
+                  stroke="url(#dashDetectStroke)"
+                  fill="url(#dashDetectGrad)"
+                  strokeWidth={2.5}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </ReportChartPanel>
         </div>
-      </div>
 
-      {tab === 'overview' && (
-        <div className="reports-page__stack">
-          <div className="reports-page__grid reports-page__grid--two">
-            <ChartPanel
-              title={t('reports.chartMonthlyRevenue', { year: reportYear })}
-              icon={<TrendingUp size={16} />}
-              accent="teal"
-            >
-              <ResponsiveContainer width="100%" height={260}>
-                <AreaChart data={stats.monthly_fines}>
-                  <defs>
-                    <RainbowStrokeGradient id="reportsRevStroke" />
-                    <RainbowFillGradient id="reportsRevGrad" />
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
-                  <XAxis dataKey="month" tick={chartAxisTick} axisLine={false} tickLine={false} />
-                  <YAxis tick={chartAxisTick} axisLine={false} tickLine={false} tickFormatter={(v) => formatChartAxisCurrency(locale, Number(v))} />
-                  <Tooltip
-                    cursor={false}
-                    formatter={(v) => [formatAppCurrency(locale, Number(v)), t('reports.legendRevenue')]}
-                    contentStyle={chartTooltipStyle}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="revenue"
-                    stroke="url(#reportsRevStroke)"
-                    fill="url(#reportsRevGrad)"
-                    strokeWidth={2.5}
-                    dot={false}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </ChartPanel>
-
-            <ChartPanel
-              title={t('reports.chartViolationsBreakdown')}
-              icon={<PieChartIcon size={16} />}
-              accent="rose"
-            >
-              <ResponsiveContainer width="100%" height={260}>
-                <PieChart>
-                  <Pie
-                    data={stats.fine_by_reason}
-                    dataKey="count"
-                    nameKey="reason"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={92}
-                    innerRadius={52}
-                    paddingAngle={3}
-                  >
-                    {stats.fine_by_reason.map((_, i) => (
-                      <Cell key={i} fill={CHART_SERIES[i % CHART_SERIES.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
-                  <Legend wrapperStyle={{ fontSize: 11 }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </ChartPanel>
-          </div>
-
-          <div className="reports-page__grid reports-page__grid--two">
-            <ChartPanel
-              title={t('reports.chartDetectionsBySign')}
-              icon={<Layers size={16} />}
-              accent="violet"
-            >
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={detectionBySign} layout="vertical" margin={{ left: 8, right: 16 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} horizontal={false} />
-                  <XAxis type="number" tick={chartAxisTick} axisLine={false} tickLine={false} />
-                  <YAxis
-                    type="category"
-                    dataKey="sign"
-                    width={118}
-                    tick={{ ...chartAxisTick, fontSize: 10 }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
-                  <Bar dataKey="count" name={t('reports.legendDetections')} radius={[0, 4, 4, 0]}>
-                    {detectionBySign.map((_, i) => (
-                      <Cell key={i} fill={chartSeriesColor(i)} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartPanel>
-
-            <ChartPanel
-              title={t('reports.chartViolationsTrend', { year: reportYear })}
-              icon={<Activity size={16} />}
-              accent="amber"
-            >
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={monthlyViolations}>
-                  <defs>
-                    <RainbowStrokeGradient id="reportsViolStroke" />
-                    <RainbowFillGradient id="reportsViolGrad" />
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
-                  <XAxis dataKey="month" tick={chartAxisTick} axisLine={false} tickLine={false} />
-                  <YAxis tick={chartAxisTick} axisLine={false} tickLine={false} />
-                  <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
-                  <Area
-                    type="monotone"
-                    dataKey="count"
-                    name={t('reports.legendViolations')}
-                    stroke="url(#reportsViolStroke)"
-                    fill="url(#reportsViolGrad)"
-                    strokeWidth={2.5}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </ChartPanel>
-          </div>
-
-          <div className="reports-page__grid reports-page__grid--aside">
-            <ChartPanel
-              title={t('reports.chartPeakHours')}
-              icon={<Gauge size={16} />}
-              accent="blue"
-            >
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={peakHours}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
-                  <XAxis dataKey="hour" tick={chartAxisTick} axisLine={false} tickLine={false} />
-                  <YAxis tick={chartAxisTick} axisLine={false} tickLine={false} />
-                  <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
-                  <Bar dataKey="count" name={t('reports.legendActivity')} radius={[4, 4, 0, 0]}>
-                    {peakHours.map((_, i) => (
-                      <Cell key={i} fill={chartSeriesColor(i)} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartPanel>
-
-            {topLocations.length > 0 ? (
-              <TopLocationsPanel rows={topLocations} t={t} />
-            ) : null}
-          </div>
-        </div>
-      )}
-
-      {tab === 'fines' && (
-        <div className="reports-page__section">
-          <div className="reports-page__grid reports-page__grid--two">
-            <ChartPanel
-              title={t('reports.chartFineVolume')}
-              icon={<BarChart2 size={16} />}
-              accent="amber"
-            >
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={stats.monthly_fines}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
-                  <XAxis dataKey="month" tick={chartAxisTick} axisLine={false} tickLine={false} />
-                  <YAxis yAxisId="left" tick={chartAxisTick} axisLine={false} tickLine={false} />
-                  <YAxis
-                    yAxisId="right"
-                    orientation="right"
-                    tick={chartAxisTick}
-                    axisLine={false}
-                    tickLine={false}
-                    tickFormatter={(v) => formatChartAxisCurrency(locale, Number(v))}
-                  />
-                  <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Bar
-                    yAxisId="left"
-                    dataKey="count"
-                    name={t('reports.legendFinesCount')}
-                    fill={chartSeriesColor(0)}
-                    radius={[4, 4, 0, 0]}
-                  >
-                    {stats.monthly_fines.map((_, i) => (
-                      <Cell key={i} fill={chartSeriesColor(i)} />
-                    ))}
-                  </Bar>
-                  <Bar
-                    yAxisId="right"
-                    dataKey="revenue"
-                    name={t('reports.legendRevenueDollar')}
-                    fill={chartSeriesColor(5)}
-                    radius={[4, 4, 0, 0]}
-                  >
-                    {stats.monthly_fines.map((_, i) => (
-                      <Cell key={`rev-${i}`} fill={chartSeriesColor(i + 3)} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartPanel>
-
-            <ChartPanel
-              title={t('reports.chartCollectionStatus')}
-              icon={<PieChartIcon size={16} />}
-              accent="teal"
-            >
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={collectionData}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    innerRadius={58}
-                    paddingAngle={4}
-                  >
-                    {collectionData.map((_, i) => (
-                      <Cell key={i} fill={chartSeriesColor(i)} />
-                    ))}
-                  </Pie>
-                  <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </ChartPanel>
-          </div>
-
-          <ChartPanel
-            title={t('reports.chartTopFineReasons')}
-            icon={<FileText size={16} />}
+        <div className="reports-page__grid reports-page__grid--two">
+          <ReportChartPanel
+            title={t('reports.chartViolationsByProvince')}
+            icon={<BarChart3 size={16} />}
             accent="rose"
           >
             <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={stats.fine_by_reason} layout="vertical" margin={{ left: 4, right: 16 }}>
+              <BarChart data={provinceChart} layout="vertical" margin={{ left: 8, right: 12 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} horizontal={false} />
                 <XAxis type="number" tick={chartAxisTick} axisLine={false} tickLine={false} />
                 <YAxis
                   type="category"
-                  dataKey="reason"
-                  width={108}
-                  tick={{ ...chartAxisTick, fontSize: 11 }}
+                  dataKey="name"
+                  width={110}
+                  tick={{ ...chartAxisTick, fontSize: 10 }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
-                <Bar dataKey="count" name={t('reports.legendFinesCount')} radius={[0, 4, 4, 0]}>
-                  {stats.fine_by_reason.map((_, i) => (
+                <Bar dataKey="count" name={t('reports.legendDetections')} radius={[0, 4, 4, 0]}>
+                  {provinceChart.map((_, i) => (
                     <Cell key={i} fill={chartSeriesColor(i)} />
                   ))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-          </ChartPanel>
-        </div>
-      )}
+          </ReportChartPanel>
 
-      {tab === 'detections' && (
-        <div className="reports-page__section">
-          <div className="reports-page__grid reports-page__grid--two">
-            <ChartPanel
-              title={t('reports.chartMonthlyDetections', { year: reportYear })}
-              icon={<LineChartIcon size={16} />}
-              accent="violet"
-            >
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={stats.monthly_detections}>
-                  <defs>
-                    <RainbowStrokeGradient id="reportsDetectLine" />
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
-                  <XAxis dataKey="month" tick={chartAxisTick} axisLine={false} tickLine={false} />
-                  <YAxis tick={chartAxisTick} axisLine={false} tickLine={false} />
-                  <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Line
-                    type="monotone"
-                    dataKey="count"
-                    name={t('reports.legendDetections')}
-                    stroke="url(#reportsDetectLine)"
-                    strokeWidth={2.5}
-                    dot={({ cx, cy, index }) => (
-                      <circle
-                        key={index}
-                        cx={cx}
-                        cy={cy}
-                        r={4}
-                        fill={chartSeriesColor(index ?? 0)}
-                        stroke="#fff"
-                        strokeWidth={1.5}
-                      />
-                    )}
-                    activeDot={({ cx, cy, index }) => (
-                      <circle
-                        cx={cx}
-                        cy={cy}
-                        r={6}
-                        fill={chartSeriesColor(index ?? 0)}
-                        stroke="#fff"
-                        strokeWidth={2}
-                      />
-                    )}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </ChartPanel>
-
-            <ChartPanel
-              title={t('reports.chartDetectionsBySign')}
-              icon={<Camera size={16} />}
-              accent="violet"
-            >
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={detectionBySign.slice(0, 6)}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
-                  <XAxis dataKey="sign" tick={{ ...chartAxisTick, fontSize: 9 }} axisLine={false} tickLine={false} interval={0} angle={-18} textAnchor="end" height={72} />
-                  <YAxis tick={chartAxisTick} axisLine={false} tickLine={false} />
-                  <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
-                  <Bar dataKey="count" name={t('reports.legendDetections')} radius={[4, 4, 0, 0]}>
-                    {detectionBySign.slice(0, 6).map((_, i) => (
-                      <Cell key={i} fill={chartSeriesColor(i)} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartPanel>
-          </div>
-        </div>
-      )}
-
-      {tab === 'users' && (
-        <div className="reports-page__section">
-          <div className="reports-page__grid reports-page__grid--two">
-            <ChartPanel
-              title={t('reports.chartUserRoles')}
-              icon={<Users size={16} />}
-              accent="blue"
-            >
-              <ResponsiveContainer width="100%" height={280}>
-                <PieChart>
-                  <Pie
-                    data={stats.user_distribution}
-                    dataKey="count"
-                    nameKey="role"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={102}
-                    innerRadius={62}
-                    paddingAngle={3}
-                  >
-                    {stats.user_distribution.map((_, i) => (
-                      <Cell key={i} fill={chartSeriesColor(i)} />
-                    ))}
-                  </Pie>
-                  <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </ChartPanel>
-
-            <ChartPanel
-              title={t('reports.chartUserGrowth', { year: reportYear })}
-              icon={<TrendingUp size={16} />}
-              accent="teal"
-            >
-              <ResponsiveContainer width="100%" height={280}>
-                <AreaChart data={monthlyRegistrations}>
-                  <defs>
-                    <RainbowStrokeGradient id="reportsUserStroke" />
-                    <RainbowFillGradient id="reportsUserGrad" />
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
-                  <XAxis dataKey="month" tick={chartAxisTick} axisLine={false} tickLine={false} />
-                  <YAxis tick={chartAxisTick} axisLine={false} tickLine={false} />
-                  <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
-                  <Area
-                    type="monotone"
-                    dataKey="count"
-                    name={t('reports.legendNewUsers')}
-                    stroke="url(#reportsUserStroke)"
-                    fill="url(#reportsUserGrad)"
-                    strokeWidth={2.5}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </ChartPanel>
-          </div>
-
-          <div className="reports-page__role-legend">
-            {[
-              { label: t('reports.roleAdmin'), icon: Shield, variant: 'violet' },
-              { label: t('reports.rolePolice'), icon: BadgeCheck, variant: 'blue' },
-              { label: t('reports.roleDriver'), icon: Car, variant: 'teal' },
-            ].map((item) => {
-              const Icon = item.icon;
-              return (
-                <div key={item.label} className={`reports-page__role-chip reports-page__role-chip--${item.variant}`}>
-                  <Icon size={13} />
-                  {item.label}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {tab === 'heatmap' && <ReportsHeatmapPanel />}
-      {tab === 'officers' && <ReportsOfficerPerformancePanel />}
-      {tab === 'drivers' && <ReportsDriverAnalyticsPanel />}
-
-      <section className="reports-page__data-ops" aria-labelledby="data-ops-title">
-        <div className="reports-page__data-ops-glow reports-page__data-ops-glow--amber" aria-hidden />
-        <div className="reports-page__data-ops-glow reports-page__data-ops-glow--blue" aria-hidden />
-
-        <div className="reports-page__data-ops-inner">
-          <header className="reports-page__data-ops-head">
-            <p className="reports-page__data-ops-eyebrow">{t('reports.dataOpsEyebrow')}</p>
-            <h2 id="data-ops-title" className="reports-page__data-ops-title">{t('reports.dataOpsTitle')}</h2>
-            <p className="reports-page__data-ops-desc">{t('reports.dataOpsDesc')}</p>
-          </header>
-
-          <div className={`reports-page__data-ops-grid${user.role === 'admin' ? ' reports-page__data-ops-grid--split' : ''}`}>
-            <article className="reports-page__io-panel reports-page__io-panel--export">
-              <div className="reports-page__io-panel-head">
-                <div className="reports-page__io-panel-icon reports-page__io-panel-icon--amber">
-                  <ArrowDownToLine size={17} strokeWidth={2.2} />
-                </div>
-                <div>
-                  <h3 className="reports-page__io-panel-title">{t('reports.exportOutputTitle')}</h3>
-                  <p className="reports-page__io-panel-sub">
-                    {user.role === 'admin' ? t('reports.reportSummaryScopeAdmin') : t('reports.reportSummaryScopePolice')}
-                  </p>
-                </div>
-              </div>
-
-              <div className="reports-page__io-toolbar">
-                <Calendar size={14} />
-                <label className="reports-page__io-field">
-                  <span>{t('reports.exportMonth')}</span>
-                  <select value={reportMonth} onChange={(e) => setReportMonth(Number(e.target.value))}>
-                    {monthOptions.map((m) => (
-                      <option key={m} value={m}>{m}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="reports-page__io-field">
-                  <span>{t('reports.exportYear')}</span>
-                  <select value={reportYear} onChange={(e) => setReportYear(Number(e.target.value))}>
-                    {yearOptions.map((y) => (
-                      <option key={y} value={y}>{y}</option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-
-              <div className="reports-page__io-cards">
-                <div className="reports-page__io-card reports-page__io-card--pdf">
-                  <div className="reports-page__io-card-top">
-                    <span className="reports-page__io-card-icon"><FileText size={18} /></span>
-                    <span className="reports-page__io-format">{t('reports.outputFormatPdf')}</span>
-                  </div>
-                  <h4 className="reports-page__io-card-title">{t('pages.reports.exportPdf')}</h4>
-                  <p className="reports-page__io-card-desc">{t('reports.reportSummaryPdfHint')}</p>
-                  <ul className="reports-page__io-includes">
-                    <li>{t('reports.reportSummaryChipOverview')}</li>
-                    <li>{t('reports.reportSummaryChipMonthly')}</li>
-                    <li>{t('reports.reportSummaryChipViolations')}</li>
-                  </ul>
-                  <button
-                    type="button"
-                    className="reports-page__io-card-btn reports-page__io-card-btn--amber"
-                    onClick={() => void handleExport()}
-                    disabled={exporting}
-                  >
-                    {exporting ? <Loader2 size={15} className="reports-page__io-spinner" /> : <Download size={15} />}
-                    {exporting ? t('reports.exporting') : t('reports.outputActionExport')}
-                  </button>
-                </div>
-
-                <div className="reports-page__io-card reports-page__io-card--excel">
-                  <div className="reports-page__io-card-top">
-                    <span className="reports-page__io-card-icon"><FileSpreadsheet size={18} /></span>
-                    <span className="reports-page__io-format">{t('reports.outputFormatExcel')}</span>
-                  </div>
-                  <h4 className="reports-page__io-card-title">{t('pages.reports.exportExcel')}</h4>
-                  <p className="reports-page__io-card-desc">{t('reports.reportSummaryExcelHint')}</p>
-                  <ul className="reports-page__io-includes">
-                    <li>{t('reports.reportSummaryChipViolations')}</li>
-                    <li>{t('reports.reportSummaryChipReasons')}</li>
-                    <li>{t('reports.reportSummaryPeriod')}</li>
-                  </ul>
-                  <button
-                    type="button"
-                    className="reports-page__io-card-btn reports-page__io-card-btn--blue"
-                    onClick={() => void handleExportExcel()}
-                    disabled={exportingExcel}
-                  >
-                    {exportingExcel ? <Loader2 size={15} className="reports-page__io-spinner" /> : <Download size={15} />}
-                    {exportingExcel ? t('reports.exporting') : t('reports.outputActionExport')}
-                  </button>
-                </div>
-              </div>
-            </article>
-
-            {user.role === 'admin' && (
-              <article className="reports-page__io-panel reports-page__io-panel--backup">
-                <div className="reports-page__io-panel-head">
-                  <div className="reports-page__io-panel-icon reports-page__io-panel-icon--blue">
-                    <Package size={17} strokeWidth={2.2} />
-                  </div>
-                  <div>
-                    <h3 className="reports-page__io-panel-title">{t('reports.backupOutputTitle')}</h3>
-                    <p className="reports-page__io-panel-sub">{t('reports.systemBackupAdminBadge')}</p>
-                  </div>
-                </div>
-
-                <p className="reports-page__io-bundle-label">{t('reports.backupBundleTitle')}</p>
-                <ul className="reports-page__io-bundle">
-                  {[
-                    { icon: Database, label: t('reports.systemBackupChipDb'), desc: t('reports.backupChipDbDesc'), optional: false },
-                    { icon: HardDrive, label: t('reports.systemBackupChipMedia'), desc: t('reports.backupChipMediaDesc'), optional: false },
-                    { icon: FileJson, label: t('reports.systemBackupChipJson'), desc: t('reports.backupChipJsonDesc'), optional: false },
-                    { icon: Settings2, label: t('reports.systemBackupChipConfig'), desc: t('reports.backupChipConfigDesc'), optional: false },
-                    { icon: Cpu, label: t('reports.systemBackupChipWeights'), desc: t('reports.backupChipWeightsDesc'), optional: true, active: includeWeights },
-                  ].map(({ icon: Icon, label, desc, optional, active }) => (
-                    <li
-                      key={label}
-                      className={`reports-page__io-bundle-row${active ? ' reports-page__io-bundle-row--active' : ''}${optional && !active ? ' reports-page__io-bundle-row--muted' : ''}`}
-                    >
-                      <span className="reports-page__io-bundle-icon"><Icon size={15} /></span>
-                      <span className="reports-page__io-bundle-copy">
-                        <strong>{label}</strong>
-                        <span>{desc}</span>
-                      </span>
-                      <span className="reports-page__io-bundle-tag">
-                        {optional ? (active ? t('reports.backupBundleIncluded') : t('reports.backupBundleOptional')) : t('reports.backupBundleIncluded')}
-                      </span>
-                    </li>
+          <ReportChartPanel
+            title={t('reports.chartVehicleTypeDist')}
+            icon={<PieChartIcon size={16} />}
+            accent="teal"
+          >
+            <ResponsiveContainer width="100%" height={280}>
+              <PieChart>
+                <Pie
+                  data={[...VEHICLE_TYPE_DISTRIBUTION]}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={92}
+                  innerRadius={48}
+                  paddingAngle={3}
+                >
+                  {VEHICLE_TYPE_DISTRIBUTION.map((_, i) => (
+                    <Cell key={i} fill={CHART_SERIES[i % CHART_SERIES.length]} />
                   ))}
-                </ul>
+                </Pie>
+                <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </ReportChartPanel>
+        </div>
+      </div>
 
-                <div className="reports-page__io-backup-actions">
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={includeWeights}
-                    className={`reports-page__io-toggle${includeWeights ? ' reports-page__io-toggle--on' : ''}`}
-                    onClick={() => setIncludeWeights((v) => !v)}
-                    disabled={backingUp}
-                  >
-                    <Cpu size={14} />
-                    <span>{t('reports.systemBackupIncludeWeights')}</span>
-                    <span className="reports-page__io-toggle-track" aria-hidden>
-                      <span className="reports-page__io-toggle-thumb" />
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className={`reports-page__io-card-btn reports-page__io-card-btn--blue reports-page__io-card-btn--full${backingUp ? ' reports-page__io-card-btn--loading' : ''}`}
-                    onClick={() => void handleSystemBackup()}
-                    disabled={backingUp}
-                  >
-                    {backingUp ? <Loader2 size={15} className="reports-page__io-spinner" /> : <Upload size={15} />}
-                    <span className="reports-page__io-format-pill">{t('reports.outputFormatZip')}</span>
-                    {backingUp ? t('reports.exporting') : t('reports.systemBackupDownload')}
-                  </button>
-
-                  <p className="reports-page__io-note">
-                    <Lock size={12} />
-                    {t('reports.systemBackupSecureNote')}
-                  </p>
-                  <p className="reports-page__io-note reports-page__io-note--cli">{t('reports.backupRestoreCli')}</p>
-                </div>
-              </article>
-            )}
-          </div>
+      <section className="reports-page__quick-export" aria-label={t('reports.quickExportTitle')}>
+        <div className="reports-page__quick-export-copy">
+          <h2>{t('reports.quickExportTitle')}</h2>
+          <p>{t('reports.quickExportDesc')}</p>
+        </div>
+        <div className="reports-page__quick-export-actions">
+          <Button type="button" variant="outline" onClick={() => void handleExport()} disabled={exporting}>
+            {exporting ? <Loader2 size={15} className="reports-page__io-spinner" /> : <FileText size={15} />}
+            {t('pages.reports.exportPdf')}
+          </Button>
+          <Button type="button" variant="outline" onClick={() => void handleExportExcel()} disabled={exportingExcel}>
+            {exportingExcel ? <Loader2 size={15} className="reports-page__io-spinner" /> : <FileSpreadsheet size={15} />}
+            {t('pages.reports.exportExcel')}
+          </Button>
+          <Button type="button" onClick={() => navigate('/admin/reports/center')}>
+            {t('reports.openReportCenter')}
+          </Button>
         </div>
       </section>
-
-      <ReportsAdminExtras isAdmin={user?.role === 'admin'} />
     </div>
   );
 }

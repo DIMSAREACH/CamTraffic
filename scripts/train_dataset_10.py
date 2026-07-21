@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Build, verify, and train YOLOv8n on the 10-class pilot dataset (dataset_10).
+Build, verify, and train YOLOv8n on the dataset_10 pilot pack (50 classes).
 
 Usage (from repo root):
   python scripts/train_dataset_10.py
@@ -38,19 +38,103 @@ TARGET_CLASSES = [
     'P_SPEED_LIMIT_50_KM_H',
     'W_PEDESTRIAN_CROSSING',
     'I_ONE_WAY_TRAFFIC',
+    # +10 batch A
+    'M_YIELD_GIVE_WAY',
+    'M_PRIORITY_ROAD',
+    'W_ROUNDABOUT_AHEAD',
+    'M_KEEP_RIGHT',
+    'P_NO_MOTORCYCLES',
+    'P_NO_OVERTAKING',
+    'W_SHARP_CURVE_TO_THE_LEFT',
+    'W_END_ROAD_WORKS',
+    'I_HOSPITAL',
+    'I_BUILT_UP_AREA_BEGINS',
+    # +10 batch B
+    'NO_STOPPING',
+    'P_NO_HONKING',
+    'P_MAXIMUM_SPEED_LIMIT',
+    'M_GO_STRAIGHT',
+    'W_HUMP',
+    'W_TRAFFIC_LIGHTS_AHEAD',
+    'W_CATTLE_OR_DOMESTIC_ANIMALS',
+    'W_NARROW_BRIDGE',
+    'I_PARKING_LOT',
+    'I_U_TURN',
+    # +10 batch C
+    'M_KEEP_LEFT',
+    'M_TURN_LEFT',
+    'M_TURN_RIGHT',
+    'M_BICYCLES_ONLY',
+    'I_EXPRESSWAY_BEGINS',
+    'I_EXPRESSWAY_ENDS',
+    'I_GAS_STATION',
+    'I_BUILT_UP_AREA_ENDS',
+    'M_PRIORITY_INTERSECTION',
+    'M_SINGLE_TRACK_RAILWAY_CROSSING',
+    # +10 batch D
+    'I_AIRPORTS',
+    'I_FERRY',
+    'I_DEAD_END',
+    'I_HOTEL_OR_MOTEL',
+    'I_RESTAURANTS_SHOP',
+    'I_TELEPHONE',
+    'I_WEIGH_STATION',
+    'I_PROVINCIAL_DISTRICT_OR_COMMUNE_BOUNDARY',
+    'I_BEWARE_OF_TRAINS',
+    'W_HANDICAPPED_CROSSING',
 ]
 
 SIGN_CODES = [
-    'PW03-R1-04',
-    'PW03-R1-01',
-    'PW03-R1-02',
-    'PW03-R1-03',
-    'PW03-R2-10',
-    'M-032',
-    'P-029',
-    'P-030',
-    'W-040',
-    'I-064',
+    'PROH-001',
+    'PROH-002',
+    'PROH-003',
+    'PROH-004',
+    'PROH-005',
+    'MAN-001',
+    'SPD-020',
+    'SPD-050',
+    'WARN-001',
+    'INFO-001',
+    'MAN-002',
+    'MAN-003',
+    'WARN-002',
+    'MAN-004',
+    'PROH-006',
+    'PROH-007',
+    'WARN-003',
+    'WARN-004',
+    'INFO-002',
+    'INFO-003',
+    'PROH-008',
+    'PROH-009',
+    'SPD-MAX',
+    'MAN-005',
+    'WARN-005',
+    'WARN-006',
+    'WARN-007',
+    'WARN-008',
+    'INFO-004',
+    'INFO-005',
+    'MAN-006',
+    'MAN-007',
+    'MAN-008',
+    'MAN-009',
+    'INFO-006',
+    'INFO-007',
+    'INFO-008',
+    'INFO-009',
+    'MAN-010',
+    'RAIL-001',
+    'INFO-010',
+    'INFO-011',
+    'INFO-012',
+    'INFO-013',
+    'INFO-014',
+    'INFO-015',
+    'INFO-016',
+    'INFO-017',
+    'INFO-018',
+    'WARN-009',
 ]
 
 
@@ -250,9 +334,9 @@ def count_images(dataset_root: Path) -> int:
 def write_training_report(metrics: dict, artifacts: dict[str, Path], verify_errors: list[str]) -> Path:
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')
-    path = REPORT_DIR / f'TRAINING_10_CLASS_REPORT_{stamp}.md'
+    path = REPORT_DIR / f'TRAINING_50_CLASS_REPORT_{stamp}.md'
     lines = [
-        '# YOLOv8 10-Class Pilot Training Report',
+        '# YOLOv8 50-Class Pilot Training Report',
         '',
         f'Generated: {datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")}',
         '',
@@ -284,7 +368,7 @@ def write_training_report(metrics: dict, artifacts: dict[str, Path], verify_erro
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description='Build, verify, train 10-class pilot YOLO model')
+    parser = argparse.ArgumentParser(description='Build, verify, train dataset_10 pilot YOLO model')
     parser.add_argument('--skip-build', action='store_true')
     parser.add_argument('--skip-train', action='store_true')
     parser.add_argument('--epochs', type=int, default=100)

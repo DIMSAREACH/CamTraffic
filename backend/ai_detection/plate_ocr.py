@@ -22,6 +22,7 @@ _READER = None
 _PLATE_FORMAT = re.compile(r'^(\d{1,2})([A-Z]{1,3})-(\d{3,5})$', re.I)
 _PLATE_LOOSE = re.compile(r'^(\d{1,2})([A-Z]{1,3})(\d{3,5})$', re.I)
 _ALPHA_PLATE = re.compile(r'^([A-Z]{2,4})-?(\d{3,5})$', re.I)
+_CAM_ALPHA_MIXED = re.compile(r'^([A-Z]{2}\d[A-Z]{1,2})-?(\d{3,5})$', re.I)
 _NUMERIC_PLATE = re.compile(r'^(\d{5,7})$')
 
 PLATE_TYPE_LABELS = {
@@ -97,9 +98,36 @@ def _clean_fragment(text: str) -> str:
     return cleaned
 
 
+def _apply_ocr_character_fixes(cleaned: str) -> str:
+    """Fix common EasyOCR confusions before plate normalization."""
+    if not cleaned:
+        return cleaned
+    out = []
+    for i, ch in enumerate(cleaned):
+        if ch == '-':
+            out.append(ch)
+            continue
+        # Digits after province code often misread as O/I/S/B
+        prev = out[-1] if out else ''
+        in_serial = '-' in out or (prev.isdigit() and i > 2)
+        if in_serial and ch in ('O', 'Q', 'D'):
+            out.append('0')
+        elif in_serial and ch in ('I', 'L', '|'):
+            out.append('1')
+        elif in_serial and ch == 'S':
+            out.append('5')
+        elif in_serial and ch == 'B' and (not out or out[-1].isdigit()):
+            out.append('8')
+        elif not in_serial and ch == '0' and out and out[-1].isalpha():
+            out.append('O')
+        else:
+            out.append(ch)
+    return ''.join(out)
+
+
 def normalize_plate_text(text: str) -> str | None:
     """Normalize OCR text into a Cambodian-style plate if possible."""
-    cleaned = _clean_fragment(text)
+    cleaned = _apply_ocr_character_fixes(_clean_fragment(text))
     if not cleaned:
         return None
 
@@ -112,6 +140,10 @@ def normalize_plate_text(text: str) -> str | None:
         return f'{match.group(1)}{match.group(2).upper()}-{match.group(3)}'
 
     match = _ALPHA_PLATE.match(cleaned)
+    if match:
+        return f'{match.group(1).upper()}-{match.group(2)}'
+
+    match = _CAM_ALPHA_MIXED.match(cleaned)
     if match:
         return f'{match.group(1).upper()}-{match.group(2)}'
 
@@ -351,6 +383,24 @@ def recognize_plate(image_path: str, vehicles: list[dict] | None = None) -> dict
     if not path.is_file():
         logger.warning('Plate OCR skipped — file not found: %s', image_path)
         return empty
+
+    from .ocr_remote_client import (
+        map_remote_ocr_to_plate_result,
+        ocr_service_enabled,
+        read_plate_via_ocr_service,
+    )
+
+    if ocr_service_enabled():
+        try:
+            remote_data = read_plate_via_ocr_service(path, vehicles)
+            result = map_remote_ocr_to_plate_result(remote_data)
+            if result.get('plate_text'):
+                result['matched_vehicle'] = link_plate_to_vehicle(result['plate_text'])
+                return enrich_plate_result(result['plate_text'], result)
+            if remote_data.get('plate_region_found') or remote_data.get('raw_reads'):
+                return result
+        except Exception as exc:
+            logger.warning('ocr-service unavailable (%s); falling back to embedded OCR', exc)
 
     try:
         image = cv2.imread(str(path))

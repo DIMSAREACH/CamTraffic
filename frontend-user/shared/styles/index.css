@@ -5,10 +5,17 @@
 @import './globals.css';
 @import './sidebar.css';
 @import './dashboard.css';
+@import './cameras-officer-align.css';
 @import './navbar.css';
 @import './profile-avatar.css';
+@import './reports-enterprise.css';
+@import './notifications-enterprise.css';
+@import './signs-enterprise.css';
+@import './settings-enterprise.css';
 @import './portal-theme.css';
 @import './portal-pages-polish.css';
+@import './ai-detection-center.css';
+@import './ai-dashboard.css';
 @import './appearance-settings.css';
 @import './khmer-fonts.css';
 @import './dialogs.css';

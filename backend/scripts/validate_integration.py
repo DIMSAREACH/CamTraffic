@@ -36,7 +36,9 @@ def main() -> int:
 
     record('Database', 'Django ORM connected', True)
 
-    weights = BACKEND.parent / 'ai' / 'weights' / 'best_v2.pt'
+    weights = BACKEND.parent / 'ai' / 'weights' / 'best.pt'
+    if not weights.is_file():
+        weights = BACKEND.parent / 'ai' / 'weights' / 'best_v2.pt'
     record('AI weights', str(weights), weights.is_file())
 
     record('Detection logs table', f'{AIDetectionLog.objects.count()} rows', True)

@@ -6,5 +6,5 @@ urlpatterns = [
     path('', NotificationListView.as_view(), name='notification-list'),
     path('read/', MarkReadView.as_view(), name='notification-read-all'),
     path('clear-read/', ClearReadNotificationsView.as_view(), name='notification-clear-read'),
-    path('<int:pk>/read/', MarkReadView.as_view(), name='notification-read'),
+    path('<uuid:pk>/read/', MarkReadView.as_view(), name='notification-read'),
 ]

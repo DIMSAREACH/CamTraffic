@@ -1,6 +1,5 @@
 from django.contrib.auth import get_user_model
 from django.db import models
-from django.db.models.deletion import ProtectedError
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, generics, status
 from rest_framework.permissions import IsAuthenticated
@@ -27,7 +26,15 @@ class UserListCreateView(generics.ListCreateAPIView):
         return UserSerializer
 
     def get_queryset(self):
-        return User.objects.all()
+        # Soft-deleted accounts stay in DB for audit/FKs but are hidden from the Users table.
+        # Pass ?include_deleted=1 to list them (super-admin recovery / support).
+        qs = User.objects.all()
+        include_deleted = str(self.request.query_params.get('include_deleted', '')).lower() in (
+            '1', 'true', 'yes',
+        )
+        if include_deleted and getattr(self.request.user, 'is_superuser', False):
+            return qs
+        return qs.filter(deleted_at__isnull=True)
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -38,7 +45,7 @@ class UserListCreateView(generics.ListCreateAPIView):
         return success_response(serializer.data)
 
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.get_serializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         return success_response(
@@ -93,17 +100,20 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
         if request.user.role != 'admin':
             return error_response('Permission denied', status_code=status.HTTP_403_FORBIDDEN)
         instance = self.get_object()
-        if instance.pk == request.user.pk:
-            return error_response('You cannot delete your own account.', status_code=status.HTTP_400_BAD_REQUEST)
+        from users.profile_services import assert_admin_may_manage_account, safe_delete_user
+
         try:
-            instance.delete()
-        except ProtectedError:
-            return error_response(
-                'Cannot delete this user because they have linked violations or records. '
-                'Deactivate the account instead.',
-                status_code=status.HTTP_400_BAD_REQUEST,
-            )
-        return success_response(message='User deleted')
+            assert_admin_may_manage_account(request.user, instance, action='delete')
+        except (PermissionError, ValueError) as exc:
+            code = status.HTTP_403_FORBIDDEN if isinstance(exc, PermissionError) else status.HTTP_400_BAD_REQUEST
+            return error_response(str(exc), status_code=code)
+
+        # Prefer soft-delete. Pass ?hard=1 only for spam/test cleanup without linked records.
+        hard = str(request.query_params.get('hard', '')).lower() in ('1', 'true', 'yes')
+        hard_deleted, user, message = safe_delete_user(instance, hard=hard)
+        if hard_deleted:
+            return success_response(message=message)
+        return success_response(UserSerializer(user).data, message=message)
 
 
 class ToggleActiveView(APIView):
@@ -114,14 +124,70 @@ class ToggleActiveView(APIView):
             user = User.objects.get(pk=pk)
         except User.DoesNotExist:
             return error_response('User not found', status_code=status.HTTP_404_NOT_FOUND)
-        if user.pk == request.user.pk and user.is_active:
-            return error_response('You cannot deactivate your own account.', status_code=status.HTTP_400_BAD_REQUEST)
-        user.is_active = not user.is_active
-        user.save(update_fields=['is_active'])
-        from users.profile_services import sync_profile_status
+        from users.profile_services import assert_admin_may_manage_account, restore_user, sync_profile_status
 
-        sync_profile_status(user)
-        return success_response(UserSerializer(user).data, message='Status toggled')
+        if user.is_active:
+            try:
+                assert_admin_may_manage_account(request.user, user, action='deactivate')
+            except (PermissionError, ValueError) as exc:
+                code = status.HTTP_403_FORBIDDEN if isinstance(exc, PermissionError) else status.HTTP_400_BAD_REQUEST
+                return error_response(str(exc), status_code=code)
+            user.is_active = False
+            user.save(update_fields=['is_active', 'updated_at'])
+            sync_profile_status(user)
+            message = 'Account deactivated'
+        else:
+            try:
+                assert_admin_may_manage_account(request.user, user, action='reactivate')
+            except (PermissionError, ValueError) as exc:
+                code = status.HTTP_403_FORBIDDEN if isinstance(exc, PermissionError) else status.HTTP_400_BAD_REQUEST
+                return error_response(str(exc), status_code=code)
+            restore_user(user)
+            message = 'Account reactivated'
+        return success_response(UserSerializer(user).data, message=message)
+
+
+class AdminResetPasswordView(APIView):
+    """Admin triggers a secure password-reset email (never reads or sets a known password)."""
+
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def post(self, request, pk):
+        try:
+            target = User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            return error_response('User not found', status_code=status.HTTP_404_NOT_FOUND)
+
+        from users.profile_services import assert_admin_may_manage_account
+
+        try:
+            assert_admin_may_manage_account(request.user, target, action='reset password for')
+        except (PermissionError, ValueError) as exc:
+            code = status.HTTP_403_FORBIDDEN if isinstance(exc, PermissionError) else status.HTTP_400_BAD_REQUEST
+            return error_response(str(exc), status_code=code)
+
+        from authentication.password_reset import PasswordResetError, request_password_reset
+        from audit.services import write_audit_log
+
+        try:
+            request_password_reset(target.email)
+        except PasswordResetError as exc:
+            if exc.code == 'send_failed':
+                return error_response(exc.message, status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
+            return error_response(exc.message, status_code=status.HTTP_400_BAD_REQUEST)
+
+        write_audit_log(
+            user=request.user,
+            action='update',
+            resource='user_password',
+            resource_id=str(target.pk),
+            request=request,
+            new_value={'method': 'admin_reset_link', 'target_email': target.email},
+            extra_data={'actor_role': request.user.role, 'target_role': target.role},
+        )
+        return success_response(
+            message=f'Password reset link sent to {target.email}. The temporary link expires shortly.',
+        )
 
 
 class DriverSearchView(APIView):

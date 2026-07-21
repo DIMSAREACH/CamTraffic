@@ -1,5 +1,6 @@
 """Production overrides — use: DJANGO_SETTINGS_MODULE=camtraffic.settings_production"""
 import os
+from pathlib import Path
 
 from .settings import *  # noqa: F403,F401
 
@@ -33,3 +34,32 @@ if USE_REDIS:  # noqa: F405
             'KEY_PREFIX': 'camtraffic',
         }
     }
+
+# Cross-origin browser calls from Render static sites and camtraffic.store subdomains.
+# Override with CORS_ALLOW_RENDER_ORIGINS=false or CORS_ALLOW_CAMTRAFFIC_STORE=false if needed.
+if os.getenv('CORS_ALLOW_RENDER_ORIGINS', 'true').lower() == 'true':
+    _render_origin = r'^https://[\w-]+\.onrender\.com$'
+    if _render_origin not in CORS_ALLOWED_ORIGIN_REGEXES:  # noqa: F405
+        CORS_ALLOWED_ORIGIN_REGEXES.append(_render_origin)  # noqa: F405
+
+if os.getenv('CORS_ALLOW_CAMTRAFFIC_STORE', 'true').lower() == 'true':
+    _store_origin = r'^https://([\w-]+\.)?camtraffic\.store$'
+    if _store_origin not in CORS_ALLOWED_ORIGIN_REGEXES:  # noqa: F405
+        CORS_ALLOWED_ORIGIN_REGEXES.append(_store_origin)  # noqa: F405
+
+# Render / small containers: avoid EasyOCR, auto-download YOLO weights, and warmup OOM.
+_on_render = os.getenv('RENDER', '').lower() == 'true'
+if _on_render or os.getenv('AI_HOSTED_LITE', '').lower() == 'true':
+    AI_WARMUP_MODELS = os.getenv('AI_WARMUP_MODELS', 'False').lower() == 'true'  # noqa: F405
+    _weights_path = Path(AI_MODEL_PATH)  # noqa: F405
+    if not _weights_path.is_file():
+        AI_USE_MOCK = True  # noqa: F405
+    if os.getenv('AI_FORCE_FULL_PIPELINE', '').lower() != 'true':
+        AI_PLATE_OCR_ENABLED = False  # noqa: F405
+        AI_VEHICLE_ENABLED = False  # noqa: F405
+        if not _weights_path.is_file():
+            AI_USE_MOCK = True  # noqa: F405
+    elif os.getenv('AI_PLATE_OCR_ENABLED') is None:
+        AI_PLATE_OCR_ENABLED = False  # noqa: F405
+    elif os.getenv('AI_VEHICLE_ENABLED') is None:
+        AI_VEHICLE_ENABLED = False  # noqa: F405

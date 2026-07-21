@@ -190,17 +190,17 @@ export function OfficersPage() {
     try {
       await officersAPI.createStation({
         name: stationForm.name.trim(),
-        code: stationForm.code.trim(),
-        city: stationForm.city.trim() || undefined,
-        region: stationForm.region.trim() || undefined,
+        code: stationForm.code.trim().toUpperCase(),
+        city: stationForm.city.trim(),
+        region: stationForm.region.trim(),
         status: 'active',
       });
       toast.success(t('stations.created'));
       setOpen(false);
       setStationForm(emptyStationForm);
       load();
-    } catch {
-      toast.error(t('stations.createFailed'));
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : t('stations.createFailed'));
     } finally {
       setSaving(false);
     }
@@ -215,17 +215,17 @@ export function OfficersPage() {
     try {
       await officersAPI.updateStation(editStation.id, {
         name: stationForm.name.trim(),
-        code: stationForm.code.trim(),
-        city: stationForm.city.trim() || undefined,
-        region: stationForm.region.trim() || undefined,
+        code: stationForm.code.trim().toUpperCase(),
+        city: stationForm.city.trim(),
+        region: stationForm.region.trim(),
         status: stationForm.status,
       });
       toast.success(t('stations.updated'));
       setOpen(false);
       setEditStation(null);
       load();
-    } catch {
-      toast.error(t('stations.updateFailed'));
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : t('stations.updateFailed'));
     } finally {
       setSaving(false);
     }
@@ -246,8 +246,8 @@ export function OfficersPage() {
   const handleDeleteStation = async () => {
     if (!deleteStation) return;
     try {
-      await officersAPI.deleteStation(deleteStation.id);
-      toast.success(t('stations.deleted'));
+      const result = await officersAPI.deleteStation(deleteStation.id);
+      toast.success(result?.message || t('stations.deleted'));
       setDeleteStation(null);
       load();
     } catch (err: unknown) {

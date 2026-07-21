@@ -3,7 +3,9 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from rest_framework.test import APIClient
 
+from ai_detection.models import AIDetectionLog
 from users.models import Driver
+from vehicles.models import Vehicle
 from violations.models import TrafficViolation, ViolationRule
 from violations.services import evaluate_violation, seed_default_rules
 
@@ -92,6 +94,76 @@ class ViolationAPITest(TestCase):
         self.assertEqual(TrafficViolation.objects.count(), 1)
         violation = TrafficViolation.objects.first()
         self.assertEqual(violation.violation_type, 'NO_PARKING')
+
+    def test_create_violation_from_ai_detection_log(self):
+        self.vehicle = Vehicle.objects.create(
+            owner=self.driver_user,
+            driver=self.driver,
+            plate_number='3B-5678',
+            vehicle_type='car',
+            make='Toyota',
+            model='Corolla',
+            color='Blue',
+            year=2021,
+        )
+        self._login(self.admin)
+        log = AIDetectionLog.objects.create(
+            user=self.admin,
+            uploaded_image='ai/uploads/sample.jpg',
+            detected_sign='No Parking',
+            confidence=88.0,
+            description='Auto-detection',
+            guidance='Do not park here',
+            processing_time=0.9,
+            matched_vehicle=self.vehicle,
+        )
+        res = self.client.post('/api/violations/', {
+            'class_key': 'NO_PARKING',
+            'observed_action': 'PARKING',
+            'location': 'Street 271',
+            'ai_detection_log_id': str(log.id),
+        })
+        self.assertEqual(res.status_code, 201)
+        self.assertEqual(TrafficViolation.objects.count(), 1)
+        violation = TrafficViolation.objects.first()
+        self.assertEqual(violation.violation_type, 'NO_PARKING')
+        self.assertEqual(violation.ai_detection_log_id, log.id)
+        self.assertEqual(violation.driver_id, self.driver.id)
+
+    def test_create_violation_from_ai_detection_log_plate_fallback(self):
+        self.vehicle = Vehicle.objects.create(
+            owner=self.driver_user,
+            driver=self.driver,
+            plate_number='76555',
+            vehicle_type='car',
+            make='Honda',
+            model='Civic',
+            color='Red',
+            year=2020,
+        )
+        self._login(self.admin)
+        log = AIDetectionLog.objects.create(
+            user=self.admin,
+            uploaded_image='ai/uploads/sample.jpg',
+            detected_sign='ឈប់',
+            confidence=88.0,
+            description='Auto-detection',
+            guidance='Do not stop here',
+            processing_time=0.9,
+            detected_plate='76555',
+        )
+        res = self.client.post('/api/violations/', {
+            'class_key': 'NO_STOPPING',
+            'observed_action': 'STOPPING',
+            'location': 'Street 272',
+            'ai_detection_log_id': str(log.id),
+        })
+        self.assertEqual(res.status_code, 201)
+        self.assertEqual(TrafficViolation.objects.count(), 1)
+        violation = TrafficViolation.objects.first()
+        self.assertEqual(violation.violation_type, 'NO_STOPPING')
+        self.assertEqual(violation.ai_detection_log_id, log.id)
+        self.assertEqual(violation.driver_id, self.driver.id)
 
     def test_list_violations_as_driver(self):
         TrafficViolation.objects.create(

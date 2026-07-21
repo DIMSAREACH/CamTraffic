@@ -15,6 +15,7 @@ const tracked = [
   'shared/utils/authEvents.ts',
   'shared/utils/portal.ts',
   'shared/hooks/queries/useDashboardQueries.ts',
+  'shared/services/detectionEndpoints.ts',
 ];
 
 function hashFile(rel) {

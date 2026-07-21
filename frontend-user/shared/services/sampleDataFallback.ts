@@ -76,9 +76,9 @@ export const DEMO_DRIVER_FINES: Fine[] = [
 ];
 
 export const DEMO_DRIVER_VEHICLES: Vehicle[] = [
-  { id: '1001', owner_id: 4, owner_name: DEMO_DRIVER_LABEL, plate_number: '2AA 1234', vehicle_type: 'car', model: 'Toyota Camry 2022', color: 'Silver', year: 2022, created_at: '2024-02-05T08:00:00Z' },
-  { id: '1002', owner_id: 4, owner_name: DEMO_DRIVER_LABEL, plate_number: '2AK 7788', vehicle_type: 'car', model: 'Toyota Hilux 2023', color: 'White', year: 2023, created_at: '2025-11-12T08:00:00Z' },
-  { id: '1003', owner_id: 4, owner_name: DEMO_DRIVER_LABEL, plate_number: '1PP 4455', vehicle_type: 'motorcycle', model: 'Honda PCX 160', color: 'Grey', year: 2024, created_at: '2026-01-08T08:00:00Z' },
+  { id: '1001', owner_id: '4', owner_name: DEMO_DRIVER_LABEL, plate_number: '2AA 1234', vehicle_type: 'car', model: 'Toyota Camry 2022', color: 'Silver', year: 2022, created_at: '2024-02-05T08:00:00Z' },
+  { id: '1002', owner_id: '4', owner_name: DEMO_DRIVER_LABEL, plate_number: '2AK 7788', vehicle_type: 'car', model: 'Toyota Hilux 2023', color: 'White', year: 2023, created_at: '2025-11-12T08:00:00Z' },
+  { id: '1003', owner_id: '4', owner_name: DEMO_DRIVER_LABEL, plate_number: '1PP 4455', vehicle_type: 'motorcycle', model: 'Honda PCX 160', color: 'Grey', year: 2024, created_at: '2026-01-08T08:00:00Z' },
 ];
 
 export const DEMO_DRIVER_DETECTIONS: AIDetectionLog[] = [

@@ -120,6 +120,16 @@ export function FineManagement() {
   const [issueFineOpen, setIssueFineOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [paymentModes, setPaymentModes] = useState<string[]>(['manual']);
+  const [khqrSession, setKhqrSession] = useState<{
+    bill_reference: string;
+    instructions_en: string;
+    amount_usd: string;
+    merchant_name: string;
+    merchant_account_usd?: string;
+    merchant_account_khr?: string;
+    qr_image_url: string;
+  } | null>(null);
   const [paymentForm, setPaymentForm] = useState({
     payment_method: 'aba',
     payment_reference: '',
@@ -129,7 +139,7 @@ export function FineManagement() {
   const [fineForm, setFineForm] = useState({
     driver_license: '', vehicle_plate: '', reason: '', amount: '', location: '',
   });
-  const [searchResult, setSearchResult] = useState<{ driver: { id: number; full_name: string } | null }>({ driver: null });
+  const [searchResult, setSearchResult] = useState<{ driver: { id: string; full_name: string } | null }>({ driver: null });
   const [editFine, setEditFine] = useState<Fine | null>(null);
   const [deleteFine, setDeleteFine] = useState<Fine | null>(null);
   const [editForm, setEditForm] = useState({ reason: '', amount: '', location: '', vehicle_plate: '' });
@@ -151,7 +161,10 @@ export function FineManagement() {
       if (user.role === 'admin') data = await finesAPI.getAll();
       else if (user.role === 'police') data = await finesAPI.getByPolice(user.id);
       else data = await finesAPI.getByDriver(user.id);
-      setFines(data);
+      setFines(data.map((f) => {
+        const n = typeof f.amount === 'number' ? f.amount : Number(f.amount);
+        return { ...f, amount: Number.isFinite(n) ? n : 0 };
+      }));
     } finally {
       if (!silent) setLoading(false);
     }
@@ -159,6 +172,23 @@ export function FineManagement() {
 
   useEffect(() => { loadFines(); }, [loadFines]);
   useLiveData(() => loadFines(true), 30_000, Boolean(user));
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('paid') === '1') {
+      toast.success(t('fines.toastPaid') !== 'fines.toastPaid' ? t('fines.toastPaid') : 'Payment completed');
+      params.delete('paid');
+      const next = `${window.location.pathname}${params.toString() ? `?${params}` : ''}`;
+      window.history.replaceState({}, '', next);
+      void loadFines(true);
+    } else if (params.get('cancel') === '1') {
+      toast.message(t('fines.toastPaymentCancel') !== 'fines.toastPaymentCancel' ? t('fines.toastPaymentCancel') : 'Payment cancelled');
+      params.delete('cancel');
+      const next = `${window.location.pathname}${params.toString() ? `?${params}` : ''}`;
+      window.history.replaceState({}, '', next);
+    }
+  }, [loadFines, t]);
 
   const filtered = useMemo(() => {
     let rows = [...fines];
@@ -187,7 +217,12 @@ export function FineManagement() {
   }), [fines]);
 
   const totalRevenue = useMemo(
-    () => fines.filter((f) => f.status === 'paid').reduce((sum, f) => sum + f.amount, 0),
+    () => fines
+      .filter((f) => f.status === 'paid')
+      .reduce((sum, f) => {
+        const n = typeof f.amount === 'number' ? f.amount : Number(f.amount);
+        return sum + (Number.isFinite(n) ? n : 0);
+      }, 0),
     [fines],
   );
 
@@ -211,6 +246,51 @@ export function FineManagement() {
       setSearchResult({ driver: null });
       toast.error(t('fines.toastDriverNotFound'));
     }
+  };
+
+  useEffect(() => {
+    if (!paymentOpen || user?.role !== 'driver') return;
+    finesAPI.getPaymentConfig().then((cfg) => setPaymentModes(cfg.modes ?? ['manual'])).catch(() => setPaymentModes(['manual']));
+    setKhqrSession(null);
+  }, [paymentOpen, user?.role]);
+
+  const loadKhqrSession = useCallback(async () => {
+    if (!selected) return;
+    setPaying(true);
+    try {
+      const session = await finesAPI.createKhqrSession(selected.id);
+      setKhqrSession(session);
+      setPaymentForm((f) => ({
+        ...f,
+        payment_reference: session.bill_reference,
+        payment_method: 'aba',
+      }));
+    } catch {
+      toast.error(t('fines.toastPayFail'));
+    } finally {
+      setPaying(false);
+    }
+  }, [selected, t]);
+
+  useEffect(() => {
+    if (!paymentOpen || !selected || !paymentModes.includes('khqr')) return;
+    void loadKhqrSession();
+  }, [paymentOpen, selected?.id, paymentModes, loadKhqrSession]);
+
+  const handleStripeCheckout = async () => {
+    if (!selected) return;
+    setPaying(true);
+    try {
+      const { checkout_url } = await finesAPI.createStripeCheckout(selected.id);
+      window.location.href = checkout_url;
+    } catch {
+      toast.error(t('fines.toastPayFail'));
+      setPaying(false);
+    }
+  };
+
+  const handleKhqrSession = async () => {
+    await loadKhqrSession();
   };
 
   const handlePayment = async () => {
@@ -331,7 +411,7 @@ export function FineManagement() {
             </p>
           </div>
           {canIssue && (
-            <button type="button" className="enforcement-page__hero-btn" onClick={() => setIssueFineOpen(true)}>
+            <button type="button" className="enforcement-page__hero-btn enforcement-page__hero-btn--teal" onClick={() => setIssueFineOpen(true)}>
               <Plus size={16} /> {t('fines.issueFine')}
             </button>
           )}
@@ -509,7 +589,7 @@ export function FineManagement() {
                       </span>
                     </TableCell>
                     <TableCell className="fines-table__td fines-table__td--actions">
-                      <div className="fines-table__actions">
+                      <div className="fines-table__actions" role="group" aria-label={t('fines.colActions')}>
                         <button
                           type="button"
                           className="fines-table__icon-btn fines-table__icon-btn--view"
@@ -517,7 +597,7 @@ export function FineManagement() {
                           title={t('fines.view')}
                           aria-label={t('fines.view')}
                         >
-                          <Eye size={16} strokeWidth={2.35} />
+                          <Eye size={16} strokeWidth={2.35} aria-hidden />
                         </button>
                         {canEditFine(row) ? (
                           <button
@@ -527,7 +607,7 @@ export function FineManagement() {
                             title={t('fines.editFine')}
                             aria-label={t('common.edit')}
                           >
-                            <Pencil size={16} strokeWidth={2.35} />
+                            <Pencil size={16} strokeWidth={2.35} aria-hidden />
                           </button>
                         ) : null}
                         {canDeleteFine(row) ? (
@@ -538,21 +618,21 @@ export function FineManagement() {
                             title={t('common.delete')}
                             aria-label={t('common.delete')}
                           >
-                            <Trash2 size={16} strokeWidth={2.35} />
+                            <Trash2 size={16} strokeWidth={2.35} aria-hidden />
                           </button>
                         ) : null}
-                        {canManage && row.status === 'pending' && (
+                        {canManage && row.status === 'pending' ? (
                           <button
                             type="button"
                             className="fines-table__icon-btn fines-table__icon-btn--paid"
-                            onClick={() => handleStatusUpdate(row.id, 'paid')}
+                            onClick={() => void handleStatusUpdate(row.id, 'paid')}
                             title={t('fines.markPaid')}
                             aria-label={t('fines.markPaid')}
                           >
-                            <BadgeCheck size={16} strokeWidth={2.35} />
+                            <BadgeCheck size={16} strokeWidth={2.35} aria-hidden />
                           </button>
-                        )}
-                        {isDriver && (row.status === 'pending' || row.status === 'overdue') && (
+                        ) : null}
+                        {isDriver && (row.status === 'pending' || row.status === 'overdue') ? (
                           <button
                             type="button"
                             className="fines-table__icon-btn fines-table__icon-btn--pay"
@@ -560,9 +640,9 @@ export function FineManagement() {
                             title={t('fines.payNow')}
                             aria-label={t('fines.payNow')}
                           >
-                            <CreditCard size={16} strokeWidth={2.35} />
+                            <CreditCard size={16} strokeWidth={2.35} aria-hidden />
                           </button>
-                        )}
+                        ) : null}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -738,6 +818,51 @@ export function FineManagement() {
           {selected && (
             <div className="ct-dialog-form">
               <p className="text-sm text-[color:var(--dialog-subtitle-fg)]">{formatFineReason(selected.reason)} — {formatAppCurrency(locale, selected.amount)}</p>
+              {paymentModes.includes('stripe') && (
+                <Button type="button" variant="default" className="w-full" disabled={paying} onClick={handleStripeCheckout}>
+                  Pay with card (Stripe)
+                </Button>
+              )}
+              {paymentModes.includes('khqr') && (
+                <div className="rounded-lg border border-[color:var(--dialog-border)] p-3 space-y-2">
+                  <p className="text-sm font-medium">ABA KHQR — {khqrSession?.merchant_name ?? 'Merchant'}</p>
+                  {khqrSession?.qr_image_url && (
+                    <img
+                      src={khqrSession.qr_image_url}
+                      alt="ABA KHQR"
+                      className="mx-auto max-h-48 w-auto rounded-md border"
+                    />
+                  )}
+                  {khqrSession && (
+                    <>
+                      <p className="text-sm">
+                        <strong>Amount to enter in ABA:</strong> {khqrSession.amount_usd} USD
+                      </p>
+                      {khqrSession.merchant_account_usd && (
+                        <p className="text-xs text-[color:var(--dialog-subtitle-fg)]">
+                          USD account: {khqrSession.merchant_account_usd}
+                        </p>
+                      )}
+                      {khqrSession.merchant_account_khr && (
+                        <p className="text-xs text-[color:var(--dialog-subtitle-fg)]">
+                          KHR account: {khqrSession.merchant_account_khr}
+                        </p>
+                      )}
+                      <p className="text-xs text-[color:var(--dialog-subtitle-fg)]">
+                        Reference: <strong>{khqrSession.bill_reference}</strong>
+                      </p>
+                      <p className="text-xs text-[color:var(--dialog-subtitle-fg)]">{khqrSession.instructions_en}</p>
+                    </>
+                  )}
+                  {!khqrSession && (
+                    <Button type="button" variant="outline" className="w-full" disabled={paying} onClick={handleKhqrSession}>
+                      Load ABA KHQR
+                    </Button>
+                  )}
+                </div>
+              )}
+              {paymentModes.includes('manual') && (
+              <>
               <div className="ct-dialog-field">
                 <Label>{t('fines.paymentMethod')}</Label>
                 <Select value={paymentForm.payment_method} onValueChange={(v) => setPaymentForm((f) => ({ ...f, payment_method: v }))}>
@@ -757,6 +882,8 @@ export function FineManagement() {
                 <Label>{t('fines.paymentScreenshot')}</Label>
                 <Input type="file" accept="image/*" onChange={(e) => setPaymentForm((f) => ({ ...f, screenshot: e.target.files?.[0] ?? null }))} />
               </div>
+              </>
+              )}
             </div>
           )}
           <DialogFooter>

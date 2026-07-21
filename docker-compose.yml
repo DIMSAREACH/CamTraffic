@@ -64,6 +64,71 @@ services:
       sh -c "python manage.py migrate --noinput &&
              gunicorn camtraffic.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120"
 
+  ai-vision:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.ai-vision
+    container_name: camtraffic_ai_vision
+    restart: unless-stopped
+    environment:
+      AI_MOCK_MODE: ${AI_VISION_MOCK_MODE:-false}
+      AI_WEIGHTS_PATH: /app/ai/weights/best.pt
+      AI_ROOT: /app/ai
+      OCR_SERVICE_URL: http://ocr:8081
+    volumes:
+      - ./ai/weights:/app/ai/weights:ro
+      - ./ai/sign_catalog.json:/app/ai/sign_catalog.json:ro
+    ports:
+      - "${AI_VISION_PORT:-8080}:8080"
+    depends_on:
+      ocr:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health/')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  ocr:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.ocr
+    container_name: camtraffic_ocr
+    restart: unless-stopped
+    environment:
+      OCR_MOCK_MODE: ${OCR_MOCK_MODE:-false}
+    ports:
+      - "${OCR_SERVICE_PORT:-8081}:8081"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8081/health/')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  stream-gateway:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.stream-gateway
+    container_name: camtraffic_stream_gateway
+    restart: unless-stopped
+    environment:
+      STREAM_MOCK_MODE: ${STREAM_MOCK_MODE:-true}
+      REDIS_URL: redis://redis:6379/2
+      AI_VISION_SERVICE_URL: http://ai-vision:8080
+      STREAM_AUTO_DETECT: ${STREAM_AUTO_DETECT:-false}
+    ports:
+      - "${STREAM_GATEWAY_PORT:-8082}:8082"
+    depends_on:
+      redis:
+        condition: service_healthy
+      ai-vision:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8082/health/')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
   celery:
     build:
       context: .

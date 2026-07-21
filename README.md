@@ -53,6 +53,10 @@ docker compose up -d --build
 | Path | Description |
 |------|-------------|
 | `backend/` | Django REST API + AI pipeline |
+| `services/ai-vision-service/` | FastAPI AI microservice (Enterprise v2) |
+| `services/ocr-service/` | FastAPI OCR / ANPR microservice (Enterprise v2) |
+| `services/stream-gateway/` | RTSP ingest + frame dispatch (Enterprise v2) |
+| `apps/citizen/` | Next.js citizen PWA (Enterprise v2) |
 | `frontend-admin/` | Administrator portal |
 | `frontend-user/` | Police & driver portal |
 | `packages/` | Shared `@camtraffic/*` libraries |
@@ -62,6 +66,10 @@ docker compose up -d --build
 | `docs/` | PRD, SRS, thesis, checklist |
 
 See [`docs/FOLDER-MAP.md`](docs/FOLDER-MAP.md) for the full tree.
+
+## Data import
+
+Admin CSV/Excel bulk import: Settings → **Import Data**. See [`docs/DATA-IMPORT.md`](docs/DATA-IMPORT.md).
 
 ## Scripts
 
@@ -89,7 +97,7 @@ npm run test:e2e
 
 ## Production deployment
 
-See [`deploy/README.md`](deploy/README.md) and [`docs/INSTALLATION-GUIDE.md`](docs/INSTALLATION-GUIDE.md).
+See [`deploy/README.md`](deploy/README.md), [`deploy/CAMTRAFFIC-STORE.md`](deploy/CAMTRAFFIC-STORE.md) (domain **camtraffic.store**), and [`docs/INSTALLATION-GUIDE.md`](docs/INSTALLATION-GUIDE.md).
 
 ```bash
 npm run docker:prod:up
@@ -104,6 +112,8 @@ npm run docker:prod:up
 ## Documentation
 
 - [`docs/README.md`](docs/README.md) — documentation index  
+- [`docs/enterprise/README.md`](docs/enterprise/README.md) — **Enterprise v2 specification** (nationwide deployment)  
+- [`docs/enterprise/IMPLEMENTATION-ROADMAP.md`](docs/enterprise/IMPLEMENTATION-ROADMAP.md) — v2 implementation phases  
 - [`docs/CHECKLIST.md`](docs/CHECKLIST.md) — 440-task master checklist (440/440 done)  
 - [`docs/INSTALLATION-GUIDE.md`](docs/INSTALLATION-GUIDE.md) — setup guide  
 - [`docs/final-year-project/thesis/`](docs/final-year-project/thesis/) — thesis chapters  

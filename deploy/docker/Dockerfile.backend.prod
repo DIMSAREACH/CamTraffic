@@ -13,14 +13,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     libgl1 \
     libglib2.0-0 \
+    libxcb1 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY backend/requirements.txt /app/requirements.txt
-RUN pip install --upgrade pip && pip install -r requirements.txt
+# CPU wheels only — default Linux torch pulls CUDA (~2GB+) and OOMs Docker Desktop / small VPS.
+RUN pip install --upgrade pip \
+    && pip install --upgrade-strategy only-if-needed \
+        torch torchvision --index-url https://download.pytorch.org/whl/cpu \
+    && pip install --upgrade-strategy only-if-needed -r requirements.txt
 
 COPY backend/ /app/backend/
 COPY ai/ /app/ai/
 COPY deploy/gunicorn/gunicorn.conf.py /app/deploy/gunicorn/gunicorn.conf.py
+COPY deploy/scripts/render_web_start.sh /app/deploy/scripts/render_web_start.sh
+RUN chmod +x /app/deploy/scripts/render_web_start.sh \
+    && test -f /app/backend/infrastructure/migrations/0005_phase4_officers_stations.py \
+    && test -f /app/backend/users/migrations/0009_phase4_officers_stations.py
 
 WORKDIR /app/backend
 
@@ -28,4 +37,4 @@ RUN mkdir -p logs media staticfiles backups
 
 EXPOSE 8000
 
-CMD ["gunicorn", "-c", "/app/deploy/gunicorn/gunicorn.conf.py", "camtraffic.wsgi:application"]
+CMD ["/app/deploy/scripts/render_web_start.sh"]

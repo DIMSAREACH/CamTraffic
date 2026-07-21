@@ -1450,7 +1450,11 @@ def _get_sign_model():
     _SIGN_MODEL_PATH = None
     if not model_path.is_file():
         return None
-    _SIGN_MODEL = YOLO(resolved)
+    try:
+        _SIGN_MODEL = YOLO(resolved)
+    except Exception:
+        logger.exception('Failed to load sign YOLO weights: %s', model_path)
+        return None
     _SIGN_MODEL_PATH = resolved
     names = _SIGN_MODEL.names or {}
     logger.info('Loaded sign YOLO: %s classes from %s', len(names), model_path)

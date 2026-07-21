@@ -7,8 +7,13 @@ import { ResetPasswordPage } from '@shared/pages/auth/ResetPasswordPage';
 import { VerifyEmailPage } from '@shared/pages/auth/VerifyEmailPage';
 import { UserLayout } from '@user/layout/UserLayout';
 import { DashboardPage } from '@user/pages/dashboard/DashboardPage';
-import { AIDetectionPage } from '@shared/pages/AIDetectionPage';
+import { AIDetectionDashboardPage } from '@shared/pages/AIDetectionDashboardPage';
+import { EnterpriseAIDetectionCenterPage } from '@shared/pages/EnterpriseAIDetectionCenterPage';
 import { ReportsPage } from '@shared/pages/ReportsPage';
+import { ReportCenterPage } from '@shared/pages/ReportCenterPage';
+import { ReportAnalyticsPage } from '@shared/pages/ReportAnalyticsPage';
+import { ReportDetailsPage } from '@shared/pages/ReportDetailsPage';
+import { ScheduledReportsPage } from '@shared/pages/ScheduledReportsPage';
 import { AILogsPage } from '@shared/pages/AILogsPage';
 import { FineManagement } from '@shared/pages/FineManagement';
 import { ViolationsPage } from '@shared/pages/ViolationsPage';
@@ -16,21 +21,31 @@ import { TrafficSignsPage } from '@shared/pages/TrafficSignsPage';
 import { VehiclesPage } from '@shared/pages/VehiclesPage';
 import { ProfilePage } from '@shared/pages/ProfilePage';
 import { NotificationsPage } from '@shared/pages/NotificationsPage';
+import { NotificationDetailsPage } from '@shared/pages/NotificationDetailsPage';
 import { EvidenceArchivePage } from '@shared/pages/EvidenceArchivePage';
 import { AppealsPage } from '@shared/pages/AppealsPage';
-import { AuditLogsPage } from '@shared/pages/AuditLogsPage';
 import { UnknownVehiclesPage } from '@shared/pages/UnknownVehiclesPage';
-import { AIModelsPage } from '@shared/pages/AIModelsPage';
 import { CamerasPage } from '@shared/pages/CamerasPage';
 import { DriverPaymentHistoryPage } from '@user/pages/driver/DriverPaymentHistoryPage';
-import { DriverSettingsPage } from '@user/pages/driver/DriverSettingsPage';
+import { DriverSearchPage } from '@user/pages/officer/DriverSearchPage';
+import { DriverTrafficRulesPage } from '@user/pages/driver/DriverTrafficRulesPage';
+import { DriverSupportPage } from '@user/pages/driver/DriverSupportPage';
+import { UserSettingsPage } from '@user/pages/UserSettingsPage';
 import { OperationalAiGuard } from '@shared/components/auth/OperationalAiGuard';
 import { RedirectToAdminPortal } from '@shared/components/PortalRedirect';
 
-function GuardedAiDetectionPage() {
+function GuardedEnterpriseAiDetectionPage() {
   return (
     <OperationalAiGuard>
-      <AIDetectionPage />
+      <EnterpriseAIDetectionCenterPage />
+    </OperationalAiGuard>
+  );
+}
+
+function GuardedAiDetectionDashboardPage() {
+  return (
+    <OperationalAiGuard>
+      <AIDetectionDashboardPage />
     </OperationalAiGuard>
   );
 }
@@ -71,21 +86,31 @@ export const router = createBrowserRouter([
     Component: UserLayout,
     children: [
       { index: true, Component: DashboardPage },
-      { path: 'ai-detection', Component: GuardedAiDetectionPage },
+      { path: 'ai-detection/source', loader: () => redirect('/dashboard/ai-detection/new') },
+      { path: 'ai-detection', Component: GuardedAiDetectionDashboardPage },
+      { path: 'ai-detection/new', Component: GuardedEnterpriseAiDetectionPage },
       { path: 'cameras', Component: GuardedCamerasPage },
       { path: 'ai-logs', Component: GuardedAiLogsPage },
       { path: 'evidence', Component: GuardedEvidencePage },
       { path: 'fines', Component: FineManagement },
       { path: 'fines/payments', Component: DriverPaymentHistoryPage },
-      { path: 'settings', Component: DriverSettingsPage },
+      { path: 'settings', Component: UserSettingsPage },
       { path: 'violations', Component: ViolationsPage },
       { path: 'signs', Component: TrafficSignsPage },
       { path: 'vehicles', Component: VehiclesPage },
       { path: 'reports', Component: ReportsPage },
+      { path: 'reports/center', Component: ReportCenterPage },
+      { path: 'reports/analytics', Component: ReportAnalyticsPage },
+      { path: 'reports/scheduled', Component: ScheduledReportsPage },
+      { path: 'reports/details/:reportId', Component: ReportDetailsPage },
       { path: 'appeals', Component: AppealsPage },
       { path: 'unknown-vehicles', Component: UnknownVehiclesPage },
+      { path: 'driver-search', Component: DriverSearchPage },
+      { path: 'traffic-rules', Component: DriverTrafficRulesPage },
+      { path: 'support', Component: DriverSupportPage },
       { path: 'profile', Component: ProfilePage },
       { path: 'notifications', Component: NotificationsPage },
+      { path: 'notifications/details/:notificationId', Component: NotificationDetailsPage },
     ],
   },
   { path: '/admin', Component: RedirectToAdminPortal },

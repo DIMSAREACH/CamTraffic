@@ -43,8 +43,13 @@ for (const rel of targets) {
     failed++;
     continue;
   }
+  if (env.VITE_USE_SAMPLE_FALLBACK === 'true' && !rel.endsWith('.env.example')) {
+    console.error(`FAIL ${rel}: VITE_USE_SAMPLE_FALLBACK must be false for real data`);
+    failed++;
+    continue;
+  }
   if (env.VITE_USE_SAMPLE_FALLBACK === 'true' && rel.endsWith('.env.example')) {
-    console.warn(`WARN ${rel}: VITE_USE_SAMPLE_FALLBACK=true (dev-only; not recommended in examples)`);
+    console.warn(`WARN ${rel}: VITE_USE_SAMPLE_FALLBACK=true — set false in examples for real-data default`);
   }
   console.log(`OK   ${rel} — production-truth (${env.VITE_USE_MOCK ?? 'unset'} mock)`);
 }
