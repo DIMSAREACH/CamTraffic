@@ -100,12 +100,11 @@ export const POLICE_ENTERPRISE_MODULES: EnterpriseModule[] = [
     labelKey: 'sidebar.modules.reports',
     path: R.reports,
     roles: ['police'],
-    matchPrefixes: [R.reports, R.reportsCenter, R.reportsAnalytics, R.reportsScheduled],
+    matchPrefixes: [R.reports, R.reportsCenter, R.reportsAnalytics],
     subNav: [
       { labelKey: 'sidebar.subNav.reportsDashboard', path: R.reports },
       { labelKey: 'sidebar.subNav.reportCenter', path: R.reportsCenter },
       { labelKey: 'sidebar.subNav.reportAnalytics', path: R.reportsAnalytics },
-      { labelKey: 'sidebar.subNav.scheduledReports', path: R.reportsScheduled },
     ],
   },
   {
@@ -250,22 +249,35 @@ export function getNavSectionsForRole(role: UserRole): EnterpriseNavSection[] {
   return [];
 }
 
-const USER_MODULE_MAP = new Map(
-  [...POLICE_ENTERPRISE_MODULES, ...DRIVER_ENTERPRISE_MODULES].map((m) => [m.id, m]),
-);
-
-export function getUserModuleById(id: string): EnterpriseModule | undefined {
-  return USER_MODULE_MAP.get(id);
+export function getUserModuleById(id: string, role?: UserRole): EnterpriseModule | undefined {
+  if (role === 'police' || role === 'driver') {
+    return getEnterpriseModulesForRole(role).find((m) => m.id === id);
+  }
+  return (
+    POLICE_ENTERPRISE_MODULES.find((m) => m.id === id)
+    ?? DRIVER_ENTERPRISE_MODULES.find((m) => m.id === id)
+  );
 }
 
 export function resolveUserEnterpriseModule(pathname: string, role: UserRole): EnterpriseModule | null {
   const modules = getEnterpriseModulesForRole(role);
+  // Prefer the most specific module (longest matching prefix) so `/dashboard` does not
+  // swallow every nested route and hide module sub-nav (Evidence, Detection, Reports).
+  let best: EnterpriseModule | null = null;
+  let bestLen = -1;
   for (const mod of modules) {
-    if (mod.matchPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))) {
-      return mod;
+    for (const prefix of mod.matchPrefixes) {
+      const exactDashboard = mod.id === 'dashboard' && pathname === prefix;
+      const match = exactDashboard
+        || (mod.id !== 'dashboard' && (pathname === prefix || pathname.startsWith(`${prefix}/`)));
+      if (!match) continue;
+      if (prefix.length > bestLen) {
+        best = mod;
+        bestLen = prefix.length;
+      }
     }
   }
-  return null;
+  return best;
 }
 
 export function isUserModuleActive(pathname: string, mod: EnterpriseModule): boolean {

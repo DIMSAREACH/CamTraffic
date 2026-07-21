@@ -104,7 +104,7 @@ function formatRoadLabel(road: Road) {
 
 function buildCameraPayload(form: CameraFormState) {
   return {
-    road: Number(form.road),
+    road: form.road.trim(),
     name: form.name.trim(),
     code: form.code.trim(),
     model: form.model.trim(),
@@ -705,7 +705,7 @@ export function CamerasPage() {
   const [filtered, setFiltered] = useState<Camera[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
@@ -730,8 +730,8 @@ export function CamerasPage() {
           const raw = c as Camera & { road?: string };
           const status = raw.status === 'offline' ? 'inactive' : raw.status;
           return {
-            id: Number(raw.id) || idx + 1,
-            road_id: raw.road_id ?? 0,
+            id: String(raw.id || `live-${idx + 1}`),
+            road_id: String(raw.road_id ?? ''),
             road_name: raw.road_name || raw.road || '',
             name: raw.name,
             code: raw.code,

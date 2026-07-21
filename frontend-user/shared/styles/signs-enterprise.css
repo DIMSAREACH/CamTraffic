@@ -316,7 +316,7 @@ html.dark .dashboard-page--signs .enforcement-page__panel--signs {
 .dashboard-page--signs .signs-page__panel-title {
   margin: 0;
   font-family: var(--dashboard-font-display);
-  font-size: 1.05rem;
+  font-size: 1.15rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   color: #0f172a;
@@ -324,7 +324,7 @@ html.dark .dashboard-page--signs .enforcement-page__panel--signs {
 
 .dashboard-page--signs .signs-page__panel-subtitle {
   margin: 0.25rem 0 0;
-  font-size: 0.78rem;
+  font-size: 0.88rem;
   font-weight: 600;
   color: #64748b;
 }
@@ -339,17 +339,95 @@ html.dark .dashboard-page--signs .enforcement-page__panel--signs {
 
 .dashboard-page--signs .signs-page__table .enforcement-page__th {
   color: #115e59;
-  font-size: 0.68rem;
-  letter-spacing: 0.06em;
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+  font-weight: 800;
 }
 
-/* Card grid — first-design layout + category-tinted media + wider cards */
+.dashboard-page--signs .signs-page__table .sign-name-labels__km,
+.dashboard-page--signs .signs-page__table .signs-card__name {
+  font-size: 0.98rem !important;
+  line-height: 1.4 !important;
+  font-weight: 800 !important;
+}
+
+.dashboard-page--signs .signs-page__table .sign-name-labels__en,
+.dashboard-page--signs .signs-page__table .signs-card__name-en {
+  font-size: 0.88rem !important;
+  line-height: 1.4 !important;
+  font-weight: 600 !important;
+  margin-top: 0.2rem !important;
+}
+
+.dashboard-page--signs .signs-page__table .signs-page__desc,
+.dashboard-page--signs .signs-page__table .enforcement-page__cell-secondary {
+  font-size: 0.9rem !important;
+  line-height: 1.5 !important;
+  color: #334155 !important;
+}
+
+.dashboard-page--signs .signs-page__table .signs-page__code-pill,
+.dashboard-page--signs .signs-page__table .enforcement-page__code-pill {
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  padding: 0.2rem 0.5rem !important;
+}
+
+.dashboard-page--signs .signs-page__table .signs-page__category-badge,
+.dashboard-page--signs .signs-page__table .signs-category-badge {
+  font-size: 0.8rem !important;
+  padding: 0.3rem 0.7rem !important;
+}
+
+/* Card grid — 5 columns desktop, 2 columns tablet/mobile */
 .app-dashboard .dashboard-page--signs .signs-card-grid,
 .dashboard-page--signs .signs-card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(16.5rem, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 1.15rem;
   padding: 1.15rem 1.25rem 1.35rem;
+}
+
+.dashboard-page--signs .signs-category-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.35rem 0 0.85rem;
+}
+
+.dashboard-page--signs .signs-category-section + .signs-category-section {
+  border-top: 1px solid rgba(148, 163, 184, 0.22);
+  margin-top: 0.35rem;
+  padding-top: 1.1rem;
+}
+
+.dashboard-page--signs .signs-category-section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0 1.25rem;
+}
+
+.dashboard-page--signs .signs-category-section__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.dashboard-page--signs .signs-category-section__count {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.dashboard-page--signs .signs-category-section .signs-card-grid {
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
 }
 
 .dashboard-page--signs .signs-card {
@@ -528,6 +606,11 @@ html.dark .dashboard-page--signs .enforcement-page__panel--signs {
   .dashboard-page--signs .signs-kpi-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+
+  .app-dashboard .dashboard-page--signs .signs-card-grid,
+  .dashboard-page--signs .signs-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 900px) {
@@ -559,9 +642,15 @@ html.dark .dashboard-page--signs .enforcement-page__panel--signs {
     display: none;
   }
 
+  .app-dashboard .dashboard-page--signs .signs-card-grid,
   .dashboard-page--signs .signs-card-grid {
-    grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.85rem;
+    padding: 0.9rem 0.85rem 1.1rem;
+  }
+
+  .dashboard-page--signs .signs-category-section__head {
+    padding: 0 0.85rem;
   }
 
   .dashboard-page--signs .table-pagination__row {

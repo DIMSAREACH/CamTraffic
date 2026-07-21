@@ -162,6 +162,7 @@ export function UserLayout() {
       <div className="app-layout-main flex-1 flex flex-col min-w-0 overflow-hidden">
         <Navbar
           unreadCount={unreadCount}
+          onUnreadCountChange={setUnreadCount}
           sidebarCollapsed={collapsed}
           onSidebarToggle={toggleCollapsed}
           onMobileMenuOpen={openMobile}

@@ -97,7 +97,7 @@ export function DetectionObjectDetailsDrawer({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          'enterprise-detection-popup p-0 gap-0 overflow-hidden sm:max-w-md',
+          'enterprise-detection-popup p-0 gap-0 overflow-hidden sm:max-w-xl',
           `enterprise-detection-popup--${tone}`,
         )}
       >

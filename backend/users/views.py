@@ -98,9 +98,23 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
         try:
             instance.delete()
         except ProtectedError:
+            # Linked violations/fines block hard delete — deactivate instead so admin UI works.
+            if instance.is_active:
+                instance.is_active = False
+                instance.save(update_fields=['is_active'])
+                from users.profile_services import sync_profile_status
+
+                sync_profile_status(instance)
+                return success_response(
+                    UserSerializer(instance).data,
+                    message=(
+                        'User has linked violations or records, so the account was deactivated '
+                        'instead of permanently deleted.'
+                    ),
+                )
             return error_response(
                 'Cannot delete this user because they have linked violations or records. '
-                'Deactivate the account instead.',
+                'The account is already inactive.',
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
         return success_response(message='User deleted')

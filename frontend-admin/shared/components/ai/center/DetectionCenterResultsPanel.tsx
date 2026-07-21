@@ -16,7 +16,9 @@ import type { WebcamDetectionResult } from '@shared/hooks/useWebcamDetection';
 import type { OverlayDetectionInput } from '@shared/utils/detectionOverlay';
 import { signDisplayNames } from '@shared/utils/signDisplayNames';
 import { resolveDetectionMode } from '@shared/utils/detectionDisplay';
+import { downloadMediaUrl } from '@shared/utils/downloadMedia';
 import { cn } from '@shared/components/ui/utils';
+import { toast } from 'sonner';
 
 type DetectionCategory = 'all' | 'sign' | 'vehicle' | 'plate';
 
@@ -63,6 +65,7 @@ export type CenterDetectionResult = WebcamDetectionResult & {
       vehicle_count?: number;
     }>;
   };
+  annotated_preview_video?: string;
 };
 
 function confTier(c: number) {
@@ -275,6 +278,31 @@ export function DetectionCenterResultsPanel({
   const { t, locale } = useLanguage();
   const { speak, speakingId } = useSpeech(locale);
   const [activeCategory, setActiveCategory] = useState<DetectionCategory>('all');
+  const [mediaDownloading, setMediaDownloading] = useState<'frame' | 'video' | null>(null);
+
+  const downloadVideoArtifact = async (kind: 'frame' | 'video') => {
+    if (!result) return;
+    const url = kind === 'frame'
+      ? result.annotated_processed_image || result.processed_image || result.uploaded_image
+      : result.annotated_preview_video;
+    if (!url) {
+      toast.error(t('aiCenter.downloadUnavailable'));
+      return;
+    }
+    const base = result.video_analysis?.source_filename?.replace(/\.[^.]+$/, '') || 'video-detect';
+    const filename = kind === 'frame'
+      ? `${base}-best-frame.jpg`
+      : `${base}-annotated-preview.mp4`;
+    setMediaDownloading(kind);
+    try {
+      await downloadMediaUrl(url, filename);
+      toast.success(t('aiCenter.downloadStarted'));
+    } catch {
+      toast.error(t('aiCenter.downloadFailed'));
+    } finally {
+      setMediaDownloading(null);
+    }
+  };
 
   const primaryCategory = useMemo((): Exclude<DetectionCategory, 'all'> => {
     if (!result) return 'vehicle';
@@ -572,6 +600,30 @@ export function DetectionCenterResultsPanel({
               time: result.video_analysis.best_frame_timestamp_sec ?? 0,
             })}
           </p>
+          <div className="ai-center-results__video-actions">
+            {(result.annotated_processed_image || result.processed_image || result.uploaded_image) && (
+              <button
+                type="button"
+                className="ai-center-results__export-btn"
+                disabled={mediaDownloading !== null}
+                onClick={() => void downloadVideoArtifact('frame')}
+              >
+                {mediaDownloading === 'frame' ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+                {t('aiCenter.downloadAnnotatedFrame')}
+              </button>
+            )}
+            {result.annotated_preview_video && (
+              <button
+                type="button"
+                className="ai-center-results__export-btn"
+                disabled={mediaDownloading !== null}
+                onClick={() => void downloadVideoArtifact('video')}
+              >
+                {mediaDownloading === 'video' ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+                {t('aiCenter.downloadAnnotatedPreview')}
+              </button>
+            )}
+          </div>
         </div>
       )}
 

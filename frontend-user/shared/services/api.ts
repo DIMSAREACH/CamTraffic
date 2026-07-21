@@ -13,6 +13,7 @@ import type {
 import { getRefreshToken } from '@shared/utils/authStorage';
 import { normalizeDetectionMedia } from '@shared/utils/profileImage';
 import { apiClient, unwrap, unwrapList } from './axiosClient';
+import { API_CATALOG, DETECTION_API } from './detectionEndpoints';
 import * as mockApi from './mockApi';
 import * as sample from './sampleDataFallback';
 
@@ -60,6 +61,9 @@ export const authAPI = USE_MOCK ? mockApi.authAPI : {
     return unwrap<{ authorization_url: string }>(await apiClient.get(`/auth/oauth/${provider}/authorize/`, {
       params: redirect_uri ? { redirect_uri } : undefined,
     }));
+  },
+  async getOAuthStatus(): Promise<{ google: boolean; github: boolean }> {
+    return unwrap<{ google: boolean; github: boolean }>(await apiClient.get('/auth/oauth/status/'));
   },
   async completeOAuth(
     provider: 'google' | 'github',
@@ -125,8 +129,13 @@ export const usersAPI = USE_MOCK ? mockApi.usersAPI : {
   async create(data: Partial<User> & { password: string }): Promise<User> {
     return unwrap<User>(await apiClient.post('/users/', data));
   },
-  async delete(id: string): Promise<void> {
-    await apiClient.delete(`/users/${id}/`);
+  async delete(id: string): Promise<{ user: User | null; message?: string }> {
+    const res = await apiClient.delete(`/users/${id}/`);
+    const body = res.data as { data?: User | null; message?: string };
+    return {
+      user: body?.data && typeof body.data === 'object' ? body.data : null,
+      message: body?.message,
+    };
   },
   async toggleActive(id: string): Promise<User> {
     return unwrap<User>(await apiClient.post(`/users/${id}/toggle-active/`));
@@ -139,18 +148,18 @@ export const vehiclesAPI = USE_MOCK ? mockApi.vehiclesAPI : {
     const live = unwrapList<Vehicle>(await apiClient.get('/vehicles/', { params: { page_size: 100 } }));
     return sample.withListFallback(live, sample.sampleVehicles());
   },
-  async getByOwner(ownerId: number): Promise<Vehicle[]> {
+  async getByOwner(ownerId: string | number): Promise<Vehicle[]> {
     const all = await vehiclesAPI.getAll();
-    const owned = all.filter((v) => v.owner_id === ownerId);
+    const owned = all.filter((v) => String(v.owner_id) === String(ownerId));
     return sample.withListFallback(owned, sample.sampleVehiclesForOwner(ownerId));
   },
   async create(data: Partial<Vehicle>): Promise<Vehicle> {
     return unwrap<Vehicle>(await apiClient.post('/vehicles/', data));
   },
-  async update(id: number, data: Partial<Vehicle>): Promise<Vehicle> {
+  async update(id: string | number, data: Partial<Vehicle>): Promise<Vehicle> {
     return unwrap<Vehicle>(await apiClient.patch(`/vehicles/${id}/`, data));
   },
-  async delete(id: number): Promise<void> {
+  async delete(id: string | number): Promise<void> {
     await apiClient.delete(`/vehicles/${id}/`);
   },
   async searchByPlate(plate: string): Promise<Vehicle | null> {
@@ -218,6 +227,35 @@ export const finesAPI = USE_MOCK ? mockApi.finesAPI : {
     return unwrap<Fine>(await apiClient.post(`/fines/${fineId}/pay/`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }));
+  },
+  async getPaymentConfig(): Promise<{
+    modes: string[];
+    stripe_enabled: boolean;
+    khqr_enabled: boolean;
+    manual_enabled: boolean;
+    currency: string;
+  }> {
+    return unwrap(await apiClient.get('/fines/payment-config/'));
+  },
+  async createStripeCheckout(fineId: string): Promise<{ checkout_url: string; session_id: string }> {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    return unwrap(await apiClient.post(`/fines/${fineId}/checkout/stripe/`, {
+      success_url: `${origin}/dashboard/fines?paid=1`,
+      cancel_url: `${origin}/dashboard/fines?cancel=1`,
+    }));
+  },
+  async createKhqrSession(fineId: string): Promise<{
+    bill_reference: string;
+    amount_usd: string;
+    instructions_en: string;
+    instructions_km: string;
+    merchant_name: string;
+    merchant_account_usd?: string;
+    merchant_account_khr?: string;
+    qr_image_url: string;
+    payment_reference: string;
+  }> {
+    return unwrap(await apiClient.post(`/fines/${fineId}/checkout/khqr/`, {}));
   },
 };
 
@@ -465,27 +503,56 @@ export const aiAPI = USE_MOCK ? mockApi.aiAPI : {
         contrast?: number;
         white_ratio?: number;
       };
-    }>(await apiClient.post('/ai/detect/', form, {
+    }>(await apiClient.post(DETECTION_API.image, form, {
       headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 120000,
     })));
   },
+  async detectVideo(file: File, options?: {
+    observed_action?: string;
+    demo_violation?: boolean;
+    auto_create_violation?: boolean;
+  }) {
+    const form = new FormData();
+    form.append('video', file, file.name);
+    if (options?.observed_action) form.append('observed_action', options.observed_action);
+    if (options?.demo_violation) form.append('demo_violation', 'true');
+    if (options?.auto_create_violation) form.append('auto_create_violation', 'true');
+    return normalizeDetectionMedia(unwrap(await apiClient.post(DETECTION_API.video, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 600000,
+    })));
+  },
+  async getDetectionHub() {
+    return unwrap<{
+      service: string;
+      modes: Record<string, { method: string; url: string }>;
+    }>(await apiClient.get(DETECTION_API.hub));
+  },
+  async getWebcamCapabilities() {
+    return unwrap<{
+      mode: string;
+      method: string;
+      url: string;
+      fields: Record<string, string>;
+    }>(await apiClient.get(DETECTION_API.webcam));
+  },
   async getLogs(userId?: number): Promise<AIDetectionLog[]> {
-    const live = unwrapList<AIDetectionLog>(await apiClient.get('/ai/logs/', { params: { page_size: 100 } }));
+    const live = unwrapList<AIDetectionLog>(await apiClient.get(DETECTION_API.logs, { params: { page_size: 100 } }));
     const logs = sample.withListFallback(live, sample.sampleAiLogs());
     if (userId) return logs.filter((l) => l.user_id === userId);
     return logs;
   },
   async getPageStats(): Promise<AIDetectionPageStats> {
-    const live = unwrap<AIDetectionPageStats>(await apiClient.get('/ai/stats/'));
+    const live = unwrap<AIDetectionPageStats>(await apiClient.get(DETECTION_API.stats));
     return sample.mergePageStats(live);
   },
   async exportLogsCsv(): Promise<Blob> {
-    const res = await apiClient.get('/ai/logs/export/', { responseType: 'blob' });
+    const res = await apiClient.get(DETECTION_API.logsExport, { responseType: 'blob' });
     return res.data as Blob;
   },
   async speakText(text: string, lang: 'km' | 'en' = 'km'): Promise<Blob> {
-    const res = await apiClient.post('/ai/tts/', { text, lang }, {
+    const res = await apiClient.post(DETECTION_API.tts, { text, lang }, {
       responseType: 'blob',
       timeout: 45000,
     });
@@ -499,9 +566,20 @@ export const aiAPI = USE_MOCK ? mockApi.aiAPI : {
   },
 };
 
+export const catalogAPI = USE_MOCK ? mockApi.catalogAPI : {
+  async getCatalog() {
+    return unwrap<{
+      service: string;
+      version: string;
+      modules: Record<string, string[]>;
+      detection: Record<string, string>;
+    }>(await apiClient.get(API_CATALOG));
+  },
+};
+
 // ── NOTIFICATIONS ────────────────────────────────────────────────
 export const notificationsAPI = USE_MOCK ? mockApi.notificationsAPI : {
-  async getByUser(_userId: number): Promise<Notification[]> {
+  async getByUser(_userId: string | number): Promise<Notification[]> {
     const live = unwrapList<Notification>(await apiClient.get('/notifications/', { params: { page_size: 100 } }));
     return sample.withListFallback(live, sample.sampleNotificationsForUser(_userId));
   },
@@ -522,16 +600,16 @@ export const roadsAPI = USE_MOCK ? mockApi.roadsAPI : {
     const live = unwrapList<Road>(await apiClient.get('/roads/', { params: { page_size: 200 } }));
     return sample.withListFallback(live, sample.sampleRoads());
   },
-  async getById(id: number): Promise<Road> {
+  async getById(id: string | number): Promise<Road> {
     return unwrap<Road>(await apiClient.get(`/roads/${id}/`));
   },
   async create(data: Partial<Road>): Promise<Road> {
     return unwrap<Road>(await apiClient.post('/roads/', data));
   },
-  async update(id: number, data: Partial<Road>): Promise<Road> {
+  async update(id: string | number, data: Partial<Road>): Promise<Road> {
     return unwrap<Road>(await apiClient.patch(`/roads/${id}/`, data));
   },
-  async delete(id: number): Promise<void> {
+  async delete(id: string | number): Promise<void> {
     await apiClient.delete(`/roads/${id}/`);
   },
 };
@@ -541,16 +619,16 @@ export const camerasAPI = USE_MOCK ? mockApi.camerasAPI : {
     const live = unwrapList<Camera>(await apiClient.get('/cameras/', { params: { page_size: 200 } }));
     return sample.withListFallback(live, sample.sampleCameras());
   },
-  async getById(id: number): Promise<Camera> {
+  async getById(id: string | number): Promise<Camera> {
     return unwrap<Camera>(await apiClient.get(`/cameras/${id}/`));
   },
-  async create(data: Partial<Camera> & { road: number }): Promise<Camera> {
+  async create(data: Partial<Camera> & { road: string | number }): Promise<Camera> {
     return unwrap<Camera>(await apiClient.post('/cameras/', data));
   },
-  async update(id: number, data: Partial<Camera>): Promise<Camera> {
+  async update(id: string | number, data: Partial<Camera>): Promise<Camera> {
     return unwrap<Camera>(await apiClient.patch(`/cameras/${id}/`, data));
   },
-  async delete(id: number): Promise<void> {
+  async delete(id: string | number): Promise<void> {
     await apiClient.delete(`/cameras/${id}/`);
   },
   async liveStatus(): Promise<{ cameras: Camera[]; summary: { total: number; active: number; offline: number }; polled_at: string }> {
@@ -562,7 +640,10 @@ export const camerasAPI = USE_MOCK ? mockApi.camerasAPI : {
     if (extra) {
       Object.entries(extra).forEach(([k, v]) => form.append(k, v));
     }
-    return unwrap(await apiClient.post('/ai/process-frame/', form));
+    return normalizeDetectionMedia(unwrap(await apiClient.post(DETECTION_API.live, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 180000,
+    })));
   },
 };
 
@@ -572,7 +653,7 @@ export const dashboardAPI = USE_MOCK ? mockApi.dashboardAPI : {
     const live = unwrap<DashboardStats>(await apiClient.get('/dashboard/admin/'));
     return sample.mergeDashboardStats(live);
   },
-  async getPoliceStats(policeId: number) {
+  async getPoliceStats(policeId?: string | number) {
     const live = unwrap(await apiClient.get('/dashboard/police/'));
     return sample.mergePoliceStats(live as sample.PoliceDashboardStats, policeId);
   },

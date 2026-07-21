@@ -170,6 +170,10 @@ export const authAPI = {
     await delay(300);
     return { authorization_url: redirect_uri || `${window.location.origin}/auth/oauth/callback` };
   },
+  async getOAuthStatus(): Promise<{ google: boolean; github: boolean }> {
+    await delay(50);
+    return { google: false, github: false };
+  },
   async completeOAuth(
     provider: 'google' | 'github',
     _code: string,
@@ -238,7 +242,10 @@ export const usersAPI = {
     users.push(newUser);
     return newUser;
   },
-  async delete(id: string) { users = users.filter((u) => u.id !== id); },
+  async delete(id: string) {
+    users = users.filter((u) => u.id !== id);
+    return { user: null as null, message: 'User deleted' };
+  },
   async toggleActive(id: string) {
     const idx = users.findIndex((u) => u.id === id);
     users[idx].is_active = !users[idx].is_active;
@@ -290,12 +297,12 @@ export const profileAPI = {
 
 export const vehiclesAPI = {
   async getAll() { return vehicles.map((v) => ({ ...v })); },
-  async getByOwner(ownerId: number) { return vehicles.filter((v) => v.owner_id === ownerId); },
+  async getByOwner(ownerId: string | number) { return vehicles.filter((v) => String(v.owner_id) === String(ownerId)); },
   async create(data: Partial<Vehicle>) {
     const owner = users.find((u) => u.id === data.owner_id);
     const v: Vehicle = {
-      id: vehicles.length + 1,
-      owner_id: data.owner_id || 0,
+      id: String(vehicles.length + 1),
+      owner_id: String(data.owner_id || '0'),
       owner_name: owner?.full_name || 'Unknown',
       plate_number: data.plate_number || '',
       vehicle_type: data.vehicle_type || 'car',
@@ -307,7 +314,13 @@ export const vehiclesAPI = {
     vehicles.push(v);
     return v;
   },
-  async delete(id: number) { vehicles = vehicles.filter((v) => v.id !== id); },
+  async update(id: string | number, data: Partial<Vehicle>) {
+    const idx = vehicles.findIndex((v) => String(v.id) === String(id));
+    if (idx < 0) throw new Error('Vehicle not found');
+    vehicles[idx] = { ...vehicles[idx], ...data };
+    return vehicles[idx];
+  },
+  async delete(id: string | number) { vehicles = vehicles.filter((v) => String(v.id) !== String(id)); },
   async searchByPlate(plate: string) {
     return vehicles.find((v) => v.plate_number.toLowerCase().includes(plate.toLowerCase())) || null;
   },
@@ -703,8 +716,20 @@ export const aiAPI = {
   },
 };
 
+export const catalogAPI = {
+  async getCatalog() {
+    await delay(150);
+    return {
+      service: 'camtraffic-api-mock',
+      version: 'v1',
+      modules: { detection_aliases: ['GET /api/detection/'] },
+      detection: { hub: '/api/detection/' },
+    };
+  },
+};
+
 export const notificationsAPI = {
-  async getByUser(userId: number) {
+  async getByUser(userId: string | number) {
     return notifications.filter((n) => n.user_id === userId).sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
   },
   async markRead(id: number) {
@@ -726,16 +751,16 @@ export const roadsAPI = {
     await delay(300);
     return [...mockRoads];
   },
-  async getById(id: number): Promise<Road> {
+  async getById(id: string | number): Promise<Road> {
     await delay(200);
-    const road = mockRoads.find((r) => r.id === id);
+    const road = mockRoads.find((r) => String(r.id) === String(id));
     if (!road) throw new Error('Road not found');
     return { ...road };
   },
   async create(data: Partial<Road>): Promise<Road> {
     await delay(400);
     const road: Road = {
-      id: mockRoads.length + 1,
+      id: String(mockRoads.length + 1),
       name: data.name || 'New Road',
       road_type: data.road_type || 'urban',
       length_km: data.length_km ?? null,
@@ -752,16 +777,16 @@ export const roadsAPI = {
     mockRoads.push(road);
     return road;
   },
-  async update(id: number, data: Partial<Road>): Promise<Road> {
+  async update(id: string | number, data: Partial<Road>): Promise<Road> {
     await delay(300);
-    const idx = mockRoads.findIndex((r) => r.id === id);
+    const idx = mockRoads.findIndex((r) => String(r.id) === String(id));
     if (idx < 0) throw new Error('Road not found');
     mockRoads[idx] = { ...mockRoads[idx], ...data, updated_at: new Date().toISOString() };
     return mockRoads[idx];
   },
-  async delete(id: number): Promise<void> {
+  async delete(id: string | number): Promise<void> {
     await delay(300);
-    const idx = mockRoads.findIndex((r) => r.id === id);
+    const idx = mockRoads.findIndex((r) => String(r.id) === String(id));
     if (idx >= 0) mockRoads.splice(idx, 1);
   },
 };
@@ -771,18 +796,18 @@ export const camerasAPI = {
     await delay(350);
     return [...mockCameras];
   },
-  async getById(id: number): Promise<Camera> {
+  async getById(id: string | number): Promise<Camera> {
     await delay(200);
-    const cam = mockCameras.find((c) => c.id === id);
+    const cam = mockCameras.find((c) => String(c.id) === String(id));
     if (!cam) throw new Error('Camera not found');
     return { ...cam };
   },
-  async create(data: Partial<Camera> & { road: number }): Promise<Camera> {
+  async create(data: Partial<Camera> & { road: string | number }): Promise<Camera> {
     await delay(400);
-    const road = mockRoads.find((r) => r.id === data.road);
+    const road = mockRoads.find((r) => String(r.id) === String(data.road));
     const cam: Camera = {
-      id: mockCameras.length + 1,
-      road_id: data.road,
+      id: String(mockCameras.length + 1),
+      road_id: String(data.road),
       road_name: road?.name || 'Unknown road',
       name: data.name || 'New Camera',
       code: data.code || `CAM-MOCK-${mockCameras.length + 1}`,
@@ -799,17 +824,33 @@ export const camerasAPI = {
     mockCameras.push(cam);
     return cam;
   },
-  async update(id: number, data: Partial<Camera>): Promise<Camera> {
+  async update(id: string | number, data: Partial<Camera>): Promise<Camera> {
     await delay(300);
-    const idx = mockCameras.findIndex((c) => c.id === id);
+    const idx = mockCameras.findIndex((c) => String(c.id) === String(id));
     if (idx < 0) throw new Error('Camera not found');
     mockCameras[idx] = { ...mockCameras[idx], ...data, updated_at: new Date().toISOString() };
     return mockCameras[idx];
   },
-  async delete(id: number): Promise<void> {
+  async delete(id: string | number): Promise<void> {
     await delay(300);
-    const idx = mockCameras.findIndex((c) => c.id === id);
+    const idx = mockCameras.findIndex((c) => String(c.id) === String(id));
     if (idx >= 0) mockCameras.splice(idx, 1);
+  },
+  async liveStatus(): Promise<{ cameras: Camera[]; summary: { total: number; active: number; offline: number }; polled_at: string }> {
+    await delay(200);
+    const cameras = [...mockCameras];
+    const active = cameras.filter((c) => c.status === 'active').length;
+    return {
+      cameras,
+      summary: { total: cameras.length, active, offline: cameras.length - active },
+      polled_at: new Date().toISOString(),
+    };
+  },
+  async processFrame(_cameraId: string) {
+    await delay(1200);
+    const blob = new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xd9])], { type: 'image/jpeg' });
+    const file = new File([blob], 'mock-camera-frame.jpg', { type: 'image/jpeg' });
+    return aiAPI.detect(file);
   },
 };
 

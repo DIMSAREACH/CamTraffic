@@ -9,5 +9,5 @@ urlpatterns = [
     path('owners/', VehicleOwnerListView.as_view(), name='vehicle-owner-list'),
     path('owners/reassign/', VehicleOwnerReassignView.as_view(), name='vehicle-owner-reassign'),
     path('owners/<uuid:owner_id>/', VehicleOwnerDetailView.as_view(), name='vehicle-owner-detail'),
-    path('<int:pk>/', VehicleDetailView.as_view(), name='vehicle-detail'),
+    path('<uuid:pk>/', VehicleDetailView.as_view(), name='vehicle-detail'),
 ]

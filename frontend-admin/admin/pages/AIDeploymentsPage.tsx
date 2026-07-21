@@ -54,9 +54,9 @@ export function AIDeploymentsPage() {
     setLoading(true);
     try {
       const live = await aiModelsAPI.getAll();
-      setModels(enrichAIModels(live.length > 0 ? live : DEMO_MODELS));
+      setModels(enrichAIModels(live));
     } catch {
-      setModels(enrichAIModels(DEMO_MODELS));
+      setModels([]);
     } finally {
       setLoading(false);
     }
@@ -65,6 +65,10 @@ export function AIDeploymentsPage() {
   useEffect(() => { void load(); }, [load]);
 
   const handleActivate = async (id: string) => {
+    if (String(id).startsWith('demo-')) {
+      toast.error(tr('aiModels.toastActivateFail', 'Failed to activate model'));
+      return;
+    }
     try {
       await aiModelsAPI.activate(id);
       toast.success(tr('aiModels.toastActivated', 'Model activated'));

@@ -67,12 +67,11 @@ export function AIModelDetailsPage() {
     setLoading(true);
     try {
       const live = await aiModelsAPI.getAll();
-      const pool = live.length > 0 ? live : DEMO_MODELS;
+      const pool = live;
       const found = pool.find((m) => String(m.id) === String(modelId));
       setModel(found ? enrichAIModel(found) : null);
     } catch {
-      const found = DEMO_MODELS.find((m) => String(m.id) === String(modelId));
-      setModel(found ? enrichAIModel(found) : null);
+      setModel(null);
     } finally {
       setLoading(false);
     }

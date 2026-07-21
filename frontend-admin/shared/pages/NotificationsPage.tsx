@@ -32,6 +32,11 @@ const TYPE_META: Record<NotificationType, TypeMeta> = {
     icon: FileText,
     ...pickPalette(0),
   },
+  violation: {
+    labelKey: 'notifications.typeViolation',
+    icon: AlertTriangle,
+    ...pickPalette(2),
+  },
   detection: {
     labelKey: 'notifications.typeDetection',
     icon: Camera,
@@ -59,6 +64,13 @@ function pickPalette(index: number) {
     bg: p.soft,
     color: p.dark,
   };
+}
+
+function metaForType(type: string | undefined | null): TypeMeta {
+  if (type && type in TYPE_META) {
+    return TYPE_META[type as NotificationType];
+  }
+  return TYPE_META.system;
 }
 
 function typeIconStyle(meta: TypeMeta): CSSProperties {
@@ -91,7 +103,7 @@ function typeUnreadCardStyle(meta: TypeMeta): CSSProperties {
   };
 }
 
-const TYPE_TABS: NotificationType[] = ['fine', 'detection', 'alert', 'system'];
+const TYPE_TABS: NotificationType[] = ['fine', 'violation', 'detection', 'alert', 'system'];
 
 function timeAgo(date: string): string {
   const diff = Date.now() - new Date(date).getTime();
@@ -157,7 +169,7 @@ function NotificationRowList({
           </div>
           <ul className="notifications-page__list-rows">
             {grouped[group].map((n) => {
-              const meta = TYPE_META[n.type];
+              const meta = metaForType(n.type);
               const Icon = meta.icon;
               return (
                 <li key={n.id}>
@@ -224,7 +236,7 @@ function NotificationCardItem({
   onMarkRead: (id: number) => void;
   t: (key: string, vars?: Record<string, string | number>) => string;
 }) {
-  const meta = TYPE_META[n.type];
+  const meta = metaForType(n.type);
   const Icon = meta.icon;
   return (
     <button

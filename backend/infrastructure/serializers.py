@@ -41,7 +41,7 @@ class RoadSerializer(serializers.ModelSerializer):
 
 
 class CameraSerializer(serializers.ModelSerializer):
-    road_id = serializers.IntegerField(source='road.id', read_only=True)
+    road_id = serializers.UUIDField(source='road.id', read_only=True)
     road_name = serializers.CharField(source='road.name', read_only=True)
 
     class Meta:

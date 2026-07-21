@@ -1,10 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { authAPI } from '@shared/services/api';
+import { useLanguage } from '@shared/context/LanguageContext';
 
 type SocialLoginButtonsProps = {
   variant?: 'user' | 'admin';
+};
+
+type OAuthStatus = {
+  google: boolean;
+  github: boolean;
 };
 
 function GoogleIcon() {
@@ -41,10 +47,31 @@ function GithubIcon() {
 const CALLBACK_PATH = '/auth/oauth/callback';
 
 export function SocialLoginButtons({ variant = 'user' }: SocialLoginButtonsProps) {
+  const { t } = useLanguage();
   const [loadingProvider, setLoadingProvider] = useState<'google' | 'github' | null>(null);
+  const [status, setStatus] = useState<OAuthStatus | null>(null);
   const gridClass = variant === 'admin' ? 'social-grid social-grid--admin' : 'social-grid';
 
+  useEffect(() => {
+    let cancelled = false;
+    authAPI
+      .getOAuthStatus()
+      .then((next) => {
+        if (!cancelled) setStatus(next);
+      })
+      .catch(() => {
+        if (!cancelled) setStatus({ google: false, github: false });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const startOAuth = async (provider: 'google' | 'github') => {
+    if (status && !status[provider]) {
+      toast.error(t('auth.oauthNotConfigured'));
+      return;
+    }
     const redirectUri = `${window.location.origin}${CALLBACK_PATH}`;
     setLoadingProvider(provider);
     try {
@@ -54,36 +81,48 @@ export function SocialLoginButtons({ variant = 'user' }: SocialLoginButtonsProps
       window.location.assign(authorization_url);
     } catch (err: unknown) {
       setLoadingProvider(null);
-      toast.error(err instanceof Error ? err.message : 'Could not start social sign-in.');
+      toast.error(err instanceof Error ? err.message : t('auth.oauthStartFailed'));
     }
   };
+
+  // Hide social block entirely when neither provider is configured (typical local demo).
+  if (status && !status.google && !status.github) {
+    return null;
+  }
+
+  const showGoogle = !status || status.google;
+  const showGithub = !status || status.github;
 
   return (
     <div className="social-login-block">
       <div className="or-divider">
-        <span>or continue with</span>
+        <span>{t('auth.orContinueWith')}</span>
       </div>
       <div className={gridClass}>
-        <button
-          type="button"
-          className="social-btn social-google"
-          onClick={() => startOAuth('google')}
-          disabled={loadingProvider !== null}
-          aria-label="Sign in with Google"
-        >
-          {loadingProvider === 'google' ? <Loader2 size={18} className="animate-spin" /> : <GoogleIcon />}
-          <span>Google</span>
-        </button>
-        <button
-          type="button"
-          className="social-btn social-github"
-          onClick={() => startOAuth('github')}
-          disabled={loadingProvider !== null}
-          aria-label="Sign in with GitHub"
-        >
-          {loadingProvider === 'github' ? <Loader2 size={18} className="animate-spin" /> : <GithubIcon />}
-          <span>GitHub</span>
-        </button>
+        {showGoogle && (
+          <button
+            type="button"
+            className="social-btn social-google"
+            onClick={() => startOAuth('google')}
+            disabled={loadingProvider !== null}
+            aria-label={t('auth.signInWithGoogle')}
+          >
+            {loadingProvider === 'google' ? <Loader2 size={18} className="animate-spin" /> : <GoogleIcon />}
+            <span>Google</span>
+          </button>
+        )}
+        {showGithub && (
+          <button
+            type="button"
+            className="social-btn social-github"
+            onClick={() => startOAuth('github')}
+            disabled={loadingProvider !== null}
+            aria-label={t('auth.signInWithGithub')}
+          >
+            {loadingProvider === 'github' ? <Loader2 size={18} className="animate-spin" /> : <GithubIcon />}
+            <span>GitHub</span>
+          </button>
+        )}
       </div>
     </div>
   );

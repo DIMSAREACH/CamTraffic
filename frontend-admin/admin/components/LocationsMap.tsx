@@ -4,7 +4,7 @@ import L from 'leaflet';
 import { Layers, Check } from 'lucide-react';
 
 export type LocationsMapPoint = {
-  id: number;
+  id: string;
   name: string;
   lat: number;
   lng: number;

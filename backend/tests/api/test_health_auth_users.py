@@ -137,6 +137,10 @@ class PasswordResetAPITest(APITestCase):
         )
 
     def test_password_reset_without_email_returns_503_not_500(self):
-        res = self.client.post('/api/auth/password-reset/', {'email': 'reset@test.kh'})
+        from unittest.mock import patch
+
+        with patch('authentication.password_reset.email_configured', return_value=False):
+            with patch('authentication.password_reset.settings.DEBUG', False):
+                res = self.client.post('/api/auth/password-reset/', {'email': 'reset@test.kh'})
         self.assertIn(res.status_code, (400, 503))
         self.assertFalse(res.json()['success'])

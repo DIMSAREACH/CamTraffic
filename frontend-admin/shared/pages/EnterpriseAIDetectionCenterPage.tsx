@@ -45,12 +45,37 @@ function isToday(iso: string): boolean {
     && d.getDate() === now.getDate();
 }
 
-function EnterpriseProcessingPanel({ progress = 82 }: { progress?: number }) {
+function EnterpriseProcessingPanel() {
   const { t } = useLanguage();
+  const [progress, setProgress] = useState(8);
+
+  useEffect(() => {
+    const started = performance.now();
+    const durationMs = 14000;
+    let frame = 0;
+
+    const tick = (now: number) => {
+      const elapsed = now - started;
+      // Ease toward 96% while waiting for the API; never claim 100% until results arrive.
+      const tNorm = Math.min(1, elapsed / durationMs);
+      const eased = 1 - (1 - tNorm) ** 2.2;
+      const next = Math.min(96, Math.round(8 + eased * 88));
+      setProgress(next);
+      if (next < 96) {
+        frame = requestAnimationFrame(tick);
+      }
+    };
+
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  const stepDoneAt = [22, 48, 72, 90];
+
   return (
     <div className="enterprise-ai-processing">
       <div className="enterprise-ai-processing__head">
-        <Loader2 size={28} className="enterprise-ai-processing__spinner" />
+        <Loader2 size={32} className="enterprise-ai-processing__spinner" />
         <h3>{t('aiCenter.processingTitle')}</h3>
         <p>{t('aiCenter.analyzingImage')}</p>
       </div>
@@ -60,17 +85,30 @@ function EnterpriseProcessingPanel({ progress = 82 }: { progress?: number }) {
         aria-valuenow={progress}
         aria-valuemin={0}
         aria-valuemax={100}
+        aria-label={t('aiCenter.analyzingImage')}
       >
         <div className="enterprise-ai-processing__bar-fill" style={{ width: `${progress}%` }} />
       </div>
-      <p className="enterprise-ai-processing__pct">{progress}%</p>
+      <p className="enterprise-ai-processing__pct" aria-live="polite">
+        <span className="enterprise-ai-processing__pct-value">{progress}</span>
+        <span className="enterprise-ai-processing__pct-unit">%</span>
+      </p>
       <ul className="enterprise-ai-processing__steps">
-        {PROCESSING_STEPS.map(({ icon: Icon, labelKey }) => (
-          <li key={labelKey}>
-            <CheckCircle size={16} />
-            {t(labelKey)}
-          </li>
-        ))}
+        {PROCESSING_STEPS.map(({ labelKey }, index) => {
+          const done = progress >= stepDoneAt[index];
+          return (
+            <li
+              key={labelKey}
+              className={cn(
+                'enterprise-ai-processing__step',
+                done && 'enterprise-ai-processing__step--done',
+              )}
+            >
+              <CheckCircle size={18} />
+              {t(labelKey)}
+            </li>
+          );
+        })}
       </ul>
       <p className="enterprise-ai-processing__wait">{t('aiCenter.pleaseWait')}</p>
     </div>
@@ -131,6 +169,10 @@ export function EnterpriseAIDetectionCenterPage() {
     void refreshLogs();
     void refreshCameras();
   }, [refreshStats, refreshLogs, refreshCameras]);
+
+  useEffect(() => {
+    setInputMode(parseInitialMode(searchParams));
+  }, [searchParams]);
 
   const todayDetections = useMemo(
     () => recentLogs.filter((log) => isToday(log.created_at)).length,

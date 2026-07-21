@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.http import HttpResponse
 from django.utils import timezone
@@ -14,8 +15,15 @@ from vehicles.serializers import VehicleSerializer
 from violations.models import TrafficViolation, ViolationRule
 
 from .models import Fine
+from .payment_config import payment_config_payload, stripe_enabled, khqr_enabled
+from .khqr_gateway import create_khqr_session
 from .serializers import FineCreateSerializer, FinePaymentSerializer, FineSerializer
 from .services import notify_driver_fine
+
+try:
+    from . import stripe_gateway
+except ImportError:
+    stripe_gateway = None
 
 User = get_user_model()
 
@@ -134,7 +142,7 @@ class FineDetailView(generics.RetrieveUpdateDestroyAPIView):
         if user.role == 'admin':
             return qs
         if user.role == 'police':
-            return qs
+            return qs.filter(police=user)
         return qs.filter(driver=user)
 
     def patch(self, request, *args, **kwargs):
@@ -195,7 +203,7 @@ class FineDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class FinePaymentView(APIView):
-    """Driver submits payment proof (mock gateway — ABA, Wing, bank transfer)."""
+    """Driver submits payment proof (manual bank transfer) or confirms KHQR reference."""
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
@@ -241,6 +249,92 @@ class FinePaymentView(APIView):
         )
 
 
+class PaymentConfigView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return success_response(payment_config_payload())
+
+
+class FineStripeCheckoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        if not stripe_enabled() or stripe_gateway is None:
+            return error_response('Stripe payments are not configured', status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
+        try:
+            fine = Fine.objects.select_related('driver').get(pk=pk)
+        except Fine.DoesNotExist:
+            return error_response('Fine not found', status_code=status.HTTP_404_NOT_FOUND)
+        if request.user.role != 'driver' or fine.driver_id != request.user.id:
+            return error_response('Only the fined driver can pay this fine', status_code=status.HTTP_403_FORBIDDEN)
+        if fine.status not in ('pending', 'overdue', 'disputed'):
+            return error_response('This fine cannot be paid in its current status')
+
+        success_url = request.data.get('success_url') or getattr(
+            settings, 'STRIPE_SUCCESS_URL', 'http://localhost:5173/fines?paid=1',
+        )
+        cancel_url = request.data.get('cancel_url') or getattr(
+            settings, 'STRIPE_CANCEL_URL', 'http://localhost:5173/fines?cancel=1',
+        )
+        try:
+            session = stripe_gateway.create_checkout_session(
+                fine=fine,
+                success_url=success_url,
+                cancel_url=cancel_url,
+            )
+        except Exception as exc:
+            return error_response(f'Payment session failed: {exc}', status_code=status.HTTP_502_BAD_GATEWAY)
+        return success_response(session, message='Checkout session created')
+
+
+class FineKhqrSessionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        if not khqr_enabled():
+            return error_response('KHQR payments are not configured', status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
+        try:
+            fine = Fine.objects.select_related('driver').get(pk=pk)
+        except Fine.DoesNotExist:
+            return error_response('Fine not found', status_code=status.HTTP_404_NOT_FOUND)
+        if request.user.role != 'driver' or fine.driver_id != request.user.id:
+            return error_response('Only the fined driver can pay this fine', status_code=status.HTTP_403_FORBIDDEN)
+        if fine.status not in ('pending', 'overdue', 'disputed'):
+            return error_response('This fine cannot be paid in its current status')
+        return success_response(create_khqr_session(fine=fine), message='Payment reference issued')
+
+
+class StripeWebhookView(APIView):
+    permission_classes = []
+    authentication_classes = []
+
+    def post(self, request):
+        if not stripe_enabled() or stripe_gateway is None:
+            return error_response('Stripe not configured', status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        sig = request.META.get('HTTP_STRIPE_SIGNATURE', '')
+        event = stripe_gateway.verify_webhook(request.body, sig)
+        if not event:
+            return error_response('Invalid webhook', status_code=status.HTTP_400_BAD_REQUEST)
+
+        if event.get('type') == 'checkout.session.completed':
+            session = event.get('data', {}).get('object', {})
+            fine_id = session.get('metadata', {}).get('fine_id') or session.get('client_reference_id')
+            if fine_id:
+                try:
+                    fine = Fine.objects.get(pk=fine_id)
+                    if fine.status in ('pending', 'overdue', 'disputed'):
+                        fine.status = 'paid'
+                        fine.paid_at = timezone.now()
+                        fine.payment_method = 'stripe'
+                        fine.payment_reference = session.get('payment_intent') or session.get('id', '')
+                        fine.save()
+                except Fine.DoesNotExist:
+                    pass
+        return success_response({'received': True})
+
+
 class DriverLookupView(APIView):
     permission_classes = [IsAuthenticated, IsPoliceOrAdmin]
 
@@ -278,6 +372,8 @@ class FinePDFExportView(APIView):
             return error_response('Fine not found', status_code=status.HTTP_404_NOT_FOUND)
         user = request.user
         if user.role == 'driver' and fine.driver_id != user.id:
+            return error_response('Permission denied', status_code=status.HTTP_403_FORBIDDEN)
+        if user.role == 'police' and fine.police_id != user.id:
             return error_response('Permission denied', status_code=status.HTTP_403_FORBIDDEN)
         from io import BytesIO
 

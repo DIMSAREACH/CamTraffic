@@ -199,9 +199,14 @@ export function UsersPage() {
     if (!deleteUser) return;
     const removedId = deleteUser.id;
     try {
-      await usersAPI.delete(removedId);
-      setUsers((prev) => prev.filter((u) => u.id !== removedId));
-      toast.success('User deleted');
+      const result = await usersAPI.delete(removedId);
+      if (result.user && result.user.is_active === false) {
+        setUsers((prev) => prev.map((u) => (u.id === removedId ? { ...u, ...result.user!, is_active: false } : u)));
+        toast.success(result.message || 'User was deactivated instead of deleted (linked records)');
+      } else {
+        setUsers((prev) => prev.filter((u) => u.id !== removedId));
+        toast.success(result.message || 'User deleted');
+      }
       setDeleteUser(null);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to delete user');

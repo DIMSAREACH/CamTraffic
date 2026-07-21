@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import type { CenterDetectionResult } from '@shared/components/ai/center/DetectionCenterResultsPanel';
 import { cn } from '@shared/components/ui/utils';
 
-const MAX_VIDEO_MB = 50;
+const MAX_VIDEO_MB = 500;
 
 interface VideoUploadPanelProps {
   demoObservedAction: string;

@@ -87,7 +87,7 @@ apiClient.interceptors.response.use(
         const waitHint = retryAfter ? ` Try again in about ${retryAfter}s.` : ' Please wait a moment and try again.';
         message = `Too many requests.${waitHint}`;
       } else if (status === 503) {
-        message = 'Backend unavailable. Start Django: cd backend && python manage.py runserver';
+        message = 'Service unavailable. Start Django if it is down, or use email/password if OAuth is not configured.';
       } else if (error.message === 'Network Error' || error.code === 'ECONNRESET') {
         message = 'Cannot reach the API. The server may be busy — wait a moment and try again.';
       } else {

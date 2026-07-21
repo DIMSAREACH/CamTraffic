@@ -75,9 +75,9 @@ export function AITrainingHistoryPage() {
     setLoading(true);
     try {
       const live = await aiModelsAPI.getAll();
-      setModels(enrichAIModels(live.length > 0 ? live : DEMO_MODELS));
+      setModels(enrichAIModels(live));
     } catch {
-      setModels(enrichAIModels(DEMO_MODELS));
+      setModels([]);
     } finally {
       setLoading(false);
     }

@@ -11,7 +11,7 @@ import { TableEmptyState } from '@shared/components/ui/TableEmptyState';
 import { TablePagination } from '@shared/components/ui/TablePagination';
 import { FilterSelect } from '@shared/components/ui/FilterSelect';
 import { CrudRowActions } from '@shared/components/admin/CrudRowActions';
-import { USER_PORTAL_ROUTES } from '@shared/constants/userPortalPaths';
+import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { usePagination } from '@shared/hooks/usePagination';
 import {
@@ -22,6 +22,8 @@ import {
   type ReportFormat,
   type ReportStatus,
 } from '@shared/constants/reportCatalog';
+import { USER_PORTAL_ROUTES } from '@shared/constants/userPortalPaths';
+import { dashboardAPI } from '@shared/services/api';
 import { toast } from 'sonner';
 
 const STATUS_META: Record<ReportStatus, { bg: string; color: string; icon: typeof CheckCircle2 }> = {
@@ -43,12 +45,14 @@ function initials(name: string) {
 
 export function ReportCenterPage() {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<ReportCategory | 'all'>('all');
   const [status, setStatus] = useState<ReportStatus | 'all'>('all');
   const [datePreset, setDatePreset] = useState<'all' | 'today' | 'week' | 'month'>('all');
   const [rows, setRows] = useState<CatalogReport[]>(CATALOG_REPORTS);
+  const [downloading, setDownloading] = useState(false);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -96,7 +100,7 @@ export function ReportCenterPage() {
     toast.success(t('reports.centerDeleted'));
   };
 
-  const handleDownload = (row: CatalogReport) => {
+  const handleDownload = async (row: CatalogReport) => {
     if (row.status === 'failed') {
       toast.error(t('reports.centerDownloadFailed'));
       return;
@@ -105,7 +109,31 @@ export function ReportCenterPage() {
       toast.message(t('reports.centerDownloadPending'));
       return;
     }
-    toast.success(t('reports.centerDownloadReady', { name: row.name, format: row.format }));
+    setDownloading(true);
+    try {
+      const scope = user?.role === 'admin' ? 'admin' : 'police';
+      const now = new Date();
+      let blob: Blob;
+      let filename: string;
+      if (row.format === 'Excel' || row.format === 'CSV') {
+        blob = await dashboardAPI.downloadEnforcementExcel(now.getFullYear(), now.getMonth() + 1);
+        filename = `camtraffic-enforcement-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}.xlsx`;
+      } else {
+        blob = await dashboardAPI.downloadReportPdf(scope);
+        filename = `camtraffic-report-${row.id}.pdf`;
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(t('reports.centerDownloadReady', { name: row.name, format: row.format }));
+    } catch {
+      toast.error(t('reports.centerDownloadFailed'));
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (
@@ -133,7 +161,11 @@ export function ReportCenterPage() {
             <button
               type="button"
               className="enforcement-page__hero-btn enforcement-page__hero-btn--outline"
-              onClick={() => toast.message(t('reports.centerExportAllHint'))}
+              disabled={downloading}
+              onClick={() => {
+                const ready = rows.find((r) => r.status === 'ready') ?? rows[0];
+                if (ready) void handleDownload(ready);
+              }}
             >
               <Download size={15} aria-hidden />
               {t('reports.actionExport')}

@@ -70,6 +70,14 @@ function ResultSectionHead({
   );
 }
 
+function toPercentConfidence(raw: unknown): number {
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  // Some paths store 0–1; detection API returns 0–100.
+  const pct = n <= 1 ? n * 100 : n;
+  return Math.min(100, Math.max(0, pct));
+}
+
 export function EnterpriseDetectionResultsView({
   result,
   previewSrc,
@@ -98,7 +106,21 @@ export function EnterpriseDetectionResultsView({
   const province = plateProvince(result, locale);
   const hasViolation = Boolean(result.violation_evaluation?.is_violation);
   const violationRecord = result.violation;
-  const accuracy = accuracyAvg > 0 ? accuracyAvg : Number(result.display_confidence ?? result.confidence ?? 0);
+
+  // AI Confidence must reflect THIS scan — not historical page averages (zeros dilute those).
+  const scanConfidence = toPercentConfidence(result.display_confidence ?? result.confidence);
+  const objectsConfidence = useMemo(() => {
+    const scored = objects
+      .map((o) => toPercentConfidence(o.confidence))
+      .filter((c) => c > 0);
+    if (!scored.length) return 0;
+    return scored.reduce((sum, c) => sum + c, 0) / scored.length;
+  }, [objects]);
+  const accuracy = scanConfidence > 0
+    ? scanConfidence
+    : objectsConfidence > 0
+      ? objectsConfidence
+      : toPercentConfidence(accuracyAvg);
 
   const downloadImage = () => {
     if (!displaySrc) return;

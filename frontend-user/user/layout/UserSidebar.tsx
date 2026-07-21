@@ -98,7 +98,7 @@ export function UserSidebar({ collapsed, onToggle, unreadCount = 0, isMobile = f
       <nav className="sidebar-nav sidebar-nav--enterprise sidebar-nav--categorized" aria-label={t('sidebar.enterpriseModules')}>
         <EnterpriseSidebarNav
           sections={navSections}
-          getModule={getUserModuleById}
+          getModule={(id) => getUserModuleById(id, user?.role)}
           isActive={(mod) => isUserModuleActive(location.pathname, mod)}
           icons={MODULE_ICONS}
           fallbackIcon={<Search size={18} strokeWidth={1.75} />}

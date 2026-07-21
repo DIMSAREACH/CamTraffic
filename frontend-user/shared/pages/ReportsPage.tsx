@@ -266,7 +266,7 @@ export function ReportsPage() {
               <Printer size={15} />
               {t('reports.actionPrint')}
             </Button>
-            <Button type="button" variant="outline" onClick={() => navigate(USER_PORTAL_ROUTES.reportsScheduled)}>
+            <Button type="button" variant="outline" onClick={() => navigate(USER_PORTAL_ROUTES.reportsCenter)}>
               <CalendarClock size={15} />
               {t('reports.actionSchedule')}
             </Button>

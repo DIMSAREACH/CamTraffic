@@ -99,12 +99,13 @@ def _model_mode(weights_exist: bool) -> str:
 
 def get_ai_detection_page_stats(user, request=None):
     logs = _logs_for_user(user)
-    agg = logs.aggregate(
-        total=Count('id'),
+    # Exclude failed / empty detections so average confidence reflects real AI scores.
+    scored_logs = logs.filter(confidence__gt=0)
+    agg = scored_logs.aggregate(
         avg_conf=Avg('confidence'),
         avg_time=Avg('processing_time'),
     )
-    total_scans = agg['total'] or 0
+    total_scans = logs.count()
     avg_conf = round(float(agg['avg_conf'] or 0), 1)
     avg_time = round(float(agg['avg_time'] or 0), 2)
 

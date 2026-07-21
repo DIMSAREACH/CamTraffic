@@ -6,6 +6,8 @@ Build reference_sign_meta.json + filename stem map from:
 Run before build_dataset.py:
   python ingest_cambodia_reference.py
   python ingest_cambodia_reference.py --khmer-via-gemini   # optional Khmer text for new signs
+
+Default source: Reference(...)/Dim Sareach/Dataset/Road signs in Cambodia/
 """
 from __future__ import annotations
 
@@ -17,12 +19,10 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-CAMBODIA_ROOT = (
-    ROOT.parent.parent.parent
-    / 'Reference(PDF Download)'
-    / 'Dim Sareach'
-    / 'Road signs in Cambodia'
-)
+sys.path.insert(0, str(ROOT / 'scripts'))
+from dim_sareach_paths import road_signs_root  # noqa: E402
+
+CAMBODIA_ROOT = road_signs_root()
 META_PATH = ROOT / 'reference_sign_meta.json'
 STEM_MAP_PATH = ROOT / 'cambodia_stem_to_class.json'
 DOCS_PATH = ROOT.parent / 'data' / 'traffic_signs' / 'SIGNS_BY_CATEGORY.md'
@@ -52,6 +52,23 @@ CATEGORY_CODE_PREFIX = {
 }
 
 YOLO_SKIP_FOLDERS = {'Road markings'}  # flat markings — keep in catalog, skip YOLO by default
+
+# Dim Sareach folders are numbered, e.g. "1-Prohibitory signs", "2- Additional signs".
+_FOLDER_NUMBER_PREFIX = re.compile(r'^\d+\s*-\s*')
+
+
+def _normalize_folder_name(name: str) -> str:
+    """Strip leading index from dataset folder names before category lookup."""
+    cleaned = _FOLDER_NUMBER_PREFIX.sub('', (name or '').strip())
+    return re.sub(r'\s+', ' ', cleaned).strip()
+
+
+def category_for_folder(folder_name: str) -> str:
+    return FOLDER_TO_CATEGORY.get(_normalize_folder_name(folder_name), 'informative')
+
+
+def _is_yolo_skip_folder(folder_name: str) -> bool:
+    return _normalize_folder_name(folder_name) in YOLO_SKIP_FOLDERS
 
 
 def _norm_name(text: str) -> str:
@@ -117,7 +134,7 @@ def collect_images(root: Path) -> list[tuple[str, str, Path]]:
     for folder in sorted(root.iterdir()):
         if not folder.is_dir():
             continue
-        category = FOLDER_TO_CATEGORY.get(folder.name, 'informative')
+        category = category_for_folder(folder.name)
         for path in sorted(folder.rglob('*')):
             if path.suffix.lower() not in IMAGE_EXTS:
                 continue
@@ -271,8 +288,13 @@ def main() -> None:
     counters: dict[str, int] = {k: 0 for k in CATEGORY_CODE_PREFIX}
 
     for category, name_en, path in images:
-        folder_name = path.parent.name if path.parent != args.root else ''
-        if folder_name in YOLO_SKIP_FOLDERS and not args.include_road_markings_yolo:
+        # Prefer the top-level Dim Sareach category folder (may be nested under subfolders).
+        try:
+            top_folder = path.relative_to(args.root).parts[0]
+        except ValueError:
+            top_folder = path.parent.name if path.parent != args.root else ''
+        folder_name = top_folder
+        if _is_yolo_skip_folder(folder_name) and not args.include_road_markings_yolo:
             pass  # still in catalog
 
         norm = _norm_name(name_en)
@@ -280,11 +302,12 @@ def main() -> None:
         if legacy_hit:
             class_key = legacy_hit.get('class_key') or _class_key_from_stem(category, path.stem)
             sign_code = legacy_hit.get('sign_code', '')
+            # Always trust the source folder category (legacy meta was poisoned to "informative").
             row = {
                 'sign_code': sign_code or _short_sign_code(category, counters[category] + 1),
                 'sign_name_km': legacy_hit.get('sign_name_km') or legacy_hit.get('sign_name', name_en),
                 'sign_name_en': legacy_hit.get('sign_name_en') or name_en,
-                'category': legacy_hit.get('category') or category,
+                'category': category,
                 'description': legacy_hit.get('description', ''),
                 'description_en': legacy_hit.get('description_en', ''),
                 'guidance': legacy_hit.get('guidance', ''),
@@ -329,17 +352,34 @@ def main() -> None:
     if args.khmer_via_gemini:
         khmer_via_gemini_batch(list(meta.values()))
 
+    # Always fill real Khmer/English display names (never leave English copied into sign_name_km).
+    from khmer_speech import enrich_catalog_row
+
+    for row in meta.values():
+        enrich_catalog_row(row)
+
     META_PATH.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding='utf-8')
     stem_map['_folder_category'] = FOLDER_TO_CATEGORY  # type: ignore[assignment]
     stem_map['_yolo_skip_folders'] = list(YOLO_SKIP_FOLDERS)  # type: ignore[assignment]
     STEM_MAP_PATH.write_text(json.dumps(stem_map, ensure_ascii=False, indent=2), encoding='utf-8')
     write_category_doc(meta, by_category)
 
+    def _top_folder(path: Path) -> str:
+        try:
+            return path.relative_to(args.root).parts[0]
+        except ValueError:
+            return path.parent.name
+
     yolo_count = sum(
         1 for _, _, p in images
-        if p.parent.name not in YOLO_SKIP_FOLDERS or args.include_road_markings_yolo
+        if (not _is_yolo_skip_folder(_top_folder(p))) or args.include_road_markings_yolo
     )
+    cat_counts: dict[str, int] = {}
+    for row in meta.values():
+        cat = row.get('category') or 'informative'
+        cat_counts[cat] = cat_counts.get(cat, 0) + 1
     print(f'Catalog: {len(meta)} signs from {len(images)} images')
+    print(f'Categories: {cat_counts}')
     print(f'YOLO-eligible images: {yolo_count}')
     print(f'Wrote {META_PATH}')
     print(f'Wrote {STEM_MAP_PATH}')

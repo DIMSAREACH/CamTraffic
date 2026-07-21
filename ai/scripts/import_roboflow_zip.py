@@ -30,16 +30,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from _common import DATASETS_ROOT, IMAGE_EXTS, MANIFESTS_DIR, REPORTS_DIR, sha256_file
+from dim_sareach_paths import roboflow_plates_root, roboflow_vehicles_root
 
 DEFAULT_ROBOFLOW = {
-    'vehicles': Path(
-        r'D:\Year4\Project Thesis\Expert System\Reference(PDF Download)'
-        r'\Dim Sareach\Cambodia Traffic.v1i.yolov11'
-    ),
-    'plates': Path(
-        r'D:\Year4\Project Thesis\Expert System\Reference(PDF Download)'
-        r'\Dim Sareach\Plate Number.v3i.yolov11'
-    ),
+    'vehicles': roboflow_vehicles_root(),
+    'plates': roboflow_plates_root(),
 }
 
 VEHICLE_CLASS_DIRS = {

@@ -61,7 +61,7 @@ export default defineConfig({
     },
     {
       name: 'user-chromium',
-      testMatch: /user-login\.spec\.ts|user-accessibility\.spec\.ts/,
+      testMatch: /user-login\.spec\.ts|user-accessibility\.spec\.ts|officer-ai-detection\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], baseURL: userBase },
     },
   ],

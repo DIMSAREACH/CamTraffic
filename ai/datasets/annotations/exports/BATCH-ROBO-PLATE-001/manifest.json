@@ -1,8 +1,8 @@
 {
   "batch_id": "BATCH-ROBO-PLATE-001",
   "mode": "roboflow_labeled",
-  "source": "D:\\Year4\\Project Thesis\\Expert System\\Reference(PDF Download)\\Dim Sareach\\Plate Number.v3i.yolov11",
-  "exported_at": "2026-07-11T20:41:16.647365+00:00",
+  "source": "D:\\Year4\\Project Thesis\\Expert System\\Reference(PDF Download)\\Dim Sareach\\Dataset\\Plate Number.v3i.yolov11",
+  "exported_at": "2026-07-21T12:25:13.754950+00:00",
   "images": 453,
   "by_class": {
     "private": 431,

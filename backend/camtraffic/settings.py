@@ -182,6 +182,11 @@ STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# Large AI video uploads (default 500 MB; override with AI_VIDEO_MAX_MB).
+_AI_VIDEO_MAX_MB = max(1, int(os.getenv('AI_VIDEO_MAX_MB', '500')))
+DATA_UPLOAD_MAX_MEMORY_SIZE = min(10 * 1024 * 1024, _AI_VIDEO_MAX_MB * 1024 * 1024)
+FILE_UPLOAD_MAX_MEMORY_SIZE = DATA_UPLOAD_MAX_MEMORY_SIZE
 BACKUP_ROOT = BASE_DIR / 'backups'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -399,6 +404,21 @@ EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', 30))
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', '') or EMAIL_HOST_USER or 'noreply@camtraffic.kh'
+
+# ── Live payments (Stripe + KHQR / manual proof) ───────────────────────────────
+# PAYMENT_MODE: manual | stripe | khqr | live | auto
+PAYMENT_MODE = os.getenv('PAYMENT_MODE', 'manual')
+PAYMENT_CURRENCY = os.getenv('PAYMENT_CURRENCY', 'usd')
+PAYMENT_MANUAL_PROOF_ENABLED = os.getenv('PAYMENT_MANUAL_PROOF_ENABLED', 'True').lower() == 'true'
+STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
+STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
+STRIPE_SUCCESS_URL = os.getenv('STRIPE_SUCCESS_URL', 'http://localhost:5173/fines?paid=1')
+STRIPE_CANCEL_URL = os.getenv('STRIPE_CANCEL_URL', 'http://localhost:5173/fines?cancel=1')
+KHQR_MERCHANT_NAME = os.getenv('KHQR_MERCHANT_NAME', '')
+KHQR_MERCHANT_ACCOUNT = os.getenv('KHQR_MERCHANT_ACCOUNT', '')
+KHQR_MERCHANT_ACCOUNT_KHR = os.getenv('KHQR_MERCHANT_ACCOUNT_KHR', '')
+# Static ABA KHQR PNG served by user/admin SPA (public/payments/aba-khqr.png)
+KHQR_QR_IMAGE_URL = os.getenv('KHQR_QR_IMAGE_URL', '/payments/aba-khqr.png')
 
 LOGGING = build_logging_config(
     BASE_DIR,

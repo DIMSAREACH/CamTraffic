@@ -43,6 +43,7 @@ const DETECTION_MEDIA_FIELDS = [
   'sign_crop_image',
   'processed_image',
   'annotated_processed_image',
+  'annotated_preview_video',
   'guide_frame_image',
 ] as const;
 

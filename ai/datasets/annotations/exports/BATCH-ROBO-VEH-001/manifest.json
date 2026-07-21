@@ -1,8 +1,8 @@
 {
   "batch_id": "BATCH-ROBO-VEH-001",
   "mode": "roboflow_labeled",
-  "source": "D:\\Year4\\Project Thesis\\Expert System\\Reference(PDF Download)\\Dim Sareach\\Cambodia Traffic.v1i.yolov11",
-  "exported_at": "2026-07-11T20:41:15.631743+00:00",
+  "source": "D:\\Year4\\Project Thesis\\Expert System\\Reference(PDF Download)\\Dim Sareach\\Dataset\\Cambodia Traffic.v1i.yolov11",
+  "exported_at": "2026-07-21T12:25:12.844557+00:00",
   "images": 196,
   "boxes_by_class": {
     "truck": 117,

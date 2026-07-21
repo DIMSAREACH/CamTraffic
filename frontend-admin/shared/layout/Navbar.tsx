@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, type CSSProperties, type RefObject } from 'react';
-import { Bell, Search, LogOut, User, ChevronRight, X, Menu } from 'lucide-react';
+import { useMemo, type CSSProperties, type RefObject } from 'react';
+import { Bell, LogOut, User, ChevronRight, Menu } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router';
 import { useAuth } from '@shared/context/AuthContext';
 import {
@@ -11,12 +11,17 @@ import { NavbarLanguageSwitcher } from '@shared/components/NavbarLanguageSwitche
 import { NavbarThemeToggle } from '@shared/components/NavbarThemeToggle';
 import { NavbarAppearanceSettings } from '@shared/components/NavbarAppearanceSettings';
 import { NavbarProfileAvatar } from '@shared/components/NavbarProfileAvatar';
+import { NavbarNotificationsDropdown } from '@shared/components/NavbarNotificationsDropdown';
+import { NavbarGlobalSearch } from '@shared/components/NavbarGlobalSearch';
+import { ADMIN_ENTERPRISE_MODULES } from '@shared/constants/enterpriseModules';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { usePageTheme } from '@shared/hooks/usePageTheme';
 import { getDisplayUsername } from '@shared/utils/displayUsername';
+import { flattenNavSearchItems } from '@shared/utils/navSearch';
 
 interface NavbarProps {
   unreadCount: number;
+  onUnreadCountChange?: (count: number) => void;
   onMenuToggle?: () => void;
   onMobileMenuOpen?: () => void;
   sidebarCollapsed?: boolean;
@@ -40,6 +45,7 @@ function shortRoleLabelKey(role: string | undefined): string {
 
 export function Navbar({
   unreadCount,
+  onUnreadCountChange,
   onMenuToggle,
   onMobileMenuOpen,
   sidebarCollapsed = false,
@@ -52,9 +58,10 @@ export function Navbar({
   const page = usePageTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchVal, setSearchVal] = useState('');
-  const searchRef = useRef<HTMLInputElement>(null);
+  const searchItems = useMemo(
+    () => flattenNavSearchItems(ADMIN_ENTERPRISE_MODULES),
+    [],
+  );
 
   const initials = user?.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'U';
   const displayUsername = getDisplayUsername(user?.email);
@@ -69,19 +76,6 @@ export function Navbar({
     '--navbar-accent-secondary': isAdminPortal ? '#06b6d4' : '#22d3ee',
     '--navbar-accent-tertiary': isAdminPortal ? '#8b5cf6' : '#6366f1',
   } as CSSProperties;
-
-  useEffect(() => {
-    if (searchOpen) searchRef.current?.focus();
-  }, [searchOpen]);
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); setSearchOpen(true); }
-      if (e.key === 'Escape') setSearchOpen(false);
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, []);
 
   return (
     <header
@@ -137,31 +131,7 @@ export function Navbar({
       </div>
 
       <div className="relative flex items-center justify-center flex-shrink-0 mx-3">
-        {searchOpen ? (
-          <div className="app-navbar__search app-navbar__search--open flex items-center gap-2 rounded-xl px-3 py-2 w-[280px]">
-            <Search size={15} className="app-navbar__search-icon" />
-            <input
-              ref={searchRef}
-              value={searchVal}
-              onChange={e => setSearchVal(e.target.value)}
-              placeholder={t('navbar.searchPlaceholder')}
-              className="bg-transparent app-navbar__search-input outline-none flex-1"
-            />
-            <button type="button" onClick={() => { setSearchOpen(false); setSearchVal(''); }} className="app-navbar__search-close">
-              <X size={15} />
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setSearchOpen(true)}
-            className="app-navbar__search flex items-center gap-2.5 rounded-xl px-3 py-2 w-[190px]"
-          >
-            <Search size={15} className="app-navbar__search-icon" />
-            <span className="app-navbar__search-hint flex-1 text-left">{t('navbar.search')}</span>
-            <kbd className="app-navbar__kbd hidden lg:flex items-center px-1.5 py-0.5 rounded">⌘K</kbd>
-          </button>
-        )}
+        <NavbarGlobalSearch items={searchItems} />
       </div>
 
       <div className="relative flex items-center gap-1.5 pr-4 flex-shrink-0">
@@ -176,26 +146,11 @@ export function Navbar({
 
         <NavbarLanguageSwitcher />
 
-        <button
-          type="button"
-          onClick={() => navigate(`${pathPrefix}/notifications`)}
-          className={cn('app-navbar__icon-btn relative cursor-pointer p-2.5 rounded-xl', unreadCount > 0 && 'app-navbar__icon-btn--active')}
-          aria-label={
-            unreadCount > 0
-              ? t('navbar.notificationsUnread', { count: unreadCount })
-              : t('navbar.notifications')
-          }
-        >
-          <Bell size={18} />
-          {unreadCount > 0 && (
-            <>
-              <span className="app-navbar__notif-count absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center leading-none">
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </span>
-              <span className="absolute top-1 right-1 w-4 h-4 rounded-full animate-ping opacity-40 bg-red-500" />
-            </>
-          )}
-        </button>
+        <NavbarNotificationsDropdown
+          unreadCount={unreadCount}
+          pathPrefix={pathPrefix}
+          onUnreadCountChange={onUnreadCountChange}
+        />
 
         <div className="app-navbar__divider w-px h-5 mx-1" />
 

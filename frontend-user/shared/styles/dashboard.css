@@ -9242,6 +9242,12 @@ html.dark .enforcement-page--fines .fines-table__amount {
   gap: 0.375rem;
 }
 
+.enforcement-page--fines .fines-table__td--actions {
+  white-space: nowrap;
+  width: 11rem;
+  min-width: 11rem;
+}
+
 .enforcement-page--fines .fines-table__icon-btn {
   display: inline-flex;
   align-items: center;
@@ -9259,6 +9265,16 @@ html.dark .enforcement-page--fines .fines-table__amount {
     box-shadow 0.15s ease,
     color 0.15s ease,
     transform 0.1s ease;
+}
+
+.enforcement-page--fines .fines-table__icon-btn svg {
+  display: block;
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  stroke: currentColor;
+  color: inherit;
+  overflow: visible;
 }
 
 .enforcement-page--fines .fines-table__icon-btn:active {
@@ -23526,10 +23542,23 @@ html.dark .evidence-archive-card__chip--ref {
   box-shadow: 0 4px 14px rgba(16, 185, 129, 0.36);
 }
 
+.crud-actions__btn--pay {
+  color: #ffffff;
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+  border-color: rgba(37, 99, 235, 0.35);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.28);
+}
+
+.crud-actions__btn--pay:hover {
+  background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.36);
+}
+
 html.dark .crud-actions__btn--view,
 html.dark .crud-actions__btn--edit,
 html.dark .crud-actions__btn--delete,
-html.dark .crud-actions__btn--resolve {
+html.dark .crud-actions__btn--resolve,
+html.dark .crud-actions__btn--pay {
   color: #ffffff;
 }
 

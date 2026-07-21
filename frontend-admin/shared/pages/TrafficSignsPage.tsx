@@ -607,8 +607,8 @@ function SignTableRow({
         </div>
       </TableCell>
       <TableCell>
-        <SignNameLabels sign={sign} size="sm" />
-        <span className="enforcement-page__code-pill mt-1.5 inline-flex lg:hidden">
+        <SignNameLabels sign={sign} size="md" />
+        <span className="enforcement-page__code-pill signs-page__code-pill mt-1.5 inline-flex">
           {sign.sign_code}
         </span>
         <CategoryBadge category={sign.category} className="mt-1.5 lg:hidden px-2.5 py-0.5" variant="soft">
@@ -616,12 +616,12 @@ function SignTableRow({
         </CategoryBadge>
       </TableCell>
       <TableCell className="hidden lg:table-cell">
-        <CategoryBadge category={sign.category} className="px-2.5 py-1" variant="soft">
+        <CategoryBadge category={sign.category} className="signs-page__category-badge px-2.5 py-1" variant="soft">
           {categoryLabel}
         </CategoryBadge>
       </TableCell>
       <TableCell className="hidden md:table-cell">
-        <p className="enforcement-page__cell-secondary line-clamp-2" title={sign.description}>
+        <p className="enforcement-page__cell-secondary signs-page__desc line-clamp-2" title={sign.description}>
           {sign.description}
         </p>
       </TableCell>
@@ -778,6 +778,14 @@ export function TrafficSignsPage() {
         );
       });
     }
+    // Keep category order stable for sectioned grid view.
+    const order: Record<SignCategory, number> = {
+      prohibitory: 0,
+      warning: 1,
+      mandatory: 2,
+      informative: 3,
+    };
+    result.sort((a, b) => (order[a.category] - order[b.category]) || a.sign_code.localeCompare(b.sign_code));
     setFiltered(result);
   }, [signs, search, category]);
 
@@ -794,6 +802,18 @@ export function TrafficSignsPage() {
 
   const CAT_KEYS: SignCategory[] = ['prohibitory', 'warning', 'mandatory', 'informative'];
   const catLabel = (cat: SignCategory) => t(`signCategories.${cat}`);
+
+  const groupedPageItems = useMemo(() => {
+    if (category !== 'all') {
+      return [{ category: category as SignCategory, items: pagination.pageItems }];
+    }
+    return CAT_KEYS
+      .map((cat) => ({
+        category: cat,
+        items: pagination.pageItems.filter((s) => s.category === cat),
+      }))
+      .filter((group) => group.items.length > 0);
+  }, [category, pagination.pageItems]);
 
   const openCategoryFromTab = (cat: SignCategory) => {
     setCategory(cat);
@@ -1010,20 +1030,59 @@ export function TrafficSignsPage() {
                 />
               )
             ) : viewMode === 'grid' ? (
-              <div className="signs-card-grid">
-                {pagination.pageItems.map((sign) => (
-                  <div key={sign.id} className="signs-card-grid__slot min-w-0">
-                    <SignCardItem
-                      sign={sign}
-                      categoryLabel={catLabel(sign.category)}
-                      onSelect={() => openSignDetail(sign)}
-                      canManage={canManage}
-                      onEdit={() => openEdit(sign)}
-                      onDelete={() => setDeleteTarget(sign)}
-                    />
-                  </div>
-                ))}
-              </div>
+              category === 'all' ? (
+                <div className="signs-category-sections">
+                  {groupedPageItems.map((group) => {
+                    const Icon = CAT_ICONS[group.category];
+                    return (
+                      <section
+                        key={group.category}
+                        className="signs-category-section"
+                        data-category={group.category}
+                      >
+                        <div className="signs-category-section__head">
+                          <h3 className="signs-category-section__title">
+                            <Icon size={16} aria-hidden />
+                            {catLabel(group.category)}
+                          </h3>
+                          <span className="signs-category-section__count">
+                            {group.items.length}
+                          </span>
+                        </div>
+                        <div className="signs-card-grid">
+                          {group.items.map((sign) => (
+                            <div key={sign.id} className="signs-card-grid__slot min-w-0">
+                              <SignCardItem
+                                sign={sign}
+                                categoryLabel={catLabel(sign.category)}
+                                onSelect={() => openSignDetail(sign)}
+                                canManage={canManage}
+                                onEdit={() => openEdit(sign)}
+                                onDelete={() => setDeleteTarget(sign)}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="signs-card-grid">
+                  {pagination.pageItems.map((sign) => (
+                    <div key={sign.id} className="signs-card-grid__slot min-w-0">
+                      <SignCardItem
+                        sign={sign}
+                        categoryLabel={catLabel(sign.category)}
+                        onSelect={() => openSignDetail(sign)}
+                        canManage={canManage}
+                        onEdit={() => openEdit(sign)}
+                        onDelete={() => setDeleteTarget(sign)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )
             ) : (
               <SignsTable
                 signs={pagination.pageItems}

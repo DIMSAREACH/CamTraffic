@@ -2,12 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 
 const SIGN_GRID_COL_BREAKPOINTS = [
   { mq: '(min-width: 1024px)', cols: 5 },
-  { mq: '(min-width: 768px)', cols: 4 },
-  { mq: '(min-width: 640px)', cols: 3 },
   { mq: '(min-width: 0px)', cols: 2 },
 ] as const;
 
-/** Page size for sign card grid: 2 rows × current column count. */
+/** Page size for sign card grid: 2 rows × current column count (5 desktop / 2 mobile). */
 export function useSignGridPageSize(rows = 2): number {
   const readCols = useCallback(() => {
     if (typeof window === 'undefined') return 5;

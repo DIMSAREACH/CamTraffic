@@ -155,7 +155,7 @@ export function CameraLocationsPage() {
       : 0,
   }), [counts]);
 
-  const openEdit = (kind: TabId, id: number, name: string, latitude?: number | string | null, longitude?: number | string | null) => {
+  const openEdit = (kind: TabId, id: string | number, name: string, latitude?: number | string | null, longitude?: number | string | null) => {
     setEditItem({ kind, id, name });
     setLat(latitude != null && latitude !== '' ? String(latitude) : '');
     setLng(longitude != null && longitude !== '' ? String(longitude) : '');

@@ -182,11 +182,17 @@ def _github_profile(code: str, redirect_uri: str) -> OAuthProfile:
     )
     if token_res.status_code != 200:
         raise OAuthError('GitHub sign-in failed. Could not exchange authorization code.', 400)
-    access_token = token_res.json().get('access_token')
+    token_payload = token_res.json() if token_res.content else {}
+    access_token = token_payload.get('access_token')
     if not access_token:
-        raise OAuthError('GitHub sign-in failed. No access token received.', 400)
+        gh_error = token_payload.get('error_description') or token_payload.get('error') or 'No access token received'
+        raise OAuthError(f'GitHub sign-in failed: {gh_error}', 400)
 
-    headers = {'Authorization': f'Bearer {access_token}', 'Accept': 'application/vnd.github+json'}
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Accept': 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+    }
     user_res = requests.get('https://api.github.com/user', headers=headers, timeout=15)
     if user_res.status_code != 200:
         raise OAuthError('GitHub sign-in failed. Could not load profile.', 400)
@@ -206,7 +212,11 @@ def _github_profile(code: str, redirect_uri: str) -> OAuthProfile:
                         email = item.get('email', '').strip().lower()
                         break
     if not email:
-        raise OAuthError('GitHub account has no public email. Add a verified email on GitHub.', 400)
+        raise OAuthError(
+            'GitHub account has no verified email. '
+            'On GitHub: Settings → Emails → add/verify an email (and allow it for OAuth).',
+            400,
+        )
     full_name = (data.get('name') or data.get('login') or email.split('@')[0]).strip()
     return OAuthProfile(provider='github', uid=uid, email=email, full_name=full_name)
 

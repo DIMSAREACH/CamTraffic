@@ -90,7 +90,7 @@ export function VehiclesPage() {
   const [typeFilter, setTypeFilter] = useState<TypeTab>('all');
   const [addOpen, setAddOpen] = useState(false);
   const [adding, setAdding] = useState(false);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editVehicle, setEditVehicle] = useState<Vehicle | null>(null);
   const [editing, setEditing] = useState(false);
   const [viewVehicle, setViewVehicle] = useState<Vehicle | null>(null);

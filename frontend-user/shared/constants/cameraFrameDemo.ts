@@ -8,10 +8,10 @@ const DEMO_FRAMES_BY_CODE: Record<string, string> = {
   'CAM-KD-001': '/demo-cameras/nr6-highway.jpg',
 };
 
-const DEMO_FRAMES_BY_ID: Record<number, string> = {
-  1: '/demo-cameras/monivong-intersection.jpg',
-  2: '/demo-cameras/monivong-ptz.jpg',
-  3: '/demo-cameras/nr6-highway.jpg',
+const DEMO_FRAMES_BY_ID: Record<string, string> = {
+  '1': '/demo-cameras/monivong-intersection.jpg',
+  '2': '/demo-cameras/monivong-ptz.jpg',
+  '3': '/demo-cameras/nr6-highway.jpg',
 };
 
 function resolvePublicPath(path: string): string {
@@ -29,7 +29,7 @@ function resolvePublicPath(path: string): string {
 export function demoCameraFramePath(camera: Pick<Camera, 'id' | 'code'>): string | null {
   const code = camera.code?.trim().toUpperCase();
   if (code && DEMO_FRAMES_BY_CODE[code]) return DEMO_FRAMES_BY_CODE[code];
-  return DEMO_FRAMES_BY_ID[camera.id] ?? null;
+  return DEMO_FRAMES_BY_ID[String(camera.id)] ?? null;
 }
 
 function shouldReplaceFrameUrl(url?: string | null): boolean {

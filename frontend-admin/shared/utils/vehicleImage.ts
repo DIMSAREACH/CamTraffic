@@ -1,7 +1,7 @@
 import { getProfileImageUrl } from '@shared/utils/profileImage';
 
 type VehicleImageInput = {
-  id: number;
+  id: string | number;
   vehicle_type: string;
   model: string;
   registration_photo?: string | null;
@@ -32,10 +32,17 @@ const VEHICLE_STOCK: Record<string, readonly string[]> = {
 
 const DEFAULT_STOCK = VEHICLE_STOCK.car;
 
+function seedToIndex(seed: string | number, length: number): number {
+  if (typeof seed === 'number' && Number.isFinite(seed)) return Math.abs(seed) % length;
+  let hash = 0;
+  for (const ch of String(seed)) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+  return hash % length;
+}
+
 /** Stock photo for a vehicle type (used when no registration photo is uploaded). */
-export function getVehicleStockImage(vehicleType: string, seed = 0): string {
+export function getVehicleStockImage(vehicleType: string, seed: string | number = 0): string {
   const pool = VEHICLE_STOCK[vehicleType] ?? DEFAULT_STOCK;
-  return pool[Math.abs(seed) % pool.length];
+  return pool[seedToIndex(seed, pool.length)];
 }
 
 /** Primary image URL: registration photo from API, else type stock image. */

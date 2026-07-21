@@ -6,3 +6,7 @@ BATCH-VEHICLES-PENDING,cvat_pending,44,2026-07-11T20:27:43.326815+00:00,D:\Year4
 BATCH-ROBO-VEH-001,roboflow_labeled_vehicles,196,2026-07-11T20:41:15.632743+00:00,D:\Year4\Project Thesis\Expert System\Project\CamTraffic\ai\datasets\annotations\exports\BATCH-ROBO-VEH-001
 BATCH-ROBO-PLATE-001,roboflow_labeled_plates,453,2026-07-11T20:41:16.647365+00:00,D:\Year4\Project Thesis\Expert System\Project\CamTraffic\ai\datasets\annotations\exports\BATCH-ROBO-PLATE-001
 BATCH-VEHICLES-PENDING,cvat_pending,218,2026-07-12T21:21:36.613791+00:00,D:\Year4\Project Thesis\Expert System\Project\CamTraffic\ai\datasets\annotations\cvat_tasks\BATCH-VEHICLES-PENDING
+BATCH-ROBO-VEH-001,roboflow_labeled_vehicles,196,2026-07-21T12:23:07.223787+00:00,D:\Year4\Project Thesis\Expert System\Project\CamTraffic\ai\datasets\annotations\exports\BATCH-ROBO-VEH-001
+BATCH-ROBO-PLATE-001,roboflow_labeled_plates,453,2026-07-21T12:23:13.857649+00:00,D:\Year4\Project Thesis\Expert System\Project\CamTraffic\ai\datasets\annotations\exports\BATCH-ROBO-PLATE-001
+BATCH-ROBO-VEH-001,roboflow_labeled_vehicles,196,2026-07-21T12:25:12.845556+00:00,D:\Year4\Project Thesis\Expert System\Project\CamTraffic\ai\datasets\annotations\exports\BATCH-ROBO-VEH-001
+BATCH-ROBO-PLATE-001,roboflow_labeled_plates,453,2026-07-21T12:25:13.755951+00:00,D:\Year4\Project Thesis\Expert System\Project\CamTraffic\ai\datasets\annotations\exports\BATCH-ROBO-PLATE-001

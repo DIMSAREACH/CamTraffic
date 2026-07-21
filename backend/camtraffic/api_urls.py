@@ -2,9 +2,10 @@
 from django.conf import settings
 from django.urls import include, path
 
-from core.health_views import HealthView
+from core.health_views import ApiCatalogView, HealthView
 
 urlpatterns = [
+    path('catalog/', ApiCatalogView.as_view(), name='api-catalog'),
     path('health/', HealthView.as_view(), name='api-health'),
     path('auth/', include('authentication.urls')),
     path('users/', include('users.urls')),
@@ -22,6 +23,7 @@ urlpatterns = [
     path('ai-models/', include('ai_models.urls')),
     path('ocr/', include('ai_detection.ocr_urls')),
     path('', include('violations.urls')),
+    path('detection/', include('ai_detection.detection_urls')),
     path('ai/', include('ai_detection.urls')),
     path('notifications/', include('notifications.urls')),
     path('dashboard/', include('dashboard.urls')),

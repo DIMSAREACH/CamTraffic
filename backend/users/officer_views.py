@@ -169,7 +169,7 @@ class DriverListCreateView(generics.ListCreateAPIView):
 
     def get_permissions(self):
         if self.request.method == 'POST':
-            return [IsAuthenticated(), IsAdmin()]
+            return [IsAuthenticated(), IsPoliceOrAdmin()]
         return super().get_permissions()
 
     def list(self, request, *args, **kwargs):
@@ -198,8 +198,10 @@ class DriverDetailView(generics.RetrieveUpdateDestroyAPIView):
         return DriverSerializer
 
     def get_permissions(self):
-        if self.request.method in ('PUT', 'PATCH', 'DELETE'):
+        if self.request.method == 'DELETE':
             return [IsAuthenticated(), IsAdmin()]
+        if self.request.method in ('PUT', 'PATCH'):
+            return [IsAuthenticated(), IsPoliceOrAdmin()]
         return super().get_permissions()
 
     def retrieve(self, request, *args, **kwargs):

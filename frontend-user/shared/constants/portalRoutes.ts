@@ -152,15 +152,14 @@ export function isUserPortalRouteAllowed(role: UserRole, pathname: string): bool
 
   if (pathname === USER_PORTAL_ROUTES.finesPayments && role === 'driver') return true;
 
-  return modules.some((mod) =>
-
-    mod.matchPrefixes.some((prefix) =>
-
-      pathname === prefix || pathname.startsWith(`${prefix}/`),
-
-    ),
-
-  );
+  return modules.some((mod) => {
+    if (mod.id === 'dashboard') {
+      return pathname === mod.path;
+    }
+    return mod.matchPrefixes.some(
+      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+    );
+  });
 
 }
 

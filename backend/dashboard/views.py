@@ -245,7 +245,7 @@ class AdminAIDashboardView(APIView):
 
 
 class AdminDetectionAnalyticsView(APIView):
-    permission_classes = [IsAuthenticated, IsAdmin]
+    permission_classes = [IsAuthenticated, IsPoliceOrAdmin]
 
     def get(self, request):
         return success_response(get_detection_analytics(request.user))

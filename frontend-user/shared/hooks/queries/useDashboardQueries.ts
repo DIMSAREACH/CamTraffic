@@ -17,7 +17,7 @@ export function useAdminDashboardStats() {
 export function usePoliceDashboardStats(policeId?: string | number) {
   return useQuery({
     queryKey: queryKeys.dashboard.police(policeId),
-    queryFn: () => dashboardAPI.getPoliceStats(Number(policeId)),
+    queryFn: () => dashboardAPI.getPoliceStats(policeId!),
     enabled: policeId != null,
     refetchInterval: LIVE_INTERVAL_MS,
     placeholderData: (prev) => prev,

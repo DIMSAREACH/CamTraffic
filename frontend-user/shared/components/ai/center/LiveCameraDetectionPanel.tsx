@@ -34,7 +34,7 @@ export function LiveCameraDetectionPanel({
 }: LiveCameraDetectionPanelProps) {
   const { t } = useLanguage();
   const [cameras, setCameras] = useState<Camera[]>([]);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [tick, setTick] = useState(0);
   const [detecting, setDetecting] = useState(false);
@@ -75,9 +75,21 @@ export function LiveCameraDetectionPanel({
     }
     setDetecting(true);
     onDetectingChange(true);
+    const extra: Record<string, string> = {};
+    if (demoObservedAction) extra.observed_action = demoObservedAction;
     try {
-      const res = await detectFromImageUrl(src);
-      onResult(res as CenterDetectionResult, src);
+      let res: CenterDetectionResult;
+      try {
+        res = (await camerasAPI.processFrame(String(selected.id), extra)) as CenterDetectionResult;
+      } catch {
+        res = (await detectFromImageUrl(src)) as CenterDetectionResult;
+      }
+      const preview =
+        res.processed_image ||
+        res.annotated_processed_image ||
+        res.uploaded_image ||
+        src;
+      onResult(res, preview);
       toast.success(t('aiCenter.detectSuccess'));
     } catch {
       toast.error(t('aiCenter.detectFailed'));

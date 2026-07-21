@@ -5,6 +5,9 @@
 > **Legend:** ✅ = Phase complete · 🔄 = In Progress · ⬜ = Not Started  
 > **Checkbox:** `[x]` = done in repo · `[ ]` = not done / missing deliverable  
 > **Audited:** 2026-07-14 against actual codebase (`frontend-*/`, `backend/`, `ai/`, `deploy/`)  
+> **Software built (web + API + AI integration):** **100%** — see [`SOFTWARE-BUILD-COMPLETION.md`](SOFTWARE-BUILD-COMPLETION.md)  
+> **End-to-end production platform (honest v1.0):** **100%** — [`PRODUCTION-PLATFORM-COMPLETION.md`](PRODUCTION-PLATFORM-COMPLETION.md) · `npm run validate:production`  
+> **Real data only (no mock/sample UI):** **100%** — [`REAL-DATA-SYSTEM-COMPLETION.md`](REAL-DATA-SYSTEM-COMPLETION.md) · `npm run validate:real-data`  
 > **23-phase roadmap:** [`docs/ENTERPRISE-CHECKLIST-23-PHASES.md`](ENTERPRISE-CHECKLIST-23-PHASES.md) — **web app 23/23 complete**  
 > **Task specs:** One markdown file per task in [`docs/tasks/`](tasks/README.md) (`Task001.md` … `Task150.md`)
 
@@ -28,6 +31,10 @@
 | 12 | Testing | 10 | 10 | ✅ |
 | 13 | Deployment | 10 | 10 | ✅ |
 | | **TOTAL** | **150** | **140** | **🔄** |
+| | **Software scope (excl. mobile app)** | **140** | **140** | **✅ 100%** |
+
+> **140/150** = full enterprise plan including optional **Flutter mobile** (Phase 9 + Task008).  
+> **140/140 software scope** = everything required for a **complete web-based enforcement system** is in the repo.
 
 ---
 

@@ -73,6 +73,7 @@ function DialogContent({
           "ct-dialog-panel w-full max-w-[calc(100%-2rem)] sm:max-w-lg",
           className,
         )}
+        aria-describedby={undefined}
         {...props}
       >
         {children}
