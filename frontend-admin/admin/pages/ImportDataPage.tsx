@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Camera, Car, CheckCircle2, Download, FileSpreadsheet, FileUp, History, Loader2,
-  OctagonAlert, Shield, TrafficCone, Upload, Users, XCircle,
+  Camera, Car, CheckCircle2, Database, Download, FileSpreadsheet, FileUp, History, Loader2,
+  OctagonAlert, RefreshCw, Shield, TrafficCone, Upload, Users, XCircle,
 } from 'lucide-react';
-import { Button } from '@shared/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@shared/components/ui/table';
 import { EmptyStatePanel } from '@shared/components/ui/TableEmptyState';
 import { useLanguage } from '@shared/context/LanguageContext';
@@ -17,14 +16,22 @@ const IMPORT_TYPES: Array<{
   type: ImportDataType;
   labelKey: string;
   icon: typeof Users;
-  accent: string;
+  variant: 'violet' | 'teal' | 'amber' | 'blue' | 'rose';
 }> = [
-  { type: 'users', labelKey: 'importData.typeUsers', icon: Users, accent: 'violet' },
-  { type: 'vehicles', labelKey: 'importData.typeVehicles', icon: Car, accent: 'teal' },
-  { type: 'signs', labelKey: 'importData.typeSigns', icon: TrafficCone, accent: 'amber' },
-  { type: 'cameras', labelKey: 'importData.typeCameras', icon: Camera, accent: 'blue' },
-  { type: 'violations', labelKey: 'importData.typeViolations', icon: Shield, accent: 'rose' },
+  { type: 'users', labelKey: 'importData.typeUsers', icon: Users, variant: 'violet' },
+  { type: 'vehicles', labelKey: 'importData.typeVehicles', icon: Car, variant: 'teal' },
+  { type: 'signs', labelKey: 'importData.typeSigns', icon: TrafficCone, variant: 'amber' },
+  { type: 'cameras', labelKey: 'importData.typeCameras', icon: Camera, variant: 'blue' },
+  { type: 'violations', labelKey: 'importData.typeViolations', icon: Shield, variant: 'rose' },
 ];
+
+const PREVIEW_KEYS: Record<ImportDataType, string[]> = {
+  users: ['name', 'email', 'role', 'phone'],
+  vehicles: ['plate_number', 'vehicle_type', 'owner_email', 'model'],
+  signs: ['code', 'name', 'category'],
+  cameras: ['camera_id', 'location', 'road_name', 'status'],
+  violations: ['plate_number', 'observed_action', 'violation_type', 'fine_amount'],
+};
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -35,19 +42,33 @@ function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-function statusMeta(status: string): { bg: string; color: string; label: string } {
+function statusMeta(status: string): { bg: string; color: string } {
   switch (status) {
     case 'ok':
     case 'success':
-      return { bg: 'rgba(16,185,129,0.12)', color: '#059669', label: status };
+    case 'committed':
+    case 'validated':
+      return { bg: 'rgba(16,185,129,0.12)', color: '#059669' };
     case 'skip':
-      return { bg: 'rgba(245,158,11,0.12)', color: '#D97706', label: status };
+      return { bg: 'rgba(245,158,11,0.12)', color: '#D97706' };
     case 'error':
     case 'failed':
-      return { bg: 'rgba(239,68,68,0.12)', color: '#DC2626', label: status };
+      return { bg: 'rgba(239,68,68,0.12)', color: '#DC2626' };
     default:
-      return { bg: 'rgba(100,116,139,0.12)', color: '#64748B', label: status };
+      return { bg: 'rgba(100,116,139,0.12)', color: '#64748B' };
   }
+}
+
+function formatRowSummary(type: ImportDataType, data: Record<string, unknown>): string {
+  const keys = PREVIEW_KEYS[type] || Object.keys(data).slice(0, 4);
+  const parts = keys
+    .map((key) => {
+      const value = data[key];
+      if (value === undefined || value === null || value === '') return null;
+      return String(value);
+    })
+    .filter(Boolean);
+  return parts.length ? parts.join(' · ') : '—';
 }
 
 export function ImportDataPage() {
@@ -86,6 +107,15 @@ export function ImportDataPage() {
     () => (preview?.rows || []).slice(0, 200),
     [preview],
   );
+
+  const historyStats = useMemo(() => {
+    const committed = history.filter((j) => j.status === 'committed');
+    return {
+      jobs: history.length,
+      success: committed.reduce((sum, j) => sum + (j.success_count || 0), 0),
+      latest: history[0] ? history[0].file_name : '—',
+    };
+  }, [history]);
 
   const handleDownloadTemplate = async (format: 'csv' | 'xlsx') => {
     setBusy('template');
@@ -154,69 +184,154 @@ export function ImportDataPage() {
     });
   };
 
+  const statusLabel = (status: string) => {
+    const key = `importData.status.${status}`;
+    const translated = t(key);
+    return translated !== key ? translated : status;
+  };
+
   return (
-    <div className="enforcement-page enforcement-page--users space-y-5">
-      <div className="enforcement-page__header">
-        <div>
-          <p className="enforcement-page__eyebrow">{t('importData.eyebrow')}</p>
-          <h1 className="enforcement-page__title">{t('importData.title')}</h1>
-          <p className="enforcement-page__subtitle">{t('importData.subtitle')}</p>
+    <div className="enforcement-page enforcement-page--import">
+      <div className="enforcement-page__hero">
+        <div className="enforcement-page__hero-glow--primary" aria-hidden />
+        <div className="enforcement-page__hero-glow--secondary" aria-hidden />
+        <div className="enforcement-page__hero-inner">
+          <div>
+            <div className="enforcement-page__eyebrow">
+              <Database size={14} aria-hidden />
+              {t('importData.eyebrow')}
+            </div>
+            <h1 className="enforcement-page__title">{t('importData.title')}</h1>
+            <p className="enforcement-page__subtitle">{t('importData.subtitle')}</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className="enforcement-page__hero-btn enforcement-page__hero-btn--violet"
+              onClick={() => void loadHistory()}
+              disabled={historyLoading}
+            >
+              <RefreshCw size={16} className={historyLoading ? 'animate-spin' : undefined} aria-hidden />
+              {t('importData.refreshHistory')}
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        {IMPORT_TYPES.map((item) => {
-          const Icon = item.icon;
-          const active = importType === item.type;
-          return (
-            <button
-              key={item.type}
-              type="button"
-              onClick={() => setImportType(item.type)}
-              className={`enforcement-page__stat-card enforcement-page__stat-card--${item.accent}${active ? ' enforcement-page__stat-card--active' : ''}`}
-            >
-              <div className="enforcement-page__stat-icon">
-                <Icon size={18} />
-              </div>
-              <div>
-                <p className="enforcement-page__stat-label">{t(item.labelKey)}</p>
-                <p className="enforcement-page__stat-value" style={{ fontSize: '0.95rem' }}>
-                  {item.type}
-                </p>
-              </div>
-            </button>
-          );
-        })}
+      <div className="enforcement-page__stat-grid enforcement-page__stat-grid--three mb-6">
+        <div className="enforcement-page__stat-card enforcement-page__stat-card--violet">
+          <div className="enforcement-page__stat-icon enforcement-page__stat-icon--violet">
+            <History size={18} aria-hidden />
+          </div>
+          <div className="enforcement-page__stat-copy">
+            <p className="enforcement-page__stat-value">{historyStats.jobs}</p>
+            <p className="enforcement-page__stat-label enforcement-page__stat-label--violet">
+              {t('importData.statJobs')}
+            </p>
+          </div>
+        </div>
+        <div className="enforcement-page__stat-card enforcement-page__stat-card--teal">
+          <div className="enforcement-page__stat-icon enforcement-page__stat-icon--teal">
+            <CheckCircle2 size={18} aria-hidden />
+          </div>
+          <div className="enforcement-page__stat-copy">
+            <p className="enforcement-page__stat-value">{historyStats.success}</p>
+            <p className="enforcement-page__stat-label enforcement-page__stat-label--teal">
+              {t('importData.statRowsImported')}
+            </p>
+          </div>
+        </div>
+        <div className="enforcement-page__stat-card enforcement-page__stat-card--blue">
+          <div className="enforcement-page__stat-icon enforcement-page__stat-icon--blue">
+            <FileUp size={18} aria-hidden />
+          </div>
+          <div className="enforcement-page__stat-copy">
+            <p className="enforcement-page__stat-value text-base sm:text-lg truncate" title={historyStats.latest}>
+              {historyStats.latest}
+            </p>
+            <p className="enforcement-page__stat-label enforcement-page__stat-label--blue">
+              {t('importData.statLatestFile')}
+            </p>
+          </div>
+        </div>
       </div>
 
-      <div className="enforcement-page__panel enforcement-page__panel--users p-5 space-y-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
+      <section className="enforcement-page__panel import-page__panel mb-6">
+        <div className="import-page__panel-head">
+          <div>
+            <h2 className="import-page__panel-title">{t('importData.stepChooseType')}</h2>
+            <p className="import-page__panel-hint">{t('importData.stepChooseTypeHint')}</p>
+          </div>
+        </div>
+        <div className="import-page__type-grid" role="tablist" aria-label={t('importData.stepChooseType')}>
+          {IMPORT_TYPES.map((item) => {
+            const Icon = item.icon;
+            const active = importType === item.type;
+            return (
+              <button
+                key={item.type}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setImportType(item.type)}
+                className={`import-page__type-card import-page__type-card--${item.variant}${active ? ' is-active' : ''}`}
+              >
+                <span className={`import-page__type-icon import-page__type-icon--${item.variant}`}>
+                  <Icon size={18} aria-hidden />
+                </span>
+                <span className="import-page__type-copy">
+                  <span className="import-page__type-label">{t(item.labelKey)}</span>
+                  <span className="import-page__type-key">{item.type}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="enforcement-page__panel import-page__panel mb-6">
+        <div className="import-page__panel-head">
+          <div>
+            <h2 className="import-page__panel-title">{t('importData.stepUpload')}</h2>
+            <p className="import-page__panel-hint">{t('importData.stepUploadHint')}</p>
+          </div>
+          <div className="import-page__steps" aria-hidden>
+            <span className={`import-page__step${file ? ' is-done' : ' is-current'}`}>1</span>
+            <span className="import-page__step-line" />
+            <span className={`import-page__step${preview ? ' is-done' : file ? ' is-current' : ''}`}>2</span>
+            <span className="import-page__step-line" />
+            <span className={`import-page__step${canImport ? ' is-current' : ''}`}>3</span>
+          </div>
+        </div>
+
+        <div className="import-page__actions">
+          <button
             type="button"
-            variant="outline"
-            className="gap-2"
+            className="enforcement-page__btn-outline"
             disabled={busy === 'template'}
             onClick={() => void handleDownloadTemplate('csv')}
           >
             {busy === 'template' ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
             {t('importData.downloadCsv')}
-          </Button>
-          <Button
+          </button>
+          <button
             type="button"
-            variant="outline"
-            className="gap-2"
+            className="enforcement-page__btn-outline"
             disabled={busy === 'template'}
             onClick={() => void handleDownloadTemplate('xlsx')}
           >
             <FileSpreadsheet size={15} />
             {t('importData.downloadXlsx')}
-          </Button>
+          </button>
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-violet-300 bg-violet-50/50 px-4 py-3 text-sm font-medium text-violet-800 hover:bg-violet-50">
-            <FileUp size={16} />
-            <span>{file ? file.name : t('importData.chooseFile')}</span>
+        <div className="import-page__upload-row">
+          <label className="import-page__file-drop">
+            <FileUp size={20} aria-hidden />
+            <span className="import-page__file-drop-copy">
+              <strong>{file ? file.name : t('importData.chooseFile')}</strong>
+              <span>{t('importData.fileHint')}</span>
+            </span>
             <input
               type="file"
               accept=".csv,.xlsx,.xlsm,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -228,75 +343,99 @@ export function ImportDataPage() {
               }}
             />
           </label>
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" className="gap-2" disabled={!file || busy === 'validate'} onClick={() => void handleValidate()}>
+
+          <div className="import-page__action-btns">
+            <button
+              type="button"
+              className="enforcement-page__btn-violet"
+              disabled={!file || busy === 'validate'}
+              onClick={() => void handleValidate()}
+            >
               {busy === 'validate' ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
               {t('importData.validate')}
-            </Button>
-            <Button type="button" className="gap-2" disabled={!canImport} onClick={() => void handleCommit()}>
+            </button>
+            <button
+              type="button"
+              className="enforcement-page__btn-success"
+              disabled={!canImport}
+              onClick={() => void handleCommit()}
+            >
               {busy === 'commit' ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
               {t('importData.import')}
-            </Button>
-            <Button type="button" variant="outline" onClick={handleCancel}>{t('importData.cancel')}</Button>
+            </button>
+            <button type="button" className="enforcement-page__btn-outline" onClick={handleCancel}>
+              {t('importData.cancel')}
+            </button>
           </div>
         </div>
 
         {counts ? (
-          <div className="grid gap-3 sm:grid-cols-4">
-            <div className="rounded-xl bg-slate-50 px-3 py-2 text-sm">
-              <span className="text-slate-500">{t('importData.statTotal')}</span>
-              <strong className="ml-2">{counts.total}</strong>
+          <div className="import-page__count-grid">
+            <div className="import-page__count-card">
+              <span>{t('importData.statTotal')}</span>
+              <strong>{counts.total}</strong>
             </div>
-            <div className="rounded-xl bg-emerald-50 px-3 py-2 text-sm">
-              <span className="text-emerald-700">{t('importData.statValid')}</span>
-              <strong className="ml-2 text-emerald-800">{counts.valid}</strong>
+            <div className="import-page__count-card import-page__count-card--ok">
+              <span>{t('importData.statValid')}</span>
+              <strong>{counts.valid}</strong>
             </div>
-            <div className="rounded-xl bg-amber-50 px-3 py-2 text-sm">
-              <span className="text-amber-700">{t('importData.statSkipped')}</span>
-              <strong className="ml-2 text-amber-800">{counts.skipped}</strong>
+            <div className="import-page__count-card import-page__count-card--skip">
+              <span>{t('importData.statSkipped')}</span>
+              <strong>{counts.skipped}</strong>
             </div>
-            <div className="rounded-xl bg-rose-50 px-3 py-2 text-sm">
-              <span className="text-rose-700">{t('importData.statErrors')}</span>
-              <strong className="ml-2 text-rose-800">{counts.error}</strong>
+            <div className="import-page__count-card import-page__count-card--err">
+              <span>{t('importData.statErrors')}</span>
+              <strong>{counts.error}</strong>
             </div>
           </div>
         ) : null}
+      </section>
+
+      <section className="enforcement-page__panel import-page__panel mb-6">
+        <div className="import-page__panel-head">
+          <div>
+            <h2 className="import-page__panel-title">{t('importData.stepPreview')}</h2>
+            <p className="import-page__panel-hint">{t('importData.stepPreviewHint')}</p>
+          </div>
+        </div>
 
         {preview ? (
-          <div className="overflow-x-auto rounded-xl border border-slate-200">
-            <Table>
+          <div className="import-page__table-wrap">
+            <Table className="enforcement-page__table">
               <TableHeader>
                 <TableRow className="enforcement-page__table-head">
-                  <TableHead>{t('importData.colRow')}</TableHead>
-                  <TableHead>{t('importData.colStatus')}</TableHead>
-                  <TableHead>{t('importData.colData')}</TableHead>
-                  <TableHead>{t('importData.colErrors')}</TableHead>
+                  <TableHead className="enforcement-page__th">{t('importData.colRow')}</TableHead>
+                  <TableHead className="enforcement-page__th">{t('importData.colStatus')}</TableHead>
+                  <TableHead className="enforcement-page__th">{t('importData.colData')}</TableHead>
+                  <TableHead className="enforcement-page__th">{t('importData.colErrors')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {previewRows.map((row) => {
                   const meta = statusMeta(row.status);
                   return (
-                    <TableRow key={`${row.row}-${row.status}`}>
-                      <TableCell>{row.row}</TableCell>
+                    <TableRow key={`${row.row}-${row.status}`} className="enforcement-page__table-row">
+                      <TableCell className="enforcement-page__cell-mono">{row.row}</TableCell>
                       <TableCell>
                         <span
-                          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold"
+                          className="import-page__badge"
                           style={{ background: meta.bg, color: meta.color }}
                         >
                           {row.status === 'ok' || row.status === 'success' ? <CheckCircle2 size={12} /> : null}
                           {row.status === 'error' || row.status === 'failed' ? <XCircle size={12} /> : null}
                           {row.status === 'skip' ? <OctagonAlert size={12} /> : null}
-                          {t(`importData.status.${row.status}`) !== `importData.status.${row.status}`
-                            ? t(`importData.status.${row.status}`)
-                            : row.status}
+                          {statusLabel(row.status)}
                         </span>
                       </TableCell>
-                      <TableCell className="max-w-xs truncate text-xs text-slate-600">
-                        {JSON.stringify(row.data)}
+                      <TableCell>
+                        <span className="enforcement-page__cell-primary import-page__row-summary">
+                          {formatRowSummary(importType, row.data || {})}
+                        </span>
                       </TableCell>
-                      <TableCell className="text-xs text-rose-600">
-                        {(row.errors || []).join('; ') || '—'}
+                      <TableCell>
+                        <span className={row.errors?.length ? 'import-page__error-text' : 'enforcement-page__cell-secondary'}>
+                          {(row.errors || []).join('; ') || '—'}
+                        </span>
                       </TableCell>
                     </TableRow>
                   );
@@ -312,50 +451,85 @@ export function ImportDataPage() {
             subtitle={t('importData.emptyPreviewHint')}
           />
         )}
-      </div>
+      </section>
 
-      <div className="enforcement-page__panel enforcement-page__panel--users p-5 space-y-3">
-        <div className="flex items-center gap-2">
-          <History size={18} className="text-violet-600" />
-          <h2 className="text-base font-semibold">{t('importData.historyTitle')}</h2>
+      <section className="enforcement-page__panel import-page__panel">
+        <div className="import-page__panel-head">
+          <div>
+            <h2 className="import-page__panel-title">{t('importData.historyTitle')}</h2>
+            <p className="import-page__panel-hint">{t('importData.historyHint')}</p>
+          </div>
         </div>
+
         {historyLoading ? (
-          <div className="flex items-center gap-2 text-sm text-slate-500">
-            <Loader2 size={16} className="animate-spin" /> {t('common.loading')}
+          <div className="space-y-3" aria-busy="true" aria-label={t('common.loading')}>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="enforcement-page__skeleton h-14 rounded-xl" />
+            ))}
           </div>
         ) : history.length === 0 ? (
-          <p className="text-sm text-slate-500">{t('importData.historyEmpty')}</p>
+          <EmptyStatePanel
+            tone="violet"
+            icon={<History size={28} />}
+            title={t('importData.historyEmpty')}
+            subtitle={t('importData.historyEmptyHint')}
+          />
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-200">
-            <Table>
+          <div className="import-page__table-wrap">
+            <Table className="enforcement-page__table">
               <TableHeader>
                 <TableRow className="enforcement-page__table-head">
-                  <TableHead>{t('importData.colWhen')}</TableHead>
-                  <TableHead>{t('importData.colType')}</TableHead>
-                  <TableHead>{t('importData.colFile')}</TableHead>
-                  <TableHead>{t('importData.colStatus')}</TableHead>
-                  <TableHead>{t('importData.colResult')}</TableHead>
-                  <TableHead>{t('importData.colBy')}</TableHead>
+                  <TableHead className="enforcement-page__th">{t('importData.colWhen')}</TableHead>
+                  <TableHead className="enforcement-page__th">{t('importData.colType')}</TableHead>
+                  <TableHead className="enforcement-page__th">{t('importData.colFile')}</TableHead>
+                  <TableHead className="enforcement-page__th">{t('importData.colStatus')}</TableHead>
+                  <TableHead className="enforcement-page__th">{t('importData.colResult')}</TableHead>
+                  <TableHead className="enforcement-page__th">{t('importData.colBy')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {history.map((job) => (
-                  <TableRow key={job.id}>
-                    <TableCell className="whitespace-nowrap text-sm">{formatWhen(job.created_at)}</TableCell>
-                    <TableCell>{job.import_type}</TableCell>
-                    <TableCell className="max-w-[12rem] truncate">{job.file_name}</TableCell>
-                    <TableCell>{job.status}</TableCell>
-                    <TableCell className="text-sm">
-                      ✓{job.success_count} · ↷{job.skipped_count} · ✗{job.failed_count}
-                    </TableCell>
-                    <TableCell className="text-sm">{job.created_by_name || job.created_by_email || '—'}</TableCell>
-                  </TableRow>
-                ))}
+                {history.map((job) => {
+                  const meta = statusMeta(job.status);
+                  return (
+                    <TableRow key={job.id} className="enforcement-page__table-row">
+                      <TableCell className="enforcement-page__cell-secondary whitespace-nowrap">
+                        {formatWhen(job.created_at)}
+                      </TableCell>
+                      <TableCell>
+                        <span className="enforcement-page__code-pill">{job.import_type}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="enforcement-page__cell-primary import-page__file-name">{job.file_name}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="import-page__badge" style={{ background: meta.bg, color: meta.color }}>
+                          {statusLabel(job.status)}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="import-page__result-pills">
+                          <span className="import-page__result-pill import-page__result-pill--ok">
+                            ✓ {job.success_count}
+                          </span>
+                          <span className="import-page__result-pill import-page__result-pill--skip">
+                            ↷ {job.skipped_count}
+                          </span>
+                          <span className="import-page__result-pill import-page__result-pill--err">
+                            ✗ {job.failed_count}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="enforcement-page__cell-secondary">
+                        {job.created_by_name || job.created_by_email || '—'}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
 }
