@@ -1,7 +1,6 @@
 import logging
 
 from django.contrib.auth.models import update_last_login
-from django.db.models import ProtectedError
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
@@ -15,7 +14,7 @@ from users.profile_audit import (
     get_user_activity,
     record_login_event,
 )
-from users.profile_services import sync_profile_status
+from users.profile_services import soft_delete_user, sync_profile_status
 from users.preference_serializers import UserPreferenceSerializer
 from users.serializers import UserSerializer
 
@@ -46,7 +45,18 @@ class ProfilePreferencesView(APIView):
         return success_response(serializer.data, message='Preferences updated')
 
 
+def _blacklist_refresh(request) -> None:
+    try:
+        refresh = request.data.get('refresh')
+        if refresh:
+            RefreshToken(refresh).blacklist()
+    except Exception:
+        pass
+
+
 class DeactivateAccountView(APIView):
+    """Temporarily disable sign-in (no deleted_at). Admin can reactivate."""
+
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -61,16 +71,13 @@ class DeactivateAccountView(APIView):
         user.is_active = False
         user.save(update_fields=['is_active', 'updated_at'])
         sync_profile_status(user)
-        try:
-            refresh = request.data.get('refresh')
-            if refresh:
-                RefreshToken(refresh).blacklist()
-        except Exception:
-            pass
+        _blacklist_refresh(request)
         return success_response(message='Account deactivated')
 
 
 class DeleteAccountView(APIView):
+    """Soft-delete own account (driver/officer). Preserves fines and violations."""
+
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -80,24 +87,27 @@ class DeleteAccountView(APIView):
                 'Administrator accounts cannot be self-deleted. Contact another administrator.',
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
-        password = request.data.get('password', '')
-        if not password or not user.check_password(password):
-            return error_response('Invalid password.', status_code=status.HTTP_400_BAD_REQUEST)
-        try:
-            refresh = request.data.get('refresh')
-            if refresh:
-                try:
-                    RefreshToken(refresh).blacklist()
-                except Exception:
-                    pass
-            user.delete()
-        except ProtectedError:
+        if user.deleted_at and not user.is_active:
+            return error_response('Account is already deleted.', status_code=status.HTTP_400_BAD_REQUEST)
+
+        password = (request.data.get('password') or '').strip()
+        confirm = (request.data.get('confirm') or '').strip().upper()
+        # Email/password accounts must confirm with password.
+        # Social (Google/GitHub) accounts confirm with the word DELETE.
+        if user.auth_provider == 'email':
+            if not password or not user.check_password(password):
+                return error_response('Invalid password.', status_code=status.HTTP_400_BAD_REQUEST)
+        elif confirm != 'DELETE':
             return error_response(
-                'Cannot delete this account because it has linked violations or records. '
-                'Deactivate the account instead.',
+                'Type DELETE to confirm account deletion.',
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
-        return success_response(message='Account deleted')
+
+        soft_delete_user(user)
+        _blacklist_refresh(request)
+        return success_response(
+            message='Account deleted. Sign-in is disabled; enforcement records are retained.',
+        )
 
 
 class LogoutOtherSessionsView(APIView):

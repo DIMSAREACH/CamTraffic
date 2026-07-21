@@ -36,6 +36,8 @@ class User(AbstractUser):
     profile_image = models.ImageField(upload_to='profiles/', blank=True, null=True)
     email_verified = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
+    # Soft-delete marker — prefer over hard DELETE so fines/violations stay intact.
+    deleted_at = models.DateTimeField(null=True, blank=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -50,6 +52,7 @@ class User(AbstractUser):
         indexes = [
             models.Index(fields=['role', 'is_active'], name='idx_user_role_active'),
             models.Index(fields=['email'], name='idx_user_email'),
+            models.Index(fields=['deleted_at'], name='idx_user_deleted_at'),
         ]
 
     def __str__(self):
@@ -58,6 +61,10 @@ class User(AbstractUser):
     @property
     def display_name(self):
         return self.full_name or self.email
+
+    @property
+    def is_soft_deleted(self) -> bool:
+        return self.deleted_at is not None
 
 
 class Officer(UUIDPrimaryKeyModel):

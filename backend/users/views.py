@@ -1,6 +1,5 @@
 from django.contrib.auth import get_user_model
 from django.db import models
-from django.db.models.deletion import ProtectedError
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, generics, status
 from rest_framework.permissions import IsAuthenticated
@@ -95,29 +94,14 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
         instance = self.get_object()
         if instance.pk == request.user.pk:
             return error_response('You cannot delete your own account.', status_code=status.HTTP_400_BAD_REQUEST)
-        try:
-            instance.delete()
-        except ProtectedError:
-            # Linked violations/fines block hard delete — deactivate instead so admin UI works.
-            if instance.is_active:
-                instance.is_active = False
-                instance.save(update_fields=['is_active'])
-                from users.profile_services import sync_profile_status
+        from users.profile_services import safe_delete_user
 
-                sync_profile_status(instance)
-                return success_response(
-                    UserSerializer(instance).data,
-                    message=(
-                        'User has linked violations or records, so the account was deactivated '
-                        'instead of permanently deleted.'
-                    ),
-                )
-            return error_response(
-                'Cannot delete this user because they have linked violations or records. '
-                'The account is already inactive.',
-                status_code=status.HTTP_400_BAD_REQUEST,
-            )
-        return success_response(message='User deleted')
+        # Prefer soft-delete. Pass ?hard=1 only for spam/test cleanup without linked records.
+        hard = str(request.query_params.get('hard', '')).lower() in ('1', 'true', 'yes')
+        hard_deleted, user, message = safe_delete_user(instance, hard=hard)
+        if hard_deleted:
+            return success_response(message=message)
+        return success_response(UserSerializer(user).data, message=message)
 
 
 class ToggleActiveView(APIView):
@@ -130,12 +114,18 @@ class ToggleActiveView(APIView):
             return error_response('User not found', status_code=status.HTTP_404_NOT_FOUND)
         if user.pk == request.user.pk and user.is_active:
             return error_response('You cannot deactivate your own account.', status_code=status.HTTP_400_BAD_REQUEST)
-        user.is_active = not user.is_active
-        user.save(update_fields=['is_active'])
-        from users.profile_services import sync_profile_status
+        from users.profile_services import restore_user, soft_delete_user, sync_profile_status
 
-        sync_profile_status(user)
-        return success_response(UserSerializer(user).data, message='Status toggled')
+        if user.is_active:
+            # Suspend without marking as user-requested deletion.
+            user.is_active = False
+            user.save(update_fields=['is_active', 'updated_at'])
+            sync_profile_status(user)
+            message = 'Account deactivated'
+        else:
+            restore_user(user)
+            message = 'Account reactivated'
+        return success_response(UserSerializer(user).data, message=message)
 
 
 class DriverSearchView(APIView):

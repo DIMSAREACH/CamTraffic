@@ -101,8 +101,16 @@ export const profileAPI = USE_MOCK ? mockApi.profileAPI : {
   async deactivate(refresh?: string): Promise<{ message?: string }> {
     return unwrap(await apiClient.post('/auth/profile/deactivate/', refresh ? { refresh } : {}));
   },
-  async deleteAccount(password: string, refresh?: string): Promise<{ message?: string }> {
-    return unwrap(await apiClient.post('/auth/profile/delete/', { password, ...(refresh ? { refresh } : {}) }));
+  async deleteAccount(
+    password: string,
+    refresh?: string,
+    options?: { confirm?: string },
+  ): Promise<{ message?: string }> {
+    return unwrap(await apiClient.post('/auth/profile/delete/', {
+      password,
+      ...(options?.confirm ? { confirm: options.confirm } : {}),
+      ...(refresh ? { refresh } : {}),
+    }));
   },
   async logoutOtherSessions(refresh: string): Promise<{ revoked: number; message?: string }> {
     return unwrap(await apiClient.post('/auth/profile/logout-others/', { refresh }));
@@ -788,7 +796,12 @@ export const driversAPI = USE_MOCK ? mockApi.driversAPI : {
   async update(id: string, data: Partial<DriverProfile>): Promise<DriverProfile> {
     return unwrap<DriverProfile>(await apiClient.patch(`/drivers/${id}/`, data));
   },
-  async delete(id: string): Promise<void> {
-    await apiClient.delete(`/drivers/${id}/`);
+  async delete(id: string): Promise<{ driver: DriverProfile | null; message?: string }> {
+    const res = await apiClient.delete(`/drivers/${id}/`);
+    const body = res.data as { data?: DriverProfile | null; message?: string };
+    return {
+      driver: body?.data && typeof body.data === 'object' ? body.data : null,
+      message: body?.message,
+    };
   },
 };

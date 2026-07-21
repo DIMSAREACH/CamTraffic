@@ -11,9 +11,12 @@ class UserSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'full_name', 'email', 'role', 'phone', 'address',
             'license_no', 'profile_image', 'email_verified', 'created_at', 'updated_at', 'last_login',
-            'auth_provider', 'is_active',
+            'auth_provider', 'is_active', 'deleted_at',
         )
-        read_only_fields = ('id', 'created_at', 'updated_at', 'last_login', 'role', 'auth_provider', 'email_verified')
+        read_only_fields = (
+            'id', 'created_at', 'updated_at', 'last_login', 'role',
+            'auth_provider', 'email_verified', 'deleted_at',
+        )
 
 
 class UserCreateSerializer(serializers.ModelSerializer):

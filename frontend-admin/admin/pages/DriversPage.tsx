@@ -184,8 +184,12 @@ export function DriversPage() {
   const handleDelete = async () => {
     if (!deleteDriver) return;
     try {
-      await driversAPI.delete(deleteDriver.id);
-      toast.success(t('drivers.deleted'));
+      const result = await driversAPI.delete(deleteDriver.id);
+      if (result.driver && (result.driver.status === 'inactive' || result.message?.toLowerCase().includes('deactivated'))) {
+        toast.success(result.message || 'Driver was soft-deleted (linked records preserved)');
+      } else {
+        toast.success(result.message || t('drivers.deleted'));
+      }
       setDeleteDriver(null);
       load();
     } catch (err: unknown) {

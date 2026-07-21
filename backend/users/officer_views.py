@@ -89,8 +89,19 @@ class OfficerDetailView(generics.RetrieveUpdateDestroyAPIView):
         user = instance.user
         if user.pk == request.user.pk:
             return error_response('You cannot delete your own officer account.', status_code=status.HTTP_400_BAD_REQUEST)
-        user.delete()
-        return success_response(message='Officer deleted')
+        from users.profile_services import safe_delete_user
+
+        try:
+            hard_deleted, _deactivated, message = safe_delete_user(user)
+        except Exception as exc:
+            return error_response(str(exc), status_code=status.HTTP_400_BAD_REQUEST)
+        if hard_deleted:
+            return success_response(message='Officer deleted')
+        instance.refresh_from_db()
+        return success_response(
+            OfficerSerializer(instance).data,
+            message=message.replace('Account', 'Officer', 1).replace('User', 'Officer', 1),
+        )
 
 
 class PoliceStationListCreateView(generics.ListCreateAPIView):
@@ -220,5 +231,19 @@ class DriverDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        instance.user.delete()
-        return success_response(message='Driver deleted')
+        user = instance.user
+        if user.pk == request.user.pk:
+            return error_response('You cannot delete your own account.', status_code=status.HTTP_400_BAD_REQUEST)
+        from users.profile_services import safe_delete_user
+
+        try:
+            hard_deleted, _deactivated, message = safe_delete_user(user)
+        except Exception as exc:
+            return error_response(str(exc), status_code=status.HTTP_400_BAD_REQUEST)
+        if hard_deleted:
+            return success_response(message='Driver deleted')
+        instance.refresh_from_db()
+        return success_response(
+            DriverSerializer(instance).data,
+            message=message.replace('Account', 'Driver', 1).replace('User', 'Driver', 1),
+        )

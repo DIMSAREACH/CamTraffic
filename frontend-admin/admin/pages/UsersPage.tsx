@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@shared/components/ui/table';
 import { TableEmptyState } from '@shared/components/ui/TableEmptyState';
 import { EntityDetailField, EntityViewDialog } from '@shared/components/admin/EntityViewDialog';
+import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { usersAPI } from '@shared/services/api';
 import { getPasswordValidationError, isStrongPassword, PASSWORD_REQUIREMENTS } from '@shared/utils/passwordPolicy';
@@ -92,6 +93,7 @@ function UserAvatar({
 
 export function UsersPage() {
   const { t } = useLanguage();
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -102,6 +104,8 @@ export function UsersPage() {
   const [saving, setSaving] = useState(false);
   const [deleteUser, setDeleteUser] = useState<User | null>(null);
   const [viewUser, setViewUser] = useState<User | null>(null);
+
+  const isSelf = (u: User) => Boolean(currentUser?.id) && String(u.id) === String(currentUser.id);
 
   const loadUsers = async () => {
     setLoading(true);
@@ -186,23 +190,36 @@ export function UsersPage() {
   };
 
   const handleToggle = async (u: User) => {
+    if (isSelf(u) && u.is_active) {
+      toast.error(t('users.cannotDeactivateSelf') !== 'users.cannotDeactivateSelf'
+        ? t('users.cannotDeactivateSelf')
+        : 'You cannot deactivate your own account.');
+      return;
+    }
     try {
       await usersAPI.toggleActive(u.id);
       toast.success(`${u.full_name} ${u.is_active ? 'deactivated' : 'activated'}`);
       loadUsers();
-    } catch {
-      toast.error('Failed to update status');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update status');
     }
   };
 
   const handleDelete = async () => {
     if (!deleteUser) return;
+    if (isSelf(deleteUser)) {
+      toast.error(t('users.cannotDeleteSelf') !== 'users.cannotDeleteSelf'
+        ? t('users.cannotDeleteSelf')
+        : 'You cannot delete your own account.');
+      setDeleteUser(null);
+      return;
+    }
     const removedId = deleteUser.id;
     try {
       const result = await usersAPI.delete(removedId);
       if (result.user && result.user.is_active === false) {
         setUsers((prev) => prev.map((u) => (u.id === removedId ? { ...u, ...result.user!, is_active: false } : u)));
-        toast.success(result.message || 'User was deactivated instead of deleted (linked records)');
+        toast.success(result.message || 'User was soft-deleted (linked records preserved)');
       } else {
         setUsers((prev) => prev.filter((u) => u.id !== removedId));
         toast.success(result.message || 'User deleted');
@@ -389,8 +406,13 @@ export function UsersPage() {
                           type="button"
                           className="users-page__action-btn users-page__action-btn--delete"
                           onClick={() => setDeleteUser(u)}
+                          disabled={isSelf(u)}
                           aria-label={t('common.delete')}
-                          title={t('common.delete')}
+                          title={isSelf(u)
+                            ? (t('users.cannotDeleteSelf') !== 'users.cannotDeleteSelf'
+                              ? t('users.cannotDeleteSelf')
+                              : 'You cannot delete your own account.')
+                            : t('common.delete')}
                         >
                           <Trash2 size={16} strokeWidth={2.35} />
                         </button>
@@ -398,8 +420,13 @@ export function UsersPage() {
                           type="button"
                           className="users-page__action-btn users-page__action-btn--toggle"
                           onClick={() => handleToggle(u)}
+                          disabled={isSelf(u) && u.is_active}
                           aria-label={t('users.toggleStatus')}
-                          title={t('users.toggleStatus')}
+                          title={isSelf(u) && u.is_active
+                            ? (t('users.cannotDeactivateSelf') !== 'users.cannotDeactivateSelf'
+                              ? t('users.cannotDeactivateSelf')
+                              : 'You cannot deactivate your own account.')
+                            : t('users.toggleStatus')}
                         >
                           {u.is_active ? <ToggleRight size={16} strokeWidth={2.35} /> : <ToggleLeft size={16} strokeWidth={2.35} />}
                         </button>

@@ -95,8 +95,10 @@ export function ProfilePage() {
   const [deleting, setDeleting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
+  const [deleteConfirmPhrase, setDeleteConfirmPhrase] = useState('');
   const [showDeletePassword, setShowDeletePassword] = useState(false);
   const [revoking, setRevoking] = useState(false);
+  const isSocialAuth = user?.auth_provider === 'google' || user?.auth_provider === 'github';
 
   const loadOverview = useCallback(async () => {
     setLoading(true);
@@ -215,13 +217,22 @@ export function ProfilePage() {
   };
 
   const handleDeleteAccount = async () => {
-    if (!deletePassword) {
+    if (isSocialAuth) {
+      if (deleteConfirmPhrase.trim().toUpperCase() !== 'DELETE') {
+        toast.error(t('profile.deleteConfirmPhrasePlaceholder'));
+        return;
+      }
+    } else if (!deletePassword) {
       toast.error(t('profile.fillPasswordFields'));
       return;
     }
     setDeleting(true);
     try {
-      await profileAPI.deleteAccount(deletePassword, getRefreshToken() ?? undefined);
+      await profileAPI.deleteAccount(
+        deletePassword,
+        getRefreshToken() ?? undefined,
+        isSocialAuth ? { confirm: 'DELETE' } : undefined,
+      );
       toast.success(t('profile.accountDeleted'));
       logout();
     } catch {
@@ -229,6 +240,7 @@ export function ProfilePage() {
     } finally {
       setDeleting(false);
       setDeletePassword('');
+      setDeleteConfirmPhrase('');
       setDeleteDialogOpen(false);
       setShowDeletePassword(false);
     }
@@ -237,6 +249,7 @@ export function ProfilePage() {
   const resetDeleteDialog = () => {
     setDeleteDialogOpen(false);
     setDeletePassword('');
+    setDeleteConfirmPhrase('');
     setShowDeletePassword(false);
   };
 
@@ -1190,19 +1203,35 @@ export function ProfilePage() {
           </ul>
 
           <div className="profile-page__delete-dialog-form">
-            <Label className="enforcement-page__form-label">{t('profile.deletePasswordLabel')}</Label>
-            <div className="relative mt-1.5">
-              <Input
-                type={showDeletePassword ? 'text' : 'password'}
-                value={deletePassword}
-                onChange={(e) => setDeletePassword(e.target.value)}
-                placeholder={t('profile.deletePasswordPlaceholder')}
-                className="pr-10"
-              />
-              <button type="button" onClick={() => setShowDeletePassword(!showDeletePassword)} className="profile-page__eye-btn">
-                {showDeletePassword ? <EyeOff size={14} /> : <Eye size={14} />}
-              </button>
-            </div>
+            {isSocialAuth ? (
+              <>
+                <Label className="enforcement-page__form-label">{t('profile.deleteConfirmPhraseLabel')}</Label>
+                <Input
+                  type="text"
+                  value={deleteConfirmPhrase}
+                  onChange={(e) => setDeleteConfirmPhrase(e.target.value)}
+                  placeholder={t('profile.deleteConfirmPhrasePlaceholder')}
+                  className="mt-1.5"
+                  autoComplete="off"
+                />
+              </>
+            ) : (
+              <>
+                <Label className="enforcement-page__form-label">{t('profile.deletePasswordLabel')}</Label>
+                <div className="relative mt-1.5">
+                  <Input
+                    type={showDeletePassword ? 'text' : 'password'}
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                    placeholder={t('profile.deletePasswordPlaceholder')}
+                    className="pr-10"
+                  />
+                  <button type="button" onClick={() => setShowDeletePassword(!showDeletePassword)} className="profile-page__eye-btn">
+                    {showDeletePassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
 
           <DialogFooter className="profile-page__delete-dialog-footer">
@@ -1212,7 +1241,7 @@ export function ProfilePage() {
             <button
               type="button"
               className="profile-page__danger-btn profile-page__danger-btn--solid"
-              disabled={deleting || !deletePassword}
+              disabled={deleting || (isSocialAuth ? deleteConfirmPhrase.trim().toUpperCase() !== 'DELETE' : !deletePassword)}
               onClick={handleDeleteAccount}
             >
               {deleting ? <Loader2 size={13} className="profile-page__spinner" /> : <Trash2 size={13} />}

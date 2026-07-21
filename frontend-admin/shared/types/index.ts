@@ -17,6 +17,7 @@ export interface User {
   last_login?: string | null;
   auth_provider?: 'email' | 'google' | 'github';
   is_active: boolean;
+  deleted_at?: string | null;
   email_verified?: boolean;
 }
 

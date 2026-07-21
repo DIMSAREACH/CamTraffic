@@ -100,3 +100,60 @@ def sync_profile_status(user: User) -> None:
     status = 'active' if user.is_active else 'inactive'
     Officer.objects.filter(user=user).update(status=status)
     Driver.objects.filter(user=user).update(status=status)
+
+
+def soft_delete_user(user: User) -> User:
+    """
+    Soft-delete: disable sign-in and stamp deleted_at.
+    Keeps FK history (fines, violations, audit) intact for enforcement.
+    """
+    from django.utils import timezone
+
+    if not user.is_active and user.deleted_at:
+        return user
+    user.is_active = False
+    if user.deleted_at is None:
+        user.deleted_at = timezone.now()
+    user.save(update_fields=['is_active', 'deleted_at', 'updated_at'])
+    sync_profile_status(user)
+    return user
+
+
+def restore_user(user: User) -> User:
+    """Re-enable a deactivated / soft-deleted account."""
+    user.is_active = True
+    user.deleted_at = None
+    user.save(update_fields=['is_active', 'deleted_at', 'updated_at'])
+    sync_profile_status(user)
+    return user
+
+
+def safe_delete_user(user: User, *, hard: bool = False) -> tuple[bool, User | None, str]:
+    """
+    Default: soft-delete (recommended for CamTraffic).
+
+    hard=True attempts permanent removal; on PROTECT/RESTRICT FKs falls back to soft-delete.
+
+    Returns (hard_deleted, user_or_none, message).
+    """
+    from django.db.models.deletion import ProtectedError, RestrictedError
+
+    if not hard:
+        soft_delete_user(user)
+        return (
+            False,
+            user,
+            'Account soft-deleted. Sign-in is disabled; linked fines and violations are preserved.',
+        )
+
+    try:
+        user.delete()
+        return True, None, 'User permanently deleted'
+    except (ProtectedError, RestrictedError):
+        soft_delete_user(user)
+        return (
+            False,
+            user,
+            'User has linked violations or records, so the account was soft-deleted '
+            'instead of permanently deleted.',
+        )

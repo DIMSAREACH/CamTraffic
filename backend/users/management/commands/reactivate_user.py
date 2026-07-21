@@ -1,12 +1,14 @@
-"""Reactivate deactivated user accounts (restore sign-in access)."""
+"""Reactivate deactivated / soft-deleted user accounts (restore sign-in access)."""
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
+
+from users.profile_services import restore_user
 
 User = get_user_model()
 
 
 class Command(BaseCommand):
-    help = 'Reactivate one or more deactivated user accounts'
+    help = 'Reactivate one or more deactivated or soft-deleted user accounts'
 
     def add_arguments(self, parser):
         parser.add_argument('--email', type=str, help='Email of the account to reactivate')
@@ -28,7 +30,10 @@ class Command(BaseCommand):
 
         if reactivate_all:
             qs = User.objects.filter(is_active=False)
-            count = qs.update(is_active=True)
+            count = 0
+            for user in qs.iterator():
+                restore_user(user)
+                count += 1
             if count == 0:
                 self.stdout.write(self.style.WARNING('No deactivated accounts found.'))
                 return
@@ -38,13 +43,9 @@ class Command(BaseCommand):
         user = User.objects.filter(email__iexact=email).first()
         if not user:
             raise CommandError(f'No user found with email: {email}')
-        if user.is_active:
+        if user.is_active and not user.deleted_at:
             self.stdout.write(self.style.WARNING(f'{email} is already active.'))
             return
 
-        user.is_active = True
-        user.save(update_fields=['is_active', 'updated_at'])
-        from users.profile_services import sync_profile_status
-
-        sync_profile_status(user)
+        restore_user(user)
         self.stdout.write(self.style.SUCCESS(f'Reactivated: {email}'))
