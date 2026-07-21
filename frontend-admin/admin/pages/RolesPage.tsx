@@ -20,6 +20,7 @@ import { CrudRowActions } from '@shared/components/admin/CrudRowActions';
 import { EntityDetailField, EntityViewDialog } from '@shared/components/admin/EntityViewDialog';
 import { usePagination } from '@shared/hooks/usePagination';
 import { useLanguage } from '@shared/context/LanguageContext';
+import { useAuth } from '@shared/context/AuthContext';
 import { auditAPI, rbacAPI, usersAPI } from '@shared/services/api';
 import { cn } from '@shared/components/ui/utils';
 import {
@@ -173,6 +174,8 @@ function buildFallbackRbacActivity(roles: RBACRole[]): AuditLogEntry[] {
 
 export function RolesPage() {
   const { t } = useLanguage();
+  const { user: currentUser } = useAuth();
+  const canManageRbac = Boolean(currentUser?.is_superuser);
   const [tab, setTab] = useState<RolesTab>('overview');
   const [roles, setRoles] = useState<RBACRole[]>([]);
   const [permissions, setPermissions] = useState<RBACPermission[]>([]);
@@ -407,6 +410,10 @@ export function RolesPage() {
   };
 
   const handleCreate = async () => {
+    if (!canManageRbac) {
+      toast.error('Only a super administrator can create or edit roles.');
+      return;
+    }
     if (!form.role_name.trim()) {
       toast.error(t('roles.nameRequired'));
       return;
@@ -444,6 +451,10 @@ export function RolesPage() {
 
   const handleDeleteRole = async () => {
     if (!deleteRole) return;
+    if (!canManageRbac) {
+      toast.error('Only a super administrator can delete roles.');
+      return;
+    }
     try {
       await rbacAPI.deleteRole(deleteRole.id);
       toast.success(t('roles.deleted'));
@@ -457,6 +468,10 @@ export function RolesPage() {
 
   const handleSavePermissions = async () => {
     if (!selected) return;
+    if (!canManageRbac) {
+      toast.error('Only a super administrator can change role permissions.');
+      return;
+    }
     setSaving(true);
     try {
       const updated = await rbacAPI.assignPermissions(selected.id, selectedPermIds);
@@ -536,6 +551,11 @@ export function RolesPage() {
             </div>
             <h1 className="enforcement-page__title">{t('roles.title')}</h1>
             <p className="enforcement-page__subtitle">{t('roles.subtitleEnterprise')}</p>
+            {!canManageRbac && (
+              <p className="enforcement-page__subtitle" style={{ marginTop: '0.35rem', opacity: 0.85 }}>
+                View-only: only a super administrator can create roles or change the permission matrix.
+              </p>
+            )}
           </div>
           <div className="roles-page__hero-actions">
             <button
@@ -547,7 +567,7 @@ export function RolesPage() {
               {loading ? <Loader2 size={16} className="animate-spin" aria-hidden /> : <RefreshCw size={16} aria-hidden />}
               {t('roles.refresh')}
             </button>
-            <button type="button" className="enforcement-page__hero-btn" onClick={openCreateRole}>
+            <button type="button" className="enforcement-page__hero-btn" onClick={openCreateRole} disabled={!canManageRbac}>
               <Plus size={16} aria-hidden />
               {t('roles.add')}
             </button>

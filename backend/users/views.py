@@ -37,7 +37,7 @@ class UserListCreateView(generics.ListCreateAPIView):
         return success_response(serializer.data)
 
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.get_serializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         return success_response(
@@ -129,16 +129,57 @@ class ToggleActiveView(APIView):
             sync_profile_status(user)
             message = 'Account deactivated'
         else:
-            if user.role == 'admin' and user.pk != request.user.pk:
-                return error_response(
-                    'Administrator accounts cannot be managed this way.',
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                )
-            if user.pk == request.user.pk:
-                return error_response('You cannot change your own account status here.', status_code=status.HTTP_400_BAD_REQUEST)
+            try:
+                assert_admin_may_manage_account(request.user, user, action='reactivate')
+            except (PermissionError, ValueError) as exc:
+                code = status.HTTP_403_FORBIDDEN if isinstance(exc, PermissionError) else status.HTTP_400_BAD_REQUEST
+                return error_response(str(exc), status_code=code)
             restore_user(user)
             message = 'Account reactivated'
         return success_response(UserSerializer(user).data, message=message)
+
+
+class AdminResetPasswordView(APIView):
+    """Admin triggers a secure password-reset email (never reads or sets a known password)."""
+
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def post(self, request, pk):
+        try:
+            target = User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            return error_response('User not found', status_code=status.HTTP_404_NOT_FOUND)
+
+        from users.profile_services import assert_admin_may_manage_account
+
+        try:
+            assert_admin_may_manage_account(request.user, target, action='reset password for')
+        except (PermissionError, ValueError) as exc:
+            code = status.HTTP_403_FORBIDDEN if isinstance(exc, PermissionError) else status.HTTP_400_BAD_REQUEST
+            return error_response(str(exc), status_code=code)
+
+        from authentication.password_reset import PasswordResetError, request_password_reset
+        from audit.services import write_audit_log
+
+        try:
+            request_password_reset(target.email)
+        except PasswordResetError as exc:
+            if exc.code == 'send_failed':
+                return error_response(exc.message, status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
+            return error_response(exc.message, status_code=status.HTTP_400_BAD_REQUEST)
+
+        write_audit_log(
+            user=request.user,
+            action='update',
+            resource='user_password',
+            resource_id=str(target.pk),
+            request=request,
+            new_value={'method': 'admin_reset_link', 'target_email': target.email},
+            extra_data={'actor_role': request.user.role, 'target_role': target.role},
+        )
+        return success_response(
+            message=f'Password reset link sent to {target.email}. The temporary link expires shortly.',
+        )
 
 
 class DriverSearchView(APIView):

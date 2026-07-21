@@ -148,6 +148,9 @@ export const usersAPI = USE_MOCK ? mockApi.usersAPI : {
   async toggleActive(id: string): Promise<User> {
     return unwrap<User>(await apiClient.post(`/users/${id}/toggle-active/`));
   },
+  async resetPassword(id: string): Promise<{ message?: string }> {
+    return unwrap(await apiClient.post(`/users/${id}/reset-password/`));
+  },
 };
 
 // ── VEHICLES ─────────────────────────────────────────────────────

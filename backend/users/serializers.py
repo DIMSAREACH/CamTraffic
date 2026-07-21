@@ -11,11 +11,11 @@ class UserSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'full_name', 'email', 'role', 'phone', 'address',
             'license_no', 'profile_image', 'email_verified', 'created_at', 'updated_at', 'last_login',
-            'auth_provider', 'is_active', 'deleted_at',
+            'auth_provider', 'is_active', 'deleted_at', 'is_superuser',
         )
         read_only_fields = (
             'id', 'created_at', 'updated_at', 'last_login', 'role',
-            'auth_provider', 'email_verified', 'deleted_at',
+            'auth_provider', 'email_verified', 'deleted_at', 'is_superuser',
         )
 
 
@@ -50,6 +50,13 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         role = attrs.get('role', 'driver')
+        request = self.context.get('request')
+        actor = getattr(request, 'user', None) if request else None
+        if role == 'admin' and not (actor and getattr(actor, 'is_superuser', False)):
+            raise serializers.ValidationError({
+                'role': 'Only a super administrator can create administrator accounts.',
+            })
+
         license_no = (attrs.get('license_no') or '').strip()
         badge_no = (attrs.pop('badge_no', '') or '').strip()
 

@@ -22,7 +22,12 @@ ROLE_MAP = {
 
 PERMISSIONS = [
     ('users.view', 'view', 'users'),
+    ('users.create', 'create', 'users'),
+    ('users.edit', 'edit', 'users'),
     ('users.manage', 'manage', 'users'),
+    ('users.delete', 'delete', 'users'),
+    ('users.reset_password', 'reset_password', 'users'),
+    ('users.create_admin', 'create_admin', 'users'),
     ('signs.view', 'view', 'signs'),
     ('signs.manage', 'manage', 'signs'),
     ('fines.view', 'view', 'fines'),
@@ -33,10 +38,21 @@ PERMISSIONS = [
     ('violations.manage', 'manage', 'violations'),
     ('infrastructure.manage', 'manage', 'infrastructure'),
     ('reports.view', 'view', 'reports'),
+    ('audit.view', 'view', 'audit'),
+    ('rbac.manage', 'manage', 'rbac'),
 ]
 
 ROLE_PERMS = {
-    'admin': [p[0] for p in PERMISSIONS],
+    'admin': [
+        'users.view', 'users.create', 'users.edit', 'users.manage', 'users.delete',
+        'users.reset_password',
+        'signs.view', 'signs.manage',
+        'fines.view', 'fines.manage',
+        'vehicles.view', 'vehicles.manage',
+        'violations.view', 'violations.manage',
+        'infrastructure.manage', 'reports.view', 'audit.view',
+    ],
+    'super_admin': [p[0] for p in PERMISSIONS],
     'officer': [
         'users.view', 'signs.view', 'fines.view', 'fines.manage',
         'vehicles.view', 'violations.view', 'violations.manage', 'reports.view',
@@ -66,10 +82,10 @@ class Command(BaseCommand):
 
     def _seed_rbac(self):
         roles = {}
-        for name in ('admin', 'officer', 'driver'):
+        for name in ('admin', 'super_admin', 'officer', 'driver'):
             roles[name], _ = Role.objects.get_or_create(
                 role_name=name,
-                defaults={'description': f'{name.title()} role', 'status': 'active'},
+                defaults={'description': f'{name.replace("_", " ").title()} role', 'status': 'active'},
             )
 
         perms = {}
@@ -88,6 +104,12 @@ class Command(BaseCommand):
 
         for user in User.objects.all():
             provision_user_account(user)
+            # Super-admins get the elevated RBAC role assignment.
+            if user.is_superuser and user.role == 'admin':
+                UserRole.objects.update_or_create(
+                    user=user,
+                    defaults={'role': roles['super_admin']},
+                )
 
         self.stdout.write(f'RBAC: {Role.objects.count()} roles, {UserRole.objects.count()} user assignments')
 

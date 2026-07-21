@@ -18,6 +18,7 @@ export interface User {
   auth_provider?: 'email' | 'google' | 'github';
   is_active: boolean;
   deleted_at?: string | null;
+  is_superuser?: boolean;
   email_verified?: boolean;
 }
 

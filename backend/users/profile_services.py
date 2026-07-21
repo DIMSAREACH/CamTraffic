@@ -57,10 +57,14 @@ def provision_user_account(
     license_no: str | None = None,
 ) -> None:
     """Assign RBAC role and create role-specific profile after user save."""
-    erd_role = ROLE_TO_ERD.get(user.role, 'driver')
+    erd_role = (
+        'super_admin'
+        if user.role == 'admin' and getattr(user, 'is_superuser', False)
+        else ROLE_TO_ERD.get(user.role, 'driver')
+    )
     role, _ = Role.objects.get_or_create(
         role_name=erd_role,
-        defaults={'description': f'{erd_role.title()} role', 'status': 'active'},
+        defaults={'description': f'{erd_role.replace("_", " ").title()} role', 'status': 'active'},
     )
     UserRole.objects.update_or_create(user=user, defaults={'role': role})
 
@@ -103,14 +107,14 @@ def sync_profile_status(user: User) -> None:
 
 
 def assert_admin_may_manage_account(actor: User, target: User, *, action: str = 'modify') -> None:
-    """Admins manage drivers/officers only — never other admins or themselves."""
+    """Admins manage drivers/officers; only super-admins may manage other admins."""
     if actor.role != 'admin':
         raise PermissionError('Only administrators can manage user accounts.')
     if target.pk == actor.pk:
         raise ValueError(f'You cannot {action} your own account.')
-    if target.role == 'admin':
+    if target.role == 'admin' and not getattr(actor, 'is_superuser', False):
         raise ValueError(
-            'Administrator accounts cannot be deleted or deactivated by another admin. '
+            'Only a super administrator can manage other administrator accounts. '
             'Keep at least one administrator for system access.',
         )
 

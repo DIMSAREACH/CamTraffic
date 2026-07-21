@@ -3,7 +3,7 @@ import { usePagination } from '@shared/hooks/usePagination';
 import { TablePagination } from '@shared/components/ui/TablePagination';
 import {
   Plus, Search, Trash2, ToggleLeft, ToggleRight, Users, Shield, Car,
-  BadgeCheck, UserPlus, Pencil, AlertCircle, CheckCircle, XCircle, Trash, Eye,
+  BadgeCheck, UserPlus, Pencil, AlertCircle, CheckCircle, XCircle, Trash, Eye, KeyRound,
 } from 'lucide-react';
 import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
@@ -106,7 +106,8 @@ export function UsersPage() {
   const [viewUser, setViewUser] = useState<User | null>(null);
 
   const isSelf = (u: User) => Boolean(currentUser?.id) && String(u.id) === String(currentUser.id);
-  const isProtectedAdmin = (u: User) => u.role === 'admin';
+  const isSuperAdmin = Boolean(currentUser?.is_superuser);
+  const isProtectedAdmin = (u: User) => u.role === 'admin' && !isSuperAdmin;
   const cannotDeleteUser = (u: User) => isSelf(u) || isProtectedAdmin(u);
   const cannotToggleUser = (u: User) => isSelf(u) || isProtectedAdmin(u);
 
@@ -217,7 +218,7 @@ export function UsersPage() {
     if (cannotDeleteUser(deleteUser)) {
       toast.error(
         isProtectedAdmin(deleteUser)
-          ? 'Administrator accounts cannot be deleted. Keep at least one admin.'
+          ? 'Only a super administrator can manage other administrator accounts.'
           : (t('users.cannotDeleteSelf') !== 'users.cannotDeleteSelf'
             ? t('users.cannotDeleteSelf')
             : 'You cannot delete your own account.'),
@@ -238,6 +239,24 @@ export function UsersPage() {
       setDeleteUser(null);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to delete user');
+    }
+  };
+
+  const handleResetPassword = async (u: User) => {
+    if (isSelf(u)) {
+      toast.error('Use Profile → Change Password for your own account.');
+      return;
+    }
+    if (cannotToggleUser(u)) {
+      toast.error('Only a super administrator can reset another administrator password.');
+      return;
+    }
+    if (!window.confirm(`Send a password reset link to ${u.email}?`)) return;
+    try {
+      const result = await usersAPI.resetPassword(u.id);
+      toast.success(result.message || `Reset link sent to ${u.email}`);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Could not send reset link');
     }
   };
 
@@ -415,6 +434,16 @@ export function UsersPage() {
                         </button>
                         <button
                           type="button"
+                          className="users-page__action-btn users-page__action-btn--edit"
+                          onClick={() => handleResetPassword(u)}
+                          disabled={isSelf(u) || cannotToggleUser(u)}
+                          aria-label="Reset password"
+                          title={isSelf(u) ? 'Use Change Password on your profile' : 'Send password reset link'}
+                        >
+                          <KeyRound size={16} strokeWidth={2.35} />
+                        </button>
+                        <button
+                          type="button"
                           className="users-page__action-btn users-page__action-btn--delete"
                           onClick={() => setDeleteUser(u)}
                           disabled={cannotDeleteUser(u)}
@@ -503,7 +532,9 @@ export function UsersPage() {
               <Select value={form.role} onValueChange={(v) => setForm((f) => ({ ...f, role: v as UserRole }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin"><span className="flex items-center gap-2"><Shield size={14} /> {t('users.roleAdmin')}</span></SelectItem>
+                  {isSuperAdmin && (
+                    <SelectItem value="admin"><span className="flex items-center gap-2"><Shield size={14} /> {t('users.roleAdmin')}</span></SelectItem>
+                  )}
                   <SelectItem value="police"><span className="flex items-center gap-2"><BadgeCheck size={14} /> {t('users.rolePolice')}</span></SelectItem>
                   <SelectItem value="driver"><span className="flex items-center gap-2"><Car size={14} /> {t('users.roleDriver')}</span></SelectItem>
                 </SelectContent>
