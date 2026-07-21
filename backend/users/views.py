@@ -92,9 +92,13 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
         if request.user.role != 'admin':
             return error_response('Permission denied', status_code=status.HTTP_403_FORBIDDEN)
         instance = self.get_object()
-        if instance.pk == request.user.pk:
-            return error_response('You cannot delete your own account.', status_code=status.HTTP_400_BAD_REQUEST)
-        from users.profile_services import safe_delete_user
+        from users.profile_services import assert_admin_may_manage_account, safe_delete_user
+
+        try:
+            assert_admin_may_manage_account(request.user, instance, action='delete')
+        except (PermissionError, ValueError) as exc:
+            code = status.HTTP_403_FORBIDDEN if isinstance(exc, PermissionError) else status.HTTP_400_BAD_REQUEST
+            return error_response(str(exc), status_code=code)
 
         # Prefer soft-delete. Pass ?hard=1 only for spam/test cleanup without linked records.
         hard = str(request.query_params.get('hard', '')).lower() in ('1', 'true', 'yes')
@@ -112,17 +116,26 @@ class ToggleActiveView(APIView):
             user = User.objects.get(pk=pk)
         except User.DoesNotExist:
             return error_response('User not found', status_code=status.HTTP_404_NOT_FOUND)
-        if user.pk == request.user.pk and user.is_active:
-            return error_response('You cannot deactivate your own account.', status_code=status.HTTP_400_BAD_REQUEST)
-        from users.profile_services import restore_user, soft_delete_user, sync_profile_status
+        from users.profile_services import assert_admin_may_manage_account, restore_user, sync_profile_status
 
         if user.is_active:
-            # Suspend without marking as user-requested deletion.
+            try:
+                assert_admin_may_manage_account(request.user, user, action='deactivate')
+            except (PermissionError, ValueError) as exc:
+                code = status.HTTP_403_FORBIDDEN if isinstance(exc, PermissionError) else status.HTTP_400_BAD_REQUEST
+                return error_response(str(exc), status_code=code)
             user.is_active = False
             user.save(update_fields=['is_active', 'updated_at'])
             sync_profile_status(user)
             message = 'Account deactivated'
         else:
+            if user.role == 'admin' and user.pk != request.user.pk:
+                return error_response(
+                    'Administrator accounts cannot be managed this way.',
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                )
+            if user.pk == request.user.pk:
+                return error_response('You cannot change your own account status here.', status_code=status.HTTP_400_BAD_REQUEST)
             restore_user(user)
             message = 'Account reactivated'
         return success_response(UserSerializer(user).data, message=message)

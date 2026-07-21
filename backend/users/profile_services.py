@@ -102,6 +102,19 @@ def sync_profile_status(user: User) -> None:
     Driver.objects.filter(user=user).update(status=status)
 
 
+def assert_admin_may_manage_account(actor: User, target: User, *, action: str = 'modify') -> None:
+    """Admins manage drivers/officers only — never other admins or themselves."""
+    if actor.role != 'admin':
+        raise PermissionError('Only administrators can manage user accounts.')
+    if target.pk == actor.pk:
+        raise ValueError(f'You cannot {action} your own account.')
+    if target.role == 'admin':
+        raise ValueError(
+            'Administrator accounts cannot be deleted or deactivated by another admin. '
+            'Keep at least one administrator for system access.',
+        )
+
+
 def soft_delete_user(user: User) -> User:
     """
     Soft-delete: disable sign-in and stamp deleted_at.

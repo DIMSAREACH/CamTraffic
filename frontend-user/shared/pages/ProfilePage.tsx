@@ -134,6 +134,9 @@ export function ProfilePage() {
   const pwMeta = STRENGTH_META[pwStrength];
   const roleClass = `profile-page__role-badge--${user.role}`;
   const accountActionsLocked = user.role === 'admin';
+  const canSelfDelete = user.role === 'driver';
+  const canSelfDeactivate = user.role !== 'admin';
+  const deleteAccountLocked = !canSelfDelete;
 
   const handleSave = async () => {
     setSaving(true);
@@ -1032,10 +1035,14 @@ export function ProfilePage() {
                   <p className="profile-page__section-desc">{t('profile.dangerZoneDesc')}</p>
                 </div>
               </div>
-              {accountActionsLocked && (
+              {(accountActionsLocked || deleteAccountLocked) && (
                 <div className="profile-page__danger-admin-note">
                   <Shield size={15} />
-                  <p>{t('profile.adminAccountProtected')}</p>
+                  <p>
+                    {accountActionsLocked
+                      ? t('profile.adminAccountProtected')
+                      : t('profile.officerAccountProtected')}
+                  </p>
                 </div>
               )}
               <div className="profile-page__danger-grid">
@@ -1052,7 +1059,7 @@ export function ProfilePage() {
                   <button
                     type="button"
                     className="profile-page__danger-btn profile-page__danger-btn--outline"
-                    disabled={deactivating || accountActionsLocked}
+                    disabled={deactivating || !canSelfDeactivate}
                     onClick={handleDeactivate}
                   >
                     {deactivating ? <Loader2 size={13} className="profile-page__spinner" /> : <LogOut size={13} />}
@@ -1070,7 +1077,7 @@ export function ProfilePage() {
                       <p className="profile-page__danger-card-desc">{t('profile.deleteAccountDesc')}</p>
                     </div>
                   </div>
-                  {accountActionsLocked ? (
+                  {deleteAccountLocked ? (
                     <button
                       type="button"
                       className="profile-page__danger-btn profile-page__danger-btn--solid"

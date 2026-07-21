@@ -55,7 +55,10 @@ def _blacklist_refresh(request) -> None:
 
 
 class DeactivateAccountView(APIView):
-    """Temporarily disable sign-in (no deleted_at). Admin can reactivate."""
+    """Temporarily disable sign-in (no deleted_at). Admin can reactivate.
+
+    Drivers and officers may deactivate themselves. Admins cannot.
+    """
 
     permission_classes = [IsAuthenticated]
 
@@ -76,15 +79,24 @@ class DeactivateAccountView(APIView):
 
 
 class DeleteAccountView(APIView):
-    """Soft-delete own account (driver/officer). Preserves fines and violations."""
+    """Soft-delete own account — drivers only (law-enforcement policy).
+
+    Officers and administrators cannot self-delete so the system always
+    retains accountable enforcement / admin access.
+    """
 
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
         user = request.user
-        if user.role == 'admin':
+        if user.role != 'driver':
+            if user.role == 'admin':
+                return error_response(
+                    'Administrator accounts cannot be self-deleted. Contact another administrator.',
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                )
             return error_response(
-                'Administrator accounts cannot be self-deleted. Contact another administrator.',
+                'Police officer accounts cannot be self-deleted. Contact an administrator.',
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
         if user.deleted_at and not user.is_active:

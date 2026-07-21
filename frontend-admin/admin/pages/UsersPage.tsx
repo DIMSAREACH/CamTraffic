@@ -106,6 +106,9 @@ export function UsersPage() {
   const [viewUser, setViewUser] = useState<User | null>(null);
 
   const isSelf = (u: User) => Boolean(currentUser?.id) && String(u.id) === String(currentUser.id);
+  const isProtectedAdmin = (u: User) => u.role === 'admin';
+  const cannotDeleteUser = (u: User) => isSelf(u) || isProtectedAdmin(u);
+  const cannotToggleUser = (u: User) => isSelf(u) || isProtectedAdmin(u);
 
   const loadUsers = async () => {
     setLoading(true);
@@ -190,10 +193,14 @@ export function UsersPage() {
   };
 
   const handleToggle = async (u: User) => {
-    if (isSelf(u) && u.is_active) {
-      toast.error(t('users.cannotDeactivateSelf') !== 'users.cannotDeactivateSelf'
-        ? t('users.cannotDeactivateSelf')
-        : 'You cannot deactivate your own account.');
+    if (cannotToggleUser(u)) {
+      toast.error(
+        isProtectedAdmin(u)
+          ? 'Administrator accounts cannot be deactivated here.'
+          : (t('users.cannotDeactivateSelf') !== 'users.cannotDeactivateSelf'
+            ? t('users.cannotDeactivateSelf')
+            : 'You cannot deactivate your own account.'),
+      );
       return;
     }
     try {
@@ -207,10 +214,14 @@ export function UsersPage() {
 
   const handleDelete = async () => {
     if (!deleteUser) return;
-    if (isSelf(deleteUser)) {
-      toast.error(t('users.cannotDeleteSelf') !== 'users.cannotDeleteSelf'
-        ? t('users.cannotDeleteSelf')
-        : 'You cannot delete your own account.');
+    if (cannotDeleteUser(deleteUser)) {
+      toast.error(
+        isProtectedAdmin(deleteUser)
+          ? 'Administrator accounts cannot be deleted. Keep at least one admin.'
+          : (t('users.cannotDeleteSelf') !== 'users.cannotDeleteSelf'
+            ? t('users.cannotDeleteSelf')
+            : 'You cannot delete your own account.'),
+      );
       setDeleteUser(null);
       return;
     }
@@ -406,12 +417,14 @@ export function UsersPage() {
                           type="button"
                           className="users-page__action-btn users-page__action-btn--delete"
                           onClick={() => setDeleteUser(u)}
-                          disabled={isSelf(u)}
+                          disabled={cannotDeleteUser(u)}
                           aria-label={t('common.delete')}
-                          title={isSelf(u)
-                            ? (t('users.cannotDeleteSelf') !== 'users.cannotDeleteSelf'
-                              ? t('users.cannotDeleteSelf')
-                              : 'You cannot delete your own account.')
+                          title={cannotDeleteUser(u)
+                            ? (isProtectedAdmin(u)
+                              ? 'Administrator accounts cannot be deleted'
+                              : (t('users.cannotDeleteSelf') !== 'users.cannotDeleteSelf'
+                                ? t('users.cannotDeleteSelf')
+                                : 'You cannot delete your own account.'))
                             : t('common.delete')}
                         >
                           <Trash2 size={16} strokeWidth={2.35} />
@@ -420,12 +433,14 @@ export function UsersPage() {
                           type="button"
                           className="users-page__action-btn users-page__action-btn--toggle"
                           onClick={() => handleToggle(u)}
-                          disabled={isSelf(u) && u.is_active}
+                          disabled={cannotToggleUser(u)}
                           aria-label={t('users.toggleStatus')}
-                          title={isSelf(u) && u.is_active
-                            ? (t('users.cannotDeactivateSelf') !== 'users.cannotDeactivateSelf'
-                              ? t('users.cannotDeactivateSelf')
-                              : 'You cannot deactivate your own account.')
+                          title={cannotToggleUser(u)
+                            ? (isProtectedAdmin(u)
+                              ? 'Administrator accounts cannot be deactivated here'
+                              : (t('users.cannotDeactivateSelf') !== 'users.cannotDeactivateSelf'
+                                ? t('users.cannotDeactivateSelf')
+                                : 'You cannot deactivate your own account.'))
                             : t('users.toggleStatus')}
                         >
                           {u.is_active ? <ToggleRight size={16} strokeWidth={2.35} /> : <ToggleLeft size={16} strokeWidth={2.35} />}

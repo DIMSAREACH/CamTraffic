@@ -89,6 +89,11 @@ class OfficerDetailView(generics.RetrieveUpdateDestroyAPIView):
         user = instance.user
         if user.pk == request.user.pk:
             return error_response('You cannot delete your own officer account.', status_code=status.HTTP_400_BAD_REQUEST)
+        if user.role == 'admin':
+            return error_response(
+                'Administrator accounts cannot be deleted from the officers list.',
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
         from users.profile_services import safe_delete_user
 
         try:

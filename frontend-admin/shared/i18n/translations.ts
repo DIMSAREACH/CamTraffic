@@ -1582,6 +1582,7 @@ export const translations = {
       accountDeleted: 'Account deleted',
       deleteAccountFail: 'Could not delete account',
       adminAccountProtected: 'Administrator accounts cannot be self-deactivated or deleted. Contact another administrator.',
+      officerAccountProtected: 'Police officer accounts cannot be self-deleted. Contact an administrator to close the account.',
       deactivateHint: 'Contact admin to deactivate your account',
       fineAlerts: 'Fine Alerts',
       aiDetections: 'AI Detections',
