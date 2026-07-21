@@ -84,13 +84,27 @@ def map_headers(import_type: str, raw_headers: list[str]) -> dict[int, str]:
 def _rows_from_matrix(import_type: str, matrix: list[list[Any]]) -> list[dict[str, str]]:
     if not matrix:
         raise ValueError('File is empty.')
-    headers = [str(c or '') for c in matrix[0]]
+    # Skip leading blank rows (common after Excel "Save As")
+    header_idx = 0
+    while header_idx < len(matrix):
+        row = matrix[header_idx]
+        if row and any(cell is not None and str(cell).strip() for cell in row):
+            break
+        header_idx += 1
+    if header_idx >= len(matrix):
+        raise ValueError('File is empty.')
+
+    headers = [str(c or '') for c in matrix[header_idx]]
     mapping = map_headers(import_type, headers)
     if not mapping:
-        raise ValueError('No recognized column headers found. Download a template and retry.')
+        found = ', '.join(h for h in headers if h.strip()) or '(none)'
+        raise ValueError(
+            f'No recognized column headers for "{import_type}". '
+            f'Found: {found}. Download the template and keep the header row.'
+        )
 
     rows: list[dict[str, str]] = []
-    for raw in matrix[1:]:
+    for raw in matrix[header_idx + 1:]:
         if raw is None:
             continue
         # Skip fully empty lines
@@ -101,6 +115,9 @@ def _rows_from_matrix(import_type: str, matrix: list[list[Any]]) -> list[dict[st
             cell = raw[idx] if idx < len(raw) else ''
             if cell is None:
                 cell = ''
+            # Excel dates often become datetime — keep ISO date portion
+            if hasattr(cell, 'isoformat'):
+                cell = cell.isoformat()
             item[field] = str(cell).strip()
         rows.append(item)
     return rows

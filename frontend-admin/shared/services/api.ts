@@ -918,8 +918,11 @@ export const importsAPI = USE_MOCK ? mockApi.importsAPI : {
   async validate(type: ImportDataType, file: File): Promise<ImportValidateResult> {
     const form = new FormData();
     form.append('type', type);
-    form.append('file', file);
-    return unwrap<ImportValidateResult>(await apiClient.post('/imports/validate/', form));
+    form.append('file', file, file.name || `import-${type}.csv`);
+    return unwrap<ImportValidateResult>(await apiClient.post('/imports/validate/', form, {
+      params: { type },
+      timeout: 120000,
+    }));
   },
   async commit(jobId: string): Promise<{ counts: ImportValidateResult['counts']; job: ImportJobSummary }> {
     return unwrap(await apiClient.post('/imports/commit/', { job_id: jobId }));

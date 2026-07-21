@@ -72,47 +72,80 @@ class ImportTemplateView(APIView):
         return response
 
 
+def _first_value(data, key: str) -> str:
+    """Multipart fields may arrive as a list; normalize to a single string."""
+    value = data.get(key)
+    if isinstance(value, (list, tuple)):
+        value = value[0] if value else ''
+    return str(value or '').strip()
+
+
 class ImportValidateView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
-        import_type = (request.data.get('type') or '').strip().lower()
-        upload = request.FILES.get('file')
+        import_type = (
+            _first_value(request.data, 'type')
+            or (request.query_params.get('type') or '').strip()
+        ).lower()
+        upload = request.FILES.get('file') or request.FILES.get('upload')
         if import_type not in IMPORT_TYPES:
-            return error_response('Invalid import type.', status_code=400)
+            return error_response(
+                f'Invalid import type "{import_type or "(missing)"}". '
+                f'Use one of: {", ".join(sorted(IMPORT_TYPES))}.',
+                status_code=400,
+            )
         if not upload:
-            return error_response('file is required.', status_code=400)
+            return error_response(
+                'File is required. Choose a CSV or Excel (.xlsx) file and try again.',
+                status_code=400,
+            )
         if upload.size and upload.size > MAX_UPLOAD_BYTES:
             return error_response('File too large (max 5 MB).', status_code=400)
 
         content = upload.read()
+        if not content:
+            return error_response('Uploaded file is empty.', status_code=400)
+
         file_name = getattr(upload, 'name', 'upload.csv') or 'upload.csv'
         try:
             rows = parse_upload(import_type, file_name, content)
         except ValueError as exc:
             return error_response(str(exc), status_code=400)
+        except Exception as exc:  # noqa: BLE001
+            return error_response(
+                f'Could not read file "{file_name}": {exc}. Use the downloadable CSV/XLSX template.',
+                status_code=400,
+            )
 
         if len(rows) > 2000:
             return error_response('Too many rows (max 2000 per file).', status_code=400)
 
-        report = validate_rows(import_type, rows, actor=request.user)
-        counts = _counts(report)
+        try:
+            report = validate_rows(import_type, rows, actor=request.user)
+            counts = _counts(report)
 
-        job = ImportJob.objects.create(
-            import_type=import_type,
-            file_name=file_name[:255],
-            status='validated',
-            created_by=request.user,
-            total_rows=counts['total'],
-            valid_rows=counts['valid'],
-            success_count=0,
-            failed_count=counts['error'],
-            skipped_count=counts['skipped'],
-            rows_report=report,
-            error_summary={'validate': counts},
-            expires_at=timezone.now() + timedelta(hours=24),
-        )
+            job = ImportJob.objects.create(
+                import_type=import_type,
+                file_name=file_name[:255],
+                status='validated',
+                created_by=request.user,
+                total_rows=counts['total'],
+                valid_rows=counts['valid'],
+                success_count=0,
+                failed_count=counts['error'],
+                skipped_count=counts['skipped'],
+                rows_report=report,
+                error_summary={'validate': counts},
+                expires_at=timezone.now() + timedelta(hours=24),
+            )
+        except Exception as exc:  # noqa: BLE001
+            return error_response(
+                f'Validation could not be saved (database). Run migrations if ImportJob is missing: {exc}',
+                status_code=500,
+            )
+
         return success_response({
             'job_id': str(job.id),
             'import_type': import_type,

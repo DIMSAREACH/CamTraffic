@@ -58,6 +58,12 @@ const SPA_PATHS = [
   'admin/profile',
   'admin/settings',
   'admin/backup-restore',
+  'admin/import-data',
+  'admin/vehicle-owners',
+  'admin/camera-locations',
+  'admin/roads',
+  'admin/unknown-vehicles',
+  'admin/ai-models',
   'dashboard',
 ];
 

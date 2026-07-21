@@ -41,7 +41,7 @@ Existing unique keys are **skipped** (not overwritten):
 
 - `GET /api/imports/types/`
 - `GET /api/imports/template/?type=users&file_format=csv|xlsx`
-- `POST /api/imports/validate/` — multipart `type` + `file`
+- `POST /api/imports/validate/?type=<users|vehicles|…>` — multipart `type` + `file` (query `type` is a fallback)
 - `POST /api/imports/commit/` — `{ "job_id": "..." }`
 - `GET /api/imports/history/`
 - `GET /api/imports/history/<id>/`
