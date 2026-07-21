@@ -85,11 +85,15 @@ Use `deploy/env/.env.render.camtraffic.store.example` as a template. Critical ke
 
 ```env
 ALLOWED_HOSTS=api.camtraffic.store,camtraffic-api.onrender.com,.onrender.com
-CORS_ALLOWED_ORIGINS=https://admin.camtraffic.store,https://app.camtraffic.store
-OAUTH_FRONTEND_CALLBACK_URL=https://app.camtraffic.store/auth/oauth/callback
-FRONTEND_PASSWORD_RESET_URL=https://app.camtraffic.store/reset-password
+CORS_ALLOWED_ORIGINS=https://admin.camtraffic.store,https://app.camtraffic.store,https://camtraffic-user.onrender.com,https://camtraffic-admin.onrender.com
+PUBLIC_API_URL=https://api.camtraffic.store
+# Use onrender user host until app.camtraffic.store DNS exists (currently NXDOMAIN breaks email links).
+OAUTH_FRONTEND_CALLBACK_URL=https://camtraffic-user.onrender.com/auth/oauth/callback
+FRONTEND_PASSWORD_RESET_URL=https://camtraffic-user.onrender.com/reset-password
 RESEND_FROM_EMAIL=CamTraffic <noreply@camtraffic.store>
 ```
+
+Password-reset emails use `{PUBLIC_API_URL}/api/auth/password-reset/continue/?uid=&token=` then 302 to `FRONTEND_PASSWORD_RESET_URL`.
 
 Do **not** set `GUNICORN_BIND` to a fixed port on Render; the image uses `PORT`.
 

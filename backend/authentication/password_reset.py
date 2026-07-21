@@ -1,5 +1,6 @@
 """Password reset email helper."""
 import logging
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -39,11 +40,26 @@ def from_email() -> str:
     )
 
 
+def frontend_reset_url(uid: str, token: str) -> str:
+    """SPA URL with query params (must be a hostname that resolves in DNS)."""
+    base = _reset_base_url()
+    return f'{base}?{urlencode({"uid": uid, "token": token})}'
+
+
 def build_reset_link(user) -> tuple[str, str, str]:
+    """Build the link placed in reset emails.
+
+    When PUBLIC_API_URL is set, emails use an API continue URL that 302-redirects
+    to FRONTEND_PASSWORD_RESET_URL. That way broken custom domains (e.g. missing
+    app.camtraffic.store DNS) do not strand users — the API host still works.
+    """
     uid = urlsafe_base64_encode(force_bytes(str(user.pk)))
     token = default_token_generator.make_token(user)
-    base = _reset_base_url()
-    link = f'{base}?uid={uid}&token={token}'
+    public = (getattr(settings, 'PUBLIC_API_URL', None) or '').strip().rstrip('/')
+    if public:
+        link = f'{public}/api/auth/password-reset/continue/?{urlencode({"uid": uid, "token": token})}'
+    else:
+        link = frontend_reset_url(uid, token)
     return link, uid, token
 
 

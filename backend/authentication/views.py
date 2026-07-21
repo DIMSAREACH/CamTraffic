@@ -1,5 +1,6 @@
 import logging
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework import parsers, status
 from rest_framework.exceptions import AuthenticationFailed, ValidationError
@@ -169,6 +170,44 @@ class PasswordResetConfirmView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return success_response(message='Password reset successful')
+
+
+class PasswordResetContinueView(APIView):
+    """GET bridge: API host → user portal reset page (avoids broken custom DNS in emails)."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        from urllib.parse import urlparse
+
+        from django.http import HttpResponseRedirect
+
+        from authentication.password_reset import frontend_reset_url
+
+        uid = (request.query_params.get('uid') or '').strip()
+        token = (request.query_params.get('token') or '').strip()
+        if not uid or not token:
+            base = getattr(settings, 'FRONTEND_PASSWORD_RESET_URL', '').rstrip('/')
+            if '/reset-password' in base:
+                target = base.rsplit('/reset-password', 1)[0] + '/forgot-password'
+            else:
+                target = base or '/'
+            return HttpResponseRedirect(target)
+
+        target = frontend_reset_url(uid, token)
+        allowed = {
+            urlparse(getattr(settings, 'FRONTEND_PASSWORD_RESET_URL', '')).netloc,
+            urlparse(getattr(settings, 'OAUTH_FRONTEND_CALLBACK_URL', '')).netloc,
+            'camtraffic-user.onrender.com',
+            'app.camtraffic.store',
+            'localhost:5173',
+            '127.0.0.1:5173',
+        }
+        allowed.discard('')
+        if urlparse(target).netloc not in allowed:
+            return error_response('Invalid reset redirect target.', status_code=status.HTTP_400_BAD_REQUEST)
+        return HttpResponseRedirect(target)
 
 
 class EmailVerifySendView(APIView):
