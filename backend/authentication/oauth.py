@@ -18,6 +18,9 @@ User = get_user_model()
 
 STATE_SALT = 'camtraffic-oauth-state'
 STATE_MAX_AGE = 600
+# app.camtraffic.store currently has no public DNS — never send it to Google/GitHub.
+_BROKEN_OAUTH_HOSTS = frozenset({'app.camtraffic.store'})
+_FALLBACK_OAUTH_CALLBACK = 'https://camtraffic-user.onrender.com/auth/oauth/callback'
 
 
 class OAuthError(Exception):
@@ -43,8 +46,21 @@ def oauth_configured(provider: str) -> bool:
     return False
 
 
+def sanitize_oauth_redirect_uri(uri: str | None) -> str:
+    """Prefer a resolvable callback host (Google rejects unknown / dead redirect URIs)."""
+    from urllib.parse import urlparse
+
+    candidate = (uri or '').strip() or getattr(
+        settings, 'OAUTH_FRONTEND_CALLBACK_URL', _FALLBACK_OAUTH_CALLBACK
+    )
+    host = (urlparse(candidate).hostname or '').lower()
+    if host in _BROKEN_OAUTH_HOSTS:
+        return _FALLBACK_OAUTH_CALLBACK
+    return candidate.rstrip('/') or _FALLBACK_OAUTH_CALLBACK
+
+
 def default_redirect_uri() -> str:
-    return settings.OAUTH_FRONTEND_CALLBACK_URL
+    return sanitize_oauth_redirect_uri(getattr(settings, 'OAUTH_FRONTEND_CALLBACK_URL', ''))
 
 
 def build_authorization_url(provider: str, redirect_uri: str | None = None) -> dict:
@@ -57,7 +73,7 @@ def build_authorization_url(provider: str, redirect_uri: str | None = None) -> d
             503,
         )
 
-    redirect_uri = redirect_uri or default_redirect_uri()
+    redirect_uri = sanitize_oauth_redirect_uri(redirect_uri or default_redirect_uri())
     state = signing.dumps(
         {'provider': provider, 'redirect_uri': redirect_uri, 'nonce': secrets.token_urlsafe(16)},
         salt=STATE_SALT,
@@ -106,8 +122,11 @@ def exchange_code(
     if payload.get('provider') != provider:
         raise OAuthError('Provider mismatch. Please try again.', 400)
 
-    redirect_uri = redirect_uri or payload.get('redirect_uri') or default_redirect_uri()
-    if payload.get('redirect_uri') and payload['redirect_uri'] != redirect_uri:
+    redirect_uri = sanitize_oauth_redirect_uri(
+        redirect_uri or payload.get('redirect_uri') or default_redirect_uri()
+    )
+    state_redirect = sanitize_oauth_redirect_uri(payload.get('redirect_uri')) if payload.get('redirect_uri') else None
+    if state_redirect and state_redirect != redirect_uri:
         raise OAuthError('Redirect URI mismatch.', 400)
 
     if provider == 'google':
