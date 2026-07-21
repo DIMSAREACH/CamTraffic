@@ -401,7 +401,7 @@ export function ImportDataPage() {
 
         {preview ? (
           <div className="import-page__table-wrap">
-            <Table className="enforcement-page__table">
+            <Table className="enforcement-page__table import-page__preview-table">
               <TableHeader>
                 <TableRow className="enforcement-page__table-head">
                   <TableHead className="enforcement-page__th">{t('importData.colRow')}</TableHead>
@@ -428,7 +428,7 @@ export function ImportDataPage() {
                         </span>
                       </TableCell>
                       <TableCell>
-                        <span className="enforcement-page__cell-primary import-page__row-summary">
+                        <span className="enforcement-page__cell-primary import-page__row-summary" title={formatRowSummary(importType, row.data || {})}>
                           {formatRowSummary(importType, row.data || {})}
                         </span>
                       </TableCell>

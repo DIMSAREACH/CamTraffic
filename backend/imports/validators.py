@@ -25,10 +25,18 @@ ROLE_MAP = {
     'user': 'driver',
     'driver': 'driver',
     'citizen': 'driver',
+    'viewer': 'driver',
+    'guest': 'driver',
     'police': 'police',
     'officer': 'police',
+    'editor': 'police',
+    'staff': 'police',
+    'traffic police': 'police',
     'admin': 'admin',
     'administrator': 'admin',
+    'manager': 'admin',
+    'superadmin': 'admin',
+    'super admin': 'admin',
 }
 
 VEHICLE_TYPE_MAP = {
@@ -133,16 +141,33 @@ def parse_when(raw: str):
     return None
 
 
+def _derive_user_name(row: dict[str, str], email: str) -> str:
+    """Prefer Name / Full Name; else First+Last; else email local-part."""
+    name = (row.get('name') or '').strip()
+    if name:
+        return name
+    first = (row.get('first_name') or '').strip()
+    last = (row.get('last_name') or '').strip()
+    combined = f'{first} {last}'.strip()
+    if combined:
+        return combined
+    if email and '@' in email:
+        local = email.split('@', 1)[0]
+        pretty = re.sub(r'[._+\-]+', ' ', local).strip()
+        return pretty.title() if pretty else local
+    return ''
+
+
 def validate_users_row(row: dict[str, str], *, actor, seen_emails: set[str]) -> dict:
     errors: list[str] = []
-    name = (row.get('name') or '').strip()
     email = (row.get('email') or '').strip().lower()
     phone = (row.get('phone') or '').strip()
     role_raw = (row.get('role') or '').strip()
     password = (row.get('password') or '').strip()
+    name = _derive_user_name(row, email)
 
     if not name:
-        errors.append('Name is required.')
+        errors.append('Name is required (or provide Email so a name can be derived).')
     if not email:
         errors.append('Email is required.')
     else:
@@ -156,7 +181,9 @@ def validate_users_row(row: dict[str, str], *, actor, seen_emails: set[str]) -> 
 
     role = map_role(role_raw)
     if not role:
-        errors.append('Role must be Driver, User, Police, Officer, or Admin.')
+        errors.append(
+            'Role must be Driver, User, Viewer, Police, Officer, Editor, Staff, Admin, or Manager.'
+        )
     elif role == 'admin' and not getattr(actor, 'is_superuser', False):
         errors.append('Only a super administrator can import admin accounts.')
 

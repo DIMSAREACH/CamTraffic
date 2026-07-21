@@ -66,3 +66,9 @@ Code,Name,Category,Description
 Camera ID,Location,Road Name,RTSP URL,Status
 Plate Number,Violation,Date,Fine
 ```
+
+### Users — flexible columns
+
+- **Name** optional: if blank, derived from email local-part (`veasnapath931@…` → `Veasnapath931`).
+- Also accepts `First Name` + `Last Name`, `Display Name`, or `Username`.
+- **Role** aliases: `Viewer`/`User` → driver; `Editor`/`Staff`/`Officer` → police; `Manager`/`Admin` → admin (admin import still requires Super Admin).

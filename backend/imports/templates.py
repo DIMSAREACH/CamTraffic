@@ -12,10 +12,14 @@ TEMPLATES: dict[str, dict] = {
             ['Jane Smith', 'jane@example.com', '098765432', 'Police', ''],
         ],
         'columns': [
-            {'key': 'Name', 'required': True, 'note': 'Full name'},
+            {'key': 'Name', 'required': False, 'note': 'Full name (derived from email if blank)'},
             {'key': 'Email', 'required': True, 'note': 'Unique email'},
             {'key': 'Phone', 'required': False, 'note': ''},
-            {'key': 'Role', 'required': True, 'note': 'Driver|User|Police|Officer|Admin'},
+            {
+                'key': 'Role',
+                'required': True,
+                'note': 'Driver|User|Viewer→driver; Police|Officer|Editor|Staff→police; Admin|Manager→admin',
+            },
             {'key': 'Password', 'required': False, 'note': 'Optional; generated if blank'},
         ],
     },

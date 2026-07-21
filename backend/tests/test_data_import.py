@@ -66,6 +66,24 @@ class DataImportAPITests(APITestCase):
         self.assertTrue(User.objects.filter(email__iexact='newuser@import.test').exists())
         self.assertEqual(commit.data['data']['counts']['success'], 1)
 
+    def test_validate_users_derives_name_and_role_aliases(self):
+        csv_body = (
+            'Email,Phone,Role\n'
+            'viewer.one@import.test,011,Viewer\n'
+            'editor.two@import.test,012,Editor\n'
+            'manager.three@import.test,013,Manager\n'
+        ).encode('utf-8')
+        upload = SimpleUploadedFile('users-alias.csv', csv_body, content_type='text/csv')
+        res = self.client.post('/api/imports/validate/', {'type': 'users', 'file': upload}, format='multipart')
+        self.assertEqual(res.status_code, 200, res.data)
+        rows = res.data['data']['rows']
+        self.assertEqual(res.data['data']['counts']['valid'], 3)
+        self.assertEqual(rows[0]['data']['name'], 'Viewer One')
+        self.assertEqual(rows[0]['data']['role'], 'driver')
+        self.assertEqual(rows[1]['data']['role'], 'police')
+        self.assertEqual(rows[2]['data']['role'], 'admin')
+        self.assertEqual(rows[2]['data']['name'], 'Manager Three')
+
     def test_validate_duplicate_plate_skipped(self):
         Vehicle.objects.create(
             owner=self.driver,

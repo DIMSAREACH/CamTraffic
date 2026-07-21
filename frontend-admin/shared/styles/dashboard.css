@@ -23428,17 +23428,45 @@ html.dark .import-page__table-wrap {
 
 .import-page__row-summary,
 .import-page__file-name {
-  display: inline-block;
-  max-width: 22rem;
+  display: block;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.import-page__preview-table {
+  min-width: 44rem;
+}
+
+.import-page__preview-table th:nth-child(1),
+.import-page__preview-table td:nth-child(1) {
+  width: 3.5rem;
+}
+
+.import-page__preview-table th:nth-child(2),
+.import-page__preview-table td:nth-child(2) {
+  width: 7.5rem;
+}
+
+.import-page__preview-table th:nth-child(3),
+.import-page__preview-table td:nth-child(3) {
+  width: 42%;
+}
+
+.import-page__preview-table th:nth-child(4),
+.import-page__preview-table td:nth-child(4) {
+  width: 38%;
+}
+
 .import-page__error-text {
+  display: block;
   font-size: 0.8rem;
   color: #dc2626;
   line-height: 1.4;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .import-page__result-pills {
