@@ -26,7 +26,15 @@ class UserListCreateView(generics.ListCreateAPIView):
         return UserSerializer
 
     def get_queryset(self):
-        return User.objects.all()
+        # Soft-deleted accounts stay in DB for audit/FKs but are hidden from the Users table.
+        # Pass ?include_deleted=1 to list them (super-admin recovery / support).
+        qs = User.objects.all()
+        include_deleted = str(self.request.query_params.get('include_deleted', '')).lower() in (
+            '1', 'true', 'yes',
+        )
+        if include_deleted and getattr(self.request.user, 'is_superuser', False):
+            return qs
+        return qs.filter(deleted_at__isnull=True)
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())

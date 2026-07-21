@@ -229,13 +229,9 @@ export function UsersPage() {
     const removedId = deleteUser.id;
     try {
       const result = await usersAPI.delete(removedId);
-      if (result.user && result.user.is_active === false) {
-        setUsers((prev) => prev.map((u) => (u.id === removedId ? { ...u, ...result.user!, is_active: false } : u)));
-        toast.success(result.message || 'User was soft-deleted (linked records preserved)');
-      } else {
-        setUsers((prev) => prev.filter((u) => u.id !== removedId));
-        toast.success(result.message || 'User deleted');
-      }
+      // Soft-delete keeps the row in DB but hides it from the Users table.
+      setUsers((prev) => prev.filter((u) => u.id !== removedId));
+      toast.success(result.message || 'User deleted');
       setDeleteUser(null);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to delete user');
@@ -434,11 +430,11 @@ export function UsersPage() {
                         </button>
                         <button
                           type="button"
-                          className="users-page__action-btn users-page__action-btn--edit"
+                          className="users-page__action-btn users-page__action-btn--reset"
                           onClick={() => handleResetPassword(u)}
                           disabled={isSelf(u) || cannotToggleUser(u)}
-                          aria-label="Reset password"
-                          title={isSelf(u) ? 'Use Change Password on your profile' : 'Send password reset link'}
+                          aria-label={t('users.resetPassword')}
+                          title={isSelf(u) ? t('users.resetPasswordSelf') : t('users.resetPasswordTitle')}
                         >
                           <KeyRound size={16} strokeWidth={2.35} />
                         </button>

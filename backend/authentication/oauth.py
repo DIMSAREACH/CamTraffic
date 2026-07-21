@@ -21,6 +21,12 @@ STATE_MAX_AGE = 600
 # app.camtraffic.store currently has no public DNS — never send it to Google/GitHub.
 _BROKEN_OAUTH_HOSTS = frozenset({'app.camtraffic.store'})
 _FALLBACK_OAUTH_CALLBACK = 'https://camtraffic-user.onrender.com/auth/oauth/callback'
+# Hosts allowed as OAuth redirect targets (must also be registered in Google/GitHub consoles).
+_ALLOWED_OAUTH_HOSTS = frozenset({
+    'camtraffic-user.onrender.com',
+    'localhost',
+    '127.0.0.1',
+})
 
 
 class OAuthError(Exception):
@@ -47,16 +53,29 @@ def oauth_configured(provider: str) -> bool:
 
 
 def sanitize_oauth_redirect_uri(uri: str | None) -> str:
-    """Prefer a resolvable callback host (Google rejects unknown / dead redirect URIs)."""
+    """Prefer a resolvable callback host registered with Google/GitHub."""
     from urllib.parse import urlparse
 
-    candidate = (uri or '').strip() or getattr(
-        settings, 'OAUTH_FRONTEND_CALLBACK_URL', _FALLBACK_OAUTH_CALLBACK
-    )
-    host = (urlparse(candidate).hostname or '').lower()
+    configured = (getattr(settings, 'OAUTH_FRONTEND_CALLBACK_URL', '') or '').strip()
+    fallback = configured.rstrip('/') or _FALLBACK_OAUTH_CALLBACK
+    fallback_host = (urlparse(fallback).hostname or '').lower()
+
+    candidate = (uri or '').strip() or fallback
+    parsed = urlparse(candidate)
+    host = (parsed.hostname or '').lower()
+    path = (parsed.path or '').rstrip('/') or '/auth/oauth/callback'
+
     if host in _BROKEN_OAUTH_HOSTS:
-        return _FALLBACK_OAUTH_CALLBACK
-    return candidate.rstrip('/') or _FALLBACK_OAUTH_CALLBACK
+        return fallback if fallback_host not in _BROKEN_OAUTH_HOSTS else _FALLBACK_OAUTH_CALLBACK
+
+    # Reject unknown / wrong portal hosts (e.g. admin.onrender.com) — GitHub allows only one callback.
+    if host and host not in _ALLOWED_OAUTH_HOSTS and host != fallback_host:
+        return fallback if fallback_host not in _BROKEN_OAUTH_HOSTS else _FALLBACK_OAUTH_CALLBACK
+
+    scheme = parsed.scheme or 'https'
+    if host in ('localhost', '127.0.0.1'):
+        scheme = 'http'
+    return f'{scheme}://{host}{path}'
 
 
 def default_redirect_uri() -> str:
@@ -73,7 +92,11 @@ def build_authorization_url(provider: str, redirect_uri: str | None = None) -> d
             503,
         )
 
-    redirect_uri = sanitize_oauth_redirect_uri(redirect_uri or default_redirect_uri())
+    # GitHub OAuth Apps support a single Authorization callback URL — always use server config.
+    if provider == 'github':
+        redirect_uri = default_redirect_uri()
+    else:
+        redirect_uri = sanitize_oauth_redirect_uri(redirect_uri or default_redirect_uri())
     state = signing.dumps(
         {'provider': provider, 'redirect_uri': redirect_uri, 'nonce': secrets.token_urlsafe(16)},
         salt=STATE_SALT,

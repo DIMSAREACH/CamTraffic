@@ -127,12 +127,14 @@ DEFAULT_FROM_EMAIL=CamTraffic <noreply@camtraffic.store>
 
 Update authorized redirect URIs in each provider console:
 
-| Provider | Redirect URI |
-|----------|----------------|
-| Google | `https://app.camtraffic.store/auth/oauth/callback` |
-| GitHub | same |
+| Provider | Redirect URI (add every host you use) |
+|----------|----------------------------------------|
+| Google | `https://camtraffic-user.onrender.com/auth/oauth/callback` |
+| Google | `https://app.camtraffic.store/auth/oauth/callback` (only after DNS works) |
+| Google | `http://127.0.0.1:5173/auth/oauth/callback` (local) |
+| **GitHub** | **One URL only** — set Authorization callback URL to `https://camtraffic-user.onrender.com/auth/oauth/callback` for production |
 
-Backend callback remains Django; user-facing URL is `OAUTH_FRONTEND_CALLBACK_URL`.
+Backend always sends GitHub that server `OAUTH_FRONTEND_CALLBACK_URL`. User-facing URL must match the GitHub app setting exactly (no trailing slash).
 
 ---
 

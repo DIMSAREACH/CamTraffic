@@ -57,8 +57,8 @@ export const authAPI = USE_MOCK ? mockApi.authAPI : {
     const res = await apiClient.post('/auth/password-reset/confirm/', { uid, token, new_password });
     return { message: res.data?.message };
   },
-  async getOAuthAuthorizeUrl(provider: 'google' | 'github', redirect_uri?: string): Promise<{ authorization_url: string }> {
-    return unwrap<{ authorization_url: string }>(await apiClient.get(`/auth/oauth/${provider}/authorize/`, {
+  async getOAuthAuthorizeUrl(provider: 'google' | 'github', redirect_uri?: string): Promise<{ authorization_url: string; redirect_uri?: string }> {
+    return unwrap<{ authorization_url: string; redirect_uri?: string }>(await apiClient.get(`/auth/oauth/${provider}/authorize/`, {
       params: redirect_uri ? { redirect_uri } : undefined,
     }));
   },

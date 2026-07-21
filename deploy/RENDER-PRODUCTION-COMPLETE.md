@@ -68,11 +68,24 @@ Rebuild both after changing `VITE_*`.
 
 ## C. Google + GitHub consoles
 
-Authorized callback (exact):
+**Exact callback (must match character-for-character, no trailing slash):**
 
 ```
 https://camtraffic-user.onrender.com/auth/oauth/callback
 ```
+
+| Provider | Where to set |
+|----------|----------------|
+| **GitHub** | [OAuth Apps](https://github.com/settings/developers) → your app → **Authorization callback URL** = URL above (GitHub allows **only one**) |
+| **Google** | Cloud Console → Credentials → OAuth client → **Authorized redirect URIs** → add the same URL |
+
+Also set on Render API env:
+
+```env
+OAUTH_FRONTEND_CALLBACK_URL=https://camtraffic-user.onrender.com/auth/oauth/callback
+```
+
+Then **redeploy** `camtraffic-api`. Test GitHub login only on the **user** portal (`camtraffic-user.onrender.com`), not admin.
 
 ## D. Demo logins (seeded on each API boot)
 

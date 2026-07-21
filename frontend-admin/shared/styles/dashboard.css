@@ -10147,7 +10147,18 @@ html.locale-km .enforcement-page--users .enforcement-page__cell-primary {
 }
 
 .users-page__row--inactive {
-  opacity: 0.55;
+  /* Dim text only — keep action buttons full color for usability */
+  background: rgba(248, 250, 252, 0.65);
+}
+
+.users-page__row--inactive .enforcement-page__cell-primary,
+.users-page__row--inactive .enforcement-page__cell-body,
+.users-page__row--inactive .enforcement-page__cell-secondary {
+  opacity: 0.72;
+}
+
+html.dark .users-page__row--inactive {
+  background: rgba(15, 23, 42, 0.35);
 }
 
 .users-page__actions {
@@ -10155,19 +10166,28 @@ html.locale-km .enforcement-page--users .enforcement-page__cell-primary {
   flex-direction: row;
   flex-wrap: nowrap;
   align-items: center;
-  justify-content: flex-start;
-  gap: 0.375rem;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  padding-right: 0.25rem;
 }
 
 .enforcement-page--users .users-page__col--actions {
-  width: 11.5rem;
-  min-width: 11.5rem;
+  width: 16.5rem;
+  min-width: 16.5rem;
   white-space: nowrap;
+}
+
+.enforcement-page--users .enforcement-page__table-head .users-page__col--actions.enforcement-page__th,
+.enforcement-page--users .enforcement-page__table [data-slot='table-head'].users-page__col--actions {
+  padding-right: 1.75rem !important;
+  text-align: right;
 }
 
 .enforcement-page--users .users-page__col--actions [data-slot='table-cell'],
 .enforcement-page--users [data-slot='table-cell'].users-page__col--actions {
   overflow: visible;
+  padding-right: 1.75rem !important;
+  padding-left: 0.75rem !important;
 }
 
 .users-page__action-btn {
@@ -10180,20 +10200,30 @@ html.locale-km .enforcement-page--users .enforcement-page__cell-primary {
   border-radius: 0.625rem;
   border: 1px solid transparent;
   cursor: pointer;
+  flex-shrink: 0;
   transition:
     background 0.15s ease,
     border-color 0.15s ease,
     box-shadow 0.15s ease,
     color 0.15s ease,
-    transform 0.1s ease;
+    transform 0.1s ease,
+    opacity 0.15s ease,
+    filter 0.15s ease;
 }
 
-.users-page__action-btn:hover {
+.users-page__action-btn:hover:not(:disabled) {
   transform: translateY(-1px);
 }
 
-.users-page__action-btn:active {
+.users-page__action-btn:active:not(:disabled) {
   transform: scale(0.94);
+}
+
+.users-page__action-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  box-shadow: none;
+  filter: grayscale(0.25);
 }
 
 .users-page__action-btn--view {
@@ -10203,7 +10233,7 @@ html.locale-km .enforcement-page--users .enforcement-page__cell-primary {
   box-shadow: 0 2px 8px rgba(37, 99, 235, 0.28);
 }
 
-.users-page__action-btn--view:hover {
+.users-page__action-btn--view:hover:not(:disabled) {
   background: linear-gradient(135deg, #1d4ed8 0%, #4338ca 100%);
   box-shadow: 0 4px 14px rgba(37, 99, 235, 0.38);
 }
@@ -10215,9 +10245,21 @@ html.locale-km .enforcement-page--users .enforcement-page__cell-primary {
   box-shadow: 0 2px 8px rgba(124, 58, 237, 0.28);
 }
 
-.users-page__action-btn--edit:hover {
+.users-page__action-btn--edit:hover:not(:disabled) {
   background: linear-gradient(135deg, #6d28d9 0%, #4f46e5 100%);
   box-shadow: 0 4px 14px rgba(124, 58, 237, 0.36);
+}
+
+.users-page__action-btn--reset {
+  color: #ffffff;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  border-color: rgba(99, 102, 241, 0.4);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.users-page__action-btn--reset:hover:not(:disabled) {
+  background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);
 }
 
 .users-page__action-btn--toggle {
@@ -10227,7 +10269,7 @@ html.locale-km .enforcement-page--users .enforcement-page__cell-primary {
   box-shadow: 0 2px 8px rgba(245, 158, 11, 0.28);
 }
 
-.users-page__action-btn--toggle:hover {
+.users-page__action-btn--toggle:hover:not(:disabled) {
   background: linear-gradient(135deg, #b45309 0%, #d97706 100%);
   box-shadow: 0 4px 14px rgba(245, 158, 11, 0.36);
 }
@@ -10239,7 +10281,7 @@ html.locale-km .enforcement-page--users .enforcement-page__cell-primary {
   box-shadow: 0 2px 8px rgba(239, 68, 68, 0.28);
 }
 
-.users-page__action-btn--delete:hover {
+.users-page__action-btn--delete:hover:not(:disabled) {
   background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%);
   box-shadow: 0 4px 14px rgba(239, 68, 68, 0.36);
 }

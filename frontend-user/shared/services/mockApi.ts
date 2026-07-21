@@ -1227,5 +1227,8 @@ export const driversAPI = {
     await delay(200);
     return { id, license_no: 'LIC-1', full_name: 'Driver', email: 'd@x.kh', user_id: '1', kyc_status: 'approved' as const, status: 'active' as const, ...data } as import('../types').DriverProfile;
   },
-  async delete() { await delay(200); },
+  async delete() {
+    await delay(200);
+    return { driver: null, message: 'Driver deleted' };
+  },
 };

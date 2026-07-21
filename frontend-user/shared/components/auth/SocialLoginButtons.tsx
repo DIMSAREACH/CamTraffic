@@ -75,10 +75,20 @@ export function SocialLoginButtons({ variant = 'user' }: SocialLoginButtonsProps
     const redirectUri = `${window.location.origin}${CALLBACK_PATH}`;
     setLoadingProvider(provider);
     try {
-      const { authorization_url } = await authAPI.getOAuthAuthorizeUrl(provider, redirectUri);
+      const data = await authAPI.getOAuthAuthorizeUrl(provider, redirectUri);
+      const effectiveRedirect = data.redirect_uri || redirectUri;
       sessionStorage.setItem('oauth_provider', provider);
-      sessionStorage.setItem('oauth_redirect_uri', redirectUri);
-      window.location.assign(authorization_url);
+      sessionStorage.setItem('oauth_redirect_uri', effectiveRedirect);
+      // GitHub uses a single registered callback — open authorize only after landing host matches.
+      if (provider === 'github' && effectiveRedirect !== redirectUri) {
+        const targetOrigin = new URL(effectiveRedirect).origin;
+        if (window.location.origin !== targetOrigin) {
+          toast.error(`Continue GitHub sign-in on ${targetOrigin}`);
+          window.location.assign(`${targetOrigin}/`);
+          return;
+        }
+      }
+      window.location.assign(data.authorization_url);
     } catch (err: unknown) {
       setLoadingProvider(null);
       toast.error(err instanceof Error ? err.message : t('auth.oauthStartFailed'));

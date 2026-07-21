@@ -183,7 +183,7 @@ export function VehiclesPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     try {
       await vehiclesAPI.delete(id);
       toast.success(t('vehicles.toastRemoved'));
