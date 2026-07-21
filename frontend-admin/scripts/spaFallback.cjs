@@ -23,6 +23,9 @@ const redirects = [
   '/reset-password  /index.html  200',
   '/forgot-password  /index.html  200',
   '/verify-email  /index.html  200',
+  '/admin  /index.html  200',
+  '/admin/*  /index.html  200',
+  '/dashboard  /index.html  200',
   '/*  /index.html  200',
   '',
 ].join('\n');
@@ -33,6 +36,29 @@ const SPA_PATHS = [
   'reset-password',
   'forgot-password',
   'verify-email',
+  'admin',
+  'admin/dashboard',
+  'admin/cameras',
+  'admin/ai-logs',
+  'admin/evidence',
+  'admin/fines',
+  'admin/violations',
+  'admin/signs',
+  'admin/vehicles',
+  'admin/users',
+  'admin/roles',
+  'admin/officers',
+  'admin/drivers',
+  'admin/ai-detection',
+  'admin/ai-detection/new',
+  'admin/reports',
+  'admin/appeals',
+  'admin/audit-logs',
+  'admin/notifications',
+  'admin/profile',
+  'admin/settings',
+  'admin/backup-restore',
+  'dashboard',
 ];
 
 for (const route of SPA_PATHS) {
@@ -41,4 +67,4 @@ for (const route of SPA_PATHS) {
   fs.copyFileSync(indexHtml, path.join(dir, 'index.html'));
 }
 
-console.log('spaFallback: 404.html, _redirects, and deep-link routes ready');
+console.log(`spaFallback: ready (${SPA_PATHS.length} deep-link routes)`);

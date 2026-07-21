@@ -445,8 +445,14 @@ PAYMENT_CURRENCY = os.getenv('PAYMENT_CURRENCY', 'usd')
 PAYMENT_MANUAL_PROOF_ENABLED = os.getenv('PAYMENT_MANUAL_PROOF_ENABLED', 'True').lower() == 'true'
 STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
-STRIPE_SUCCESS_URL = os.getenv('STRIPE_SUCCESS_URL', 'http://localhost:5173/fines?paid=1')
-STRIPE_CANCEL_URL = os.getenv('STRIPE_CANCEL_URL', 'http://localhost:5173/fines?cancel=1')
+STRIPE_SUCCESS_URL = os.getenv(
+    'STRIPE_SUCCESS_URL',
+    'http://localhost:5173/dashboard/fines?paid=1',
+)
+STRIPE_CANCEL_URL = os.getenv(
+    'STRIPE_CANCEL_URL',
+    'http://localhost:5173/dashboard/fines?cancel=1',
+)
 KHQR_MERCHANT_NAME = os.getenv('KHQR_MERCHANT_NAME', '')
 KHQR_MERCHANT_ACCOUNT = os.getenv('KHQR_MERCHANT_ACCOUNT', '')
 KHQR_MERCHANT_ACCOUNT_KHR = os.getenv('KHQR_MERCHANT_ACCOUNT_KHR', '')

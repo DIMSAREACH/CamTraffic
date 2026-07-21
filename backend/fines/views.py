@@ -272,10 +272,10 @@ class FineStripeCheckoutView(APIView):
             return error_response('This fine cannot be paid in its current status')
 
         success_url = request.data.get('success_url') or getattr(
-            settings, 'STRIPE_SUCCESS_URL', 'http://localhost:5173/fines?paid=1',
+            settings, 'STRIPE_SUCCESS_URL', 'http://localhost:5173/dashboard/fines?paid=1',
         )
         cancel_url = request.data.get('cancel_url') or getattr(
-            settings, 'STRIPE_CANCEL_URL', 'http://localhost:5173/fines?cancel=1',
+            settings, 'STRIPE_CANCEL_URL', 'http://localhost:5173/dashboard/fines?cancel=1',
         )
         try:
             session = stripe_gateway.create_checkout_session(

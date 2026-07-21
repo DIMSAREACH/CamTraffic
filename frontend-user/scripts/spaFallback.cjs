@@ -23,17 +23,38 @@ const redirects = [
   '/reset-password  /index.html  200',
   '/forgot-password  /index.html  200',
   '/verify-email  /index.html  200',
+  '/dashboard  /index.html  200',
+  '/dashboard/*  /index.html  200',
   '/*  /index.html  200',
   '',
 ].join('\n');
 fs.writeFileSync(path.join(dist, '_redirects'), redirects, 'utf8');
 
-/** Paths Google/email deep-link into — must be real files when host ignores _redirects. */
+/** Paths email/OAuth/bookmarks deep-link into — must be real files when host ignores _redirects. */
 const SPA_PATHS = [
   'auth/oauth/callback',
   'reset-password',
   'forgot-password',
   'verify-email',
+  'dashboard',
+  'dashboard/ai-detection',
+  'dashboard/ai-detection/new',
+  'dashboard/cameras',
+  'dashboard/violations',
+  'dashboard/fines',
+  'dashboard/fines/payments',
+  'dashboard/evidence',
+  'dashboard/vehicles',
+  'dashboard/appeals',
+  'dashboard/reports',
+  'dashboard/notifications',
+  'dashboard/profile',
+  'dashboard/settings',
+  'dashboard/signs',
+  'dashboard/traffic-rules',
+  'dashboard/support',
+  'dashboard/unknown-vehicles',
+  'dashboard/driver-search',
 ];
 
 for (const route of SPA_PATHS) {
@@ -42,4 +63,4 @@ for (const route of SPA_PATHS) {
   fs.copyFileSync(indexHtml, path.join(dir, 'index.html'));
 }
 
-console.log('spaFallback: 404.html, _redirects, and deep-link routes ready');
+console.log(`spaFallback: ready (${SPA_PATHS.length} deep-link routes)`);
