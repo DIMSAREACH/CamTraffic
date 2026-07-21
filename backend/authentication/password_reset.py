@@ -16,10 +16,24 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 DEFAULT_RESET_URL = 'http://localhost:5173/reset-password'
+# Hostnames that currently have no public DNS — never put these in emails.
+_BROKEN_RESET_HOSTS = frozenset({'app.camtraffic.store'})
+_FALLBACK_RESET_URL = 'https://camtraffic-user.onrender.com/reset-password'
 
 
 def _reset_base_url() -> str:
-    return getattr(settings, 'FRONTEND_PASSWORD_RESET_URL', DEFAULT_RESET_URL).rstrip('/')
+    raw = getattr(settings, 'FRONTEND_PASSWORD_RESET_URL', DEFAULT_RESET_URL).rstrip('/')
+    from urllib.parse import urlparse
+
+    host = (urlparse(raw).hostname or '').lower()
+    if host in _BROKEN_RESET_HOSTS:
+        logger.warning(
+            'FRONTEND_PASSWORD_RESET_URL host %s has no DNS; using %s',
+            host,
+            _FALLBACK_RESET_URL,
+        )
+        return _FALLBACK_RESET_URL
+    return raw or DEFAULT_RESET_URL
 
 
 def smtp_configured() -> bool:
