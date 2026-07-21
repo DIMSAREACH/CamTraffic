@@ -29,3 +29,7 @@ edge-tts>=6.1
 certifi>=2024.2.2
 easyocr>=1.7
 stripe>=8.0,<12
+
+# Cloud media (Cloudflare R2 / AWS S3 — free tier friendly)
+django-storages[s3]>=1.14
+boto3>=1.34

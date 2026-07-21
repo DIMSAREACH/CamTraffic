@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'storages',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
@@ -183,6 +184,34 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# Optional cloud media (Cloudflare R2 free tier or AWS S3). When enabled, uploads
+# leave the ephemeral Render disk and survive redeploys.
+USE_S3_MEDIA = os.getenv('USE_S3_MEDIA', 'False').lower() == 'true'
+if USE_S3_MEDIA:
+    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID', '')
+    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY', '')
+    AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME', '')
+    AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME', 'auto')
+    AWS_S3_ENDPOINT_URL = os.getenv('AWS_S3_ENDPOINT_URL', '').strip() or None
+    AWS_S3_CUSTOM_DOMAIN = os.getenv('AWS_S3_CUSTOM_DOMAIN', '').strip() or None
+    AWS_DEFAULT_ACL = None
+    AWS_QUERYSTRING_AUTH = False
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_S3_SIGNATURE_VERSION = 's3v4'
+    AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
+    # Keep keys under media/ so URLs look like …/media/signs/…
+    AWS_LOCATION = os.getenv('AWS_LOCATION', 'media').strip() or 'media'
+    STORAGES = {
+        'default': {
+            'BACKEND': 'storages.backends.s3boto3.S3Boto3Storage',
+        },
+        'staticfiles': {
+            'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+        },
+    }
+    if AWS_S3_CUSTOM_DOMAIN:
+        MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{AWS_LOCATION}/'
+
 # Large AI video uploads (default 500 MB; override with AI_VIDEO_MAX_MB).
 _AI_VIDEO_MAX_MB = max(1, int(os.getenv('AI_VIDEO_MAX_MB', '500')))
 DATA_UPLOAD_MAX_MEMORY_SIZE = min(10 * 1024 * 1024, _AI_VIDEO_MAX_MB * 1024 * 1024)
@@ -208,7 +237,11 @@ CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
 
 PUBLIC_API_URL = os.getenv('PUBLIC_API_URL', '').strip().rstrip('/')
-SERVE_MEDIA = os.getenv('SERVE_MEDIA', 'True').lower() == 'true'
+# Local disk media only when not using S3/R2.
+if USE_S3_MEDIA:
+    SERVE_MEDIA = False
+else:
+    SERVE_MEDIA = os.getenv('SERVE_MEDIA', 'True').lower() == 'true'
 GOOGLE_OAUTH_CLIENT_ID = os.getenv('GOOGLE_OAUTH_CLIENT_ID', '')
 GOOGLE_OAUTH_CLIENT_SECRET = os.getenv('GOOGLE_OAUTH_CLIENT_SECRET', '')
 GITHUB_OAUTH_CLIENT_ID = os.getenv('GITHUB_OAUTH_CLIENT_ID', '')

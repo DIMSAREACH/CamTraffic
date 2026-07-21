@@ -7,7 +7,11 @@ from django.conf import settings
 
 
 def api_media_url(_request, field) -> str:
-    """Return a browser-loadable path such as /media/... (no Django host)."""
+    """Return a browser-loadable media URL.
+
+    - Local disk: absolute API URL when PUBLIC_API_URL is set, else /media/...
+    - Cloud (S3/R2): full https URL from storage (do not rewrite onto the API host).
+    """
     if not field:
         return ''
     name = getattr(field, 'name', None)
@@ -17,7 +21,10 @@ def api_media_url(_request, field) -> str:
         url = field.url
     except (ValueError, AttributeError):
         return ''
+    # django-storages / custom domains already return a full public URL.
     if url.startswith(('http://', 'https://')):
+        if getattr(settings, 'USE_S3_MEDIA', False):
+            return url
         path = urlparse(url).path or url
     else:
         path = url

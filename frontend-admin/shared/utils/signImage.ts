@@ -134,16 +134,8 @@ export function resolveSignMediaUrl(image?: string | null): string | null {
     return raw;
   }
 
-  // Absolute URLs: keep non-media as-is; rewrite /media/... onto the API host (not the SPA host).
+  // Absolute URLs (API host or Cloudflare R2 / S3) — never rewrite onto the SPA origin.
   if (raw.startsWith('http://') || raw.startsWith('https://')) {
-    try {
-      const parsed = new URL(raw);
-      if (parsed.pathname.startsWith('/media/')) {
-        return getProfileImageUrl(parsed.pathname) || raw;
-      }
-    } catch {
-      /* use raw */
-    }
     return raw;
   }
 
