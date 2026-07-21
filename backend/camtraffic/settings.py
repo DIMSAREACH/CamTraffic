@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'unknown_vehicles',
     'ai_models',
     'datasets',
+    'imports',
 ]
 
 MIDDLEWARE = [

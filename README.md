@@ -67,6 +67,10 @@ docker compose up -d --build
 
 See [`docs/FOLDER-MAP.md`](docs/FOLDER-MAP.md) for the full tree.
 
+## Data import
+
+Admin CSV/Excel bulk import: Settings → **Import Data**. See [`docs/DATA-IMPORT.md`](docs/DATA-IMPORT.md).
+
 ## Scripts
 
 | Command | Description |

@@ -10,6 +10,7 @@ import { RoadsPage } from '@admin/pages/RoadsPage';
 import { VehicleOwnersPage } from '@admin/pages/VehicleOwnersPage';
 import { CameraLocationsPage } from '@admin/pages/CameraLocationsPage';
 import { BackupRestorePage } from '@admin/pages/BackupRestorePage';
+import { ImportDataPage } from '@admin/pages/ImportDataPage';
 import { AITrainingCenterPage } from '@admin/pages/AITrainingCenterPage';
 import { AdminSystemSettingsPage } from '@admin/pages/AdminSystemSettingsPage';
 import { AIModelsDashboardPage } from '@admin/pages/AIModelsDashboardPage';
@@ -97,6 +98,7 @@ export const router = createBrowserRouter([
       { path: 'audit-logs', Component: AuditLogsPage },
       { path: 'unknown-vehicles', Component: UnknownVehiclesPage },
       { path: 'backup-restore', Component: BackupRestorePage },
+      { path: 'import-data', Component: ImportDataPage },
       { path: 'profile', Component: ProfilePage },
       { path: 'notifications', Component: NotificationsPage },
       { path: 'notifications/list', Component: NotificationListPage },

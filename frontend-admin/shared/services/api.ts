@@ -9,6 +9,7 @@ import type {
   ProfileOverview, UserPreferences, EvidenceArchiveItem,
   ViolationAppeal, AuditLogEntry, UnknownVehicleRecord, AIModelVersion,
   RBACRole, RBACPermission, OfficerProfile, DriverProfile, PoliceStation, SystemBackupItem,
+  ImportDataType, ImportValidateResult, ImportJobSummary, ImportTypeInfo,
 } from '../types';
 import { getRefreshToken } from '@shared/utils/authStorage';
 import { normalizeDetectionMedia } from '@shared/utils/profileImage';
@@ -801,8 +802,10 @@ export const officersAPI = USE_MOCK ? mockApi.officersAPI : {
   async updateStation(id: string, data: Partial<PoliceStation>): Promise<PoliceStation> {
     return unwrap<PoliceStation>(await apiClient.patch(`/officers/stations/${id}/`, data));
   },
-  async deleteStation(id: string): Promise<void> {
-    await apiClient.delete(`/officers/stations/${id}/`);
+  async deleteStation(id: string): Promise<{ message?: string }> {
+    const res = await apiClient.delete(`/officers/stations/${id}/`);
+    const body = res.data as { message?: string };
+    return { message: body?.message };
   },
 };
 
@@ -897,6 +900,34 @@ export const ocrTrainingAPI = {
   },
   async runEdgeCases(): Promise<unknown> {
     return unwrap(await apiClient.post('/ai/ocr-training/edge-cases/', {}, { timeout: 300000 }));
+  },
+};
+
+// ── DATA IMPORT (admin) ──────────────────────────────────────────
+export const importsAPI = USE_MOCK ? mockApi.importsAPI : {
+  async getTypes(): Promise<ImportTypeInfo[]> {
+    return unwrapList<ImportTypeInfo>(await apiClient.get('/imports/types/'));
+  },
+    async downloadTemplate(type: ImportDataType, format: 'csv' | 'xlsx' = 'csv'): Promise<Blob> {
+    const res = await apiClient.get('/imports/template/', {
+      params: { type, file_format: format },
+      responseType: 'blob',
+    });
+    return res.data as Blob;
+  },
+  async validate(type: ImportDataType, file: File): Promise<ImportValidateResult> {
+    const form = new FormData();
+    form.append('type', type);
+    form.append('file', file);
+    return unwrap<ImportValidateResult>(await apiClient.post('/imports/validate/', form));
+  },
+  async commit(jobId: string): Promise<{ counts: ImportValidateResult['counts']; job: ImportJobSummary }> {
+    return unwrap(await apiClient.post('/imports/commit/', { job_id: jobId }));
+  },
+  async history(type?: ImportDataType): Promise<ImportJobSummary[]> {
+    return unwrapList<ImportJobSummary>(await apiClient.get('/imports/history/', {
+      params: type ? { type } : undefined,
+    }));
   },
 };
 

@@ -1,0 +1,110 @@
+from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
+from rest_framework.test import APITestCase
+
+from infrastructure.models import Camera, Road
+from traffic_signs.models import TrafficSign
+from users.models import Driver
+from users.profile_services import provision_user_account
+from vehicles.models import Vehicle
+
+User = get_user_model()
+
+
+class DataImportAPITests(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            email='admin@import.test',
+            password='CamTraffic@2026!',
+            full_name='Import Admin',
+            role='admin',
+            is_staff=True,
+            is_superuser=True,
+        )
+        provision_user_account(self.admin)
+        self.driver = User.objects.create_user(
+            email='driver@import.test',
+            password='CamTraffic@2026!',
+            full_name='Import Driver',
+            role='driver',
+        )
+        provision_user_account(self.driver)
+        self.client.force_authenticate(self.admin)
+
+    def test_types_requires_admin(self):
+        self.client.force_authenticate(self.driver)
+        res = self.client.get('/api/imports/types/')
+        self.assertEqual(res.status_code, 403)
+
+    def test_types_ok(self):
+        res = self.client.get('/api/imports/types/')
+        self.assertEqual(res.status_code, 200)
+        types = {item['type'] for item in res.data['data']}
+        self.assertTrue({'users', 'vehicles', 'signs', 'cameras', 'violations'} <= types)
+
+    def test_template_csv(self):
+        res = self.client.get('/api/imports/template/', {'type': 'users', 'file_format': 'csv'})
+        self.assertEqual(res.status_code, 200)
+        self.assertIn(b'Email', res.content)
+
+    def test_validate_and_commit_users(self):
+        csv_body = (
+            'Name,Email,Phone,Role,Password\n'
+            'New User,newuser@import.test,012,Driver,TempPass1!\n'
+            'Import Driver,driver@import.test,013,Driver,\n'
+        ).encode('utf-8')
+        upload = SimpleUploadedFile('users.csv', csv_body, content_type='text/csv')
+        res = self.client.post('/api/imports/validate/', {'type': 'users', 'file': upload}, format='multipart')
+        self.assertEqual(res.status_code, 200, res.data)
+        data = res.data['data']
+        self.assertEqual(data['counts']['valid'], 1)
+        self.assertEqual(data['counts']['skipped'], 1)
+        job_id = data['job_id']
+
+        commit = self.client.post('/api/imports/commit/', {'job_id': job_id}, format='json')
+        self.assertEqual(commit.status_code, 200, commit.data)
+        self.assertTrue(User.objects.filter(email__iexact='newuser@import.test').exists())
+        self.assertEqual(commit.data['data']['counts']['success'], 1)
+
+    def test_validate_duplicate_plate_skipped(self):
+        Vehicle.objects.create(
+            owner=self.driver,
+            driver=Driver.objects.get(user=self.driver),
+            plate_number='2AB-9999',
+            vehicle_type='car',
+            model='Test',
+            color='White',
+            year=2020,
+        )
+        csv_body = (
+            'Plate Number,Vehicle Type,Owner Email,Model,Color,Year\n'
+            '2AB-9999,Car,driver@import.test,X,Y,2021\n'
+            '2AB-8888,Car,driver@import.test,X,Y,2021\n'
+        ).encode('utf-8')
+        upload = SimpleUploadedFile('vehicles.csv', csv_body, content_type='text/csv')
+        res = self.client.post('/api/imports/validate/', {'type': 'vehicles', 'file': upload}, format='multipart')
+        self.assertEqual(res.status_code, 200, res.data)
+        counts = res.data['data']['counts']
+        self.assertEqual(counts['skipped'], 1)
+        self.assertEqual(counts['valid'], 1)
+
+    def test_commit_signs(self):
+        csv_body = (
+            'Code,Name,Category,Description\n'
+            'IMP1,Import Sign,Warning,Test sign\n'
+        ).encode('utf-8')
+        upload = SimpleUploadedFile('signs.csv', csv_body, content_type='text/csv')
+        res = self.client.post('/api/imports/validate/', {'type': 'signs', 'file': upload}, format='multipart')
+        self.assertEqual(res.status_code, 200, res.data)
+        job_id = res.data['data']['job_id']
+        commit = self.client.post('/api/imports/commit/', {'job_id': job_id}, format='json')
+        self.assertEqual(commit.status_code, 200, commit.data)
+        self.assertTrue(TrafficSign.objects.filter(sign_code='IMP1').exists())
+
+    def test_history_lists_jobs(self):
+        csv_body = b'Code,Name,Category\nIMP2,Sign Two,Mandatory\n'
+        upload = SimpleUploadedFile('signs2.csv', csv_body, content_type='text/csv')
+        self.client.post('/api/imports/validate/', {'type': 'signs', 'file': upload}, format='multipart')
+        res = self.client.get('/api/imports/history/')
+        self.assertEqual(res.status_code, 200)
+        self.assertGreaterEqual(len(res.data['data']), 1)

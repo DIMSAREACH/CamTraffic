@@ -1202,7 +1202,7 @@ export const officersAPI = {
     await delay(200);
     return { id, name: 'Station', code: 'ST-1', status: 'active' as const, ...data } as import('../types').PoliceStation;
   },
-  async deleteStation() { await delay(200); },
+  async deleteStation() { await delay(200); return { message: 'Police station deleted' }; },
 };
 
 export const driversAPI = {

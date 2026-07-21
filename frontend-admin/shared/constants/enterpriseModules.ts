@@ -173,9 +173,10 @@ export const ADMIN_ENTERPRISE_MODULES: EnterpriseModule[] = [
     id: 'settings',
     labelKey: 'sidebar.modules.settings',
     path: `${ADMIN_BASE}/settings`,
-    matchPrefixes: [`${ADMIN_BASE}/settings`, `${ADMIN_BASE}/backup-restore`],
+    matchPrefixes: [`${ADMIN_BASE}/settings`, `${ADMIN_BASE}/backup-restore`, `${ADMIN_BASE}/import-data`],
     subNav: [
       { labelKey: 'sidebar.subNav.generalSettings', path: `${ADMIN_BASE}/settings` },
+      { labelKey: 'sidebar.subNav.importData', path: `${ADMIN_BASE}/import-data` },
       { labelKey: 'sidebar.subNav.backupRestore', path: `${ADMIN_BASE}/backup-restore` },
       { labelKey: 'sidebar.modules.auditLogs', path: `${ADMIN_BASE}/audit-logs` },
     ],

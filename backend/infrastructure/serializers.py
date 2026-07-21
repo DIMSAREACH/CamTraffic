@@ -26,6 +26,12 @@ class PoliceStationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('Station code already exists.')
         return code
 
+    def validate(self, attrs):
+        for key in ('city', 'region', 'address', 'phone'):
+            if key in attrs and attrs[key] is None:
+                attrs[key] = ''
+        return attrs
+
 
 class RoadSerializer(serializers.ModelSerializer):
     camera_count = serializers.IntegerField(source='cameras.count', read_only=True)

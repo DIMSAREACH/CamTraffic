@@ -545,3 +545,53 @@ export interface SystemBackupItem {
   size_bytes: number;
   created_at: string;
 }
+
+export type ImportDataType = 'users' | 'vehicles' | 'signs' | 'cameras' | 'violations';
+
+export type ImportRowStatus = 'ok' | 'error' | 'skip' | 'success' | 'failed';
+
+export interface ImportRowReport {
+  row: number;
+  status: ImportRowStatus;
+  errors: string[];
+  data: Record<string, unknown>;
+}
+
+export interface ImportValidateCounts {
+  total: number;
+  valid: number;
+  skipped: number;
+  failed: number;
+  success: number;
+  error: number;
+}
+
+export interface ImportValidateResult {
+  job_id: string;
+  import_type: ImportDataType;
+  file_name: string;
+  rows: ImportRowReport[];
+  counts: ImportValidateCounts;
+}
+
+export interface ImportJobSummary {
+  id: string;
+  import_type: ImportDataType;
+  file_name: string;
+  status: string;
+  created_by_email?: string | null;
+  created_by_name?: string | null;
+  total_rows: number;
+  valid_rows: number;
+  success_count: number;
+  failed_count: number;
+  skipped_count: number;
+  created_at: string;
+}
+
+export interface ImportTypeInfo {
+  type: ImportDataType;
+  label: string;
+  unique_key: string;
+  columns: Array<{ key: string; required: boolean; note: string }>;
+}

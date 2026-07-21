@@ -780,8 +780,10 @@ export const officersAPI = USE_MOCK ? mockApi.officersAPI : {
   async updateStation(id: string, data: Partial<PoliceStation>): Promise<PoliceStation> {
     return unwrap<PoliceStation>(await apiClient.patch(`/officers/stations/${id}/`, data));
   },
-  async deleteStation(id: string): Promise<void> {
-    await apiClient.delete(`/officers/stations/${id}/`);
+  async deleteStation(id: string): Promise<{ message?: string }> {
+    const res = await apiClient.delete(`/officers/stations/${id}/`);
+    const body = res.data as { message?: string };
+    return { message: body?.message };
   },
 };
 

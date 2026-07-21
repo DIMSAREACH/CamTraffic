@@ -1202,7 +1202,7 @@ export const officersAPI = {
     await delay(200);
     return { id, name: 'Station', code: 'ST-1', status: 'active' as const, ...data } as import('../types').PoliceStation;
   },
-  async deleteStation() { await delay(200); },
+  async deleteStation() { await delay(200); return { message: 'Police station deleted' }; },
 };
 
 export const driversAPI = {
@@ -1230,5 +1230,55 @@ export const driversAPI = {
   async delete() {
     await delay(200);
     return { driver: null, message: 'Driver deleted' };
+  },
+};
+
+export const importsAPI = {
+  async getTypes() {
+    await delay(100);
+    return [
+      { type: 'users' as const, label: 'Users', unique_key: 'Email', columns: [] },
+      { type: 'vehicles' as const, label: 'Vehicles', unique_key: 'Plate Number', columns: [] },
+      { type: 'signs' as const, label: 'Traffic Signs', unique_key: 'Code', columns: [] },
+      { type: 'cameras' as const, label: 'Cameras', unique_key: 'Camera ID', columns: [] },
+      { type: 'violations' as const, label: 'Violations', unique_key: 'Plate+Date', columns: [] },
+    ];
+  },
+  async downloadTemplate(_type: string, format: 'csv' | 'xlsx' = 'csv') {
+    await delay(100);
+    const body = format === 'csv' ? 'Name,Email\nDemo,demo@example.com\n' : 'PK';
+    return new Blob([body], { type: format === 'csv' ? 'text/csv' : 'application/octet-stream' });
+  },
+  async validate(type: string, file: File) {
+    await delay(300);
+    return {
+      job_id: 'mock-job-1',
+      import_type: type as import('../types').ImportDataType,
+      file_name: file.name,
+      rows: [{ row: 2, status: 'ok' as const, errors: [], data: { demo: true } }],
+      counts: { total: 1, valid: 1, skipped: 0, failed: 0, success: 0, error: 0 },
+    };
+  },
+  async commit(jobId: string) {
+    await delay(300);
+    return {
+      counts: { total: 1, valid: 1, skipped: 0, failed: 0, success: 1, error: 0 },
+      job: {
+        id: jobId,
+        import_type: 'users' as const,
+        file_name: 'demo.csv',
+        status: 'committed',
+        total_rows: 1,
+        valid_rows: 1,
+        success_count: 1,
+        failed_count: 0,
+        skipped_count: 0,
+        created_at: new Date().toISOString(),
+      },
+    };
+  },
+  async history() {
+    await delay(150);
+    return [] as import('../types').ImportJobSummary[];
   },
 };
