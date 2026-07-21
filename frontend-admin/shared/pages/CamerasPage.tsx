@@ -801,8 +801,14 @@ export function CamerasPage() {
       setFormOpen(false);
       setEditingCamera(null);
       setForm(EMPTY_CAMERA_FORM);
-    } catch {
-      toast.error(editingCamera ? t('pages.cameras.toastUpdateFail') : t('pages.cameras.toastCreateFail'));
+    } catch (err) {
+      toast.error(
+        err instanceof Error && err.message
+          ? err.message
+          : editingCamera
+            ? t('pages.cameras.toastUpdateFail')
+            : t('pages.cameras.toastCreateFail'),
+      );
     } finally {
       setSaving(false);
     }

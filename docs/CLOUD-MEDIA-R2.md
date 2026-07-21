@@ -46,6 +46,38 @@ Or re-sync catalog signs after enabling R2 (uploads land in the bucket).
 
 Leave `USE_S3_MEDIA=False` (default) to keep using `backend/media/` on disk.
 
+If `USE_S3_MEDIA=True` locally:
+
+- Django still serves existing files from `backend/media/` at `/media/` (Vite proxies this).
+- New uploads go to R2; API returns R2 URLs when the file is not on disk.
+- Live camera demo paths (`/demo-cameras/...`) are read from `frontend-*/public/`.
+- Browser `fetch` / canvas use of R2 images goes through `GET /api/media/proxy/?url=…` (avoids CORS). The SPA must not set `crossOrigin="anonymous"` on bare `*.r2.dev` URLs.
+
+To push local catalog images into R2: `python manage.py sync_media_to_s3`.
+
+## 5. Optional: allow direct browser CORS on R2
+
+Not required for CamTraffic (proxy path above), but if you want `<img crossOrigin>` to hit R2 directly, open the bucket → **Settings** → **CORS policy**:
+
+```json
+[
+  {
+    "AllowedOrigins": [
+      "http://127.0.0.1:5173",
+      "http://127.0.0.1:5174",
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "https://camtraffic-admin.onrender.com",
+      "https://camtraffic-user.onrender.com"
+    ],
+    "AllowedMethods": ["GET", "HEAD"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
 ## Notes
 
 - Do **not** commit real R2 keys; paste them only in Render Environment / local `.env`.
