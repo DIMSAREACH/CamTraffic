@@ -196,12 +196,13 @@ Keep auto-violation **off** for the whole pilot.
 - [x] Example + local `.env.production`: `best.pt`, auto-violation **False**, demo seed **False**
 - [x] Replace placeholder `SECRET_KEY` / `DB_PASSWORD` with openssl secrets
 - [x] Bootstrap admin env set (`dimsareach009@gmail.com`)
-- [x] Skip local Docker smoke (step 2) — go straight to **public VPS pilot (step 3)**
-- [x] Env URLs pointed at `*.camtraffic.store` (not Render)
-- [ ] DNS A records → VPS IP
-- [ ] Provision VPS + clone + copy `.env.production` + `best.pt`
-- [ ] `npm run docker:prod:up` on VPS
-- [ ] Certbot TLS
+- [x] Skip local Docker smoke (step 2) — go straight to public hosting
+- [x] Env prepared for bootstrap admin + Render docs
+- [x] Pushed branch `restructure-project` to GitHub (secrets not committed)
+- [ ] Configure Render services (API + admin + user) per `infrastructure/deploy/RENDER.md`
+- [ ] Set Render env secrets (DB, Redis, bootstrap admin, R2)
+- [ ] Upload/mount YOLO weights or temporary `AI_USE_MOCK=True`
+- [ ] Custom domains / OAuth callbacks
 - [ ] Login as Dim Sareach + create officers/drivers
 - [ ] First end-to-end pilot case recorded
 
