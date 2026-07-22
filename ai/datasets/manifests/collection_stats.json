@@ -1,0 +1,20 @@
+{
+  "generated_at": null,
+  "note": "Run: python ai/scripts/collection_tracker.py --write-manifest",
+  "totals": {
+    "traffic_signs": 0,
+    "vehicles": 0,
+    "license_plates": 0,
+    "road_footage": 0
+  },
+  "targets": {
+    "traffic_signs": 2840,
+    "vehicles": 4615,
+    "license_plates": 1253
+  },
+  "progress_pct": {
+    "traffic_signs": 0,
+    "vehicles": 0,
+    "license_plates": 0
+  }
+}

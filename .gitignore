@@ -25,14 +25,61 @@ __pycache__/
 *.pyc
 .Python
 
-# AI (large files — train locally or use releases)
+# AI weights (train locally or use releases)
 ai/weights/
-ai/dataset/
-ai/datasets/
-ai/dataset_10/
 *.pt
 CamTraffic-best_v2.zip
 CamTraffic-best_*.zip
+
+# Dataset media — keep folder scaffold (README, .gitkeep, data.yaml, manifests)
+ai/dataset/images/**
+ai/dataset/labels/**
+!ai/dataset/images/**/.gitkeep
+!ai/dataset/labels/**/.gitkeep
+
+ai/dataset_10/images/**
+ai/dataset_10/labels/**
+!ai/dataset_10/images/**/.gitkeep
+!ai/dataset_10/labels/**/.gitkeep
+
+ai/datasets/raw/**
+!ai/datasets/raw/**/
+!ai/datasets/raw/**/README.md
+!ai/datasets/raw/**/.gitkeep
+!ai/datasets/raw/import_log.csv
+
+ai/datasets/processed/**
+!ai/datasets/processed/**/
+!ai/datasets/processed/**/README.md
+!ai/datasets/processed/**/.gitkeep
+
+ai/datasets/splits/**
+!ai/datasets/splits/**/
+!ai/datasets/splits/**/README.md
+!ai/datasets/splits/**/.gitkeep
+!ai/datasets/splits/**/data.yaml
+
+ai/datasets/annotations/exports/**
+!ai/datasets/annotations/exports/**/
+!ai/datasets/annotations/exports/**/README.md
+!ai/datasets/annotations/exports/**/.gitkeep
+
+ai/datasets/annotations/cvat_tasks/**
+!ai/datasets/annotations/cvat_tasks/**/
+!ai/datasets/annotations/cvat_tasks/**/README.md
+!ai/datasets/annotations/cvat_tasks/**/.gitkeep
+
+ai/datasets/annotations/ocr/**
+!ai/datasets/annotations/ocr/**/
+!ai/datasets/annotations/ocr/**/README.md
+!ai/datasets/annotations/ocr/**/.gitkeep
+
+ai/datasets/labels/yolo/**
+ai/datasets/labels/cvat/**
+!ai/datasets/labels/**/
+!ai/datasets/labels/**/README.md
+!ai/datasets/labels/**/.gitkeep
+!ai/datasets/labels/qa/**
 
 # OS / IDE
 .DS_Store

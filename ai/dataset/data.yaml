@@ -1,0 +1,8 @@
+# YOLO layout for full Cambodian sign set (built by ai/build_dataset.py)
+# path is relative to this file's directory — do not use absolute machine paths in git
+path: .
+train: images/train
+val: images/val
+# nc / names are written by build_dataset.py after you populate images/
+nc: 0
+names: []
