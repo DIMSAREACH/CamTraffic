@@ -1,0 +1,12 @@
+{
+  "evaluated_at": "2026-07-11T21:21:11.593337+00:00",
+  "engine": "easyocr+postprocess",
+  "samples": 50,
+  "cer": 2.4010000000000002,
+  "exact_match_rate": 0.0,
+  "post_processing": [
+    "uppercase",
+    "strip non-alnum",
+    "O\u21920 I\u21921 in tail"
+  ]
+}

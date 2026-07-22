@@ -1,7 +1,8 @@
 # CamTraffic — Production Runbook (Real-World Deploy)
 
 **Audience:** operators deploying the multi-domain enforcement system (Admin / Officer / Citizen).  
-**Stack:** Docker Compose 8 services · Nginx TLS · Django · PostgreSQL · Redis · Celery · embedded YOLO.
+**Stack:** Docker Compose 8 services · Nginx TLS · Django · PostgreSQL · Redis · Celery · embedded YOLO.  
+**Paths:** use `infrastructure/deploy/` (see `docs/final-year-project/PHASE-0-PILOT.md`).
 
 ---
 
@@ -14,13 +15,13 @@
 | Demo seed | `ALLOW_DEMO_SEED=False`, `CAMTRAFFIC_SEED_DEMO=False` |
 | AI auto-fine | `AI_PIPELINE_AUTO_CREATE_VIOLATION=False` (officer reviews cases) |
 | Domains | DNS A records for `admin.`, `app.`, `api.` |
-| Weights | `ai/weights/best_v2.pt` present on host / volume |
+| Weights | `ai/weights/best.pt` present on host / volume (248-class live) |
 | TLS email | `CERTBOT_EMAIL` set |
 
 Copy env:
 
 ```bash
-cp deploy/env/.env.production.example deploy/env/.env.production
+cp infrastructure/deploy/env/.env.production.example infrastructure/deploy/env/.env.production
 # edit secrets — openssl rand -hex 32
 ```
 
@@ -29,9 +30,10 @@ cp deploy/env/.env.production.example deploy/env/.env.production
 ## 2. Deploy
 
 ```bash
-./deploy/scripts/deploy_production.sh
+npm run docker:prod:up
+# or: bash infrastructure/deploy/scripts/deploy_production.sh
 # First time HTTPS:
-./deploy/ssl/certbot-init.sh
+bash infrastructure/deploy/ssl/certbot-init.sh
 ```
 
 Portals after DNS + TLS:
@@ -52,8 +54,9 @@ CAMTRAFFIC_BOOTSTRAP_ADMIN_EMAIL=ops@agency.gov.kh
 CAMTRAFFIC_BOOTSTRAP_ADMIN_PASSWORD=<strong>
 CAMTRAFFIC_BOOTSTRAP_ADMIN_NAME=Operations Admin
 
-docker compose -f deploy/docker/docker-compose.prod.yml exec backend \
-  python manage.py bootstrap_admin_env
+docker compose -f infrastructure/deploy/docker/docker-compose.prod.yml \
+  --env-file infrastructure/deploy/env/.env.production \
+  exec backend python manage.py bootstrap_admin_env
 ```
 
 Create officers/drivers from Admin → Users (never ship `CamTraffic@2026!` to public users).
@@ -77,11 +80,11 @@ curl -fsS https://api.<domain>/health/ready/
 
 ## 5. Backup & restore
 
-See `deploy/env/BACKUP.md`.
+See `infrastructure/deploy/env/BACKUP.md`.
 
 ```bash
-./deploy/scripts/backup_postgres.sh
-./deploy/scripts/restore_postgres.sh backend/backups/pg-backup-….sql.gz
+bash infrastructure/deploy/scripts/backup_postgres.sh
+bash infrastructure/deploy/scripts/restore_postgres.sh backend/backups/pg-backup-….sql.gz
 ```
 
 ---
@@ -92,26 +95,18 @@ Set in `.env.production` (`PAYMENT_MODE=live` recommended):
 
 | Provider | Required | Notes |
 |----------|----------|-------|
-| Stripe | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Webhook URL: `https://api.<domain>/api/fines/stripe/webhook/` · event `checkout.session.completed` |
-| ABA KHQR | `KHQR_MERCHANT_NAME`, `KHQR_MERCHANT_ACCOUNT` (+ optional KHR) | Static QR at `frontend-user/public/payments/aba-khqr.png`; citizen confirms with bill reference |
-| Manual | `PAYMENT_MANUAL_PROOF_ENABLED=True` | Bank-transfer proof upload still available |
-
-Citizen return URLs must use `/citizen/fines` (already in `.env.production.example`).
-
-Verify: citizen pays a test fine → status becomes **paid** (Stripe webhook or KHQR confirm).
-
-See also `docs/PAYMENTS-DATA-OCR-COMPLETION.md`.
+| Stripe | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Webhook URL: `https://api.<domain>/api/fines/stripe/webhook/` |
+| ABA KHQR | `KHQR_MERCHANT_NAME`, `KHQR_MERCHANT_ACCOUNT` | QR at `src/web/user/public/payments/aba-khqr.png` |
+| Manual | `PAYMENT_MANUAL_PROOF_ENABLED=True` | Proof upload still available |
 
 ---
 
 ## 7. Security baseline
 
-- HTTPS + HSTS (`SECURE_HSTS_SECONDS`, nginx `ssl-params.conf`)
+- HTTPS + HSTS
 - Only **officers** issue fines / approve violations
-- Admins manage RBAC, cameras, AI models, audit — not case decisions
-- API docs off in prod (`ENABLE_API_DOCS=False`)
-- Rate limits on login + API throttles
-- Redis password recommended (`REDIS_PASSWORD` in `.env.production.example`)
+- API docs off (`ENABLE_API_DOCS=False`)
+- Redis password recommended
 
 ---
 
@@ -120,8 +115,7 @@ See also `docs/PAYMENTS-DATA-OCR-COMPLETION.md`.
 | Item | Status |
 |------|--------|
 | `seed_demo` / `@camtraffic.demo` | Dev & thesis defense only |
-| `apps/citizen` Next.js app | Prototype — production citizen UI is `frontend-user` `/citizen/*` |
-| Enterprise K8s/Kafka docs | Future roadmap |
+| Next.js `apps/citizen` | Prototype — use `src/web/user` `/citizen/*` |
 
 ---
 
@@ -129,20 +123,19 @@ See also `docs/PAYMENTS-DATA-OCR-COMPLETION.md`.
 
 - [ ] `.env.production` filled; not committed to git  
 - [ ] `DEBUG=False`, demo seed flags false  
-- [ ] TLS certificates issued and auto-renew cron OK  
-- [ ] Bootstrap admin login works; password changed  
-- [ ] Officer login → `/officer`; citizen → `/citizen`  
-- [ ] Sample detection + officer approve + citizen fine view  
-- [ ] Stripe webhook and/or KHQR QR configured; test payment marks fine paid  
-- [ ] Nightly backup cron installed; restore drill once  
-- [ ] Offsite copy of dumps configured  
+- [ ] TLS certificates issued  
+- [ ] Bootstrap admin login works  
+- [ ] Officer → `/officer`; citizen → `/citizen`  
+- [ ] Detection + officer approve + citizen fine view  
+- [ ] Backup cron + restore drill once  
 - [ ] Uptime monitor on `/health/ready/`  
+
+Full pilot steps: **`docs/final-year-project/PHASE-0-PILOT.md`**.
 
 ---
 
 ## Related docs
 
-- `deploy/README.md` — compose overview  
-- `docs/MULTI-DOMAIN-ARCHITECTURE.md` — Admin / Officer / Citizen  
-- `docs/final-year-project/STAGE10-PRODUCTION-DEPLOYMENT-REPORT.md` — VPS notes  
-- `docs/final-year-project/MAINTENANCE-GUIDE.md` — day-2 ops  
+- `infrastructure/deploy/README.md`
+- `docs/final-year-project/PHASE-0-PILOT.md`
+- `docs/final-year-project/STAGE10-PRODUCTION-DEPLOYMENT-REPORT.md`

@@ -1,0 +1,67 @@
+{
+  "evaluated_at": "2026-07-11T20:56:19.794723+00:00",
+  "samples": 10,
+  "paddle_available": false,
+  "results": [
+    {
+      "image": "PLATE_PRIVATE_000044.jpg",
+      "reference": "2AG-9591",
+      "easyocr": "HT07280*2073]",
+      "paddleocr": null
+    },
+    {
+      "image": "PLATE_COMMERCIAL_000008.jpg",
+      "reference": "BTM2C-5927",
+      "easyocr": "UUNSCTU24-9079",
+      "paddleocr": null
+    },
+    {
+      "image": "PLATE_PRIVATE_000045.jpg",
+      "reference": "KP2A-1738",
+      "easyocr": "UGODNCNMEN EOLITTDI1SION18LUGQUOQIVIWISIBILJISJAINHNMIMUMAINFLAWEIEMMINTNGII24-1482",
+      "paddleocr": null
+    },
+    {
+      "image": "PLATE_PRIVATE_000046.jpg",
+      "reference": "KP2A-1963",
+      "easyocr": "0933 48 &30SGGO 83 451098966\u20ac36KHUMNERCOM/ 0654593199734167204030NMN2230",
+      "paddleocr": null
+    },
+    {
+      "image": "PLATE_PRIVATE_000047.jpg",
+      "reference": "KPC2A-4120",
+      "easyocr": "FVENG24-8923",
+      "paddleocr": null
+    },
+    {
+      "image": "PLATE_COMMERCIAL_000009.jpg",
+      "reference": "KPS2C-8688",
+      "easyocr": "COM/ IB-LVLOU' RA=28,06895E0 _",
+      "paddleocr": null
+    },
+    {
+      "image": "PLATE_COMMERCIAL_000010.jpg",
+      "reference": "KPS2D-3132",
+      "easyocr": "2B-2641",
+      "paddleocr": null
+    },
+    {
+      "image": "PLATE_COMMERCIAL_000011.jpg",
+      "reference": "KPS3A-8272",
+      "easyocr": "DNAUB28.7674",
+      "paddleocr": null
+    },
+    {
+      "image": "PLATE_PRIVATE_000048.jpg",
+      "reference": "KT3A-0976",
+      "easyocr": "FQO2B.2574AALDAL",
+      "paddleocr": null
+    },
+    {
+      "image": "PLATE_PRIVATE_000049.jpg",
+      "reference": "PP2AF-2243",
+      "easyocr": "ICLUNTACCOTL1CNG5INITHI0270987FMNT2B-5437",
+      "paddleocr": null
+    }
+  ]
+}

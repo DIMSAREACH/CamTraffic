@@ -13,7 +13,7 @@ Do not use these credentials in production.
 ## Setup
 
 ```bash
-cd backend
+cd src/backend
 python manage.py migrate
 python manage.py seed_demo
 python manage.py runserver
@@ -26,6 +26,9 @@ npm run setup:env
 npm run seed:demo
 npm run dev
 ```
+
+Phase A status: [`PHASE-A-READY.md`](PHASE-A-READY.md)  
+Test images: `ai/test_samples/demo_*.png`
 
 Reset demo passwords:
 
@@ -55,9 +58,12 @@ Run `npm run setup:env` to copy `.env.example` → `.env` if missing.
 
 ## AI weights
 
-Place `ai/weights/best_v2.pt` and set in `backend/.env`:
+Place `ai/weights/best.pt` and set in `src/backend/.env` (248-class live default):
 
 ```env
 AI_USE_MOCK=False
-AI_MODEL_PATH=../ai/weights/best_v2.pt
+AI_MODEL_PATH=../ai/weights/best.pt
 ```
+
+For thesis mAP demo only, switch temporarily to `best_v2.pt` (10-class).
+Canonical explanation: [`docs/AI-MODEL-STORY.md`](../AI-MODEL-STORY.md)

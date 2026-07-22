@@ -14,28 +14,33 @@
 **/__pycache__
 **/*.pyc
 **/.pytest_cache
-backend/venv
-backend/db.sqlite3
-backend/db.sqlite3.*
-backend/logs
-backend/backups
-backend/media
+**/.venv
+src/backend/venv
+src/backend/db.sqlite3
+src/backend/db.sqlite3.*
+src/backend/logs
+src/backend/backups
+src/backend/media
 
 # AI artifacts (weights mounted at runtime in compose)
 ai/dataset
 ai/runs
 ai/datasets/raw
+ai/datasets/external
 
 # Env secrets
 **/.env
 **/.env.local
+infrastructure/deploy/env/.env.production
 deploy/env/.env.production
 
 # Docs / tests (not needed in runtime images)
 docs
 tests
+governance
+reports
 *.md
-!deploy/**/*.md
+!infrastructure/deploy/**/*.md
 
 # Large / local-only
 terminals

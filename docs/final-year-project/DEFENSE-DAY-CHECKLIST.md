@@ -9,11 +9,17 @@
 
 ### Environment
 
+- [x] Backend loads **248-class** YOLO (`best.pt`) — see `PHASE-A-READY.md`
+- [x] `npm run seed:demo` — accounts ready
+- [x] Demo account API logins verified (admin / officer / driver)
+- [x] Test images in `ai/test_samples/demo_*.png`
 - [ ] Run full `LIVE-DEMO-SETUP-VALIDATION.md` checklist
 - [ ] `npm run test:e2e` — all 4 tests PASS
-- [ ] AI detect test with sample image — real inference (not mock)
-- [ ] Demo accounts login verified (admin → `/admin`, officer → `/officer`, driver → `/citizen`)
+- [ ] AI detect test with sample image in browser (Admin → AI Detection)
+- [ ] Demo accounts login verified in UI (admin → `/admin`, officer → `/officer`, driver → `/citizen`)
 - [ ] Laptop OS updates deferred (no restart surprises)
+- [ ] Practice DEMO-SCRIPT.md **5 times**
+- [ ] Backup video recorded (3–5 min)
 
 ### Materials
 

@@ -1,0 +1,45 @@
+{
+  "source": "D:\\Year4\\Project Thesis\\Expert System\\Reference(PDF Download)\\Dim Sareach\\Vichicle Detect\\Vichicle",
+  "weights": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\weights\\best_combined.pt",
+  "output": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cambodia_vehicle_dim_sareach",
+  "created_at": "2026-07-19T12:53:54.906587+00:00",
+  "images_total": 22,
+  "labeled": 22,
+  "missed": 0,
+  "split": {
+    "train": 15,
+    "val": 4,
+    "test": 3
+  },
+  "by_class_boxes": {
+    "bus": 16,
+    "sedan": 126,
+    "motorcycle": 126,
+    "truck": 8,
+    "scooter": 67
+  },
+  "missed_files": [],
+  "conf": 0.1,
+  "seed": 42,
+  "class_map": {
+    "global_to_local": {
+      "10": 1,
+      "11": 1,
+      "12": 3,
+      "13": 2,
+      "14": 4,
+      "15": 0,
+      "16": 3,
+      "17": 1,
+      "18": 1
+    },
+    "local_names": [
+      "bus",
+      "sedan",
+      "motorcycle",
+      "truck",
+      "scooter"
+    ],
+    "notes": "suv/van/taxi\u2192sedan, pickup\u2192truck (match cambodia_vehicle_reference_remapped)"
+  }
+}

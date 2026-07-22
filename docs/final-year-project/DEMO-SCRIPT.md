@@ -9,14 +9,18 @@
 
 | Step | Command / action |
 |------|------------------|
-| Backend | `cd backend && python manage.py runserver` |
-| User portal | `cd frontend-user && npm run dev` → http://localhost:5173 |
-| Admin portal | `cd frontend-admin && npm run dev` → http://localhost:5174 |
-| AI weights | Verify `ai/weights/best_v2.pt` exists |
+| Backend | `cd src/backend && python manage.py runserver` |
+| User portal | `npm run dev:user` → http://localhost:5173 |
+| Admin portal | `npm run dev:admin` → http://localhost:5174 |
+| AI weights | Use **248-class** `ai/weights/best.pt` (`AI_MODEL_PATH`) |
+| Confirm load | Startup log: `Loaded sign YOLO: 248 classes` |
 | Seed data | `npm run seed:demo` |
 | Test accounts | `docs/final-year-project/DEMO-ACCOUNTS.md` |
+| Model story | [`docs/AI-MODEL-STORY.md`](../AI-MODEL-STORY.md) |
 
 **Fallback:** Pre-recorded video per `FINAL-DEMO-VIDEO-PACKAGE.md`
+
+**AI story (one line):** Live = **248** (`best.pt`); thesis mAP@50 = 0.908 = **10-class** eval (`best_v2.pt`) only.
 
 ---
 
@@ -56,9 +60,9 @@
 3. If vehicle visible: show bounding box + plate OCR result
 4. Optional: Khmer TTS for sign name
 
-**Test image:** Use sample with NO_ENTRY or M_STOP for clear detection
+**Test image:** Prefer `ai/test_samples/real/03_no_entry.png` or `01_stop.png` (real Cambodian signs). Fallback: `demo_no_entry.png` / `demo_stop.png`.
 
-**Say:** *"YOLO11n runs at ~20 FPS on CPU with mAP@50 of 0.908 on our 10-class model."*
+**Say:** *"Live detection uses our full 248-class Cambodian sign model. Separately, the balanced 10-class subset reached mAP@50 of 0.908 for thesis evaluation."*
 
 ---
 

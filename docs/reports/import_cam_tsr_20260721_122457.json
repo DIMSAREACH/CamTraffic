@@ -1,0 +1,17 @@
+{
+  "source": "D:\\Year4\\Project Thesis\\Expert System\\Reference(PDF Download)\\Dim Sareach\\Dataset\\Data",
+  "output": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cam_tsr_street_signs_dim_sareach",
+  "created_at": "2026-07-21T12:24:57.020233+00:00",
+  "pairs_total": 2757,
+  "split": {
+    "train": 1929,
+    "val": 551,
+    "test": 277
+  },
+  "nc": 1,
+  "names": [
+    "traffic_sign"
+  ],
+  "seed": 42,
+  "notes": "Video snapshot frames; labels are class-agnostic sign boxes (id 0)."
+}

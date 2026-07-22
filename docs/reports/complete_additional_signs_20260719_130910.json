@@ -1,0 +1,48 @@
+{
+  "source": "D:\\Year4\\Project Thesis\\Expert System\\Reference(PDF Download)\\Dim Sareach\\Road signs in Cambodia\\8-Road markings",
+  "output": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cambodia_road_markings_dim_sareach",
+  "created_at": "2026-07-19T13:09:10.029625+00:00",
+  "images_total": 12,
+  "nc": 12,
+  "names": [
+    "I_BUSES_STOP_MARKING",
+    "I_CHEVRON_MARKINGS_ONE_WAY_ROAD",
+    "I_DIAGONAL_HATCHED_MARKINGS_TWO_WAY_ROAD",
+    "I_DOUBLE_YELLOW_SOLID_LINE",
+    "I_EDGE_LINE",
+    "I_HUMP_MARKING",
+    "I_KEEP_LEFT_ARROW",
+    "I_KEEP_RIGHT_ARROW",
+    "I_SINGLE_WHITE_BROKEN_LINE",
+    "I_SINGLE_YELLOW_SOLID_LINE",
+    "I_STRAIGHT_ARROW",
+    "I_WHITE_SINGLE_SOLID_LINE"
+  ],
+  "split": {
+    "train": 8,
+    "val": 2,
+    "test": 2
+  },
+  "by_class": {
+    "I_BUSES_STOP_MARKING": 1,
+    "I_CHEVRON_MARKINGS_ONE_WAY_ROAD": 1,
+    "I_DIAGONAL_HATCHED_MARKINGS_TWO_WAY_ROAD": 1,
+    "I_DOUBLE_YELLOW_SOLID_LINE": 1,
+    "I_EDGE_LINE": 1,
+    "I_HUMP_MARKING": 1,
+    "I_KEEP_LEFT_ARROW": 1,
+    "I_KEEP_RIGHT_ARROW": 1,
+    "I_SINGLE_WHITE_BROKEN_LINE": 1,
+    "I_SINGLE_YELLOW_SOLID_LINE": 1,
+    "I_STRAIGHT_ARROW": 1,
+    "I_WHITE_SINGLE_SOLID_LINE": 1
+  },
+  "missing_from_stem_map": [],
+  "seed": 42,
+  "notes": [
+    "Catalog icons: one image per Additional-sign class",
+    "BBox = content-aware (non-white / non-transparent), fallback 0.92 full-frame",
+    "Class keys from cambodia_stem_to_class.json (informative I_* codes)",
+    "Not the thesis 10-class detector set \u2014 supplementary panels only"
+  ]
+}

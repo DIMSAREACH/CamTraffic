@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { DRIVER_QUICK_ROUTES } from '@user/navigation/driverNav';
+import { CITIZEN_QUICK_ROUTES, DRIVER_QUICK_ROUTES } from '@citizen/navigation/citizenNav';
 
-describe('driverNav', () => {
-  it('maps driver quick links to dashboard routes', () => {
-    expect(DRIVER_QUICK_ROUTES.payments).toBe('/dashboard/fines/payments');
-    expect(DRIVER_QUICK_ROUTES.settings).toBe('/dashboard/settings');
+describe('citizenNav', () => {
+  it('maps citizen quick links to /citizen routes', () => {
+    expect(CITIZEN_QUICK_ROUTES.payments).toBe('/citizen/fines/payments');
+    expect(CITIZEN_QUICK_ROUTES.settings).toBe('/citizen/settings');
+    expect(DRIVER_QUICK_ROUTES.payments).toBe(CITIZEN_QUICK_ROUTES.payments);
   });
 });

@@ -8,19 +8,40 @@ frontend/node_modules/
 frontend/dist/
 frontend-admin/dist/
 frontend-user/dist/
+src/web/admin/dist/
+src/web/user/dist/
+src/web/citizen/.next/
+src/web/citizen/out/
 frontend/.env
 frontend-admin/.env
 frontend-user/.env
+src/web/admin/.env
+src/web/user/.env
+src/web/citizen/.env
+src/web/citizen/.env.local
 backend/.env
+src/backend/.env
+.env
+.env.docker
+.env.local
 deploy/env/.env.production
+infrastructure/deploy/env/.env.production
 
 # Django
 backend/db.sqlite3
+src/backend/db.sqlite3
 backend/media/
+src/backend/media/
 backend/staticfiles/
+src/backend/staticfiles/
 backend/backups/
+src/backend/backups/
 backend/logs/
+src/backend/logs/
 backend/venv/
+src/backend/venv/
+.venv/
+venv/
 __pycache__/
 *.pyc
 .Python
@@ -96,5 +117,17 @@ _t*.txt
 /_*.py
 _result_*.txt
 
+# AI_Traffic_System_Dataset — keep structure; ignore media, weights, runs
+AI_Traffic_System_Dataset/datasets/training_data/
+AI_Traffic_System_Dataset/datasets/validation_data/
+AI_Traffic_System_Dataset/datasets/test_data/
+AI_Traffic_System_Dataset/models/**
+!AI_Traffic_System_Dataset/models/.gitkeep
+AI_Traffic_System_Dataset/scripts/__pycache__/
+
 # Optional large reference data (uncomment if you keep PDFs/images outside repo)
 # Reference(PDF Download)/
+# External dataset junctions (Dim Sareach Image Dataset)
+ai/datasets/external/
+!ai/datasets/external/README.md
+

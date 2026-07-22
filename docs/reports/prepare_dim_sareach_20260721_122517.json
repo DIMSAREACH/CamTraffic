@@ -1,0 +1,18 @@
+{
+  "dataset_root": "D:\\Year4\\Project Thesis\\Expert System\\Reference(PDF Download)\\Dim Sareach\\Dataset",
+  "started_at": "2026-07-21T12:24:27.113750+00:00",
+  "steps": {
+    "ingest": "ok",
+    "sign_splits": "ok",
+    "cam_tsr": "ok",
+    "roboflow": "ok",
+    "road_footage": {
+      "source": "D:\\Year4\\Project Thesis\\Expert System\\Reference(PDF Download)\\Dim Sareach\\Dataset\\VDO",
+      "dest": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\raw\\road_footage\\urban",
+      "copied": 0
+    },
+    "class_maps": "ok",
+    "collection_tracker": "ok"
+  },
+  "finished_at": "2026-07-21T12:25:17.419836+00:00"
+}

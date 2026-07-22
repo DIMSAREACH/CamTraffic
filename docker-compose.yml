@@ -50,8 +50,8 @@ services:
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/1
     volumes:
-      - ./backend:/app/backend
-      - ./backend/media:/app/backend/media
+      - ./src/backend:/app/backend
+      - ./src/backend/media:/app/backend/media
       - ./ai/weights:/app/ai/weights
     ports:
       - "${BACKEND_PORT:-8000}:8000"
@@ -143,7 +143,7 @@ services:
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/1
     volumes:
-      - ./backend/media:/app/backend/media
+      - ./src/backend/media:/app/backend/media
     depends_on:
       postgres:
         condition: service_healthy
@@ -151,6 +151,31 @@ services:
         condition: service_healthy
       backend:
         condition: service_started
+
+  # Thesis-aligned AI service (YOLOv8 + EasyOCR) — port 8090
+  ai-service:
+    build:
+      context: .
+      dockerfile: src/services/ai-service/Dockerfile
+    container_name: camtraffic_ai_service
+    restart: unless-stopped
+    environment:
+      AI_MOCK_MODE: ${AI_SERVICE_MOCK_MODE:-true}
+      AI_WEIGHTS_PATH: /weights/best.pt
+      AI_SIGN_CATALOG_PATH: /ai/sign_catalog.json
+      AI_HOST: 0.0.0.0
+      AI_PORT: 8090
+    volumes:
+      - ./ai/weights:/weights:ro
+      - ./ai/sign_catalog.json:/ai/sign_catalog.json:ro
+      - ./src/services/ai-service/outputs:/app/outputs
+    ports:
+      - "${AI_SERVICE_PORT:-8090}:8090"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/health')"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
 
 volumes:
   pgdata:

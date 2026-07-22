@@ -49,3 +49,10 @@ python ai/scripts/validate_dataset.py --dataset ai/dataset_10
 ```
 
 See `ai/datasets/README.md` for scripts and batch IDs.
+
+## Full research package (thesis)
+
+Verified public dataset catalog + download/train/export pipeline:
+
+- `AI_Traffic_System_Dataset/README.md`
+- `AI_Traffic_System_Dataset/reports/Dataset_Report.md`

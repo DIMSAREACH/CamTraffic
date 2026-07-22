@@ -1,0 +1,8 @@
+{
+  "evaluated_at": "2026-07-11T21:21:12.661468+00:00",
+  "weights": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\weights\\best_v2.pt",
+  "samples": 20,
+  "false_negatives": [],
+  "false_positives": [],
+  "misclassifications": []
+}

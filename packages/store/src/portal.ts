@@ -87,7 +87,7 @@ export function getAdminPortalUrl(path = '/admin/dashboard'): string {
   return `${portalBaseUrl('admin')}${p}`;
 }
 
-export function getUserPortalUrl(path = '/dashboard'): string {
+export function getUserPortalUrl(path = '/officer'): string {
   const p = path.startsWith('/') ? path : `/${path}`;
   return `${portalBaseUrl('user')}${p}`;
 }

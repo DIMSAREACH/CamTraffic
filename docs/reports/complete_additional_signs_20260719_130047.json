@@ -1,0 +1,32 @@
+{
+  "source": "D:\\Year4\\Project Thesis\\Expert System\\Reference(PDF Download)\\Dim Sareach\\Road signs in Cambodia\\3-Built-up area and boundary signs",
+  "output": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cambodia_builtup_boundary_dim_sareach",
+  "created_at": "2026-07-19T13:00:47.498009+00:00",
+  "images_total": 4,
+  "nc": 4,
+  "names": [
+    "I_BUILT_UP_AREA_BEGINS",
+    "I_BUILT_UP_AREA_ENDS",
+    "I_PROVINCIAL_DISTRICT_OR_COMMUNE_BOUNDARY",
+    "I_PROVINCIAL_DISTRICT_OR_COMMUNE_BOUNDARY_2"
+  ],
+  "split": {
+    "train": 2,
+    "val": 1,
+    "test": 1
+  },
+  "by_class": {
+    "I_BUILT_UP_AREA_BEGINS": 1,
+    "I_BUILT_UP_AREA_ENDS": 1,
+    "I_PROVINCIAL_DISTRICT_OR_COMMUNE_BOUNDARY": 1,
+    "I_PROVINCIAL_DISTRICT_OR_COMMUNE_BOUNDARY_2": 1
+  },
+  "missing_from_stem_map": [],
+  "seed": 42,
+  "notes": [
+    "Catalog icons: one image per Additional-sign class",
+    "BBox = content-aware (non-white / non-transparent), fallback 0.92 full-frame",
+    "Class keys from cambodia_stem_to_class.json (informative I_* codes)",
+    "Not the thesis 10-class detector set \u2014 supplementary panels only"
+  ]
+}

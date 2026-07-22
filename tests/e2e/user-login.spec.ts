@@ -21,6 +21,6 @@ test.describe('User portal login smoke', () => {
     await page.locator('#driver-email').fill('driver@camtraffic.demo');
     await page.locator('#driver-password').fill('CamTraffic@2026!');
     await page.getByRole('button', { name: /login as driver/i }).click();
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 20_000 });
+    await expect(page).toHaveURL(/\/citizen/, { timeout: 20_000 });
   });
 });

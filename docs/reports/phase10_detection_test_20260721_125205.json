@@ -1,0 +1,555 @@
+{
+  "generated_at": "2026-07-21T12:52:05.331286+00:00",
+  "weights": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\weights\\best.pt",
+  "conf": 0.25,
+  "image_yolo": {
+    "count": 50,
+    "detected_count": 29,
+    "detection_rate_pct": 58.0,
+    "mean_inference_ms": 176.2,
+    "rows": [
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cam_tsr_street_signs_dim_sareach\\images\\test\\GX010116.MP4_snapshot_02.45.175.jpg",
+        "pool": "cam_tsr_test",
+        "detected": false,
+        "top_detection": null,
+        "inference_ms": 2767.3
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\dataset_10\\images\\val\\I_DEAD_END_Dead end_00.jpg",
+        "pool": "dataset_10_val",
+        "detected": true,
+        "top_detection": {
+          "class_id": 42,
+          "class_name": "I_DEAD_END",
+          "confidence": 0.9818
+        },
+        "inference_ms": 107.6
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\dataset_10\\images\\val\\I_HOTEL_OR_MOTEL_Hotel or motel_04.jpg",
+        "pool": "dataset_10_val",
+        "detected": true,
+        "top_detection": {
+          "class_id": 43,
+          "class_name": "I_HOTEL_OR_MOTEL",
+          "confidence": 0.9997
+        },
+        "inference_ms": 103.8
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cam_tsr_street_signs_dim_sareach\\images\\test\\GX020274.MP4_snapshot_32.41.978.JPG",
+        "pool": "cam_tsr_test",
+        "detected": false,
+        "top_detection": null,
+        "inference_ms": 144.8
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cam_tsr_street_signs_dim_sareach\\images\\test\\NR5_14.jpg",
+        "pool": "cam_tsr_test",
+        "detected": false,
+        "top_detection": null,
+        "inference_ms": 134.1
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cam_tsr_street_signs_dim_sareach\\images\\test\\NR1_1.jpg",
+        "pool": "cam_tsr_test",
+        "detected": false,
+        "top_detection": null,
+        "inference_ms": 140.4
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cam_tsr_street_signs_dim_sareach\\images\\test\\GX010112.MP4_snapshot_16.38.377.jpg",
+        "pool": "cam_tsr_test",
+        "detected": false,
+        "top_detection": null,
+        "inference_ms": 143.5
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\dataset_10\\images\\val\\M_PRIORITY_INTERSECTION_Priority intersection_03.jpg",
+        "pool": "dataset_10_val",
+        "detected": true,
+        "top_detection": {
+          "class_id": 38,
+          "class_name": "M_PRIORITY_INTERSECTION",
+          "confidence": 0.9936
+        },
+        "inference_ms": 118.2
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\dataset_10\\images\\val\\M_PRIORITY_INTERSECTION_Priority intersection_02.jpg",
+        "pool": "dataset_10_val",
+        "detected": true,
+        "top_detection": {
+          "class_id": 38,
+          "class_name": "M_PRIORITY_INTERSECTION",
+          "confidence": 0.9969
+        },
+        "inference_ms": 76.4
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\dataset_10\\images\\val\\M_BICYCLES_ONLY_Bicycles only_10.jpg",
+        "pool": "dataset_10_val",
+        "detected": true,
+        "top_detection": {
+          "class_id": 33,
+          "class_name": "M_BICYCLES_ONLY",
+          "confidence": 0.9999
+        },
+        "inference_ms": 63.0
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cam_tsr_street_signs_dim_sareach\\images\\test\\NR5_44.jpg",
+        "pool": "cam_tsr_test",
+        "detected": false,
+        "top_detection": null,
+        "inference_ms": 144.7
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cam_tsr_street_signs_dim_sareach\\images\\test\\NR1_90.jpg",
+        "pool": "cam_tsr_test",
+        "detected": false,
+        "top_detection": null,
+        "inference_ms": 126.3
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\dataset_10\\images\\val\\I_DEAD_END_Dead end_09.jpg",
+        "pool": "dataset_10_val",
+        "detected": true,
+        "top_detection": {
+          "class_id": 42,
+          "class_name": "I_DEAD_END",
+          "confidence": 0.9806
+        },
+        "inference_ms": 83.8
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cam_tsr_street_signs_dim_sareach\\images\\test\\GX010119.MP4_snapshot_03.35.345.jpg",
+        "pool": "cam_tsr_test",
+        "detected": false,
+        "top_detection": null,
+        "inference_ms": 171.9
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cam_tsr_street_signs_dim_sareach\\images\\test\\GX010119.MP4_snapshot_17.04.163.jpg",
+        "pool": "cam_tsr_test",
+        "detected": false,
+        "top_detection": null,
+        "inference_ms": 133.8
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\dataset_10\\images\\val\\M_YIELD_GIVE_WAY_Yield (Give way)_01.jpg",
+        "pool": "dataset_10_val",
+        "detected": true,
+        "top_detection": {
+          "class_id": 10,
+          "class_name": "M_YIELD_GIVE_WAY",
+          "confidence": 0.9981
+        },
+        "inference_ms": 101.3
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cam_tsr_street_signs_dim_sareach\\images\\test\\NR6_70.jpg",
+        "pool": "cam_tsr_test",
+        "detected": false,
+        "top_detection": null,
+        "inference_ms": 125.1
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cam_tsr_street_signs_dim_sareach\\images\\test\\GX010114.MP4_snapshot_31.46.882.jpg",
+        "pool": "cam_tsr_test",
+        "detected": false,
+        "top_detection": null,
+        "inference_ms": 141.8
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\dataset_10\\images\\val\\NO_ENTRY_No entry_01.jpg",
+        "pool": "dataset_10_val",
+        "detected": true,
+        "top_detection": {
+          "class_id": 0,
+          "class_name": "NO_ENTRY",
+          "confidence": 0.9952
+        },
+        "inference_ms": 163.6
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\dataset_10\\images\\val\\M_PRIORITY_ROAD_Priority road_01.jpg",
+        "pool": "dataset_10_val",
+        "detected": true,
+        "top_detection": {
+          "class_id": 11,
+          "class_name": "M_PRIORITY_ROAD",
+          "confidence": 0.9997
+        },
+        "inference_ms": 76.1
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cam_tsr_street_signs_dim_sareach\\images\\test\\GX020116.MP4_snapshot_14.03.782.jpg",
+        "pool": "cam_tsr_test",
+        "detected": false,
+        "top_detection": null,
+        "inference_ms": 155.9
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cam_tsr_street_signs_dim_sareach\\images\\test\\GX010113.MP4_snapshot_14.28.811.jpg",
+        "pool": "cam_tsr_test",
+        "detected": false,
+        "top_detection": null,
+        "inference_ms": 137.7
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\dataset_10\\images\\val\\NO_U_TURN_No U-turn_07.jpg",
+        "pool": "dataset_10_val",
+        "detected": true,
+        "top_detection": {
+          "class_id": 3,
+          "class_name": "NO_U_TURN",
+          "confidence": 0.9996
+        },
+        "inference_ms": 85.7
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\dataset_10\\images\\val\\NO_LEFT_TURN_No left turn_07.jpg",
+        "pool": "dataset_10_val",
+        "detected": true,
+        "top_detection": {
+          "class_id": 1,
+          "class_name": "NO_LEFT_TURN",
+          "confidence": 0.7046
+        },
+        "inference_ms": 120.9
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\dataset_10\\images\\val\\M_KEEP_LEFT_Keep left_03.jpg",
+        "pool": "dataset_10_val",
+        "detected": true,
+        "top_detection": {
+          "class_id": 13,
+          "class_name": "M_KEEP_RIGHT",
+          "confidence": 0.8489
+        },
+        "inference_ms": 104.5
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\dataset_10\\images\\val\\P_SPEED_LIMIT_50_KM_H_Speed limit 50 km-h_11.jpg",
+        "pool": "dataset_10_val",
+        "detected": true,
+        "top_detection": {
+          "class_id": 7,
+          "class_name": "P_SPEED_LIMIT_50_KM_H",
+          "confidence": 0.8023
+        },
+        "inference_ms": 87.1
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cam_tsr_street_signs_dim_sareach\\images\\test\\NR6_31.jpg",
+        "pool": "cam_tsr_test",
+        "detected": false,
+        "top_detection": null,
+        "inference_ms": 127.6
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cam_tsr_street_signs_dim_sareach\\images\\test\\NR6_3.jpg",
+        "pool": "cam_tsr_test",
+        "detected": false,
+        "top_detection": null,
+        "inference_ms": 127.0
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cam_tsr_street_signs_dim_sareach\\images\\test\\GX010118.MP4_snapshot_11.06.385.jpg",
+        "pool": "cam_tsr_test",
+        "detected": true,
+        "top_detection": {
+          "class_id": 37,
+          "class_name": "I_BUILT_UP_AREA_ENDS",
+          "confidence": 0.2824
+        },
+        "inference_ms": 149.6
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\dataset_10\\images\\val\\I_PROVINCIAL_DISTRICT_OR_COMMUNE_BOUNDARY_Provincial, district or commune boundary begins_11.jpg",
+        "pool": "dataset_10_val",
+        "detected": true,
+        "top_detection": {
+          "class_id": 47,
+          "class_name": "I_PROVINCIAL_DISTRICT_OR_COMMUNE_BOUNDARY",
+          "confidence": 1.0
+        },
+        "inference_ms": 123.9
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\dataset_10\\images\\val\\W_CATTLE_OR_DOMESTIC_ANIMALS_Cattle or domestic animals_11.jpg",
+        "pool": "dataset_10_val",
+        "detected": true,
+        "top_detection": {
+          "class_id": 26,
+          "class_name": "W_CATTLE_OR_DOMESTIC_ANIMALS",
+          "confidence": 0.9728
+        },
+        "inference_ms": 71.6
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\dataset_10\\images\\val\\I_DEAD_END_Dead end_07.jpg",
+        "pool": "dataset_10_val",
+        "detected": true,
+        "top_detection": {
+          "class_id": 42,
+          "class_name": "I_DEAD_END",
+          "confidence": 0.968
+        },
+        "inference_ms": 128.2
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cam_tsr_street_signs_dim_sareach\\images\\test\\GX010276.MP4_snapshot_22.58.512.JPG",
+        "pool": "cam_tsr_test",
+        "detected": true,
+        "top_detection": {
+          "class_id": 37,
+          "class_name": "I_BUILT_UP_AREA_ENDS",
+          "confidence": 0.3315
+        },
+        "inference_ms": 147.8
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cam_tsr_street_signs_dim_sareach\\images\\test\\GX010113.MP4_snapshot_30.09.877.JPG",
+        "pool": "cam_tsr_test",
+        "detected": false,
+        "top_detection": null,
+        "inference_ms": 186.9
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cam_tsr_street_signs_dim_sareach\\images\\test\\NR2_4.jpg",
+        "pool": "cam_tsr_test",
+        "detected": false,
+        "top_detection": null,
+        "inference_ms": 143.6
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cam_tsr_street_signs_dim_sareach\\images\\test\\photo_2025-04-08_10-22-43 (2).jpg",
+        "pool": "cam_tsr_test",
+        "detected": false,
+        "top_detection": null,
+        "inference_ms": 119.5
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cam_tsr_street_signs_dim_sareach\\images\\test\\NR6_182.jpg",
+        "pool": "cam_tsr_test",
+        "detected": true,
+        "top_detection": {
+          "class_id": 37,
+          "class_name": "I_BUILT_UP_AREA_ENDS",
+          "confidence": 0.433
+        },
+        "inference_ms": 154.8
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\dataset_10\\images\\val\\NO_STOPPING_No stopping_10.jpg",
+        "pool": "dataset_10_val",
+        "detected": true,
+        "top_detection": {
+          "class_id": 20,
+          "class_name": "NO_STOPPING",
+          "confidence": 0.9949
+        },
+        "inference_ms": 110.6
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\dataset_10\\images\\val\\I_U_TURN_U-turn_05.jpg",
+        "pool": "dataset_10_val",
+        "detected": true,
+        "top_detection": {
+          "class_id": 29,
+          "class_name": "I_U_TURN",
+          "confidence": 0.9999
+        },
+        "inference_ms": 105.3
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cam_tsr_street_signs_dim_sareach\\images\\test\\GX010114.MP4_snapshot_08.24.394.jpg",
+        "pool": "cam_tsr_test",
+        "detected": false,
+        "top_detection": null,
+        "inference_ms": 132.4
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\dataset_10\\images\\val\\NO_U_TURN_No U-turn_03.jpg",
+        "pool": "dataset_10_val",
+        "detected": true,
+        "top_detection": {
+          "class_id": 3,
+          "class_name": "NO_U_TURN",
+          "confidence": 0.9996
+        },
+        "inference_ms": 71.7
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\dataset_10\\images\\val\\I_U_TURN_U-turn_02.jpg",
+        "pool": "dataset_10_val",
+        "detected": true,
+        "top_detection": {
+          "class_id": 29,
+          "class_name": "I_U_TURN",
+          "confidence": 1.0
+        },
+        "inference_ms": 70.6
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\dataset_10\\images\\val\\W_CATTLE_OR_DOMESTIC_ANIMALS_Cattle or domestic animals_07.jpg",
+        "pool": "dataset_10_val",
+        "detected": true,
+        "top_detection": {
+          "class_id": 26,
+          "class_name": "W_CATTLE_OR_DOMESTIC_ANIMALS",
+          "confidence": 0.9818
+        },
+        "inference_ms": 138.2
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cam_tsr_street_signs_dim_sareach\\images\\test\\GX020116.MP4_snapshot_11.15.425.jpg",
+        "pool": "cam_tsr_test",
+        "detected": false,
+        "top_detection": null,
+        "inference_ms": 143.4
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cam_tsr_street_signs_dim_sareach\\images\\test\\GX010117.MP4_snapshot_08.15.807.jpg",
+        "pool": "cam_tsr_test",
+        "detected": false,
+        "top_detection": null,
+        "inference_ms": 157.8
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\dataset_10\\images\\val\\P_NO_MOTORCYCLES_No motorcycles_10.jpg",
+        "pool": "dataset_10_val",
+        "detected": true,
+        "top_detection": {
+          "class_id": 14,
+          "class_name": "P_NO_MOTORCYCLES",
+          "confidence": 0.9974
+        },
+        "inference_ms": 132.3
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\dataset_10\\images\\val\\M_STOP_Stop_02.jpg",
+        "pool": "dataset_10_val",
+        "detected": true,
+        "top_detection": {
+          "class_id": 5,
+          "class_name": "M_STOP",
+          "confidence": 0.9999
+        },
+        "inference_ms": 110.6
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\dataset_10\\images\\val\\I_EXPRESSWAY_ENDS_Expressway ends_05.jpg",
+        "pool": "dataset_10_val",
+        "detected": true,
+        "top_detection": {
+          "class_id": 35,
+          "class_name": "I_EXPRESSWAY_ENDS",
+          "confidence": 0.9999
+        },
+        "inference_ms": 110.9
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\dataset_10\\images\\val\\I_AIRPORTS_Airports_11.jpg",
+        "pool": "dataset_10_val",
+        "detected": true,
+        "top_detection": {
+          "class_id": 40,
+          "class_name": "I_AIRPORTS",
+          "confidence": 0.9997
+        },
+        "inference_ms": 129.9
+      },
+      {
+        "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cam_tsr_street_signs_dim_sareach\\images\\test\\GX010119.MP4_snapshot_14.37.499.jpg",
+        "pool": "cam_tsr_test",
+        "detected": true,
+        "top_detection": {
+          "class_id": 37,
+          "class_name": "I_BUILT_UP_AREA_ENDS",
+          "confidence": 0.2597
+        },
+        "inference_ms": 156.0
+      }
+    ]
+  },
+  "video_yolo": {
+    "count": 10,
+    "detected_count": 2,
+    "rows": [
+      {
+        "video": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\raw\\road_footage\\urban\\1.mp4",
+        "frames_sampled": 6,
+        "sign_detected": false,
+        "best_frame": null
+      },
+      {
+        "video": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\raw\\road_footage\\urban\\2.mp4",
+        "frames_sampled": 6,
+        "sign_detected": false,
+        "best_frame": null
+      },
+      {
+        "video": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\raw\\road_footage\\urban\\3991802819-preview.mp4",
+        "frames_sampled": 6,
+        "sign_detected": true,
+        "best_frame": {
+          "timestamp_sec": 8.96,
+          "class_name": "I_BUILT_UP_AREA_ENDS",
+          "confidence": 0.2577
+        }
+      },
+      {
+        "video": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\raw\\road_footage\\urban\\5min-traffic-video.mp4",
+        "frames_sampled": 6,
+        "sign_detected": false,
+        "best_frame": null
+      },
+      {
+        "video": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\raw\\road_footage\\urban\\close-angle-sampledata.mp4",
+        "frames_sampled": 6,
+        "sign_detected": false,
+        "best_frame": null
+      },
+      {
+        "video": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\raw\\road_footage\\urban\\far-angle-sampledata.mp4",
+        "frames_sampled": 6,
+        "sign_detected": false,
+        "best_frame": null
+      },
+      {
+        "video": "D:\\Year4\\Project Thesis\\Expert System\\Reference(PDF Download)\\Dim Sareach\\Dataset\\VDO\\1.mp4",
+        "frames_sampled": 6,
+        "sign_detected": false,
+        "best_frame": null
+      },
+      {
+        "video": "D:\\Year4\\Project Thesis\\Expert System\\Reference(PDF Download)\\Dim Sareach\\Dataset\\VDO\\2.mp4",
+        "frames_sampled": 6,
+        "sign_detected": false,
+        "best_frame": null
+      },
+      {
+        "video": "D:\\Year4\\Project Thesis\\Expert System\\Reference(PDF Download)\\Dim Sareach\\Dataset\\VDO\\3991802819-preview.mp4",
+        "frames_sampled": 6,
+        "sign_detected": true,
+        "best_frame": {
+          "timestamp_sec": 8.96,
+          "class_name": "I_BUILT_UP_AREA_ENDS",
+          "confidence": 0.2577
+        }
+      },
+      {
+        "video": "D:\\Year4\\Project Thesis\\Expert System\\Reference(PDF Download)\\Dim Sareach\\Dataset\\VDO\\5min-traffic-video.mp4",
+        "frames_sampled": 6,
+        "sign_detected": false,
+        "best_frame": null
+      }
+    ]
+  },
+  "pipeline_sample": null,
+  "json_file": "phase10_detection_test_20260721_125205.json"
+}

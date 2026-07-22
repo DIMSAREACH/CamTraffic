@@ -1,0 +1,40 @@
+{
+  "source": "D:\\Year4\\Project Thesis\\Expert System\\Reference(PDF Download)\\Dim Sareach\\Road signs in Cambodia\\10-Street name signs",
+  "output": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cambodia_street_name_signs_dim_sareach",
+  "created_at": "2026-07-19T13:11:05.469499+00:00",
+  "images_total": 8,
+  "nc": 8,
+  "names": [
+    "I_ASIAN_HIGHWAY_ROUTE_1",
+    "I_ASIAN_HIGHWAY_ROUTE_11",
+    "I_EXPRESSWAY_NUMBER",
+    "I_KRAMUON_SAR_AVENUE",
+    "I_NATIONAL_ROAD_NUMBER",
+    "I_PREAH_NORODOM_BOULEVARD",
+    "I_PREAH_TRASAK_PAEM_STREET",
+    "I_STREET_NO_113"
+  ],
+  "split": {
+    "train": 5,
+    "val": 1,
+    "test": 2
+  },
+  "by_class": {
+    "I_ASIAN_HIGHWAY_ROUTE_1": 1,
+    "I_ASIAN_HIGHWAY_ROUTE_11": 1,
+    "I_EXPRESSWAY_NUMBER": 1,
+    "I_KRAMUON_SAR_AVENUE": 1,
+    "I_NATIONAL_ROAD_NUMBER": 1,
+    "I_PREAH_NORODOM_BOULEVARD": 1,
+    "I_PREAH_TRASAK_PAEM_STREET": 1,
+    "I_STREET_NO_113": 1
+  },
+  "missing_from_stem_map": [],
+  "seed": 42,
+  "notes": [
+    "Catalog icons: one image per Additional-sign class",
+    "BBox = content-aware (non-white / non-transparent), fallback 0.92 full-frame",
+    "Class keys from cambodia_stem_to_class.json (informative I_* codes)",
+    "Not the thesis 10-class detector set \u2014 supplementary panels only"
+  ]
+}

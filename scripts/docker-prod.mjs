@@ -6,9 +6,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const composeFile = path.join(repoRoot, 'deploy/docker/docker-compose.prod.yml');
-const envExample = path.join(repoRoot, 'deploy/env/.env.production.example');
-const envFile = path.join(repoRoot, 'deploy/env/.env.production');
+const composeFile = path.join(repoRoot, 'infrastructure/deploy/docker/docker-compose.prod.yml');
+const envExample = path.join(repoRoot, 'infrastructure/deploy/env/.env.production.example');
+const envFile = path.join(repoRoot, 'infrastructure/deploy/env/.env.production');
 
 const action = process.argv[2] || 'up';
 

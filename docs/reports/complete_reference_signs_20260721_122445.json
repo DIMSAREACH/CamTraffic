@@ -1,0 +1,137 @@
+{
+  "root": "D:\\Year4\\Project Thesis\\Expert System\\Reference(PDF Download)\\Dim Sareach\\Dataset\\Road signs in Cambodia",
+  "categories": [
+    {
+      "folder": "1-Prohibitory signs",
+      "output": "cambodia_prohibitory_signs_dim_sareach",
+      "images": 46,
+      "nc": 46,
+      "split": {
+        "train": 32,
+        "val": 9,
+        "test": 5
+      }
+    },
+    {
+      "folder": "10-Street name signs",
+      "output": "cambodia_street_name_signs_dim_sareach",
+      "images": 8,
+      "nc": 8,
+      "split": {
+        "train": 5,
+        "val": 1,
+        "test": 2
+      }
+    },
+    {
+      "folder": "11-Temporary signs",
+      "output": "cambodia_temporary_signs_dim_sareach",
+      "images": 10,
+      "nc": 10,
+      "split": {
+        "train": 7,
+        "val": 2,
+        "test": 1
+      }
+    },
+    {
+      "folder": "12-Warning signs",
+      "output": "cambodia_warning_signs_dim_sareach",
+      "images": 58,
+      "nc": 58,
+      "split": {
+        "train": 40,
+        "val": 11,
+        "test": 7
+      }
+    },
+    {
+      "folder": "2- Additional signs",
+      "output": "cambodia_additional_signs_dim_sareach",
+      "images": 24,
+      "nc": 24,
+      "split": {
+        "train": 16,
+        "val": 4,
+        "test": 4
+      }
+    },
+    {
+      "folder": "3-Built-up area and boundary signs",
+      "output": "cambodia_builtup_boundary_dim_sareach",
+      "images": 4,
+      "nc": 4,
+      "split": {
+        "train": 2,
+        "val": 1,
+        "test": 1
+      }
+    },
+    {
+      "folder": "4-Direction signs",
+      "output": "cambodia_direction_signs_dim_sareach",
+      "images": 7,
+      "nc": 7,
+      "split": {
+        "train": 4,
+        "val": 1,
+        "test": 2
+      }
+    },
+    {
+      "folder": "5-Information signs",
+      "output": "cambodia_information_signs_dim_sareach",
+      "images": 40,
+      "nc": 40,
+      "split": {
+        "train": 28,
+        "val": 8,
+        "test": 4
+      }
+    },
+    {
+      "folder": "6-Mandatory signs",
+      "output": "cambodia_mandatory_signs_dim_sareach",
+      "images": 23,
+      "nc": 23,
+      "split": {
+        "train": 16,
+        "val": 4,
+        "test": 3
+      }
+    },
+    {
+      "folder": "7-Priority signs",
+      "output": "cambodia_priority_signs_dim_sareach",
+      "images": 11,
+      "nc": 11,
+      "split": {
+        "train": 7,
+        "val": 2,
+        "test": 2
+      }
+    },
+    {
+      "folder": "8-Road markings",
+      "output": "cambodia_road_markings_dim_sareach",
+      "images": 12,
+      "nc": 12,
+      "split": {
+        "train": 8,
+        "val": 2,
+        "test": 2
+      }
+    },
+    {
+      "folder": "9-Signposts",
+      "output": "cambodia_signposts_dim_sareach",
+      "images": 8,
+      "nc": 8,
+      "split": {
+        "train": 5,
+        "val": 1,
+        "test": 2
+      }
+    }
+  ]
+}

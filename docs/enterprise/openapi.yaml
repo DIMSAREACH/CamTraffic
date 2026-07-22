@@ -1,0 +1,783 @@
+openapi: 3.1.0
+info:
+  title: CamTraffic Enterprise API
+  description: |
+    AI-Based Traffic Sign Detection and Traffic Law Enforcement System in Cambodia.
+    Nationwide deployment API for citizens, officers, administrators, and AI services.
+  version: 2.0.0
+  contact:
+    name: CamTraffic Platform Team
+    email: api@camtraffic.gov.kh
+  license:
+    name: Proprietary
+
+servers:
+  - url: https://api.camtraffic.gov.kh/api/v1
+    description: Production
+  - url: https://staging-api.camtraffic.gov.kh/api/v1
+    description: Staging
+  - url: http://localhost:8000/api/v1
+    description: Local development
+
+tags:
+  - name: Auth
+  - name: AI Vision
+  - name: Violations
+  - name: Fines
+  - name: Appeals
+  - name: Payments
+  - name: Cameras
+  - name: GIS
+  - name: Notifications
+  - name: Dashboard
+
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ApiResponse:
+      type: object
+      required: [success, message]
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+        meta:
+          type: object
+          properties:
+            request_id:
+              type: string
+              format: uuid
+            timestamp:
+              type: string
+              format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    TokenResponse:
+      type: object
+      properties:
+        access:
+          type: string
+        refresh:
+          type: string
+        user:
+          $ref: '#/components/schemas/UserSummary'
+
+    UserSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        role:
+          type: string
+          enum: [citizen, officer, supervisor, station_admin, provincial_admin, national_admin, auditor, ml_engineer, sysops]
+        province_id:
+          type: string
+          format: uuid
+        permissions:
+          type: array
+          items:
+            type: string
+
+    BoundingBox:
+      type: array
+      items:
+        type: number
+      minItems: 4
+      maxItems: 4
+      description: [x1, y1, x2, y2]
+
+    SignDetection:
+      type: object
+      properties:
+        class:
+          type: string
+        confidence:
+          type: number
+          format: float
+        bbox:
+          $ref: '#/components/schemas/BoundingBox'
+        sign_code:
+          type: string
+
+    PlateDetection:
+      type: object
+      properties:
+        text:
+          type: string
+        confidence:
+          type: number
+        bbox:
+          $ref: '#/components/schemas/BoundingBox'
+        format_valid:
+          type: boolean
+
+    DetectionResult:
+      type: object
+      properties:
+        detection_id:
+          type: string
+          format: uuid
+        processing_ms:
+          type: integer
+        model_version:
+          type: string
+        signs:
+          type: array
+          items:
+            $ref: '#/components/schemas/SignDetection'
+        plates:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlateDetection'
+        violation_suggestions:
+          type: array
+          items:
+            type: object
+            properties:
+              violation_type:
+                type: string
+              rule_id:
+                type: string
+                format: uuid
+              auto_eligible:
+                type: boolean
+              suggested_fine_khr:
+                type: integer
+
+    Violation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        violation_type:
+          type: string
+        status:
+          type: string
+          enum: [pending_review, confirmed, dismissed, auto_confirmed]
+        plate_number:
+          type: string
+        confidence:
+          type: number
+        detected_at:
+          type: string
+          format: date-time
+        camera_id:
+          type: string
+          format: uuid
+        evidence_uri:
+          type: string
+
+    Fine:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        violation_id:
+          type: string
+          format: uuid
+        amount_khr:
+          type: integer
+        status:
+          type: string
+          enum: [pending, paid, overdue, cancelled, under_appeal]
+        due_at:
+          type: string
+          format: date-time
+        paid_at:
+          type: string
+          format: date-time
+
+    Appeal:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        fine_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, under_review, approved, rejected]
+        reason:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    PaymentIntent:
+      type: object
+      properties:
+        intent_id:
+          type: string
+          format: uuid
+        fine_id:
+          type: string
+          format: uuid
+        amount_khr:
+          type: integer
+        status:
+          type: string
+          enum: [pending, completed, failed, expired]
+        khqr:
+          type: object
+          properties:
+            qr_string:
+              type: string
+            expires_at:
+              type: string
+              format: date-time
+
+    Camera:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+          enum: [online, offline, degraded, maintenance]
+        location:
+          type: object
+          properties:
+            lat:
+              type: number
+            lng:
+              type: number
+        road_id:
+          type: string
+          format: uuid
+        fps_target:
+          type: integer
+
+    PaginatedResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+        count:
+          type: integer
+        next:
+          type: string
+          nullable: true
+        previous:
+          type: string
+          nullable: true
+
+paths:
+  /auth/login/:
+    post:
+      tags: [Auth]
+      summary: Login with email and password
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: JWT tokens issued
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/TokenResponse'
+        '401':
+          description: Invalid credentials
+
+  /auth/refresh/:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh]
+              properties:
+                refresh:
+                  type: string
+      responses:
+        '200':
+          description: New access token
+
+  /auth/profile/:
+    get:
+      tags: [Auth]
+      summary: Get current user profile
+      responses:
+        '200':
+          description: Profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /ai/detect/:
+    post:
+      tags: [AI Vision]
+      summary: Run full AI detection pipeline on image
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+                camera_id:
+                  type: string
+                  format: uuid
+                enable_tracking:
+                  type: boolean
+                  default: false
+      responses:
+        '200':
+          description: Detection result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/DetectionResult'
+        '503':
+          description: AI service unavailable
+
+  /ai/ocr/read/:
+    post:
+      tags: [AI Vision]
+      summary: OCR license plate from crop image
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Plate text extracted
+
+  /violations/:
+    get:
+      tags: [Violations]
+      summary: List violations
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: violation_type
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Paginated violations
+    post:
+      tags: [Violations]
+      summary: Create manual violation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [violation_type, plate_number]
+              properties:
+                violation_type:
+                  type: string
+                plate_number:
+                  type: string
+                camera_id:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: Violation created
+
+  /violations/{id}/:
+    get:
+      tags: [Violations]
+      summary: Get violation detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Violation detail
+
+  /violations/{id}/confirm/:
+    post:
+      tags: [Violations]
+      summary: Confirm pending violation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Violation confirmed
+
+  /violations/{id}/dismiss/:
+    post:
+      tags: [Violations]
+      summary: Dismiss violation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Violation dismissed
+
+  /violations/queue/:
+    get:
+      tags: [Violations]
+      summary: Officer review queue
+      responses:
+        '200':
+          description: Pending violations sorted by confidence
+
+  /fines/:
+    get:
+      tags: [Fines]
+      summary: List fines
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated fines
+
+  /fines/my/:
+    get:
+      tags: [Fines]
+      summary: Citizen own fines
+      responses:
+        '200':
+          description: Driver fines
+
+  /fines/{id}/:
+    get:
+      tags: [Fines]
+      summary: Fine detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Fine detail
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Fine'
+
+  /appeals/:
+    get:
+      tags: [Appeals]
+      summary: List appeals
+      responses:
+        '200':
+          description: Appeals list
+    post:
+      tags: [Appeals]
+      summary: Submit appeal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fine_id, reason]
+              properties:
+                fine_id:
+                  type: string
+                  format: uuid
+                reason:
+                  type: string
+                attachments:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: Appeal submitted
+
+  /appeals/{id}/decide/:
+    post:
+      tags: [Appeals]
+      summary: Supervisor decision on appeal
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision:
+                  type: string
+                  enum: [approved, rejected]
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Appeal decided
+
+  /payments/intents/:
+    post:
+      tags: [Payments]
+      summary: Create payment intent for fine
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fine_id, provider]
+              properties:
+                fine_id:
+                  type: string
+                  format: uuid
+                provider:
+                  type: string
+                  enum: [khqr, aba, wing]
+      responses:
+        '201':
+          description: Payment intent with KHQR
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaymentIntent'
+
+  /payments/webhooks/khqr/:
+    post:
+      tags: [Payments]
+      summary: KHQR payment webhook
+      security: []
+      parameters:
+        - name: X-CamTraffic-Signature
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Webhook processed
+
+  /cameras/:
+    get:
+      tags: [Cameras]
+      summary: List cameras
+      responses:
+        '200':
+          description: Camera list
+    post:
+      tags: [Cameras]
+      summary: Register camera
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, location, rtsp_url_ref]
+              properties:
+                code:
+                  type: string
+                name:
+                  type: string
+                location:
+                  type: object
+                  properties:
+                    lat:
+                      type: number
+                    lng:
+                      type: number
+                rtsp_url_ref:
+                  type: string
+                road_id:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: Camera created
+
+  /cameras/{id}/health/:
+    get:
+      tags: [Cameras]
+      summary: Camera stream health
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Health metrics
+
+  /gis/cameras/geojson/:
+    get:
+      tags: [GIS]
+      summary: Cameras as GeoJSON FeatureCollection
+      parameters:
+        - name: province_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: GeoJSON
+
+  /notifications/:
+    get:
+      tags: [Notifications]
+      summary: List user notifications
+      responses:
+        '200':
+          description: Notifications
+
+  /dashboard/admin/:
+    get:
+      tags: [Dashboard]
+      summary: Admin dashboard KPIs
+      responses:
+        '200':
+          description: Dashboard stats
+
+  /health/:
+    get:
+      tags: [Dashboard]
+      summary: API health check
+      security: []
+      responses:
+        '200':
+          description: Service healthy

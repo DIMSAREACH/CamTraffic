@@ -1,0 +1,7 @@
+{
+  "evaluated_at": "2026-07-11T20:54:34.587782+00:00",
+  "weights": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\weights\\best_v2.pt",
+  "split": "val",
+  "map50": 0.9083687363834421,
+  "map50_95": 0.7956495098039216
+}

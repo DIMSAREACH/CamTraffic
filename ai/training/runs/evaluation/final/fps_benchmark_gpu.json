@@ -1,0 +1,5 @@
+{
+  "status": "unavailable",
+  "reason": "No CUDA GPU in development environment; CPU benchmark used instead.",
+  "note": "Re-run ai/training/yolo/benchmark_fps.py with device=cuda when GPU available."
+}

@@ -7,7 +7,7 @@
 
 ## 1. Elevator pitch (30 seconds)
 
-CamTraffic is an AI-based traffic sign detection and enforcement platform for Cambodia. It uses YOLO11n to detect 10 Cambodian sign classes, maps detections to violation rules, and connects officers and drivers through web portals for fines and appeals. The production model achieves mAP@50 of 0.908 at ~20 FPS on CPU.
+CamTraffic is an AI-based traffic sign detection and enforcement platform for Cambodia. Live inference uses a **248-class** YOLO model aligned with the Cambodian sign catalog. A balanced **10-class** subset was separately evaluated (mAP@50 = 0.908). The system maps detections to violation rules and connects officers and drivers through web portals for fines and appeals — see `docs/AI-MODEL-STORY.md`.
 
 ---
 
@@ -32,7 +32,7 @@ A: System administrators, traffic police officers, and drivers—each with dedic
 A: YOLO offers real-time single-stage inference suitable for officer upload and webcam workflows. We achieved 0.908 mAP@50 with YOLO11n at ~20 FPS CPU—meeting accuracy and speed targets.
 
 **Q: Why only 10 classes in production?**  
-A: The full taxonomy has 31 sign classes with 2,840+ collected images. A balanced 10-class subset was trained first for reliable thesis demonstration. Expansion to 31 classes is documented future work.
+A: Live runtime is **248 classes** (`best.pt`). The **10-class** subset (`best_v2.pt`) was trained with balanced data to publish trustworthy accuracy (mAP@50 = 0.908). Full-catalog evaluation of all 248 is future work — see `docs/AI-MODEL-STORY.md`.
 
 **Q: Your recall is 0.196—isn't that low?**  
 A: Yes, and we state this as a limitation. Precision is 0.96, so confirmed detections are trustworthy. Officer-in-the-loop review compensates for missed signs. Improving recall requires more balanced training data per class.
@@ -114,8 +114,10 @@ Keep these numbers ready:
 | Django apps | 16 |
 | Docker services | 8 |
 | E2E tests | 4/4 PASS |
-| Sign classes (production) | 10 |
-| Sign taxonomy (full) | 31 |
+| Sign classes (live runtime) | 248 (`best.pt`) |
+| Sign classes (thesis metrics) | 10 (`best_v2.pt`, mAP@50 = 0.908) |
+| Sign catalog (taxonomy) | 248 (`sign_catalog.json`) |
+| Expansion weights | 31 (`best_combined.pt`) |
 | Collection target (road) | 8,848 frames |
 
 ---

@@ -1,0 +1,9 @@
+{
+  "evaluated_at": "2026-07-21T23:17:53.330953+00:00",
+  "engine": "camtraffic_recognize_plate",
+  "samples": 30,
+  "exact_match_rate": 0.0,
+  "normalized_match_rate": 0.0,
+  "min_exact_rate": 0.35,
+  "pass": false
+}
