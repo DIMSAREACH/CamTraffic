@@ -1,10 +1,12 @@
 """Seed demo accounts + reference data for local dev, E2E, and defense demos."""
 from datetime import date, timedelta
 from decimal import Decimal
+import os
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from infrastructure.models import PoliceStation, Road
@@ -68,11 +70,35 @@ class Command(BaseCommand):
             action='store_true',
             help='Only sync demo login accounts (skip seed_data — for hosted API boot)',
         )
+        parser.add_argument(
+            '--force',
+            action='store_true',
+            help='Allow seeding when DEBUG=False (requires ALLOW_DEMO_SEED=true as well)',
+        )
+
+    def _assert_demo_seed_allowed(self, *, force: bool) -> None:
+        """Block known demo passwords on real production unless explicitly opted in."""
+        allow = os.getenv('ALLOW_DEMO_SEED', '').lower() in ('1', 'true', 'yes')
+        if settings.DEBUG:
+            return
+        if allow and force:
+            self.stdout.write(self.style.WARNING(
+                'ALLOW_DEMO_SEED=true — seeding demo accounts on a non-DEBUG environment.',
+            ))
+            return
+        raise CommandError(
+            'Refusing seed_demo when DEBUG=False. '
+            'Demo accounts use a public password and must not run on production. '
+            'For local/defense only: set DEBUG=True, or set ALLOW_DEMO_SEED=true and pass --force. '
+            'Production admins: use bootstrap_admin_env instead.',
+        )
 
     @transaction.atomic
     def handle(self, *args, **options):
         reset_passwords = options['reset_passwords']
         accounts_only = options['accounts_only']
+        force = options['force']
+        self._assert_demo_seed_allowed(force=force)
         self.stdout.write('Seeding CamTraffic demo environment...')
 
         station, _ = PoliceStation.objects.get_or_create(
@@ -157,6 +183,7 @@ class Command(BaseCommand):
 
         call_command('seed_violation_rules')
         call_command('seed_data')
+        self._ensure_sample_violation()
 
         self.stdout.write('')
         self.stdout.write(self.style.SUCCESS('Demo environment ready.'))
@@ -171,3 +198,36 @@ class Command(BaseCommand):
         self.stdout.write(f'  Password (all demo accounts): {DEMO_PASSWORD}')
         self.stdout.write('')
         self.stdout.write('  See docs/final-year-project/DEMO-ACCOUNTS.md')
+
+    def _ensure_sample_violation(self):
+        """Idempotent sample violation so Violations pages are not empty in demos."""
+        from vehicles.models import Vehicle
+        from violations.models import TrafficViolation
+        from violations.services import create_violation_record, evaluate_violation
+
+        driver_user = User.objects.filter(email='driver@camtraffic.demo', role='driver').first()
+        if not driver_user:
+            return
+        driver_profile = Driver.objects.filter(user=driver_user).first()
+        if not driver_profile:
+            return
+        if TrafficViolation.objects.filter(driver=driver_profile).exists():
+            self.stdout.write('  Sample violation already present')
+            return
+
+        evaluation = evaluate_violation(class_key='NO_PARKING', observed_action='PARKING')
+        if not evaluation:
+            self.stdout.write(self.style.WARNING('  Skipped sample violation — no matching rule'))
+            return
+
+        officer = Officer.objects.filter(user__email='officer@camtraffic.demo').first()
+        vehicle = Vehicle.objects.filter(owner=driver_user).first()
+        create_violation_record(
+            driver=driver_profile,
+            evaluation=evaluation,
+            location='Phnom Penh Demo Intersection',
+            officer=officer,
+            vehicle=vehicle,
+            status='pending_review',
+        )
+        self.stdout.write(self.style.SUCCESS('  Sample violation created'))

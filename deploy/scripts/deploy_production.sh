@@ -24,11 +24,20 @@ for _ in $(seq 1 30); do
   sleep 2
 done
 
-echo "==> Seeding demo environment (dev only — skip on public prod)..."
-compose exec -T backend python manage.py seed_demo || compose exec -T backend python manage.py seed_data || true
+# Production default: do NOT seed demo accounts (public known password).
+# Opt-in only: CAMTRAFFIC_SEED_DEMO=true ALLOW_DEMO_SEED=true
+if [[ "${CAMTRAFFIC_SEED_DEMO:-false}" == "true" ]]; then
+  echo "==> Seeding demo environment (opt-in — not for public production)..."
+  compose exec -T -e ALLOW_DEMO_SEED=true backend python manage.py seed_demo --force \
+    || compose exec -T backend python manage.py seed_violation_rules || true
+else
+  echo "==> Skipping seed_demo (production-safe). Seed violation rules only..."
+  compose exec -T backend python manage.py seed_violation_rules || true
+  compose exec -T backend python manage.py bootstrap_admin_env || true
+fi
 
 echo "==> Production stack is up."
 echo "    Admin: https://${DOMAIN_ADMIN:-admin.camtraffic.store}"
-echo "    User:  https://${DOMAIN_USER:-app.camtraffic.store}"
+echo "    User:  https://${DOMAIN_USER:-app.camtraffic.store}  (/officer + /citizen)"
 echo "    API:   https://${DOMAIN_API:-api.camtraffic.store}"
 echo "Next: point DNS A-records, then run deploy/ssl/certbot-init.sh"

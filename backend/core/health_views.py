@@ -61,16 +61,38 @@ class HealthReadyView(APIView):
                 f'Database unavailable: {exc}',
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
-        return success_response({
+
+        payload = {
             'status': 'ready',
             'database': 'ok',
-        })
+        }
+
+        # Optional Redis probe when configured
+        from django.conf import settings as dj_settings
+        if getattr(dj_settings, 'USE_REDIS', False):
+            try:
+                from django.core.cache import cache
+                cache.set('health_ready_probe', '1', 5)
+                if cache.get('health_ready_probe') != '1':
+                    raise RuntimeError('cache get/set mismatch')
+                payload['redis'] = 'ok'
+            except Exception as exc:
+                return error_response(
+                    f'Redis unavailable: {exc}',
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                )
+
+        return success_response(payload)
 
 
 class MonitoringStatusView(APIView):
-    """Extended system status for ops dashboards."""
-    permission_classes = [AllowAny]
+    """Extended system status for ops dashboards (authenticated staff only)."""
+
+    permission_classes = [IsAuthenticated, IsPoliceOrAdmin]
     throttle_classes = []
 
     def get(self, request):
+        # Drivers must not see internal ops metrics
+        if getattr(request.user, 'role', None) == 'driver':
+            return error_response('Permission denied', status_code=status.HTTP_403_FORBIDDEN)
         return success_response(get_system_status())

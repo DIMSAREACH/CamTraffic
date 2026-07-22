@@ -53,6 +53,6 @@ jobs:
 
       - name: Build production images
         run: |
-          docker build -f deploy/docker/Dockerfile.backend.prod -t camtraffic-backend:ci .
-          docker build -f deploy/celery/Dockerfile.worker -t camtraffic-celery:ci .
-          docker build -f deploy/docker/Dockerfile.ai-service.prod -t camtraffic-ai:ci .
+          # Matches deploy/docker/docker-compose.prod.yml (shared app image)
+          docker build -f deploy/docker/Dockerfile.backend.prod -t camtraffic-app:ci .
+          docker build -f deploy/docker/Dockerfile.nginx.prod -t camtraffic-nginx:ci .

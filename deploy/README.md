@@ -59,14 +59,17 @@ cd /opt/camtraffic && bash deploy/scripts/deploy_production.sh
 
 ```bash
 bash deploy/scripts/backup_postgres.sh
+bash deploy/scripts/restore_postgres.sh backups/<file>.sql.gz   # restore
 bash deploy/scripts/install_backup_cron.sh   # nightly cron
 ```
+
+See [`env/BACKUP.md`](env/BACKUP.md).
 
 ## Health checks
 
 - `GET /health/` — liveness
-- `GET /health/ready/` — DB ready
-- `GET /health/status/` — extended monitoring
+- `GET /health/ready/` — DB + Redis ready (when `USE_REDIS=True`)
+- `GET /health/status/` — extended monitoring (**auth required**: officer/admin)
 
 ## CI/CD
 
@@ -74,7 +77,8 @@ GitHub Actions: `.github/workflows/ci.yml` — validate, test, Docker build.
 
 ## Related docs
 
+- [`docs/PRODUCTION-RUNBOOK.md`](../docs/PRODUCTION-RUNBOOK.md) — real-world go-live checklist
 - [`deploy/CAMTRAFFIC-STORE.md`](CAMTRAFFIC-STORE.md) — DNS, TLS, and env for **camtraffic.store**
-- `deploy/env/.env.production.example` — 30+ production variables
-- `deploy/env/BACKUP.md` — backup strategy
+- `deploy/env/.env.production.example` — production variables (secrets empty by default)
+- `deploy/env/BACKUP.md` — backup / restore strategy
 - `docs/final-year-project/STAGE10-PRODUCTION-DEPLOYMENT-REPORT.md` — thesis runbook

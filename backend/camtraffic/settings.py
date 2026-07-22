@@ -12,6 +12,13 @@ from config.logging import build_logging_config
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+REPO_ROOT = BASE_DIR.parent
+
+# Thesis package at repo root: mobile_api/
+import sys
+
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-dev-only-change-in-production')
 DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
@@ -24,7 +31,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'storages',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
@@ -43,20 +49,34 @@ INSTALLED_APPS = [
     'ai_detection.apps.AiDetectionConfig',
     'notifications',
     'dashboard',
-    # Foundation apps (PRD schema — models only; no API views yet)
     'appeals',
     'audit',
     'unknown_vehicles',
     'ai_models',
     'datasets',
     'imports',
+    'mobile_api.apps.MobileApiConfig',
 ]
+
+# Cloud media (R2/S3) — only load django-storages when enabled.
+USE_S3_MEDIA = os.getenv('USE_S3_MEDIA', 'False').lower() == 'true'
+if USE_S3_MEDIA:
+    try:
+        import storages  # noqa: F401
+    except ImportError as exc:
+        raise ImportError(
+            'USE_S3_MEDIA=True requires django-storages. '
+            'Install with: backend/venv/Scripts/python -m pip install "django-storages[s3]>=1.14" '
+            '(or set USE_S3_MEDIA=False for local media).'
+        ) from exc
+    INSTALLED_APPS.insert(INSTALLED_APPS.index('django.contrib.staticfiles') + 1, 'storages')
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'core.middleware.RequestIdMiddleware',
     'core.middleware.RequestLoggingMiddleware',
+    'middleware.api_error_handler.APIErrorHandlerMiddleware',
     'core.middleware.SecurityHardeningMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -187,7 +207,6 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # Optional cloud media (Cloudflare R2 free tier or AWS S3). When enabled, uploads
 # leave the ephemeral Render disk and survive redeploys.
-USE_S3_MEDIA = os.getenv('USE_S3_MEDIA', 'False').lower() == 'true'
 if USE_S3_MEDIA:
     AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID', '')
     AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY', '')
@@ -210,8 +229,9 @@ if USE_S3_MEDIA:
             'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
         },
     }
-    if AWS_S3_CUSTOM_DOMAIN:
-        MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{AWS_LOCATION}/'
+    # Keep MEDIA_URL as /media/ so Django can still serve local disk hybrids and
+    # Vite can proxy /media → API. Public R2 URLs are built in api_media_url / api_media_path.
+    MEDIA_URL = '/media/'
 
 # Large AI video uploads (default 500 MB; override with AI_VIDEO_MAX_MB).
 _AI_VIDEO_MAX_MB = max(1, int(os.getenv('AI_VIDEO_MAX_MB', '500')))
@@ -238,9 +258,10 @@ CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
 
 PUBLIC_API_URL = os.getenv('PUBLIC_API_URL', '').strip().rstrip('/')
-# Local disk media only when not using S3/R2.
+# Always keep a local /media/ mount for Vite proxy + hybrid R2 (files may still be on disk).
+# Cloud URLs are returned by api_media_url when the object is only on R2/S3.
 if USE_S3_MEDIA:
-    SERVE_MEDIA = False
+    SERVE_MEDIA = os.getenv('SERVE_MEDIA', 'True' if DEBUG else 'False').lower() == 'true'
 else:
     SERVE_MEDIA = os.getenv('SERVE_MEDIA', 'True').lower() == 'true'
 GOOGLE_OAUTH_CLIENT_ID = os.getenv('GOOGLE_OAUTH_CLIENT_ID', '')
@@ -346,13 +367,19 @@ AI_PLATE_OCR_LANGUAGES = [
     for lang in os.getenv('AI_PLATE_OCR_LANGUAGES', 'en').split(',')
     if lang.strip()
 ]
+AI_PLATE_OCR_FAST_MODE = os.getenv('AI_PLATE_OCR_FAST_MODE', 'True').lower() == 'true'
+AI_PLATE_OCR_EARLY_EXIT_CONF = float(os.getenv('AI_PLATE_OCR_EARLY_EXIT_CONF', '0.82'))
 
 # Full pipeline: auto-evaluate violations on detect (defense demo)
-AI_PIPELINE_DEMO_VIOLATION = os.getenv('AI_PIPELINE_DEMO_VIOLATION', 'True').lower() == 'true'
+AI_PIPELINE_DEMO_VIOLATION = os.getenv('AI_PIPELINE_DEMO_VIOLATION', 'False').lower() == 'true'
 AI_PIPELINE_AUTO_CREATE_VIOLATION = os.getenv('AI_PIPELINE_AUTO_CREATE_VIOLATION', 'True').lower() == 'true'
 
 # Enterprise v2 — optional FastAPI ai-vision-service (see services/ai-vision-service/)
 AI_VISION_SERVICE_URL = os.getenv('AI_VISION_SERVICE_URL', '').strip()
+# Thesis alias — prefer explicit AI_SERVICE_URL when set
+AI_SERVICE_URL = os.getenv('AI_SERVICE_URL', '').strip() or AI_VISION_SERVICE_URL
+if AI_SERVICE_URL and not AI_VISION_SERVICE_URL:
+    AI_VISION_SERVICE_URL = AI_SERVICE_URL
 
 # Enterprise v2 — optional OCR microservice (see services/ocr-service/)
 OCR_SERVICE_URL = os.getenv('OCR_SERVICE_URL', '').strip()
@@ -448,11 +475,11 @@ STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
 STRIPE_SUCCESS_URL = os.getenv(
     'STRIPE_SUCCESS_URL',
-    'http://localhost:5173/dashboard/fines?paid=1',
+    'http://localhost:5173/citizen/fines?paid=1',
 )
 STRIPE_CANCEL_URL = os.getenv(
     'STRIPE_CANCEL_URL',
-    'http://localhost:5173/dashboard/fines?cancel=1',
+    'http://localhost:5173/citizen/fines?cancel=1',
 )
 KHQR_MERCHANT_NAME = os.getenv('KHQR_MERCHANT_NAME', '')
 KHQR_MERCHANT_ACCOUNT = os.getenv('KHQR_MERCHANT_ACCOUNT', '')

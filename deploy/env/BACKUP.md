@@ -1,61 +1,68 @@
-# CamTraffic — Backup & Restore Strategy
+# CamTraffic — Database Backup & Restore
 
-**Layout (actual repo paths, not `backend/apps/`):**
+**Production DR** · PostgreSQL logical dumps + optional Django media ZIP
 
-| Path | Purpose |
-|------|---------|
-| `backend/core/backup_service.py` | ZIP backup/restore (DB dump, media, optional AI weights) |
-| `backend/core/management/commands/backup_system.py` | CLI: `python manage.py backup_system` |
-| `backend/core/management/commands/restore_system.py` | CLI: `python manage.py restore_system <archive.zip>` |
-| `backend/backups/` | Stored archives (`BACKUP_ROOT` in `camtraffic/settings.py`) |
-| `backend/media/` | User uploads, KYC images, AI evidence |
+---
 
-## Environment
+## What gets backed up
 
-```env
-# backend/.env (optional overrides)
-BACKUP_ROOT=backups
-BACKUP_INCLUDE_AI_WEIGHTS=false
-```
+| Artifact | Script / API | Location |
+|----------|--------------|----------|
+| PostgreSQL dump | `deploy/scripts/backup_postgres.sh` | `backend/backups/pg-backup-*.sql.gz` |
+| Media + manifest | `python manage.py backup_system` (called by backup script) | `backend/backups/` |
+| Admin ZIP (UI) | `GET /api/dashboard/admin/backup/` | downloaded by admin |
 
-Default `BACKUP_ROOT` resolves to `backend/backups/` (gitignored).
+Cron installer: `deploy/scripts/install_backup_cron.sh` (nightly).
 
-## Create backup
+---
 
-From `backend/`:
+## Backup (production)
 
 ```bash
-python manage.py backup_system
+# From repo root on the VPS
+./deploy/scripts/backup_postgres.sh
 ```
 
-Or via admin dashboard API (`dashboardAPI.downloadSystemBackup()` → `/api/dashboard/backup/`).
+Verify a new `.sql.gz` appeared under `backend/backups/`.
 
-Each archive includes:
+**Offsite (recommended):** copy dumps to R2/S3 or another VPS:
 
-- Database dump (PostgreSQL `pg_dump` or SQLite copy)
-- `media/` tree
-- Manifest JSON (version, timestamp, file counts)
-- Optional `ai/weights/` when `BACKUP_INCLUDE_AI_WEIGHTS=true`
+```bash
+# Example — adapt to your storage
+scp backend/backups/pg-backup-*.sql.gz backup-user@offsite:/var/backups/camtraffic/
+```
 
-Retention: last **10** archives (`MAX_STORED_BACKUPS` in `backup_service.py`).
+Retention suggestion: keep 7 daily + 4 weekly locally; offsite 30 days.
+
+---
 
 ## Restore
 
 ```bash
-python manage.py restore_system backups/camtraffic-backup-YYYYMMDD-HHMMSS.zip
+./deploy/scripts/restore_postgres.sh backend/backups/pg-backup-YYYYMMDD-HHMMSS.sql.gz
+# Type YES when prompted
 ```
 
-**Warning:** Restore overwrites database and media. Run on staging first.
+Then:
 
-## Production notes
+```bash
+curl -fsS https://api.YOUR_DOMAIN/health/ready/
+# Log in as bootstrap admin and spot-check users / violations / fines
+```
 
-- Schedule nightly backups via Celery beat or cron calling `backup_system`.
-- Copy archives off-server (S3, NAS, or encrypted object storage).
-- Test restore quarterly on a non-production clone.
-- Keep PostgreSQL credentials in `backend/.env`; never commit `.env`.
+---
+
+## Production rules
+
+1. **Do not** run `seed_demo` after restore on public production.
+2. Prefer `bootstrap_admin_env` for the first admin account.
+3. Test restore on a staging clone at least once before defense / go-live.
+4. Keep `DEBUG=False` and strong `SECRET_KEY` / `DB_PASSWORD`.
+
+---
 
 ## Related
 
-- `docker-compose.yml` — Postgres volume persistence
-- `deploy/env/DATASET_BACKUP.md` — AI dataset / weights backup
-- `docs/FOLDER-MAP.md` — repository layout
+- `docs/PRODUCTION-RUNBOOK.md`
+- `docs/final-year-project/MAINTENANCE-GUIDE.md`
+- `deploy/scripts/deploy_production.sh`
