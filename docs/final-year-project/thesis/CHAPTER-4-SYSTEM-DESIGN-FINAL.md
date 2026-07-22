@@ -12,7 +12,7 @@
 | Security | JWT + RBAC + audit logging |
 | Performance | Embedded inference; optional ai-worker container |
 | Deployability | Docker Compose production stack |
-| Usability | Separate admin/user portals; Khmer/English i18n |
+| Usability | Three-domain portals (Admin / Officer / Citizen); Khmer/English i18n |
 | Auditability | AIDetectionLog, AuditLog, evidence archive |
 
 ---
@@ -22,15 +22,16 @@
 CamTraffic implements a **modular monolith** (not microservices): Django hosts REST APIs and loads YOLO weights in-process (or via dedicated ai-worker in production).
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│  Presentation: React 19 + Vite (admin :5174, user :5173) │
-└───────────────────────────┬─────────────────────────────┘
-                            │ HTTPS / JSON /api/*
-┌───────────────────────────▼─────────────────────────────┐
-│  Application: Django REST + Gunicorn                     │
-│  authentication · users · rbac · violations · fines      │
-│  ai_detection · infrastructure · dashboard · audit       │
-└───────────────┬─────────────────────────┬───────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│  Presentation (multi-domain)                                      │
+│  Admin :5174 /admin/*  ·  Officer /officer/*  ·  Citizen /citizen/*│
+└───────────────────────────┬──────────────────────────────────────┘
+                            │ HTTPS / JSON /api/v1/*
+┌───────────────────────────▼──────────────────────────────────────┐
+│  Application: Django REST + Gunicorn                              │
+│  /admin · /officer · /citizen namespaces + domain apps            │
+│  authentication · rbac · violations · fines · ai_detection · audit│
+└───────────────┬─────────────────────────┬────────────────────────┘
                 │                         │
 ┌───────────────▼──────────┐   ┌──────────▼──────────┐
 │  AI Pipeline              │   │  Celery + Redis      │
@@ -39,11 +40,20 @@ CamTraffic implements a **modular monolith** (not microservices): Django hosts R
                 │
 ┌───────────────▼──────────┐
 │  PostgreSQL 16            │
-│  (SQLite dev)             │
 └──────────────────────────┘
 ```
 
 Full narrative: `docs/ARCHITECTURE.md`
+
+### 4.2.5 Enterprise Multi-Domain System Architecture
+
+See **`docs/final-year-project/thesis/CHAPTER-4-2-5-MULTI-DOMAIN-ARCHITECTURE.md`** for the full Administration / Traffic Operations / Citizen Service separation (portals, APIs, permission matrix, and diagrams).
+
+Summary: CamTraffic does **not** place all features in one Admin Dashboard. It separates:
+
+1. **Administration** (`/admin/*`, `/api/v1/admin/`) — governance, RBAC, cameras, AI models, audit  
+2. **Traffic Operations** (`/officer/*`, `/api/v1/officer/`) — live monitor, AI review, approve/reject, issue fines  
+3. **Citizen Service** (`/citizen/*`, `/api/v1/citizen/`) — own vehicles, violations, payments, appeals  
 
 ---
 

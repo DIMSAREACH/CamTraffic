@@ -2,7 +2,6 @@
 import os
 
 from django.conf import settings
-from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path, re_path
 from django.views.static import serve
@@ -19,11 +18,10 @@ urlpatterns = [
     path('api/v1/', include('camtraffic.api_urls')),
 ]
 
-_serve_media = os.getenv('SERVE_MEDIA', 'True').lower() == 'true'
-
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-elif _serve_media:
+# Always mount local MEDIA_ROOT at /media/ when enabled — do not use settings.MEDIA_URL
+# here because USE_S3_MEDIA rewrites MEDIA_URL to an absolute R2 host and would skip serving.
+_serve_media = bool(getattr(settings, 'SERVE_MEDIA', True)) or bool(settings.DEBUG)
+if _serve_media:
     urlpatterns += [
         re_path(
             r'^media/(?P<path>.*)$',

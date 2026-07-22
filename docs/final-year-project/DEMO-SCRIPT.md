@@ -22,14 +22,15 @@
 
 ## Scene 1 — Admin login & dashboard (1 min)
 
-**Portal:** Admin · http://localhost:5174
+**Portal:** Administration · http://localhost:5174 → `/admin`  
+**Account:** `admin@camtraffic.demo`
 
-1. Open admin portal → log in as administrator
+1. Open admin portal → log in as administrator → confirm `/admin/...`
 2. Show dashboard KPI widgets (auto-refresh every 30s)
 3. Highlight **Live cameras** status from `/api/cameras/live-status/`
 4. Mention bilingual toggle (Khmer/English) in header
 
-**Say:** *"Administrators monitor system health, users, and enforcement KPIs from a single dashboard."*
+**Say:** *"Administrators govern the system—users, RBAC, cameras, AI models, and audit—not case decisions."*
 
 ---
 
@@ -76,28 +77,31 @@
 
 ## Scene 5 — Officer review & fine issuance (2 min)
 
-**Portal:** User → Officer tab
+**Portal:** Traffic Operations · http://localhost:5173 → `/officer`  
+**Account:** `officer@camtraffic.demo`
 
-1. Log in as traffic police
+1. Log in as traffic police (Officer tab) → confirm URL is `/officer`
 2. Open pending violation → review evidence image
 3. Confirm violation → navigate to **Fines** → **Issue Fine**
 4. Lookup driver by license → set amount → submit
 5. Show fine PDF export option
 
-**Say:** *"Officers retain final authority—automation assists, not replaces, judgment."*
+**Say:** *"Officers retain final authority—automation assists, not replaces, judgment. Admins cannot issue fines."*
 
 ---
 
-## Scene 6 — Driver portal (2 min)
+## Scene 6 — Driver / Citizen portal (2 min)
 
-**Portal:** User → Driver tab
+**Portal:** Citizen Service · http://localhost:5173 → `/citizen`  
+**Account:** `driver@camtraffic.demo`
 
-1. Log in as driver (matching license from Scene 5)
+1. Log in as driver (Driver tab) → confirm URL is `/citizen`
 2. Show violation and fine on dashboard
 3. Open **Fines** → view amount, due date, linked evidence
 4. Click **Pay Now** (demo payment recording)
 5. Show notification bell with fine alert
 
+**Say:** *"Citizens only see their own records—self-service for vehicles, fines, and appeals."*
 **Say:** *"Drivers have transparent access to evidence and can submit appeals."*
 
 ---

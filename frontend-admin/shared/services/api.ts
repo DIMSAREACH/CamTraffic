@@ -9,7 +9,7 @@ import type {
   ProfileOverview, UserPreferences, EvidenceArchiveItem,
   ViolationAppeal, AuditLogEntry, UnknownVehicleRecord, AIModelVersion,
   RBACRole, RBACPermission, OfficerProfile, DriverProfile, PoliceStation, SystemBackupItem,
-  ImportDataType, ImportValidateResult, ImportJobSummary, ImportTypeInfo,
+  ImportDataType, ImportValidateResult, ImportJobSummary, ImportJobDetail, ImportTypeInfo,
 } from '../types';
 import { getRefreshToken } from '@shared/utils/authStorage';
 import { normalizeDetectionMedia } from '@shared/utils/profileImage';
@@ -17,6 +17,7 @@ import { apiClient, unwrap, unwrapList } from './axiosClient';
 import { API_CATALOG, DETECTION_API } from './detectionEndpoints';
 import * as mockApi from './mockApi';
 import * as sample from './sampleDataFallback';
+import { ADMIN_API } from '@shared/constants/domainApi';
 
 assertProductionDataMode();
 const USE_MOCK = USE_MOCK_API;
@@ -121,25 +122,25 @@ export const profileAPI = USE_MOCK ? mockApi.profileAPI : {
 // ── USERS ────────────────────────────────────────────────────────
 export const usersAPI = USE_MOCK ? mockApi.usersAPI : {
   async getAll(): Promise<User[]> {
-    const live = unwrapList<User>(await apiClient.get('/users/', { params: { page_size: 100 } }));
+    const live = unwrapList<User>(await apiClient.get(ADMIN_API.users, { params: { page_size: 100 } }));
     return sample.withListFallback(live, sample.sampleUsers());
   },
   async getById(id: string): Promise<User> {
-    return unwrap<User>(await apiClient.get(`/users/${id}/`));
+    return unwrap<User>(await apiClient.get(`${ADMIN_API.users}${id}/`));
   },
   async update(id: string, data: Partial<User>): Promise<User> {
-    return unwrap<User>(await apiClient.patch(`/users/${id}/`, data));
+    return unwrap<User>(await apiClient.patch(`${ADMIN_API.users}${id}/`, data));
   },
   async uploadProfileImage(id: string, file: File): Promise<User> {
     const form = new FormData();
     form.append('profile_image', file);
-    return unwrap<User>(await apiClient.patch(`/users/${id}/`, form));
+    return unwrap<User>(await apiClient.patch(`${ADMIN_API.users}${id}/`, form));
   },
   async create(data: Partial<User> & { password: string }): Promise<User> {
-    return unwrap<User>(await apiClient.post('/users/', data));
+    return unwrap<User>(await apiClient.post(ADMIN_API.users, data));
   },
   async delete(id: string): Promise<{ user: User | null; message?: string }> {
-    const res = await apiClient.delete(`/users/${id}/`);
+    const res = await apiClient.delete(`${ADMIN_API.users}${id}/`);
     const body = res.data as { data?: User | null; message?: string };
     return {
       user: body?.data && typeof body.data === 'object' ? body.data : null,
@@ -147,10 +148,10 @@ export const usersAPI = USE_MOCK ? mockApi.usersAPI : {
     };
   },
   async toggleActive(id: string): Promise<User> {
-    return unwrap<User>(await apiClient.post(`/users/${id}/toggle-active/`));
+    return unwrap<User>(await apiClient.post(`${ADMIN_API.users}${id}/toggle-active/`));
   },
   async resetPassword(id: string): Promise<{ message?: string }> {
-    return unwrap(await apiClient.post(`/users/${id}/reset-password/`));
+    return unwrap(await apiClient.post(`${ADMIN_API.users}${id}/reset-password/`));
   },
 };
 
@@ -252,8 +253,8 @@ export const finesAPI = USE_MOCK ? mockApi.finesAPI : {
   async createStripeCheckout(fineId: string): Promise<{ checkout_url: string; session_id: string }> {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     return unwrap(await apiClient.post(`/fines/${fineId}/checkout/stripe/`, {
-      success_url: `${origin}/dashboard/fines?paid=1`,
-      cancel_url: `${origin}/dashboard/fines?cancel=1`,
+      success_url: `${origin}/admin/fines?paid=1`,
+      cancel_url: `${origin}/admin/fines?cancel=1`,
     }));
   },
   async createKhqrSession(fineId: string): Promise<{
@@ -288,7 +289,7 @@ export const appealsAPI = USE_MOCK ? mockApi.appealsAPI : {
 
 export const auditAPI = USE_MOCK ? mockApi.auditAPI : {
   async getAll(): Promise<AuditLogEntry[]> {
-    return unwrapList<AuditLogEntry>(await apiClient.get('/audit/', { params: { page_size: 200 } }));
+    return unwrapList<AuditLogEntry>(await apiClient.get(ADMIN_API.audit, { params: { page_size: 200 } }));
   },
 };
 
@@ -336,7 +337,16 @@ export const violationsAPI = USE_MOCK ? mockApi.violationsAPI : {
     sign_code?: string;
     location?: string;
     ai_detection_log_id?: string;
+    plate_number?: string;
   }): Promise<TrafficViolation> {
+    // Validate required fields on client side
+    if (!data.class_key || !data.observed_action) {
+      throw new Error('Missing required fields: class_key and observed_action are required');
+    }
+    if (data.class_key.trim().length === 0 || data.observed_action.trim().length === 0) {
+      throw new Error('class_key and observed_action cannot be empty');
+    }
+    
     return unwrap<TrafficViolation>(await apiClient.post('/violations/', data));
   },
   async update(id: string, data: Partial<Pick<TrafficViolation, 'status' | 'location' | 'description'>>): Promise<TrafficViolation> {
@@ -391,6 +401,10 @@ export const aiAPI = USE_MOCK ? mockApi.aiAPI : {
     camera_id?: number;
     live_scan?: boolean;
     live_fast?: boolean;
+    /** Street / video frame: run vehicle detect on full image (not sign crop). */
+    full_frame?: boolean;
+    /** When false with live_scan, skip writing AIDetectionLog. */
+    save_log?: boolean;
     sign_only?: boolean;
     catalog_sign_code?: string;
     track_session?: string;
@@ -401,6 +415,9 @@ export const aiAPI = USE_MOCK ? mockApi.aiAPI : {
     form.append('original_filename', file.name);
     if (options?.live_scan) form.append('live_scan', 'true');
     if (options?.live_fast) form.append('live_fast', 'true');
+    if (options?.full_frame) form.append('full_frame', 'true');
+    if (options?.save_log === false) form.append('save_log', 'false');
+    if (options?.save_log === true) form.append('save_log', 'true');
     if (options?.track_session) form.append('track_session', options.track_session);
     if (options?.sign_only) form.append('sign_only', 'true');
     if (options?.catalog_sign_code) form.append('catalog_sign_code', options.catalog_sign_code);
@@ -521,7 +538,7 @@ export const aiAPI = USE_MOCK ? mockApi.aiAPI : {
     })));
   },
   async getLogs(userId?: number): Promise<AIDetectionLog[]> {
-    const live = unwrapList<AIDetectionLog>(await apiClient.get(DETECTION_API.logs, { params: { page_size: 100 } }));
+    const live = unwrapList<AIDetectionLog>(await apiClient.get(DETECTION_API.logs, { params: { page_size: 200 } }));
     const logs = sample.withListFallback(live, sample.sampleAiLogs());
     if (userId) return logs.filter((l) => l.user_id === userId);
     return logs;
@@ -537,19 +554,32 @@ export const aiAPI = USE_MOCK ? mockApi.aiAPI : {
   async reviewLog(logId: string, review_status: 'approved' | 'rejected' | 'pending'): Promise<AIDetectionLog> {
     return unwrap<AIDetectionLog>(await apiClient.patch(`/ai/logs/${logId}/review/`, { review_status }));
   },
+  async deleteLog(logId: string | number): Promise<void> {
+    await apiClient.delete(`/ai/logs/${logId}/`);
+  },
   async detectVideo(file: File, options?: {
     observed_action?: string;
     demo_violation?: boolean;
     auto_create_violation?: boolean;
+    confidence?: number;
+    max_frames?: number;
+    enable_ocr?: boolean;
+    enable_tracking?: boolean;
+    signal?: AbortSignal;
   }) {
     const form = new FormData();
     form.append('video', file, file.name);
     if (options?.observed_action) form.append('observed_action', options.observed_action);
     if (options?.demo_violation) form.append('demo_violation', 'true');
     if (options?.auto_create_violation) form.append('auto_create_violation', 'true');
+    if (options?.confidence != null) form.append('confidence', String(options.confidence));
+    if (options?.max_frames != null) form.append('max_frames', String(options.max_frames));
+    if (options?.enable_ocr != null) form.append('enable_ocr', options.enable_ocr ? 'true' : 'false');
+    if (options?.enable_tracking != null) form.append('enable_tracking', options.enable_tracking ? 'true' : 'false');
     return normalizeDetectionMedia(unwrap(await apiClient.post(DETECTION_API.video, form, {
       headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 600000,
+      signal: options?.signal,
     })));
   },
   async getDetectionHub() {
@@ -631,14 +661,14 @@ export const roadsAPI = USE_MOCK ? mockApi.roadsAPI : {
 
 export const camerasAPI = USE_MOCK ? mockApi.camerasAPI : {
   async getAll(): Promise<Camera[]> {
-    const live = unwrapList<Camera>(await apiClient.get('/cameras/', { params: { page_size: 200 } }));
+    const live = unwrapList<Camera>(await apiClient.get(ADMIN_API.cameras, { params: { page_size: 200 } }));
     return sample.withListFallback(live, sample.sampleCameras());
   },
   async getById(id: string | number): Promise<Camera> {
     return unwrap<Camera>(await apiClient.get(`/cameras/${id}/`));
   },
   async create(data: Partial<Camera> & { road: string | number }): Promise<Camera> {
-    return unwrap<Camera>(await apiClient.post('/cameras/', data));
+    return unwrap<Camera>(await apiClient.post(ADMIN_API.cameras, data));
   },
   async update(id: string | number, data: Partial<Camera>): Promise<Camera> {
     return unwrap<Camera>(await apiClient.patch(`/cameras/${id}/`, data));
@@ -665,7 +695,7 @@ export const camerasAPI = USE_MOCK ? mockApi.camerasAPI : {
 // ── DASHBOARD ────────────────────────────────────────────────────
 export const dashboardAPI = USE_MOCK ? mockApi.dashboardAPI : {
   async getAdminStats(): Promise<DashboardStats> {
-    const live = unwrap<DashboardStats>(await apiClient.get('/dashboard/admin/'));
+    const live = unwrap<DashboardStats>(await apiClient.get(ADMIN_API.dashboard));
     return sample.mergeDashboardStats(live);
   },
   async getPoliceStats(policeId?: string | number) {
@@ -758,22 +788,22 @@ export const dashboardAPI = USE_MOCK ? mockApi.dashboardAPI : {
 // ── RBAC ─────────────────────────────────────────────────────────
 export const rbacAPI = USE_MOCK ? mockApi.rbacAPI : {
   async getRoles(): Promise<RBACRole[]> {
-    return unwrapList<RBACRole>(await apiClient.get('/rbac/roles/'));
+    return unwrapList<RBACRole>(await apiClient.get(`${ADMIN_API.rbac}roles/`));
   },
   async createRole(data: Partial<RBACRole>): Promise<RBACRole> {
-    return unwrap<RBACRole>(await apiClient.post('/rbac/roles/', data));
+    return unwrap<RBACRole>(await apiClient.post(`${ADMIN_API.rbac}roles/`, data));
   },
   async updateRole(id: string, data: Partial<RBACRole>): Promise<RBACRole> {
-    return unwrap<RBACRole>(await apiClient.patch(`/rbac/roles/${id}/`, data));
+    return unwrap<RBACRole>(await apiClient.patch(`${ADMIN_API.rbac}roles/${id}/`, data));
   },
   async deleteRole(id: string): Promise<void> {
-    await apiClient.delete(`/rbac/roles/${id}/`);
+    await apiClient.delete(`${ADMIN_API.rbac}roles/${id}/`);
   },
   async getPermissions(): Promise<RBACPermission[]> {
-    return unwrapList<RBACPermission>(await apiClient.get('/rbac/permissions/'));
+    return unwrapList<RBACPermission>(await apiClient.get(`${ADMIN_API.rbac}permissions/`));
   },
   async assignPermissions(roleId: string, permissionIds: string[]): Promise<RBACRole> {
-    return unwrap<RBACRole>(await apiClient.post(`/rbac/roles/${roleId}/permissions/`, {
+    return unwrap<RBACRole>(await apiClient.post(`${ADMIN_API.rbac}roles/${roleId}/permissions/`, {
       permission_ids: permissionIds,
     }));
   },
@@ -931,6 +961,9 @@ export const importsAPI = USE_MOCK ? mockApi.importsAPI : {
     return unwrapList<ImportJobSummary>(await apiClient.get('/imports/history/', {
       params: type ? { type } : undefined,
     }));
+  },
+  async historyDetail(id: string): Promise<ImportJobDetail> {
+    return unwrap<ImportJobDetail>(await apiClient.get(`/imports/history/${id}/`));
   },
 };
 

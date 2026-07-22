@@ -55,8 +55,11 @@ class FineListCreateView(generics.ListCreateAPIView):
         return success_response(serializer.data)
 
     def create(self, request, *args, **kwargs):
-        if request.user.role not in ('police', 'admin'):
-            return error_response('Only police can issue fines', status_code=status.HTTP_403_FORBIDDEN)
+        if request.user.role != 'police':
+            return error_response(
+                'Only traffic officers can issue fines',
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
         serializer = FineCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data

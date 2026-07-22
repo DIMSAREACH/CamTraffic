@@ -57,6 +57,13 @@ IsOfficer = IsPolice
 IsCitizen = IsDriver
 
 
+class IsOfficerOnly(BasePermission):
+    """Operational actions admins must not perform (approve/reject, issue fine)."""
+
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.role == 'police'
+
+
 class IsPoliceOrAdmin(BasePermission):
     def has_permission(self, request, view):
         return request.user.is_authenticated and request.user.role in ('police', 'admin')
@@ -88,6 +95,7 @@ __all__ = [
     'IsDriver',
     'IsOfficer',
     'IsCitizen',
+    'IsOfficerOnly',
     'IsPoliceOrAdmin',
     'IsOwnerOrAdmin',
     'HasRBACRole',

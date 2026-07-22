@@ -12,7 +12,7 @@
 - [ ] Run full `LIVE-DEMO-SETUP-VALIDATION.md` checklist
 - [ ] `npm run test:e2e` — all 4 tests PASS
 - [ ] AI detect test with sample image — real inference (not mock)
-- [ ] Demo accounts login verified (admin, police, driver)
+- [ ] Demo accounts login verified (admin → `/admin`, officer → `/officer`, driver → `/citizen`)
 - [ ] Laptop OS updates deferred (no restart surprises)
 
 ### Materials

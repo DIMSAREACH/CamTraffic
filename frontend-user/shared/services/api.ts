@@ -9,6 +9,7 @@ import type {
   ProfileOverview, UserPreferences, EvidenceArchiveItem,
   ViolationAppeal, AuditLogEntry, UnknownVehicleRecord, AIModelVersion,
   RBACRole, RBACPermission, OfficerProfile, DriverProfile, PoliceStation, SystemBackupItem,
+  ImportDataType, ImportValidateResult, ImportJobSummary, ImportJobDetail, ImportTypeInfo,
 } from '../types';
 import { getRefreshToken } from '@shared/utils/authStorage';
 import { normalizeDetectionMedia } from '@shared/utils/profileImage';
@@ -16,9 +17,41 @@ import { apiClient, unwrap, unwrapList } from './axiosClient';
 import { API_CATALOG, DETECTION_API } from './detectionEndpoints';
 import * as mockApi from './mockApi';
 import * as sample from './sampleDataFallback';
+import {
+  ADMIN_API,
+  CITIZEN_API,
+  OFFICER_API,
+  apiDomainFromPath,
+} from '@shared/constants/domainApi';
 
 assertProductionDataMode();
 const USE_MOCK = USE_MOCK_API;
+
+function finesListPath(): string {
+  const d = apiDomainFromPath();
+  if (d === 'officer') return OFFICER_API.fines;
+  if (d === 'citizen') return CITIZEN_API.fines;
+  return '/fines/';
+}
+
+function violationsListPath(): string {
+  const d = apiDomainFromPath();
+  if (d === 'officer') return OFFICER_API.violations;
+  if (d === 'citizen') return CITIZEN_API.violations;
+  return '/violations/';
+}
+
+function vehiclesListPath(): string {
+  return apiDomainFromPath() === 'citizen' ? CITIZEN_API.vehicles : '/vehicles/';
+}
+
+function appealsListPath(): string {
+  return apiDomainFromPath() === 'citizen' ? CITIZEN_API.appeals : '/appeals/';
+}
+
+function notificationsListPath(): string {
+  return apiDomainFromPath() === 'citizen' ? CITIZEN_API.notifications : '/notifications/';
+}
 
 // ── AUTH ──────────────────────────────────────────────────────────
 export const authAPI = USE_MOCK ? mockApi.authAPI : {
@@ -148,12 +181,15 @@ export const usersAPI = USE_MOCK ? mockApi.usersAPI : {
   async toggleActive(id: string): Promise<User> {
     return unwrap<User>(await apiClient.post(`/users/${id}/toggle-active/`));
   },
+  async resetPassword(id: string): Promise<{ message?: string }> {
+    return unwrap(await apiClient.post(`/users/${id}/reset-password/`));
+  },
 };
 
 // ── VEHICLES ─────────────────────────────────────────────────────
 export const vehiclesAPI = USE_MOCK ? mockApi.vehiclesAPI : {
   async getAll(): Promise<Vehicle[]> {
-    const live = unwrapList<Vehicle>(await apiClient.get('/vehicles/', { params: { page_size: 100 } }));
+    const live = unwrapList<Vehicle>(await apiClient.get(vehiclesListPath(), { params: { page_size: 100 } }));
     return sample.withListFallback(live, sample.sampleVehicles());
   },
   async getByOwner(ownerId: string | number): Promise<Vehicle[]> {
@@ -162,13 +198,15 @@ export const vehiclesAPI = USE_MOCK ? mockApi.vehiclesAPI : {
     return sample.withListFallback(owned, sample.sampleVehiclesForOwner(ownerId));
   },
   async create(data: Partial<Vehicle>): Promise<Vehicle> {
-    return unwrap<Vehicle>(await apiClient.post('/vehicles/', data));
+    return unwrap<Vehicle>(await apiClient.post(vehiclesListPath(), data));
   },
   async update(id: string | number, data: Partial<Vehicle>): Promise<Vehicle> {
-    return unwrap<Vehicle>(await apiClient.patch(`/vehicles/${id}/`, data));
+    const base = vehiclesListPath().replace(/\/$/, '');
+    return unwrap<Vehicle>(await apiClient.patch(`${base}/${id}/`, data));
   },
   async delete(id: string | number): Promise<void> {
-    await apiClient.delete(`/vehicles/${id}/`);
+    const base = vehiclesListPath().replace(/\/$/, '');
+    await apiClient.delete(`${base}/${id}/`);
   },
   async searchByPlate(plate: string): Promise<Vehicle | null> {
     try {
@@ -182,7 +220,7 @@ export const vehiclesAPI = USE_MOCK ? mockApi.vehiclesAPI : {
 // ── FINES ────────────────────────────────────────────────────────
 export const finesAPI = USE_MOCK ? mockApi.finesAPI : {
   async getAll(): Promise<Fine[]> {
-    const live = unwrapList<Fine>(await apiClient.get('/fines/', { params: { page_size: 100 } }));
+    const live = unwrapList<Fine>(await apiClient.get(finesListPath(), { params: { page_size: 100 } }));
     return sample.withListFallback(live, sample.sampleFines());
   },
   async getByDriver(driverId: string): Promise<Fine[]> {
@@ -196,7 +234,8 @@ export const finesAPI = USE_MOCK ? mockApi.finesAPI : {
     return sample.withListFallback(issued, sample.sampleFinesForPolice(policeId));
   },
   async create(data: Partial<Fine> & { driver_id?: string; violation_id?: string }): Promise<Fine> {
-    return unwrap<Fine>(await apiClient.post('/fines/', {
+    const path = apiDomainFromPath() === 'officer' ? OFFICER_API.finesIssue : '/fines/';
+    return unwrap<Fine>(await apiClient.post(path, {
       driver_id: data.driver_id,
       violation_id: data.violation_id,
       amount: data.amount,
@@ -206,33 +245,41 @@ export const finesAPI = USE_MOCK ? mockApi.finesAPI : {
     }));
   },
   async createWithEvidence(formData: FormData): Promise<Fine> {
-    return unwrap<Fine>(await apiClient.post('/fines/', formData, {
+    const path = apiDomainFromPath() === 'officer' ? OFFICER_API.finesIssue : '/fines/';
+    return unwrap<Fine>(await apiClient.post(path, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }));
   },
   async updateStatus(id: string, status: Fine['status']): Promise<Fine> {
-    return unwrap<Fine>(await apiClient.patch(`/fines/${id}/`, { status }));
+    const base = finesListPath().replace(/\/$/, '');
+    return unwrap<Fine>(await apiClient.patch(`${base}/${id}/`, { status }));
   },
   async update(id: string, data: Partial<Pick<Fine, 'amount' | 'reason' | 'location' | 'vehicle_plate' | 'status'>>): Promise<Fine> {
-    return unwrap<Fine>(await apiClient.patch(`/fines/${id}/`, data));
+    const base = finesListPath().replace(/\/$/, '');
+    return unwrap<Fine>(await apiClient.patch(`${base}/${id}/`, data));
   },
   async delete(id: string): Promise<void> {
-    await apiClient.delete(`/fines/${id}/`);
+    const base = finesListPath().replace(/\/$/, '');
+    await apiClient.delete(`${base}/${id}/`);
   },
   async searchByLicense(license: string) {
+    const path = apiDomainFromPath() === 'officer' ? OFFICER_API.finesLookup : '/fines/lookup/';
     return unwrap<{
       driver: User | null;
       driver_profile_id: string | null;
       fines: Fine[];
       vehicles: Vehicle[];
-    }>(await apiClient.get('/fines/lookup/', { params: { license } }));
+    }>(await apiClient.get(path, { params: { license } }));
   },
   getPdfUrl(fineId: string): string {
     const base = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
     return `${base}/fines/${fineId}/pdf/`;
   },
   async submitPayment(fineId: string, formData: FormData): Promise<Fine> {
-    return unwrap<Fine>(await apiClient.post(`/fines/${fineId}/pay/`, formData, {
+    const payBase = apiDomainFromPath() === 'citizen'
+      ? CITIZEN_API.fines.replace(/\/$/, '')
+      : '/fines';
+    return unwrap<Fine>(await apiClient.post(`${payBase}/${fineId}/pay/`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }));
   },
@@ -243,13 +290,21 @@ export const finesAPI = USE_MOCK ? mockApi.finesAPI : {
     manual_enabled: boolean;
     currency: string;
   }> {
-    return unwrap(await apiClient.get('/fines/payment-config/'));
+    const path = apiDomainFromPath() === 'citizen'
+      ? CITIZEN_API.paymentConfig
+      : '/fines/payment-config/';
+    return unwrap(await apiClient.get(path));
   },
   async createStripeCheckout(fineId: string): Promise<{ checkout_url: string; session_id: string }> {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const finesPath = typeof window !== 'undefined' && window.location.pathname.startsWith('/citizen')
+      ? '/citizen/fines'
+      : typeof window !== 'undefined' && window.location.pathname.startsWith('/officer')
+        ? '/officer/fines'
+        : '/citizen/fines';
     return unwrap(await apiClient.post(`/fines/${fineId}/checkout/stripe/`, {
-      success_url: `${origin}/dashboard/fines?paid=1`,
-      cancel_url: `${origin}/dashboard/fines?cancel=1`,
+      success_url: `${origin}${finesPath}?paid=1`,
+      cancel_url: `${origin}${finesPath}?cancel=1`,
     }));
   },
   async createKhqrSession(fineId: string): Promise<{
@@ -270,10 +325,10 @@ export const finesAPI = USE_MOCK ? mockApi.finesAPI : {
 // ── APPEALS ──────────────────────────────────────────────────────
 export const appealsAPI = USE_MOCK ? mockApi.appealsAPI : {
   async getAll(): Promise<ViolationAppeal[]> {
-    return unwrapList<ViolationAppeal>(await apiClient.get('/appeals/', { params: { page_size: 100 } }));
+    return unwrapList<ViolationAppeal>(await apiClient.get(appealsListPath(), { params: { page_size: 100 } }));
   },
   async create(formData: FormData): Promise<ViolationAppeal> {
-    return unwrap<ViolationAppeal>(await apiClient.post('/appeals/', formData, {
+    return unwrap<ViolationAppeal>(await apiClient.post(appealsListPath(), formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }));
   },
@@ -316,30 +371,56 @@ export const aiModelsAPI = USE_MOCK ? mockApi.aiModelsAPI : {
 // ── VIOLATIONS ───────────────────────────────────────────────────
 export const violationsAPI = USE_MOCK ? mockApi.violationsAPI : {
   async getAll(): Promise<TrafficViolation[]> {
-    const live = unwrapList<TrafficViolation>(await apiClient.get('/violations/', { params: { page_size: 100 } }));
+    const live = unwrapList<TrafficViolation>(await apiClient.get(violationsListPath(), { params: { page_size: 100 } }));
     return sample.withListFallback(live, sample.SAMPLE_VIOLATIONS);
   },
   async getById(id: string): Promise<TrafficViolation> {
-    return unwrap<TrafficViolation>(await apiClient.get(`/violations/${id}/`));
+    const base = violationsListPath().replace(/\/$/, '');
+    return unwrap<TrafficViolation>(await apiClient.get(`${base}/${id}/`));
   },
   async evaluate(data: { class_key: string; observed_action: string; sign_code?: string }) {
     return unwrap(await apiClient.post('/violations/evaluate/', data));
   },
   async create(data: {
-    driver_id: string;
+    driver_id?: string;
     class_key: string;
     observed_action: string;
     sign_code?: string;
     location?: string;
     ai_detection_log_id?: string;
+    plate_number?: string;
   }): Promise<TrafficViolation> {
-    return unwrap<TrafficViolation>(await apiClient.post('/violations/', data));
+    // Validate required fields on client side
+    if (!data.class_key || !data.observed_action) {
+      throw new Error('Missing required fields: class_key and observed_action are required');
+    }
+    if (data.class_key.trim().length === 0 || data.observed_action.trim().length === 0) {
+      throw new Error('class_key and observed_action cannot be empty');
+    }
+    
+    return unwrap<TrafficViolation>(await apiClient.post(violationsListPath(), data));
   },
   async update(id: string, data: Partial<Pick<TrafficViolation, 'status' | 'location' | 'description'>>): Promise<TrafficViolation> {
-    return unwrap<TrafficViolation>(await apiClient.patch(`/violations/${id}/`, data));
+    const base = violationsListPath().replace(/\/$/, '');
+    // Prefer officer workflow endpoints for approve/reject
+    if (apiDomainFromPath() === 'officer' && data.status === 'confirmed') {
+      const res = unwrap<{ violation: TrafficViolation }>(
+        await apiClient.post(`${base}/${id}/approve/`, { issue_fine: false }),
+      );
+      return res.violation ?? unwrap<TrafficViolation>(await apiClient.get(`${base}/${id}/`));
+    }
+    if (apiDomainFromPath() === 'officer' && data.status === 'rejected') {
+      return unwrap<TrafficViolation>(
+        await apiClient.post(`${base}/${id}/reject/`, {
+          dismissal_reason: data.description || 'Rejected by officer',
+        }),
+      );
+    }
+    return unwrap<TrafficViolation>(await apiClient.patch(`${base}/${id}/`, data));
   },
   async delete(id: string): Promise<void> {
-    await apiClient.delete(`/violations/${id}/`);
+    const base = violationsListPath().replace(/\/$/, '');
+    await apiClient.delete(`${base}/${id}/`);
   },
   async getStats() {
     return unwrap(await apiClient.get('/violations/stats/'));
@@ -387,6 +468,10 @@ export const aiAPI = USE_MOCK ? mockApi.aiAPI : {
     camera_id?: number;
     live_scan?: boolean;
     live_fast?: boolean;
+    /** Street / video frame: run vehicle detect on full image (not sign crop). */
+    full_frame?: boolean;
+    /** When false with live_scan, skip writing AIDetectionLog. */
+    save_log?: boolean;
     sign_only?: boolean;
     catalog_sign_code?: string;
     track_session?: string;
@@ -397,6 +482,9 @@ export const aiAPI = USE_MOCK ? mockApi.aiAPI : {
     form.append('original_filename', file.name);
     if (options?.live_scan) form.append('live_scan', 'true');
     if (options?.live_fast) form.append('live_fast', 'true');
+    if (options?.full_frame) form.append('full_frame', 'true');
+    if (options?.save_log === false) form.append('save_log', 'false');
+    if (options?.save_log === true) form.append('save_log', 'true');
     if (options?.track_session) form.append('track_session', options.track_session);
     if (options?.sign_only) form.append('sign_only', 'true');
     if (options?.catalog_sign_code) form.append('catalog_sign_code', options.catalog_sign_code);
@@ -516,19 +604,49 @@ export const aiAPI = USE_MOCK ? mockApi.aiAPI : {
       timeout: 120000,
     })));
   },
+  async getLogs(userId?: number): Promise<AIDetectionLog[]> {
+    const live = unwrapList<AIDetectionLog>(await apiClient.get(DETECTION_API.logs, { params: { page_size: 200 } }));
+    const logs = sample.withListFallback(live, sample.sampleAiLogs());
+    if (userId) return logs.filter((l) => l.user_id === userId);
+    return logs;
+  },
+  async getPageStats(): Promise<AIDetectionPageStats> {
+    const live = unwrap<AIDetectionPageStats>(await apiClient.get(DETECTION_API.stats));
+    return sample.mergePageStats(live);
+  },
+  async exportLogsCsv(): Promise<Blob> {
+    const res = await apiClient.get(DETECTION_API.logsExport, { responseType: 'blob' });
+    return res.data as Blob;
+  },
+  async reviewLog(logId: string, review_status: 'approved' | 'rejected' | 'pending'): Promise<AIDetectionLog> {
+    return unwrap<AIDetectionLog>(await apiClient.patch(`/ai/logs/${logId}/review/`, { review_status }));
+  },
+  async deleteLog(logId: string | number): Promise<void> {
+    await apiClient.delete(`/ai/logs/${logId}/`);
+  },
   async detectVideo(file: File, options?: {
     observed_action?: string;
     demo_violation?: boolean;
     auto_create_violation?: boolean;
+    confidence?: number;
+    max_frames?: number;
+    enable_ocr?: boolean;
+    enable_tracking?: boolean;
+    signal?: AbortSignal;
   }) {
     const form = new FormData();
     form.append('video', file, file.name);
     if (options?.observed_action) form.append('observed_action', options.observed_action);
     if (options?.demo_violation) form.append('demo_violation', 'true');
     if (options?.auto_create_violation) form.append('auto_create_violation', 'true');
+    if (options?.confidence != null) form.append('confidence', String(options.confidence));
+    if (options?.max_frames != null) form.append('max_frames', String(options.max_frames));
+    if (options?.enable_ocr != null) form.append('enable_ocr', options.enable_ocr ? 'true' : 'false');
+    if (options?.enable_tracking != null) form.append('enable_tracking', options.enable_tracking ? 'true' : 'false');
     return normalizeDetectionMedia(unwrap(await apiClient.post(DETECTION_API.video, form, {
       headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 600000,
+      signal: options?.signal,
     })));
   },
   async getDetectionHub() {
@@ -544,20 +662,6 @@ export const aiAPI = USE_MOCK ? mockApi.aiAPI : {
       url: string;
       fields: Record<string, string>;
     }>(await apiClient.get(DETECTION_API.webcam));
-  },
-  async getLogs(userId?: number): Promise<AIDetectionLog[]> {
-    const live = unwrapList<AIDetectionLog>(await apiClient.get(DETECTION_API.logs, { params: { page_size: 100 } }));
-    const logs = sample.withListFallback(live, sample.sampleAiLogs());
-    if (userId) return logs.filter((l) => l.user_id === userId);
-    return logs;
-  },
-  async getPageStats(): Promise<AIDetectionPageStats> {
-    const live = unwrap<AIDetectionPageStats>(await apiClient.get(DETECTION_API.stats));
-    return sample.mergePageStats(live);
-  },
-  async exportLogsCsv(): Promise<Blob> {
-    const res = await apiClient.get(DETECTION_API.logsExport, { responseType: 'blob' });
-    return res.data as Blob;
   },
   async speakText(text: string, lang: 'km' | 'en' = 'km'): Promise<Blob> {
     const res = await apiClient.post(DETECTION_API.tts, { text, lang }, {
@@ -588,7 +692,7 @@ export const catalogAPI = USE_MOCK ? mockApi.catalogAPI : {
 // ── NOTIFICATIONS ────────────────────────────────────────────────
 export const notificationsAPI = USE_MOCK ? mockApi.notificationsAPI : {
   async getByUser(_userId: string | number): Promise<Notification[]> {
-    const live = unwrapList<Notification>(await apiClient.get('/notifications/', { params: { page_size: 100 } }));
+    const live = unwrapList<Notification>(await apiClient.get(notificationsListPath(), { params: { page_size: 100 } }));
     return sample.withListFallback(live, sample.sampleNotificationsForUser(_userId));
   },
   async markRead(id: number): Promise<void> {
@@ -640,7 +744,8 @@ export const camerasAPI = USE_MOCK ? mockApi.camerasAPI : {
     await apiClient.delete(`/cameras/${id}/`);
   },
   async liveStatus(): Promise<{ cameras: Camera[]; summary: { total: number; active: number; offline: number }; polled_at: string }> {
-    return unwrap(await apiClient.get('/cameras/live-status/'));
+    const path = apiDomainFromPath() === 'officer' ? OFFICER_API.liveCameras : '/cameras/live-status/';
+    return unwrap(await apiClient.get(path));
   },
   async processFrame(cameraId: string, extra?: Record<string, string>): Promise<unknown> {
     const form = new FormData();
@@ -658,19 +763,19 @@ export const camerasAPI = USE_MOCK ? mockApi.camerasAPI : {
 // ── DASHBOARD ────────────────────────────────────────────────────
 export const dashboardAPI = USE_MOCK ? mockApi.dashboardAPI : {
   async getAdminStats(): Promise<DashboardStats> {
-    const live = unwrap<DashboardStats>(await apiClient.get('/dashboard/admin/'));
+    const live = unwrap<DashboardStats>(await apiClient.get(ADMIN_API.dashboard));
     return sample.mergeDashboardStats(live);
   },
   async getPoliceStats(policeId?: string | number) {
-    const live = unwrap(await apiClient.get('/dashboard/police/'));
+    const live = unwrap(await apiClient.get(OFFICER_API.dashboard));
     return sample.mergePoliceStats(live as sample.PoliceDashboardStats, policeId);
   },
   async getPoliceReportStats(): Promise<DashboardStats> {
-    const live = unwrap<DashboardStats>(await apiClient.get('/dashboard/police/reports/'));
+    const live = unwrap<DashboardStats>(await apiClient.get(OFFICER_API.reports));
     return sample.mergeDashboardStats(live);
   },
   async getDriverStats(driverId: string | number) {
-    const live = unwrap(await apiClient.get('/dashboard/driver/'));
+    const live = unwrap(await apiClient.get(CITIZEN_API.dashboard));
     return sample.mergeDriverStats(live as sample.DriverDashboardStats, driverId);
   },
   async downloadReportPdf(scope: 'admin' | 'police' = 'police'): Promise<Blob> {
@@ -702,7 +807,7 @@ export const dashboardAPI = USE_MOCK ? mockApi.dashboardAPI : {
   },
   async searchEvidence(params?: { plate?: string; type?: string; limit?: number }) {
     const live = unwrap<{ count: number; results: EvidenceArchiveItem[] }>(
-      await apiClient.get('/dashboard/evidence/', { params }),
+      await apiClient.get(OFFICER_API.evidence, { params }),
     );
     if (live.results?.length) return live;
     const results = sample.getSampleEvidenceArchive();
@@ -730,6 +835,21 @@ export const dashboardAPI = USE_MOCK ? mockApi.dashboardAPI : {
     return unwrap(await apiClient.post(`/dashboard/admin/backups/${encodeURIComponent(filename)}/restore/`, {
       include_media: includeMedia,
     }));
+  },
+  async getAIDashboardStats(): Promise<Record<string, unknown>> {
+    return unwrap(await apiClient.get('/dashboard/admin/ai/'));
+  },
+  async getDetectionAnalytics(): Promise<Record<string, unknown>> {
+    return unwrap(await apiClient.get('/dashboard/admin/analytics/detections/'));
+  },
+  async getHeatmap(): Promise<{ points: Array<Record<string, unknown>> }> {
+    return unwrap(await apiClient.get('/dashboard/admin/analytics/heatmap/'));
+  },
+  async getOfficerPerformance(): Promise<{ officers: Array<Record<string, unknown>> }> {
+    return unwrap(await apiClient.get('/dashboard/admin/analytics/officers/'));
+  },
+  async getDriverAnalytics(): Promise<{ drivers: Array<Record<string, unknown>> }> {
+    return unwrap(await apiClient.get('/dashboard/admin/analytics/drivers/'));
   },
 };
 
@@ -805,5 +925,128 @@ export const driversAPI = USE_MOCK ? mockApi.driversAPI : {
       driver: body?.data && typeof body.data === 'object' ? body.data : null,
       message: body?.message,
     };
+  },
+};
+
+// ── VEHICLE OWNERS ───────────────────────────────────────────────
+export const vehicleOwnersAPI = {
+  async getAll(search?: string): Promise<Array<{
+    id: string; full_name: string; email: string; phone: string;
+    role: string; vehicle_count: number; status: string;
+  }>> {
+    return unwrapList(await apiClient.get('/vehicles/owners/', { params: search ? { search } : {} }));
+  },
+  async getById(id: string): Promise<{ owner: Record<string, unknown>; vehicles: unknown[] }> {
+    return unwrap(await apiClient.get(`/vehicles/owners/${id}/`));
+  },
+  async reassign(vehicleId: string | number, newOwnerId: string): Promise<unknown> {
+    return unwrap(await apiClient.post('/vehicles/owners/reassign/', {
+      vehicle_id: vehicleId,
+      new_owner_id: newOwnerId,
+    }));
+  },
+};
+
+// ── DATASETS ─────────────────────────────────────────────────────
+export const datasetsAPI = {
+  async getAll(): Promise<unknown[]> {
+    return unwrapList(await apiClient.get('/datasets/'));
+  },
+  async create(data: Record<string, unknown>): Promise<unknown> {
+    return unwrap(await apiClient.post('/datasets/', data));
+  },
+  async update(id: string, data: Record<string, unknown>): Promise<unknown> {
+    return unwrap(await apiClient.patch(`/datasets/${id}/`, data));
+  },
+  async delete(id: string): Promise<void> {
+    await apiClient.delete(`/datasets/${id}/`);
+  },
+  async scan(id: string): Promise<unknown> {
+    return unwrap(await apiClient.post(`/datasets/${id}/scan/`));
+  },
+  async syncFromFilesystem(): Promise<unknown> {
+    return unwrap(await apiClient.post('/datasets/sync/'));
+  },
+  async getVersions(datasetId: string): Promise<unknown[]> {
+    return unwrapList(await apiClient.get(`/datasets/${datasetId}/versions/`));
+  },
+  async createVersion(datasetId: string, data: Record<string, unknown>): Promise<unknown> {
+    return unwrap(await apiClient.post(`/datasets/${datasetId}/versions/`, data));
+  },
+};
+
+// ── CVAT ANNOTATION ──────────────────────────────────────────────
+export const cvatAPI = {
+  async getHub(): Promise<unknown> {
+    return unwrap(await apiClient.get('/datasets/cvat/'));
+  },
+  async stagePack(): Promise<unknown> {
+    return unwrap(await apiClient.post('/datasets/cvat/stage-pack/'));
+  },
+};
+
+// ── OCR TRAINING ─────────────────────────────────────────────────
+export const ocrTrainingAPI = {
+  async getStatus(): Promise<unknown> {
+    return unwrap(await apiClient.get('/ai/ocr-training/'));
+  },
+  async runPrereq(): Promise<unknown> {
+    return unwrap(await apiClient.post('/ai/ocr-training/prereq/', {}, { timeout: 120000 }));
+  },
+  async runBaseline(limit = 50): Promise<unknown> {
+    return unwrap(await apiClient.post('/ai/ocr-training/baseline/', { limit }, { timeout: 600000 }));
+  },
+  async runEdgeCases(): Promise<unknown> {
+    return unwrap(await apiClient.post('/ai/ocr-training/edge-cases/', {}, { timeout: 300000 }));
+  },
+};
+
+// ── DATA IMPORT (admin) ──────────────────────────────────────────
+export const importsAPI = USE_MOCK ? mockApi.importsAPI : {
+  async getTypes(): Promise<ImportTypeInfo[]> {
+    return unwrapList<ImportTypeInfo>(await apiClient.get('/imports/types/'));
+  },
+    async downloadTemplate(type: ImportDataType, format: 'csv' | 'xlsx' = 'csv'): Promise<Blob> {
+    const res = await apiClient.get('/imports/template/', {
+      params: { type, file_format: format },
+      responseType: 'blob',
+    });
+    return res.data as Blob;
+  },
+  async validate(type: ImportDataType, file: File): Promise<ImportValidateResult> {
+    const form = new FormData();
+    form.append('type', type);
+    form.append('file', file, file.name || `import-${type}.csv`);
+    return unwrap<ImportValidateResult>(await apiClient.post('/imports/validate/', form, {
+      params: { type },
+      timeout: 120000,
+    }));
+  },
+  async commit(jobId: string): Promise<{ counts: ImportValidateResult['counts']; job: ImportJobSummary }> {
+    return unwrap(await apiClient.post('/imports/commit/', { job_id: jobId }));
+  },
+  async history(type?: ImportDataType): Promise<ImportJobSummary[]> {
+    return unwrapList<ImportJobSummary>(await apiClient.get('/imports/history/', {
+      params: type ? { type } : undefined,
+    }));
+  },
+  async historyDetail(id: string): Promise<ImportJobDetail> {
+    return unwrap<ImportJobDetail>(await apiClient.get(`/imports/history/${id}/`));
+  },
+};
+
+// ── SYSTEM SETTINGS ──────────────────────────────────────────────
+export const settingsAPI = {
+  async getAll(prefix?: string): Promise<Array<{ key: string; value: unknown }>> {
+    return unwrapList(await apiClient.get('/settings/', { params: prefix ? { prefix } : {} }));
+  },
+  async get(key: string): Promise<{ key: string; value: unknown }> {
+    return unwrap(await apiClient.get(`/settings/${encodeURIComponent(key)}/`));
+  },
+  async save(key: string, value: unknown, description = ''): Promise<unknown> {
+    return unwrap(await apiClient.post('/settings/', { key, value, description }));
+  },
+  async update(key: string, value: unknown): Promise<unknown> {
+    return unwrap(await apiClient.patch(`/settings/${encodeURIComponent(key)}/`, { value }));
   },
 };

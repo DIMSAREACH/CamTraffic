@@ -1,7 +1,8 @@
-# Driver Manual — CamTraffic
+# Driver / Citizen Manual — CamTraffic
 
-**Role:** Driver / Vehicle Owner  
-**Portal:** http://localhost:5173 → **Driver** tab  
+**Role:** Driver / Vehicle Owner (Citizen Service domain)  
+**Portal:** http://localhost:5173 → login as **Driver** → lands on `/citizen`  
+**API namespace:** `/api/v1/citizen/`  
 **Task:** 377
 
 ---
@@ -14,12 +15,14 @@
 2. Click **Register**.
 3. Fill: full name, email, password, license number, phone.
 4. Verify email (check inbox for verification link).
-5. Log in with email and password.
+5. Log in with email and password → you land on **`/citizen`**.
 
 ### Returning driver
 
 1. **Driver** tab → email + password → **Login**.
-2. Dashboard shows your violations, fines, and vehicles summary.
+2. Dashboard at `/citizen` shows your violations, fines, and vehicles summary.
+
+**You cannot:** edit violations, delete evidence, approve cases, or see other users’ data.
 
 ---
 

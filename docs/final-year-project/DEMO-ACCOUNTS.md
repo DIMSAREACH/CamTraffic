@@ -5,10 +5,10 @@ Do not use these credentials in production.
 
 | Role | Portal | URL | Email | Password |
 |------|--------|-----|-------|----------|
-| Admin | Admin | http://localhost:5174 | `admin@camtraffic.demo` | `CamTraffic@2026!` |
-| Officer | User → Officer tab | http://localhost:5173 | `officer@camtraffic.demo` | `CamTraffic@2026!` |
-| Driver | User → Driver tab | http://localhost:5173 | `driver@camtraffic.demo` | `CamTraffic@2026!` |
-| Driver (alt) | User → Driver tab | http://localhost:5173 | `driver2@camtraffic.demo` | `CamTraffic@2026!` |
+| Admin | Administration | http://localhost:5174 → `/admin` | `admin@camtraffic.demo` | `CamTraffic@2026!` |
+| Officer | Traffic Operations | http://localhost:5173 → `/officer` | `officer@camtraffic.demo` | `CamTraffic@2026!` |
+| Driver | Citizen Service | http://localhost:5173 → `/citizen` | `driver@camtraffic.demo` | `CamTraffic@2026!` |
+| Driver (alt) | Citizen Service | http://localhost:5173 → `/citizen` | `driver2@camtraffic.demo` | `CamTraffic@2026!` |
 
 ## Setup
 

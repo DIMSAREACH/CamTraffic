@@ -88,11 +88,32 @@ class ViolationListCreateView(generics.ListCreateAPIView):
         return success_response(serializer.data)
 
     def create(self, request, *args, **kwargs):
+        # Check authentication first
+        if not request.user or not request.user.is_authenticated:
+            return error_response('Authentication required', status_code=status.HTTP_401_UNAUTHORIZED)
+        
         if request.user.role not in ('police', 'admin'):
             return error_response('Only police or admin can create violations', status_code=status.HTTP_403_FORBIDDEN)
 
+        # Handle empty requests gracefully
+        if not request.data or (not request.data.get('class_key') and not request.data.get('observed_action')):
+            return error_response(
+                'Missing required fields: class_key and observed_action are required to create a violation',
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+
         serializer = ViolationCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            # Return detailed validation errors
+            errors = []
+            for field, field_errors in serializer.errors.items():
+                for error in field_errors:
+                    errors.append(f'{field}: {error}')
+            return error_response(
+                f'Validation failed: {", ".join(errors)}',
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+        
         data = serializer.validated_data
 
         driver = None
@@ -113,10 +134,15 @@ class ViolationListCreateView(generics.ListCreateAPIView):
                 elif detection_log.detected_plate:
                     plate_result['plate_text'] = detection_log.detected_plate
                 driver = resolve_driver(driver_id=None, plate_result=plate_result)
+        if not driver and data.get('plate_number'):
+            driver = resolve_driver(
+                driver_id=None,
+                plate_result={'plate_text': data['plate_number']},
+            )
 
         if not driver:
             return error_response(
-                'Driver is required to create violation records',
+                'Driver is required — match a registered plate on the detection, or open Unknown Vehicles / pick a driver.',
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -203,6 +229,14 @@ class ViolationDetailView(generics.RetrieveUpdateDestroyAPIView):
         )
 
     def patch(self, request, *args, **kwargs):
+        # Status transitions (approve/reject) are Traffic Operations only.
+        # Admins may update metadata but not confirm/reject enforcement cases.
+        new_status = request.data.get('status')
+        if new_status in ('confirmed', 'rejected') and request.user.role != 'police':
+            return error_response(
+                'Only traffic officers can approve or reject violations',
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
         if request.user.role not in ('police', 'admin'):
             return error_response('Permission denied', status_code=status.HTTP_403_FORBIDDEN)
         instance = self.get_object()

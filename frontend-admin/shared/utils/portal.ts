@@ -15,5 +15,12 @@ export function isAdminPath(pathname: string): boolean {
 }
 
 export function isUserPortalPath(pathname: string): boolean {
-  return pathname === '/dashboard' || pathname.startsWith('/dashboard/');
+  return (
+    pathname === '/officer'
+    || pathname.startsWith('/officer/')
+    || pathname === '/citizen'
+    || pathname.startsWith('/citizen/')
+    || pathname === '/dashboard'
+    || pathname.startsWith('/dashboard/')
+  );
 }

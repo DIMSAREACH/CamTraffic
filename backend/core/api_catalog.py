@@ -13,6 +13,19 @@ def build_api_catalog(request) -> dict:
             'POST /api/auth/refresh/',
             'GET /api/auth/profile/',
         ],
+        'users': [
+            'GET|POST /api/users/',
+            'GET|PATCH|DELETE /api/users/<uuid>/',
+            'POST /api/users/<uuid>/toggle-active/',
+        ],
+        'imports': [
+            'GET /api/imports/types/',
+            'GET /api/imports/template/?type=&file_format=csv|xlsx',
+            'POST /api/imports/validate/',
+            'POST /api/imports/commit/',
+            'GET /api/imports/history/',
+            'GET /api/imports/history/<uuid>/',
+        ],
         'ai_detection': [
             'POST /api/ai/detect/',
             'POST /api/ai/detect-video/',
@@ -32,6 +45,14 @@ def build_api_catalog(request) -> dict:
             'GET|POST /api/violations/',
             'POST /api/violations/evaluate/',
             'GET /api/violations/rules/',
+        ],
+        'fines': [
+            'GET|POST /api/fines/',
+            'GET|PATCH|DELETE /api/fines/<uuid>/',
+        ],
+        'vehicles': [
+            'GET|POST /api/vehicles/',
+            'GET|PATCH|DELETE /api/vehicles/<uuid>/',
         ],
         'infrastructure': [
             'GET|POST /api/cameras/',
