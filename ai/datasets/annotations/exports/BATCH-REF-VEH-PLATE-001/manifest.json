@@ -1,9 +1,0 @@
-{
-  "batch_id": "BATCH-REF-VEH-PLATE-001",
-  "mode": "plates_auto_bbox",
-  "exported_at": "2026-07-11T20:25:18.397999+00:00",
-  "images": 100,
-  "export_root": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\annotations\\exports\\BATCH-REF-VEH-PLATE-001",
-  "label_format": "YOLO 1.1",
-  "notes": "Full-frame bbox for Roboflow plate crops; review in CVAT before training."
-}

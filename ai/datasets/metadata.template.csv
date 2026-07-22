@@ -1,2 +1,0 @@
-image_id,batch_id,class_name,source,province,gps_lat,gps_lon,weather,time_of_day,captured_at,filename,notes
-SIGN_000001,BATCH-REF-PROH-001,NO_ENTRY,reference_scan,Phnom Penh,11.5564,104.9282,clear,morning,2026-06-01T08:30:00+07:00,NO_ENTRY_000001.jpg,example row — copy per image

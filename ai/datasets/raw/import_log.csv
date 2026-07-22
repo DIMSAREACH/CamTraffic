@@ -1,5 +1,0 @@
-batch_id,source,files,imported_at,notes
-BATCH-REF-VEH-PLATE-001,D:\Year4\Project Thesis\Expert System\Reference(PDF Download)\Dim Sareach\Vichicle Detect,72,2026-07-11T20:18:40.239604+00:00,"plates=50, vehicles=22"
-BATCH-REF-VEH-PLATE-001,D:\Year4\Project Thesis\Expert System\Reference(PDF Download)\Dim Sareach\Vichicle Detect,72,2026-07-11T20:21:15.437236+00:00,"plates=50, vehicles=22"
-BATCH-ROBO-VEH-001,D:\Year4\Project Thesis\Expert System\Reference(PDF Download)\Dim Sareach\Cambodia Traffic.v1i.yolov11,196,2026-07-11T20:34:11.774167+00:00,"type=vehicles, skipped=0"
-BATCH-ROBO-PLATE-001,D:\Year4\Project Thesis\Expert System\Reference(PDF Download)\Dim Sareach\Plate Number.v3i.yolov11,453,2026-07-11T20:34:13.000145+00:00,"type=plates, skipped=0"

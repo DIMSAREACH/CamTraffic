@@ -28,11 +28,8 @@ __pycache__/
 # AI (large files — train locally or use releases)
 ai/weights/
 ai/dataset/
-ai/datasets/raw/**
-!ai/datasets/raw/**/
-!ai/datasets/raw/**/README.md
-!ai/datasets/raw/import_log.csv
-ai/datasets/processed/
+ai/datasets/
+ai/dataset_10/
 *.pt
 CamTraffic-best_v2.zip
 CamTraffic-best_*.zip
