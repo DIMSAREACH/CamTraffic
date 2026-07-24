@@ -1,12 +1,15 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
-  ArrowLeft, Bell, CalendarClock, Mail, MessageSquare, Save, Send,
-  Smartphone, Users, Shield, UserRound, LayoutGrid, AlertTriangle,
+  ArrowLeft, Bell, Loader2, Mail, MessageSquare, Send,
+  Smartphone, Users, Shield, UserRound, LayoutGrid,
 } from 'lucide-react';
 import { useLanguage } from '@shared/context/LanguageContext';
-import type { NotifChannel, NotifPriority, NotifRecipientRole } from '@shared/constants/notificationCatalog';
+import { notificationsAPI } from '@shared/services/api';
 import { toast } from 'sonner';
+
+type NotifChannel = 'system' | 'email' | 'push' | 'sms';
+type NotifRecipientRole = 'driver' | 'officer' | 'admin' | 'all';
 
 const CHANNELS: { id: NotifChannel; icon: typeof Bell }[] = [
   { id: 'system', icon: Bell },
@@ -22,16 +25,13 @@ const ROLES: { id: NotifRecipientRole; icon: typeof Users }[] = [
   { id: 'all', icon: Users },
 ];
 
-const PRIORITIES: NotifPriority[] = ['low', 'medium', 'high', 'critical'];
-
 export function SendNotificationPage() {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
   const [recipient, setRecipient] = useState<NotifRecipientRole>('driver');
-  const [channels, setChannels] = useState<NotifChannel[]>(['system', 'email']);
-  const [priority, setPriority] = useState<NotifPriority>('medium');
+  const [channels, setChannels] = useState<NotifChannel[]>(['system']);
   const [busy, setBusy] = useState(false);
 
   const toggleChannel = (ch: NotifChannel) => {
@@ -53,37 +53,36 @@ export function SendNotificationPage() {
       toast.error(t('notifCenter.validationChannel'));
       return false;
     }
+    if (!channels.includes('system')) {
+      toast.message('In-app (system) channel is required for production delivery to the database.');
+      setChannels((prev) => (prev.includes('system') ? prev : ['system', ...prev]));
+    }
     return true;
   };
 
   const handleSend = async () => {
     if (!validate() || busy) return;
     setBusy(true);
-    await new Promise((r) => setTimeout(r, 400));
-    toast.success(t('notifCenter.toastSent'));
-    setBusy(false);
-    navigate('/admin/notifications/list');
-  };
-
-  const handleSchedule = () => {
-    if (!validate()) return;
-    toast.success(t('notifCenter.toastScheduled'));
-    navigate('/admin/notifications/scheduled');
-  };
-
-  const handleSaveTemplate = () => {
-    if (!validate()) return;
     try {
-      const key = 'camtraffic_saved_notification_drafts';
-      const raw = localStorage.getItem(key);
-      const list = raw ? JSON.parse(raw) as unknown[] : [];
-      list.unshift({
-        title, message, recipient, channels, priority, savedAt: new Date().toISOString(),
+      const res = await notificationsAPI.adminBroadcast({
+        title: title.trim(),
+        message: message.trim(),
+        type: 'system',
+        recipient,
+        channels: channels.includes('system') ? channels : ['system', ...channels],
       });
-      localStorage.setItem(key, JSON.stringify(list.slice(0, 20)));
-      toast.success(t('notifCenter.toastTemplateSaved'));
-    } catch {
-      toast.error(t('notifCenter.toastTemplateFail'));
+      toast.success(
+        t('notifCenter.toastSent') !== 'notifCenter.toastSent'
+          ? `${t('notifCenter.toastSent')} (${res.created})`
+          : `Sent ${res.created} in-app notification(s)`,
+      );
+      if (res.note) toast.message(res.note);
+      navigate('/admin/notifications/list');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(msg || 'Broadcast failed');
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -101,185 +100,94 @@ export function SendNotificationPage() {
         <div className="enforcement-page__hero-inner notif-center__hero-inner">
           <div>
             <div className="enforcement-page__eyebrow">
-              <span className="enforcement-page__eyebrow-icon"><Send size={14} /></span>
-              {t('pages.notifications.sendEyebrow')}
+              <span className="enforcement-page__eyebrow-icon"><Bell size={14} /></span>
+              {t('pages.notifications.sendEyebrow') !== 'pages.notifications.sendEyebrow'
+                ? t('pages.notifications.sendEyebrow')
+                : 'Live API'}
             </div>
-            <h1 className="enforcement-page__title">{t('pages.notifications.sendTitle')}</h1>
-            <p className="enforcement-page__subtitle">{t('pages.notifications.sendSubtitle')}</p>
+            <h1 className="enforcement-page__title">{t('pages.notifications.sendTitle') !== 'pages.notifications.sendTitle'
+              ? t('pages.notifications.sendTitle')
+              : 'Send notification'}</h1>
+            <p className="enforcement-page__subtitle">
+              Broadcast creates real in-app rows in PostgreSQL via POST /api/notifications/admin/broadcast/
+            </p>
           </div>
-          <div className="notif-center__hero-actions">
-            <button
-              type="button"
-              className="enforcement-page__hero-btn enforcement-page__hero-btn--outline"
-              onClick={() => navigate('/admin/notifications')}
-            >
-              <ArrowLeft size={15} aria-hidden />
-              {t('notifCenter.backDashboard')}
-            </button>
-          </div>
+          <button type="button" className="notif-center__back-link" onClick={() => navigate('/admin/notifications/list')}>
+            <ArrowLeft size={14} />
+            {t('notifCenter.backList')}
+          </button>
         </div>
       </div>
 
-      <div className="notif-compose-page__layout">
-        <form
-          className="enforcement-page__panel notif-compose-page__form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void handleSend();
-          }}
-        >
-          <header className="notif-compose-page__section-head">
-            <span className="notif-compose-page__section-icon" aria-hidden>
-              <Bell size={15} />
-            </span>
-            <div>
-              <h2 className="notif-compose-page__section-title">{t('notifCenter.composeFormTitle')}</h2>
-              <p className="notif-compose-page__section-desc">{t('notifCenter.composeFormHint')}</p>
-            </div>
-          </header>
-
-          <label className="notif-compose-page__field">
-            <span>{t('notifCenter.fieldTitle')}</span>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={t('notifCenter.fieldTitlePlaceholder')}
-              className="notif-compose-page__input"
-            />
+      <div className="notif-compose-page__grid">
+        <section className="enforcement-page__panel space-y-4 p-6">
+          <label className="block space-y-1">
+            <span className="text-sm font-medium">{t('notifCenter.fieldTitle') !== 'notifCenter.fieldTitle' ? t('notifCenter.fieldTitle') : 'Title'}</span>
+            <input className="w-full border rounded-md px-3 py-2" value={title} onChange={(e) => setTitle(e.target.value)} disabled={busy} />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-sm font-medium">{t('notifCenter.fieldMessage') !== 'notifCenter.fieldMessage' ? t('notifCenter.fieldMessage') : 'Message'}</span>
+            <textarea className="w-full border rounded-md px-3 py-2 min-h-[120px]" value={message} onChange={(e) => setMessage(e.target.value)} disabled={busy} />
           </label>
 
-          <fieldset className="notif-compose-page__fieldset">
-            <legend>{t('notifCenter.fieldRecipient')}</legend>
-            <div className="notif-compose-page__chip-grid">
+          <div>
+            <p className="text-sm font-medium mb-2">Recipients</p>
+            <div className="flex flex-wrap gap-2">
               {ROLES.map(({ id, icon: Icon }) => (
                 <button
                   key={id}
                   type="button"
-                  className={`notif-compose-page__chip${recipient === id ? ' is-active' : ''}`}
+                  className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm ${recipient === id ? 'border-teal-600 bg-teal-50' : ''}`}
                   onClick={() => setRecipient(id)}
-                  aria-pressed={recipient === id}
+                  disabled={busy}
                 >
-                  <Icon size={15} aria-hidden />
-                  {t(`notifCenter.role.${id}`)}
+                  <Icon size={14} />
+                  {t(`notifCenter.role.${id}`) !== `notifCenter.role.${id}` ? t(`notifCenter.role.${id}`) : id}
                 </button>
               ))}
             </div>
-          </fieldset>
+          </div>
 
-          <label className="notif-compose-page__field">
-            <span>{t('notifCenter.fieldMessage')}</span>
-            <textarea
-              rows={7}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder={t('notifCenter.fieldMessagePlaceholder')}
-              className="notif-compose-page__textarea"
-            />
-            <span className="notif-compose-page__hint">
-              {t('notifCenter.messageCharCount', { count: message.length })}
-            </span>
-          </label>
-
-          <fieldset className="notif-compose-page__fieldset">
-            <legend>{t('notifCenter.fieldChannel')}</legend>
-            <div className="notif-compose-page__chip-grid notif-compose-page__chip-grid--channels">
-              {CHANNELS.map(({ id, icon: Icon }) => {
-                const active = channels.includes(id);
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    className={`notif-compose-page__chip notif-compose-page__chip--channel${active ? ' is-active' : ''}`}
-                    onClick={() => toggleChannel(id)}
-                    aria-pressed={active}
-                  >
-                    <Icon size={15} aria-hidden />
-                    {t(`notifCenter.channel.${id}`)}
-                  </button>
-                );
-              })}
-            </div>
-          </fieldset>
-
-          <fieldset className="notif-compose-page__fieldset">
-            <legend>{t('notifCenter.fieldPriority')}</legend>
-            <div className="notif-compose-page__priority-row">
-              {PRIORITIES.map((p) => (
+          <div>
+            <p className="text-sm font-medium mb-2">Channels</p>
+            <div className="flex flex-wrap gap-2">
+              {CHANNELS.map(({ id, icon: Icon }) => (
                 <button
-                  key={p}
+                  key={id}
                   type="button"
-                  className={`notif-compose-page__priority notif-compose-page__priority--${p}${priority === p ? ' is-active' : ''}`}
-                  onClick={() => setPriority(p)}
-                  aria-pressed={priority === p}
+                  className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm ${channels.includes(id) ? 'border-teal-600 bg-teal-50' : ''}`}
+                  onClick={() => toggleChannel(id)}
+                  disabled={busy}
                 >
-                  {p === 'critical' ? <AlertTriangle size={13} aria-hidden /> : null}
-                  {t(`notifCenter.priority.${p}`)}
+                  <Icon size={14} />
+                  {t(`notifCenter.channel.${id}`) !== `notifCenter.channel.${id}` ? t(`notifCenter.channel.${id}`) : id}
                 </button>
               ))}
             </div>
-          </fieldset>
-
-          <div className="notif-compose-page__actions">
-            <button type="submit" className="notif-compose-page__btn notif-compose-page__btn--primary" disabled={busy}>
-              <Send size={15} aria-hidden />
-              {t('notifCenter.actionSendNow')}
-            </button>
-            <button type="button" className="notif-compose-page__btn notif-compose-page__btn--secondary" onClick={handleSchedule}>
-              <CalendarClock size={15} aria-hidden />
-              {t('notifCenter.actionSchedule')}
-            </button>
-            <button type="button" className="notif-compose-page__btn notif-compose-page__btn--ghost" onClick={handleSaveTemplate}>
-              <Save size={15} aria-hidden />
-              {t('notifCenter.actionSaveTemplate')}
-            </button>
-          </div>
-        </form>
-
-        <aside className="enforcement-page__panel notif-compose-page__preview" aria-live="polite">
-          <header className="notif-compose-page__section-head">
-            <span className="notif-compose-page__section-icon notif-compose-page__section-icon--preview" aria-hidden>
-              <Smartphone size={15} />
-            </span>
-            <div>
-              <h2 className="notif-compose-page__section-title">{t('notifCenter.previewTitle')}</h2>
-              <p className="notif-compose-page__section-desc">{t('notifCenter.previewHint')}</p>
-            </div>
-          </header>
-
-          <div className="notif-compose-page__phone">
-            <div className="notif-compose-page__phone-notch" aria-hidden />
-            <article className={`notif-compose-page__toast notif-compose-page__toast--${priority}`}>
-              <div className="notif-compose-page__toast-top">
-                <span className="notif-compose-page__toast-app">
-                  <Bell size={12} aria-hidden />
-                  CamTraffic
-                </span>
-                <span className="notif-compose-page__toast-time">{t('notifCenter.previewNow')}</span>
-              </div>
-              <h3 className="notif-compose-page__toast-title">{previewTitle}</h3>
-              <p className="notif-compose-page__toast-body">{previewMessage}</p>
-            </article>
+            <p className="text-xs text-muted-foreground mt-2">
+              Production: in-app is persisted. Email/push/SMS need SMTP/FCM/Twilio configured.
+            </p>
           </div>
 
-          <dl className="notif-compose-page__meta">
-            <div>
-              <dt>{t('notifCenter.fieldRecipient')}</dt>
-              <dd>{t(`notifCenter.role.${recipient}`)}</dd>
-            </div>
-            <div>
-              <dt>{t('notifCenter.fieldChannel')}</dt>
-              <dd>{channelLabels || t('notifCenter.previewNoChannel')}</dd>
-            </div>
-            <div>
-              <dt>{t('notifCenter.fieldPriority')}</dt>
-              <dd>
-                <span className={`notif-compose-page__priority-pill notif-compose-page__priority-pill--${priority}`}>
-                  {t(`notifCenter.priority.${priority}`)}
-                </span>
-              </dd>
-            </div>
-          </dl>
+          <div className="flex gap-2 pt-2">
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-md bg-teal-700 text-white px-4 py-2 disabled:opacity-60"
+              onClick={() => void handleSend()}
+              disabled={busy}
+            >
+              {busy ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+              {busy ? 'Sending…' : (t('notifCenter.actionSend') !== 'notifCenter.actionSend' ? t('notifCenter.actionSend') : 'Send now')}
+            </button>
+          </div>
+        </section>
+
+        <aside className="enforcement-page__panel p-6 space-y-2">
+          <p className="text-sm font-medium">Preview</p>
+          <p className="font-semibold">{previewTitle}</p>
+          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{previewMessage}</p>
+          <p className="text-xs">{channelLabels}</p>
+          <p className="text-xs text-muted-foreground">To: {recipient}</p>
         </aside>
       </div>
     </div>

@@ -1,14 +1,13 @@
-import { useState } from 'react';
 import {
-  Activity, AlertCircle, Camera, Car, ChevronRight, Eye, Hash, History, ImageIcon, Trash2,
+  Activity, ChevronRight, Eye, History, ImageIcon, Trash2,
 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@shared/components/ui/table';
 import { TableEmptyState } from '@shared/components/ui/TableEmptyState';
 import { TablePagination } from '@shared/components/ui/TablePagination';
+import { DetectionThumb } from '@shared/components/ai/DetectionThumb';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { usePagination } from '@shared/hooks/usePagination';
 import { logDisplay, logDisplayColor } from '@shared/utils/detectionDisplay';
-import { getProfileImageUrl } from '@shared/utils/profileImage';
 import type { AIDetectionLog } from '@shared/types';
 
 interface RecentDetectionsTableProps {
@@ -30,59 +29,6 @@ const TABLE_COLUMNS = [
   { key: 'date', labelKey: 'aiLogs.colDate', colClass: 'ai-center-recent-table__col--date' },
   { key: 'actions', labelKey: 'aiCenter.colActions', colClass: 'ai-center-recent-table__col--actions' },
 ] as const;
-
-function modeIcon(mode: string) {
-  if (mode === 'vehicle') return Car;
-  if (mode === 'plate') return Hash;
-  if (mode === 'no_sign' || mode === 'unknown_sign') return AlertCircle;
-  return Camera;
-}
-
-function RecentDetectionThumb({
-  log,
-  accent,
-  mode,
-  onClick,
-}: {
-  log: AIDetectionLog;
-  accent: string;
-  mode: string;
-  onClick?: () => void;
-}) {
-  const { locale } = useLanguage();
-  const speechLocale = locale === 'en' ? 'en' : 'km';
-  const hero = logDisplay(log, speechLocale);
-  const [imgFailed, setImgFailed] = useState(false);
-  const src = getProfileImageUrl(log.uploaded_image);
-  const FallbackIcon = modeIcon(mode);
-
-  if (src && !imgFailed) {
-    return (
-      <button type="button" className="enforcement-page__log-thumb" onClick={onClick}>
-        <img
-          src={src}
-          alt={hero.title}
-          title={hero.title}
-          className="enforcement-page__log-thumb-img"
-          style={{ boxShadow: `0 0 0 1.5px ${accent}30` }}
-          onError={() => setImgFailed(true)}
-        />
-      </button>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      className="enforcement-page__log-thumb enforcement-page__log-thumb--empty"
-      style={{ background: `${accent}18`, borderColor: `${accent}35` }}
-      onClick={onClick}
-      aria-label={hero.title}
-    >
-      <FallbackIcon size={16} style={{ color: accent }} />
-    </button>
-  );
-}
 
 export function RecentDetectionsTable({
   logs,
@@ -155,7 +101,6 @@ export function RecentDetectionsTable({
               pagination.pageItems.map((log) => {
                 const hero = logDisplay(log, speechLocale);
                 const accent = logDisplayColor(hero.mode);
-                const ModeIcon = modeIcon(hero.mode);
                 const createdAt = new Date(log.created_at);
                 const confColor =
                   hero.confidence >= 95 ? '#10B981' : hero.confidence >= 80 ? '#F59E0B' : '#EF4444';
@@ -163,7 +108,7 @@ export function RecentDetectionsTable({
                 return (
                   <TableRow key={log.id} className="enforcement-page__table-row ai-center-recent-table__row">
                     <TableCell className={`py-3.5 ${TABLE_COLUMNS[0].colClass}`}>
-                      <RecentDetectionThumb
+                      <DetectionThumb
                         log={log}
                         accent={accent}
                         mode={hero.mode}
@@ -172,7 +117,6 @@ export function RecentDetectionsTable({
                     </TableCell>
                     <TableCell className={`py-3.5 ${TABLE_COLUMNS[1].colClass}`}>
                       <div className="ai-center-recent-table__detection">
-                        <ModeIcon size={13} style={{ color: accent, flexShrink: 0 }} />
                         <div className="min-w-0">
                           <p className="enforcement-page__cell-primary truncate" title={hero.title}>
                             {hero.title}

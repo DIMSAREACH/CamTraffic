@@ -105,10 +105,9 @@ export const POLICE_ENTERPRISE_MODULES: EnterpriseModule[] = [
     labelKey: 'sidebar.modules.reports',
     path: O.reports,
     roles: ['police'],
-    matchPrefixes: [O.reports, O.reportsCenter, O.reportsAnalytics],
+    matchPrefixes: [O.reports, O.reportsAnalytics],
     subNav: [
       { labelKey: 'sidebar.subNav.reportsDashboard', path: O.reports },
-      { labelKey: 'sidebar.subNav.reportCenter', path: O.reportsCenter },
       { labelKey: 'sidebar.subNav.reportAnalytics', path: O.reportsAnalytics },
     ],
   },
@@ -163,6 +162,11 @@ export const DRIVER_ENTERPRISE_MODULES: EnterpriseModule[] = [
     path: C.violations,
     roles: ['driver'],
     matchPrefixes: [C.violations],
+    subNav: [
+      { labelKey: 'sidebar.subNav.violations', path: C.violations },
+      { labelKey: 'sidebar.subNav.violationMap', path: `${C.violations}/map` },
+      { labelKey: 'sidebar.subNav.violationHeatmap', path: `${C.violations}/heatmap` },
+    ],
   },
   {
     id: 'fines',
@@ -219,6 +223,10 @@ export const DRIVER_ENTERPRISE_MODULES: EnterpriseModule[] = [
     path: C.settings,
     roles: ['driver'],
     matchPrefixes: [C.settings],
+    subNav: [
+      { labelKey: 'sidebar.subNav.settings', path: C.settings },
+      { labelKey: 'sidebar.subNav.notificationSettings', path: `${C.settings}/notifications` },
+    ],
   },
 ];
 

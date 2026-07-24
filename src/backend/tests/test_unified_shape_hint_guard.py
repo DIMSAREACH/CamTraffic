@@ -19,7 +19,8 @@ class UnifiedShapeHintGuardTest(SimpleTestCase):
 
     def test_filename_hint_resolves_no_right_turn_class_key(self):
         hint = _filename_class_hint('upload-NO-RIGHT-TURN.jpg')
-        self.assertEqual(hint, 'no_right_turn')
+        # Accept either semantic key or official Cambodia code stem
+        self.assertIn(hint, ('no_right_turn', 'pw03_r1_02', 'r1_02', 'proh_003'))
 
     def test_no_right_turn_image_unified_not_left_turn(self):
         path = sign_media_path(settings.MEDIA_ROOT, 'R1-02.png', 'PW03-R1-02.png', 'NO-RIGHT-TURN.png')

@@ -23,7 +23,7 @@ export default defineConfig({
   webServer: [
     {
       command: 'python manage.py migrate --noinput && python manage.py seed_demo && python manage.py runserver 127.0.0.1:8000 --noreload',
-      cwd: path.join(repoRoot, 'backend'),
+      cwd: path.join(repoRoot, 'src', 'backend'),
       url: 'http://localhost:8000/health/',
       reuseExistingServer,
       timeout: 120_000,

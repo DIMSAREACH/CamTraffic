@@ -95,6 +95,44 @@ export async function captureSignRegionFrame(
   return { file, previewUrl: URL.createObjectURL(blob), blob };
 }
 
+export async function captureFullFrame(
+  video: HTMLVideoElement,
+  canvas: HTMLCanvasElement,
+  options?: { quality?: number; filenamePrefix?: string; maxEdge?: number },
+): Promise<CapturedWebcamFrame | null> {
+  if (video.readyState < 2 || !video.videoWidth || !video.videoHeight) {
+    return null;
+  }
+  const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
+  if (!ctx) return null;
+
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+  const maxEdge = options?.maxEdge ?? 1280;
+  const scale = Math.min(1, maxEdge / Math.max(vw, vh));
+  const dw = Math.max(1, Math.round(vw * scale));
+  const dh = Math.max(1, Math.round(vh * scale));
+
+  canvas.width = dw;
+  canvas.height = dh;
+  ctx.imageSmoothingEnabled = scale < 1;
+  drawVideoRegion(ctx, video, 0, 0, vw, vh, 0, 0, dw, dh, {
+    mirror: WEBCAM_MIRROR_PREVIEW,
+  });
+
+  const quality = options?.quality ?? 0.92;
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (b) => (b ? resolve(b) : reject(new Error('Could not encode frame'))),
+      'image/jpeg',
+      quality,
+    );
+  });
+  const prefix = options?.filenamePrefix ?? 'webcam-street';
+  const file = new File([blob], `${prefix}-${Date.now()}.jpg`, { type: 'image/jpeg' });
+  return { file, previewUrl: URL.createObjectURL(blob), blob };
+}
+
 function loadImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -134,6 +172,19 @@ export async function drawAnnotatedDetectionFrame(
     ctx.fillStyle = `${item.color}22`;
     ctx.fillRect(x, y, bw, bh);
     ctx.strokeRect(x, y, bw, bh);
+
+    const cx = x + bw / 2;
+    const cy = y + bh / 2;
+    const radius = Math.max(3, Math.min(6, Math.min(bw, bh) / 20));
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.fillStyle = item.color;
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.strokeStyle = item.color;
+    ctx.lineWidth = Math.max(2, Math.round(w / 180));
 
     const label = item.confidence > 0
       ? `${item.label} ${item.confidence.toFixed(0)}%`

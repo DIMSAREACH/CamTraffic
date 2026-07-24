@@ -3,6 +3,7 @@ import { aiAPI } from '@shared/services/api';
 import { getAccessToken } from '@shared/utils/authStorage';
 import { SIGN_REGION_FRACTION } from '@shared/utils/webcamSignRegion';
 import {
+  captureFullFrame,
   captureSignRegionFrame,
   downloadBlob,
   getVideoFacingMode,
@@ -56,6 +57,8 @@ export interface WebcamDetectionResult {
   vehicle_count?: number;
   detected_plate?: string;
   plate_confidence?: number;
+  plate_bbox?: { x1: number; y1: number; x2: number; y2: number };
+  plate_boxes?: Array<{ bbox: { x1: number; y1: number; x2: number; y2: number }; confidence?: number }>;
   display_title_en?: string;
   display_title_km?: string;
   display_confidence?: number;
@@ -78,8 +81,12 @@ export interface WebcamDetectionResult {
 export const LIVE_VOTE_WINDOW = 5;
 export const LIVE_VOTE_MIN_AGREE = 3;
 
+/** Live webcam target: sign close-up (guide box) or street full-frame (vehicles/plates). */
+export type WebcamDetectMode = 'sign' | 'street';
+
 const LOOP_GAP_MS = 40;
 const LOOP_GAP_NO_SIGN_MS = 180;
+const LOOP_GAP_STREET_MS = 120;
 const SCAN_RETRIES = 1;
 const SCAN_RETRY_DELAY_MS = 200;
 const VOTE_WINDOW = LIVE_VOTE_WINDOW;
@@ -119,18 +126,36 @@ type CapturedFrame = {
   blob: Blob;
 };
 
-async function captureSignRegion(
+async function captureWebcamFrame(
   video: HTMLVideoElement,
   canvas: HTMLCanvasElement,
+  mode: WebcamDetectMode,
   saveLog = false,
 ): Promise<CapturedFrame | null> {
   const quality = saveLog ? SAVE_JPEG_QUALITY : LIVE_JPEG_QUALITY;
+  if (mode === 'street') {
+    const captured = await captureFullFrame(video, canvas, {
+      quality,
+      filenamePrefix: saveLog ? 'webcam-street-evidence' : 'webcam-street',
+      maxEdge: 1280,
+    });
+    if (!captured) return null;
+    return captured;
+  }
   const captured = await captureSignRegionFrame(video, canvas, {
     quality,
     filenamePrefix: saveLog ? 'webcam-evidence' : 'webcam',
   });
   if (!captured) return null;
   return captured;
+}
+
+async function captureSignRegion(
+  video: HTMLVideoElement,
+  canvas: HTMLCanvasElement,
+  saveLog = false,
+): Promise<CapturedFrame | null> {
+  return captureWebcamFrame(video, canvas, 'sign', saveLog);
 }
 
 function sleep(ms: number) {
@@ -149,20 +174,25 @@ async function detectWithRetry(
   saveLog = false,
   pipelineOptions?: DetectPipelineOptions,
   debugMode = false,
+  mode: WebcamDetectMode = 'sign',
 ): Promise<WebcamDetectionResult> {
+  const street = mode === 'street';
   let lastError: Error | null = null;
   for (let attempt = 0; attempt < SCAN_RETRIES; attempt += 1) {
     try {
       const raw = await aiAPI.detect(file, {
         live_scan: liveScan && !saveLog,
         live_fast: false,
-        sign_only: !saveLog,
-        track_session: saveLog ? undefined : trackSession,
+        full_frame: street,
+        sign_only: street ? false : !saveLog,
+        enable_ocr: street ? saveLog : undefined,
+        track_session: trackSession,
         debug_mode: debugMode,
         observed_action: pipelineOptions?.observedAction,
+        // Production: only create demo violations when explicitly requested
         demo_violation: pipelineOptions?.observedAction
           ? undefined
-          : (pipelineOptions?.demoViolation !== false ? true : undefined),
+          : (pipelineOptions?.demoViolation === true ? true : undefined),
         auto_create_violation: pipelineOptions?.autoCreateViolation ? true : undefined,
       });
       return normalizeDetectionSign(raw) as WebcamDetectionResult;
@@ -201,8 +231,10 @@ export function isDisplayableSignResult(res: WebcamDetectionResult): boolean {
   return isUsefulSignResult(res) && conf >= DISPLAY_MIN_CONF;
 }
 
-/** True when Scan Frame / Scan & Save should show sign name on one click. */
+/** True when Scan Frame / Scan & Save should show a useful result on one click. */
 export function isManualScanResult(res: WebcamDetectionResult): boolean {
+  if ((res.vehicle_count ?? res.vehicles?.length ?? 0) > 0) return true;
+  if (res.plate_bbox || (res.plate_boxes?.length ?? 0) > 0 || res.detected_plate) return true;
   const conf = res.display_confidence ?? res.confidence ?? 0;
   const mode = res.detection_mode ?? 'sign';
   if (res.sign_present === false || mode === 'no_sign' || mode === 'unknown_sign') {
@@ -267,17 +299,18 @@ async function captureBurstDetections(
     trackSession?: string;
     pipelineOptions?: DetectPipelineOptions;
     debugMode: boolean;
+    mode?: WebcamDetectMode;
   },
 ): Promise<{
   aggregated: WebcamDetectionResult | null;
   frames: Array<{ result: WebcamDetectionResult; previewUrl: string; file: File }>;
 }> {
+  const mode = opts.mode ?? 'sign';
   const frames: Array<{ result: WebcamDetectionResult; previewUrl: string; file: File }> = [];
-  let lastPreview = '';
-  for (let i = 0; i < SCAN_ONCE_BURST; i += 1) {
-    const captured = await captureSignRegion(video, canvas, opts.saveLog);
+  const burstCount = mode === 'street' ? 1 : SCAN_ONCE_BURST;
+  for (let i = 0; i < burstCount; i += 1) {
+    const captured = await captureWebcamFrame(video, canvas, mode, opts.saveLog);
     if (!captured) continue;
-    lastPreview = captured.previewUrl;
     const res = normalizeDetectionSign(
       await detectWithRetry(
         captured.file,
@@ -286,6 +319,7 @@ async function captureBurstDetections(
         opts.saveLog,
         opts.pipelineOptions,
         opts.debugMode,
+        mode,
       ),
     ) as WebcamDetectionResult;
     frames.push({
@@ -296,7 +330,7 @@ async function captureBurstDetections(
       previewUrl: captured.previewUrl,
       file: captured.file,
     });
-    if (i < SCAN_ONCE_BURST - 1) {
+    if (i < burstCount - 1) {
       await sleep(SCAN_ONCE_BURST_GAP_MS);
     }
   }
@@ -305,7 +339,9 @@ async function captureBurstDetections(
     previewUrl: frame.previewUrl,
   }));
   return {
-    aggregated: aggregateBurstResults(burstItems),
+    aggregated: mode === 'street'
+      ? (frames[0]?.result ?? null)
+      : aggregateBurstResults(burstItems),
     frames,
   };
 }
@@ -428,8 +464,11 @@ export function useWebcamDetection(pipelineOptions?: DetectPipelineOptions) {
   const [voteProgress, setVoteProgress] = useState({ agree: 0, total: VOTE_WINDOW, key: '' });
   const [voteSlots, setVoteSlots] = useState<string[]>([]);
   const [pipelineStage, setPipelineStage] = useState<PipelineStageId>('webcam');
+  const [detectMode, setDetectMode] = useState<WebcamDetectMode>('street');
   const debugModeRef = useRef(debugMode);
   debugModeRef.current = debugMode;
+  const detectModeRef = useRef(detectMode);
+  detectModeRef.current = detectMode;
 
   const resetVoting = useCallback(() => {
     voteBufferRef.current = [];
@@ -567,19 +606,47 @@ export function useWebcamDetection(pipelineOptions?: DetectPipelineOptions) {
     const canvas = canvasRef.current;
     if (!video || !canvas) return null;
 
+    const mode = detectModeRef.current;
     scanInFlightRef.current = true;
     try {
       setPipelineStage('opencv');
-      const captured = await captureSignRegion(video, canvas, false);
+      const captured = await captureWebcamFrame(video, canvas, mode, false);
       if (!captured) return null;
 
       setPreviewUrl(captured.previewUrl);
       setPipelineStage('yolo');
-      const res = await detectWithRetry(captured.file, true, ensureTrackSession(), false, undefined, debugModeRef.current);
+      const res = await detectWithRetry(
+        captured.file,
+        true,
+        ensureTrackSession(),
+        false,
+        undefined,
+        debugModeRef.current,
+        mode,
+      );
       const withPreview = { ...res, uploaded_image: res.uploaded_image || captured.previewUrl };
       setFrameResult(withPreview);
       setLastScanAt(new Date());
       setScanCount((n) => n + 1);
+
+      // Street mode: show vehicle/plate boxes immediately (no sign vote lock)
+      if (mode === 'street') {
+        const hasObjects = (withPreview.vehicle_count ?? withPreview.vehicles?.length ?? 0) > 0
+          || Boolean(withPreview.plate_bbox)
+          || (withPreview.plate_boxes?.length ?? 0) > 0
+          || Boolean(withPreview.detected_plate)
+          || isUsefulSignResult(withPreview);
+        if (hasObjects) {
+          rememberStablePreview(captured.previewUrl);
+          setStableResult(withPreview);
+          setLoopError(null);
+          setPipelineStage('result');
+        } else if (opts?.instant) {
+          setLoopError('No vehicles or plates in frame — point camera at traffic');
+        }
+        return withPreview;
+      }
+
       if (opts?.instant && isManualScanResult(withPreview)) {
         rememberStablePreview(captured.previewUrl);
         lockedSignKeyRef.current = signKeyFromResult(withPreview) !== 'none'
@@ -616,15 +683,44 @@ export function useWebcamDetection(pipelineOptions?: DetectPipelineOptions) {
         trackSession: ensureTrackSession(),
         pipelineOptions,
         debugMode: debugModeRef.current,
+        mode: detectModeRef.current,
       });
       if (!burst.frames.length) {
-        setLoopError('Could not capture frame — hold the sign in the guide box');
+        setLoopError(
+          detectModeRef.current === 'street'
+            ? 'Could not capture frame — point camera at traffic'
+            : 'Could not capture frame — hold the sign in the guide box',
+        );
         return null;
       }
 
       const previewUrl = burst.frames[burst.frames.length - 1].previewUrl;
       setPreviewUrl(previewUrl);
       setFrameResult({ uploaded_image: previewUrl } as WebcamDetectionResult);
+
+      if (detectModeRef.current === 'street') {
+        const streetFrame = burst.frames[0];
+        const saved = await detectWithRetry(
+          streetFrame.file,
+          false,
+          ensureTrackSession(),
+          true,
+          pipelineOptions,
+          debugModeRef.current,
+          'street',
+        );
+        const confirmed = normalizeDetectionSign({
+          ...streetFrame.result,
+          ...saved,
+          uploaded_image: saved.uploaded_image || streetFrame.previewUrl,
+        }) as WebcamDetectionResult;
+        rememberStablePreview(streetFrame.previewUrl);
+        setStableResult(confirmed);
+        setFrameResult(confirmed);
+        setLoopError(null);
+        setPipelineStage('result');
+        return confirmed;
+      }
 
       if (!burst.aggregated) {
         const last = burst.frames[burst.frames.length - 1].result;
@@ -648,6 +744,7 @@ export function useWebcamDetection(pipelineOptions?: DetectPipelineOptions) {
         true,
         pipelineOptions,
         debugModeRef.current,
+        'sign',
       );
       const confirmed = normalizeDetectionSign({
         ...burst.aggregated,
@@ -699,9 +796,14 @@ export function useWebcamDetection(pipelineOptions?: DetectPipelineOptions) {
         trackSession: ensureTrackSession(),
         pipelineOptions,
         debugMode: debugModeRef.current,
+        mode: detectModeRef.current,
       });
       if (!burst.frames.length) {
-        setLoopError('Could not capture frame — hold the sign in the guide box');
+        setLoopError(
+          detectModeRef.current === 'street'
+            ? 'Could not capture frame — point camera at traffic'
+            : 'Could not capture frame — hold the sign in the guide box',
+        );
         return null;
       }
       setScanCount((n) => n + burst.frames.length);
@@ -711,6 +813,12 @@ export function useWebcamDetection(pipelineOptions?: DetectPipelineOptions) {
       const withPreview = { ...preview, uploaded_image: preview.uploaded_image || previewUrl };
       setPreviewUrl(previewUrl);
       setFrameResult(withPreview);
+      if (detectModeRef.current === 'street' && isManualScanResult(withPreview)) {
+        rememberStablePreview(previewUrl);
+        setStableResult(withPreview);
+        setLoopError(null);
+        return withPreview;
+      }
       if (burst.aggregated && isManualScanResult(withPreview)) {
         rememberStablePreview(previewUrl);
         lockedSignKeyRef.current = signKeyFromResult(withPreview);
@@ -719,9 +827,11 @@ export function useWebcamDetection(pipelineOptions?: DetectPipelineOptions) {
         return withPreview;
       }
       setLoopError(
-        withPreview.detection_mode === 'no_sign' || withPreview.sign_present === false
-          ? 'No traffic sign in frame — fill the guide box'
-          : `Hold steady — need ${SCAN_ONCE_BURST_MIN}/${SCAN_ONCE_BURST} agreeing frames`,
+        detectModeRef.current === 'street'
+          ? 'No vehicles or plates in frame — point camera at traffic'
+          : (withPreview.detection_mode === 'no_sign' || withPreview.sign_present === false
+            ? 'No traffic sign in frame — fill the guide box'
+            : `Hold steady — need ${SCAN_ONCE_BURST_MIN}/${SCAN_ONCE_BURST} agreeing frames`),
       );
       return withPreview;
     } catch (err) {
@@ -737,11 +847,11 @@ export function useWebcamDetection(pipelineOptions?: DetectPipelineOptions) {
 
   const runLoop = useCallback(async (runId: number) => {
     while (loopActiveRef.current && runId === loopRunIdRef.current) {
-      let gapMs = LOOP_GAP_MS;
+      let gapMs = detectModeRef.current === 'street' ? LOOP_GAP_STREET_MS : LOOP_GAP_MS;
       try {
         const frame = await runLoopScan();
         setLoopError(null);
-        if (frame && signKeyFromResult(frame) === 'none') {
+        if (detectModeRef.current === 'sign' && frame && signKeyFromResult(frame) === 'none') {
           gapMs = LOOP_GAP_NO_SIGN_MS;
         }
       } catch (err) {
@@ -784,13 +894,17 @@ export function useWebcamDetection(pipelineOptions?: DetectPipelineOptions) {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas) return null;
-    return captureSignRegion(video, canvas, true);
+    return captureWebcamFrame(video, canvas, detectModeRef.current, true);
   }, []);
 
   const saveEvidenceFrame = useCallback(async () => {
     const captured = await captureEvidenceFrame();
     if (!captured) {
-      setLoopError('Could not capture frame — hold the sign in the guide box');
+      setLoopError(
+        detectModeRef.current === 'street'
+          ? 'Could not capture frame — point camera at traffic'
+          : 'Could not capture frame — hold the sign in the guide box',
+      );
       return null;
     }
     downloadBlob(captured.blob, captured.file.name);
@@ -918,6 +1032,8 @@ export function useWebcamDetection(pipelineOptions?: DetectPipelineOptions) {
     voteProgress,
     voteSlots,
     pipelineStage,
+    detectMode,
+    setDetectMode,
     startCamera,
     stopStream,
     runSingleScan,

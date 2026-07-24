@@ -11,6 +11,7 @@ from config.logging import build_logging_config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 REPO_ROOT = BASE_DIR.parent.parent  # src/backend → CamTraffic repo root
+AI_ROOT = REPO_ROOT / 'ai'  # YOLO weights, catalogs, datasets (NOT src/ai)
 # Re-read .env on every process start/reload so AI_MODEL_PATH switches take effect
 load_dotenv(BASE_DIR / '.env', override=True)
 
@@ -372,6 +373,10 @@ AI_PLATE_OCR_LANGUAGES = [
 ]
 AI_PLATE_OCR_FAST_MODE = os.getenv('AI_PLATE_OCR_FAST_MODE', 'True').lower() == 'true'
 AI_PLATE_OCR_EARLY_EXIT_CONF = float(os.getenv('AI_PLATE_OCR_EARLY_EXIT_CONF', '0.82'))
+# YOLO plate region detector (then EasyOCR on crop) — Cambodia plates
+AI_PLATE_DETECT_ENABLED = os.getenv('AI_PLATE_DETECT_ENABLED', 'True').lower() == 'true'
+AI_PLATE_DETECT_MODEL = os.getenv('AI_PLATE_DETECT_MODEL', 'best_cambodia_plates.pt')
+AI_PLATE_DETECT_CONFIDENCE = float(os.getenv('AI_PLATE_DETECT_CONFIDENCE', '0.25'))
 
 # Full pipeline: auto-evaluate violations on detect (defense demo)
 AI_PIPELINE_DEMO_VIOLATION = os.getenv('AI_PIPELINE_DEMO_VIOLATION', 'False').lower() == 'true'

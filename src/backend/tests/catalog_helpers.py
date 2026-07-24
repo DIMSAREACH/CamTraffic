@@ -5,8 +5,9 @@ import os
 from contextlib import contextmanager
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]  # CamTraffic repo root
 FULL_CATALOG_PATH = ROOT / 'ai' / 'sign_catalog.json'
+PRODUCTION_CATALOG_PATH = ROOT / 'ai' / 'traffic_sign_catalog_10.json'
 
 # Official PW03 / short thesis codes <-> production catalog display codes.
 CODE_ALIASES: dict[str, set[str]] = {
@@ -83,6 +84,22 @@ def use_full_sign_catalog():
     """Force tests to use the 236-class ai/sign_catalog.json."""
     old = os.environ.get('AI_SIGN_CATALOG_PATH')
     os.environ['AI_SIGN_CATALOG_PATH'] = str(FULL_CATALOG_PATH)
+    _clear_catalog_caches()
+    try:
+        yield
+    finally:
+        if old is None:
+            os.environ.pop('AI_SIGN_CATALOG_PATH', None)
+        else:
+            os.environ['AI_SIGN_CATALOG_PATH'] = old
+        _clear_catalog_caches()
+
+
+@contextmanager
+def use_production_catalog():
+    """Force tests to use the production Cambodia catalog (traffic_sign_catalog_10.json)."""
+    old = os.environ.get('AI_SIGN_CATALOG_PATH')
+    os.environ['AI_SIGN_CATALOG_PATH'] = str(PRODUCTION_CATALOG_PATH)
     _clear_catalog_caches()
     try:
         yield

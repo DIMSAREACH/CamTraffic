@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router';
 import { usePagination } from '@shared/hooks/usePagination';
 import { TablePagination } from '@shared/components/ui/TablePagination';
 import {
@@ -19,6 +20,7 @@ import { formatAppCurrency, khrToUsd, usdToKhr } from '@shared/i18n/localeFormat
 import { useLiveData } from '@shared/hooks/useLiveData';
 import { finesAPI } from '@shared/services/api';
 import { FinesTabs } from '@shared/components/fines/FinesTabs';
+import { CITIZEN_PORTAL_ROUTES } from '@shared/constants/portalRoutes';
 import { toast } from 'sonner';
 import type { Fine } from '@shared/types';
 
@@ -101,6 +103,7 @@ function initials(name: string) {
 
 export function FineManagement() {
   const { t, locale } = useLanguage();
+  const navigate = useNavigate();
   const dateLocale = locale === 'km' ? 'km-KH' : 'en-US';
   const statusLabel = (s: string) => t(`fines.status.${s}`);
 
@@ -616,7 +619,13 @@ export function FineManagement() {
                         <button
                           type="button"
                           className="fines-table__icon-btn fines-table__icon-btn--view"
-                          onClick={() => setSelected(row)}
+                          onClick={() => {
+                            if (isDriver) {
+                              navigate(`${CITIZEN_PORTAL_ROUTES.fines}/${row.id}`);
+                              return;
+                            }
+                            setSelected(row);
+                          }}
                           title={t('fines.view')}
                           aria-label={t('fines.view')}
                         >

@@ -37,7 +37,7 @@ const KYC_META: Record<string, { bg: string; color: string; icon: ReactNode }> =
 const emptyCreateForm = {
   full_name: '',
   email: '',
-  password: 'Driver@12345',
+  password: '',
   phone: '',
   license_no: '',
 };
@@ -173,6 +173,10 @@ export function OfficerDriverSearchPage() {
 
     if (!createForm.full_name.trim() || !createForm.email.trim() || !createForm.license_no.trim()) {
       toast.error(t('drivers.toastFillRequired'));
+      return;
+    }
+    if (!createForm.password || createForm.password.length < 8) {
+      toast.error(t('drivers.toastPasswordMin') || 'Password must be at least 8 characters');
       return;
     }
     setSaving(true);

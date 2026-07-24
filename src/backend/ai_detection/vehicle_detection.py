@@ -1,6 +1,9 @@
 """
-Vehicle detection using YOLOv8 COCO pretrained weights.
-Runs on the full uploaded frame (not the sign center-crop).
+Vehicle detection for CamTraffic.
+
+Supports:
+1. Cambodia-trained YOLOv8 (Bus, Car, Moto, Truck, Tuk Tuk) — preferred production
+2. Fallback: YOLOv8 COCO pretrained (car, motorcycle, bus, truck)
 """
 import logging
 from pathlib import Path
@@ -9,7 +12,16 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-# COCO class index → CamTraffic vehicle_type
+# Cambodia Traffic.v1i.yolov8 class index → CamTraffic vehicle_type
+CAMBODIA_VEHICLE_CLASSES: dict[int, str] = {
+    0: 'bus',
+    1: 'car',
+    2: 'motorcycle',  # Moto
+    3: 'truck',
+    4: 'tuk_tuk',
+}
+
+# COCO class index → CamTraffic vehicle_type (fallback)
 COCO_VEHICLE_CLASSES: dict[int, str] = {
     2: 'car',
     3: 'motorcycle',
@@ -22,9 +34,11 @@ VEHICLE_TYPE_LABELS: dict[str, str] = {
     'motorcycle': 'Motorcycle',
     'bus': 'Bus',
     'truck': 'Truck',
+    'tuk_tuk': 'Tuk Tuk',
 }
 
 _VEHICLE_MODEL = None
+_VEHICLE_MODEL_MODE: str | None = None  # 'cambodia' | 'coco'
 
 
 def vehicle_detection_enabled() -> bool:
@@ -39,13 +53,19 @@ def _confidence_threshold() -> float:
     return float(getattr(settings, 'AI_VEHICLE_CONFIDENCE_THRESHOLD', 0.35))
 
 
+def _ai_root() -> Path:
+    return Path(getattr(settings, 'AI_ROOT', Path(settings.BASE_DIR).parent.parent / 'ai'))
+
+
 def _resolve_vehicle_model_path() -> Path:
     model_ref = _vehicle_model_path()
-    project_root = Path(settings.BASE_DIR).parent
+    ai_root = _ai_root()
+    repo_root = ai_root.parent
     candidates = [
         Path(model_ref),
-        project_root / model_ref,
-        project_root / 'ai' / 'weights' / model_ref,
+        ai_root / 'weights' / model_ref,
+        ai_root / 'weights' / Path(model_ref).name,
+        repo_root / model_ref,
         Path(settings.BASE_DIR) / model_ref,
     ]
     for candidate in candidates:
@@ -54,8 +74,17 @@ def _resolve_vehicle_model_path() -> Path:
     return Path(model_ref)
 
 
+def _detect_model_mode(model) -> str:
+    """Prefer Cambodia custom names when present."""
+    names = getattr(model, 'names', None) or {}
+    name_values = {str(v).strip().lower() for v in names.values()} if isinstance(names, dict) else set()
+    if {'bus', 'car', 'moto', 'truck', 'tuk tuk'} <= name_values or 'tuk tuk' in name_values or 'moto' in name_values:
+        return 'cambodia'
+    return 'coco'
+
+
 def _get_vehicle_model():
-    global _VEHICLE_MODEL
+    global _VEHICLE_MODEL, _VEHICLE_MODEL_MODE
     if _VEHICLE_MODEL is not None:
         return _VEHICLE_MODEL
     from ultralytics import YOLO
@@ -69,10 +98,18 @@ def _get_vehicle_model():
         return None
     try:
         _VEHICLE_MODEL = YOLO(str(path))
+        _VEHICLE_MODEL_MODE = _detect_model_mode(_VEHICLE_MODEL)
+        logger.info('Vehicle YOLO loaded: %s (mode=%s)', path, _VEHICLE_MODEL_MODE)
     except Exception:
         logger.exception('Failed to load vehicle YOLO: %s', path)
         return None
     return _VEHICLE_MODEL
+
+
+def _class_map() -> dict[int, str]:
+    if _VEHICLE_MODEL_MODE == 'cambodia':
+        return CAMBODIA_VEHICLE_CLASSES
+    return COCO_VEHICLE_CLASSES
 
 
 def _normalize_bbox(xyxy, img_w: float, img_h: float) -> dict[str, float]:
@@ -88,7 +125,7 @@ def _normalize_bbox(xyxy, img_w: float, img_h: float) -> dict[str, float]:
 
 
 def _build_detection(cls_idx: int, conf: float, xyxy, img_w: float, img_h: float) -> dict | None:
-    vehicle_type = COCO_VEHICLE_CLASSES.get(int(cls_idx))
+    vehicle_type = _class_map().get(int(cls_idx))
     if not vehicle_type:
         return None
     return {
@@ -101,7 +138,7 @@ def _build_detection(cls_idx: int, conf: float, xyxy, img_w: float, img_h: float
 
 def detect_vehicles(image_path: str) -> list[dict]:
     """
-    Detect cars, motorcycles, buses, and trucks in an image.
+    Detect Cambodia road vehicles (Bus, Car, Moto, Truck, Tuk Tuk) or COCO fallback.
     Returns a list sorted by confidence (highest first).
     """
     if not vehicle_detection_enabled():
@@ -117,12 +154,17 @@ def detect_vehicles(image_path: str) -> list[dict]:
         if model is None:
             return []
         threshold = _confidence_threshold()
-        results = model.predict(
-            source=str(path),
-            conf=threshold,
-            verbose=False,
-            classes=list(COCO_VEHICLE_CLASSES.keys()),
-        )
+        class_ids = list(_class_map().keys())
+        predict_kwargs = {
+            'source': str(path),
+            'conf': threshold,
+            'verbose': False,
+        }
+        # Cambodia custom model: all classes are vehicles — do not filter COCO IDs
+        if _VEHICLE_MODEL_MODE != 'cambodia':
+            predict_kwargs['classes'] = class_ids
+
+        results = model.predict(**predict_kwargs)
         if not results:
             return []
 

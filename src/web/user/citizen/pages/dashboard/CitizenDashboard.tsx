@@ -219,9 +219,11 @@ export function CitizenDashboard() {
       </div>
 
       <div className="enforcement-page__panel driver-dashboard-quick-panel mb-4">
-        <div className="driver-dashboard-quick-panel__head">
+                <div className="driver-dashboard-quick-panel__head">
           <h2 className="dashboard-section__title">{t('dashboard.quickActions')}</h2>
-          <p className="dashboard-section__subtitle">{t('dashboard.quickActionsHint')}</p>
+          <p className="dashboard-section__subtitle">
+            {t('dashboard.quickActionsHint')} · {t('dashboard.cambodiaOpsHint')}
+          </p>
         </div>
         <div className="driver-dashboard-quick-grid">
           {quickActions.map((action) => {

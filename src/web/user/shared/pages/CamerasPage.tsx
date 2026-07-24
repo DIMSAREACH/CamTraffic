@@ -4,7 +4,6 @@ import {
   Pause, Play, Search, Video, Wrench, CircleDot, Scan, Plus, Pencil, Trash2,
 } from 'lucide-react';
 import { SignNameLabels } from '@shared/components/signs/SignNameLabels';
-import { detectFromImageUrl } from '@shared/hooks/useWebcamDetection';
 import { signDisplayNames } from '@shared/utils/signDisplayNames';
 import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
@@ -43,11 +42,18 @@ const STATUS_META: Record<CameraStatus, { labelKey: string; color: string; bg: s
     bg: 'rgba(245,158,11,0.12)',
     border: 'rgba(245,158,11,0.28)',
   },
+  offline: {
+    labelKey: 'offline',
+    color: '#DC2626',
+    bg: 'rgba(239,68,68,0.12)',
+    border: 'rgba(239,68,68,0.28)',
+  },
 };
 
 const TYPE_ICON: Record<CameraType, typeof Video> = {
   fixed: Video,
   ptz: Cctv,
+  mobile: Radio,
   speed: CircleDot,
 };
 
@@ -59,6 +65,23 @@ type CameraFormState = {
   camera_type: CameraType;
   status: CameraStatus;
   frame_source_url: string;
+  rtsp_url: string;
+  brand: string;
+  resolution: string;
+  fps: string;
+  codec: string;
+  ip_address: string;
+  port: string;
+  username: string;
+  password: string;
+  onvif_enabled: boolean;
+  ai_enabled: boolean;
+  detection_type: string;
+  confidence_threshold: string;
+  district: string;
+  province: string;
+  street: string;
+  description: string;
   installed_date: string;
   latitude: string;
   longitude: string;
@@ -72,6 +95,23 @@ const EMPTY_CAMERA_FORM: CameraFormState = {
   camera_type: 'fixed',
   status: 'active',
   frame_source_url: '',
+  rtsp_url: '',
+  brand: '',
+  resolution: '1080p',
+  fps: '25',
+  codec: 'H.264',
+  ip_address: '',
+  port: '554',
+  username: '',
+  password: '',
+  onvif_enabled: false,
+  ai_enabled: true,
+  detection_type: 'street',
+  confidence_threshold: '0.35',
+  district: '',
+  province: 'Phnom Penh',
+  street: '',
+  description: '',
   installed_date: '',
   latitude: '',
   longitude: '',
@@ -86,6 +126,24 @@ function cameraToForm(camera: Camera): CameraFormState {
     camera_type: camera.camera_type,
     status: camera.status,
     frame_source_url: camera.frame_source_url || '',
+    rtsp_url: camera.rtsp_url || '',
+    brand: camera.brand || '',
+    resolution: camera.resolution || '1080p',
+    fps: camera.fps != null ? String(camera.fps) : '25',
+    codec: camera.codec || '',
+    ip_address: camera.ip_address || '',
+    port: camera.port != null ? String(camera.port) : '554',
+    username: camera.username || '',
+    password: '',
+    onvif_enabled: Boolean(camera.onvif_enabled),
+    ai_enabled: camera.ai_enabled !== false,
+    detection_type: camera.detection_type || 'street',
+    confidence_threshold:
+      camera.confidence_threshold != null ? String(camera.confidence_threshold) : '0.35',
+    district: camera.district || '',
+    province: camera.province || 'Phnom Penh',
+    street: camera.street || '',
+    description: camera.description || '',
     installed_date: camera.installed_date?.slice(0, 10) || '',
     latitude: camera.latitude != null ? String(camera.latitude) : '',
     longitude: camera.longitude != null ? String(camera.longitude) : '',
@@ -95,6 +153,7 @@ function cameraToForm(camera: Camera): CameraFormState {
 const TYPE_STYLE: Record<CameraType, { bg: string; color: string; border: string }> = {
   fixed: { bg: 'rgba(37, 99, 235, 0.1)', color: '#1D4ED8', border: 'rgba(37, 99, 235, 0.28)' },
   ptz: { bg: 'rgba(124, 58, 237, 0.1)', color: '#6D28D9', border: 'rgba(124, 58, 237, 0.28)' },
+  mobile: { bg: 'rgba(14, 165, 233, 0.12)', color: '#0369A1', border: 'rgba(14, 165, 233, 0.32)' },
   speed: { bg: 'rgba(245, 158, 11, 0.12)', color: '#B45309', border: 'rgba(245, 158, 11, 0.32)' },
 };
 
@@ -103,7 +162,7 @@ function formatRoadLabel(road: Road) {
 }
 
 function buildCameraPayload(form: CameraFormState) {
-  return {
+  const payload: Record<string, unknown> = {
     road: form.road.trim(),
     name: form.name.trim(),
     code: form.code.trim(),
@@ -111,10 +170,32 @@ function buildCameraPayload(form: CameraFormState) {
     camera_type: form.camera_type,
     status: form.status,
     frame_source_url: form.frame_source_url.trim(),
+    rtsp_url: form.rtsp_url.trim(),
+    brand: form.brand.trim(),
+    resolution: form.resolution.trim(),
+    fps: form.fps.trim() ? Number(form.fps) : 25,
+    codec: form.codec.trim(),
+    ip_address: form.ip_address.trim() || null,
+    port: form.port.trim() ? Number(form.port) : 554,
+    username: form.username.trim(),
+    onvif_enabled: form.onvif_enabled,
+    ai_enabled: form.ai_enabled,
+    detection_type: form.detection_type.trim() || 'street',
+    confidence_threshold: form.confidence_threshold.trim()
+      ? Number(form.confidence_threshold)
+      : 0.35,
+    district: form.district.trim(),
+    province: form.province.trim(),
+    street: form.street.trim(),
+    description: form.description.trim(),
     installed_date: form.installed_date || null,
     latitude: form.latitude.trim() ? Number(form.latitude) : null,
     longitude: form.longitude.trim() ? Number(form.longitude) : null,
   };
+  if (form.password.trim()) {
+    payload.password = form.password.trim();
+  }
+  return payload;
 }
 
 function CameraFormDialog({
@@ -246,7 +327,7 @@ function CameraFormDialog({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="cameras-form-dialog__select-menu">
-                      {(['fixed', 'ptz', 'speed'] as const).map((type) => (
+                      {(['fixed', 'ptz', 'mobile', 'speed'] as const).map((type) => (
                         <SelectItem key={type} value={type} className="cameras-form-dialog__select-item">
                           {t(`pages.cameras.type.${type}`)}
                         </SelectItem>
@@ -272,7 +353,7 @@ function CameraFormDialog({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="cameras-form-dialog__select-menu">
-                      {(['active', 'inactive', 'maintenance'] as const).map((status) => (
+                      {(['active', 'inactive', 'maintenance', 'offline'] as const).map((status) => (
                         <SelectItem key={status} value={status} className="cameras-form-dialog__select-item">
                           {t(`pages.cameras.status.${status}`)}
                         </SelectItem>
@@ -293,6 +374,152 @@ function CameraFormDialog({
               </div>
 
               <div className="ct-dialog-field">
+                <Label htmlFor="camera_rtsp" className="cameras-form-dialog__label">RTSP URL</Label>
+                <Input
+                  id="camera_rtsp"
+                  value={form.rtsp_url}
+                  onChange={(e) => onChange({ ...form, rtsp_url: e.target.value })}
+                  placeholder="rtsp://192.168.1.10:554/stream1"
+                  className="font-mono text-sm"
+                />
+              </div>
+
+              <div className="ct-dialog-field-grid">
+                <div className="ct-dialog-field">
+                  <Label htmlFor="camera_brand" className="cameras-form-dialog__label">Brand</Label>
+                  <Input
+                    id="camera_brand"
+                    value={form.brand}
+                    onChange={(e) => onChange({ ...form, brand: e.target.value })}
+                    placeholder="Hikvision"
+                  />
+                </div>
+                <div className="ct-dialog-field">
+                  <Label htmlFor="camera_resolution" className="cameras-form-dialog__label">Resolution</Label>
+                  <Input
+                    id="camera_resolution"
+                    value={form.resolution}
+                    onChange={(e) => onChange({ ...form, resolution: e.target.value })}
+                    placeholder="1080p"
+                  />
+                </div>
+              </div>
+
+              <div className="ct-dialog-field-grid">
+                <div className="ct-dialog-field">
+                  <Label htmlFor="camera_fps" className="cameras-form-dialog__label">FPS</Label>
+                  <Input
+                    id="camera_fps"
+                    value={form.fps}
+                    onChange={(e) => onChange({ ...form, fps: e.target.value })}
+                    placeholder="25"
+                  />
+                </div>
+                <div className="ct-dialog-field">
+                  <Label htmlFor="camera_codec" className="cameras-form-dialog__label">Codec</Label>
+                  <Input
+                    id="camera_codec"
+                    value={form.codec}
+                    onChange={(e) => onChange({ ...form, codec: e.target.value })}
+                    placeholder="H.264"
+                  />
+                </div>
+              </div>
+
+              <div className="ct-dialog-field-grid">
+                <div className="ct-dialog-field">
+                  <Label htmlFor="camera_ip" className="cameras-form-dialog__label">IP address</Label>
+                  <Input
+                    id="camera_ip"
+                    value={form.ip_address}
+                    onChange={(e) => onChange({ ...form, ip_address: e.target.value })}
+                    placeholder="192.168.1.10"
+                    className="font-mono"
+                  />
+                </div>
+                <div className="ct-dialog-field">
+                  <Label htmlFor="camera_port" className="cameras-form-dialog__label">Port</Label>
+                  <Input
+                    id="camera_port"
+                    value={form.port}
+                    onChange={(e) => onChange({ ...form, port: e.target.value })}
+                    placeholder="554"
+                  />
+                </div>
+              </div>
+
+              <div className="ct-dialog-field-grid">
+                <div className="ct-dialog-field">
+                  <Label htmlFor="camera_username" className="cameras-form-dialog__label">Stream username</Label>
+                  <Input
+                    id="camera_username"
+                    value={form.username}
+                    onChange={(e) => onChange({ ...form, username: e.target.value })}
+                    autoComplete="off"
+                  />
+                </div>
+                <div className="ct-dialog-field">
+                  <Label htmlFor="camera_password" className="cameras-form-dialog__label">Stream password</Label>
+                  <Input
+                    id="camera_password"
+                    type="password"
+                    value={form.password}
+                    onChange={(e) => onChange({ ...form, password: e.target.value })}
+                    placeholder={editing?.has_password ? '•••••••• (leave blank to keep)' : ''}
+                    autoComplete="new-password"
+                  />
+                </div>
+              </div>
+
+              <div className="ct-dialog-field-grid">
+                <label className="flex items-center gap-2 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={form.ai_enabled}
+                    onChange={(e) => onChange({ ...form, ai_enabled: e.target.checked })}
+                  />
+                  AI detection enabled
+                </label>
+                <label className="flex items-center gap-2 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={form.onvif_enabled}
+                    onChange={(e) => onChange({ ...form, onvif_enabled: e.target.checked })}
+                  />
+                  ONVIF enabled
+                </label>
+              </div>
+
+              <div className="ct-dialog-field-grid">
+                <div className="ct-dialog-field">
+                  <Label htmlFor="camera_detection_type" className="cameras-form-dialog__label">Detection type</Label>
+                  <Select
+                    value={form.detection_type}
+                    onValueChange={(value) => onChange({ ...form, detection_type: value })}
+                  >
+                    <SelectTrigger className="cameras-form-dialog__select">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="street">Street</SelectItem>
+                      <SelectItem value="sign">Sign</SelectItem>
+                      <SelectItem value="vehicle">Vehicle</SelectItem>
+                      <SelectItem value="plate">Plate</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="ct-dialog-field">
+                  <Label htmlFor="camera_confidence" className="cameras-form-dialog__label">Confidence threshold</Label>
+                  <Input
+                    id="camera_confidence"
+                    value={form.confidence_threshold}
+                    onChange={(e) => onChange({ ...form, confidence_threshold: e.target.value })}
+                    placeholder="0.35"
+                  />
+                </div>
+              </div>
+
+              <div className="ct-dialog-field">
                 <Label htmlFor="camera_installed" className="cameras-form-dialog__label">{t('pages.cameras.formInstalled')}</Label>
                 <Input
                   id="camera_installed"
@@ -305,6 +532,37 @@ function CameraFormDialog({
 
             <div className="cameras-form-dialog__panel">
               <p className="cameras-form-dialog__section-title">{t('pages.cameras.formSectionLocation')}</p>
+
+              <div className="ct-dialog-field-grid">
+                <div className="ct-dialog-field">
+                  <Label htmlFor="camera_province" className="cameras-form-dialog__label">Province</Label>
+                  <Input
+                    id="camera_province"
+                    value={form.province}
+                    onChange={(e) => onChange({ ...form, province: e.target.value })}
+                    placeholder="Phnom Penh"
+                  />
+                </div>
+                <div className="ct-dialog-field">
+                  <Label htmlFor="camera_district" className="cameras-form-dialog__label">District</Label>
+                  <Input
+                    id="camera_district"
+                    value={form.district}
+                    onChange={(e) => onChange({ ...form, district: e.target.value })}
+                    placeholder="Chamkar Mon"
+                  />
+                </div>
+              </div>
+
+              <div className="ct-dialog-field">
+                <Label htmlFor="camera_street" className="cameras-form-dialog__label">Street</Label>
+                <Input
+                  id="camera_street"
+                  value={form.street}
+                  onChange={(e) => onChange({ ...form, street: e.target.value })}
+                  placeholder="Norodom Blvd"
+                />
+              </div>
 
               <div className="ct-dialog-field-grid">
                 <div className="ct-dialog-field">
@@ -327,6 +585,16 @@ function CameraFormDialog({
                     className="font-mono"
                   />
                 </div>
+              </div>
+
+              <div className="ct-dialog-field">
+                <Label htmlFor="camera_description" className="cameras-form-dialog__label">Description</Label>
+                <Input
+                  id="camera_description"
+                  value={form.description}
+                  onChange={(e) => onChange({ ...form, description: e.target.value })}
+                  placeholder="Intersection facing north"
+                />
               </div>
             </div>
           </div>
@@ -362,7 +630,7 @@ function StatusPill({
   t: (key: string, vars?: Record<string, string | number>) => string;
   size?: 'sm' | 'md';
 }) {
-  const meta = STATUS_META[status];
+  const meta = STATUS_META[status] ?? STATUS_META.inactive;
   return (
     <span
       className={cn('cameras-status-pill', size === 'md' && 'cameras-status-pill--md')}
@@ -457,26 +725,50 @@ function CameraFeedPreview({
   };
 
   const handleAiDetect = async () => {
-    if (!src || feedState !== 'ready') {
+    if (!camera || feedState !== 'ready') {
+      toast.error(t('pages.cameras.detectNeedFrame'));
+      return;
+    }
+    if (!(camera.frame_source_url || '').trim() && !demoCameraFramePath(camera)) {
       toast.error(t('pages.cameras.detectNeedFrame'));
       return;
     }
     setAiDetecting(true);
     try {
-      const res = await detectFromImageUrl(src);
+      // Server-side capture (HTTP/RTSP/local demo) — not browser fetch of preview URL
+      const res = (await camerasAPI.processFrame(String(camera.id), {
+        full_frame: 'true',
+        live_scan: 'false',
+        save_log: 'true',
+        enable_ocr: 'true',
+      })) as {
+        sign_name?: string;
+        sign_name_km?: string;
+        sign_name_en?: string;
+        confidence?: number;
+        display_confidence?: number;
+        sign_code?: string;
+        vehicle_count?: number;
+        detected_plate?: string;
+      };
+      const confidence = Number(res.display_confidence ?? res.confidence ?? 0);
       setAiResult({
-        sign_name: res.sign_name,
+        sign_name: res.sign_name || '',
         sign_name_km: res.sign_name_km,
         sign_name_en: res.sign_name_en,
-        confidence: res.confidence,
+        confidence,
         sign_code: res.sign_code,
       });
-      const { km, en } = signDisplayNames(res);
-      const label = km || en || res.sign_name;
+      const { km, en } = signDisplayNames(res as { sign_name?: string; sign_name_km?: string; sign_name_en?: string });
+      const plate = (res.detected_plate || '').trim();
+      const vehicles = Number(res.vehicle_count || 0);
+      const label = plate
+        ? `Plate ${plate}${vehicles ? ` · ${vehicles} vehicle(s)` : ''}`
+        : (km || en || res.sign_name || (vehicles ? `${vehicles} vehicle(s)` : 'Detection'));
       toast.success(
         t('pages.cameras.detectSuccess')
           .replace('{name}', label)
-          .replace('{confidence}', res.confidence.toFixed(1)),
+          .replace('{confidence}', confidence.toFixed(1)),
       );
     } catch {
       toast.error(t('pages.cameras.detectFailed'));
@@ -1024,7 +1316,7 @@ export function CamerasPage() {
             )}
             {!loading && filtered.map((cam) => {
               const isSelected = cam.id === selectedId;
-              const meta = STATUS_META[cam.status];
+              const meta = STATUS_META[cam.status] ?? STATUS_META.inactive;
               const TypeIcon = TYPE_ICON[cam.camera_type] ?? Video;
               return (
                 <button

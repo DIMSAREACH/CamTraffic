@@ -18,16 +18,16 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-AI_ROOT = Path(settings.BASE_DIR).parent / 'ai'
+AI_ROOT = Path(getattr(settings, 'AI_ROOT', Path(settings.BASE_DIR).parent.parent / 'ai'))
 CATALOG_PATH = AI_ROOT / 'sign_catalog.json'
 _CATALOG_CACHE: list[dict] | None = None
 _GEMINI_BACKOFF_UNTIL = 0.0
 
 # Common international sign names → catalog class_key
 _SIGN_NAME_ALIASES: dict[str, str] = {
-    'no entry': 'NO_ENTRY',
-    'do not enter': 'NO_ENTRY',
-    'entry prohibited': 'NO_ENTRY',
+    'no entry': 'I_NO_ENTRY',
+    'do not enter': 'I_NO_ENTRY',
+    'entry prohibited': 'I_NO_ENTRY',
     'no left turn': 'NO_LEFT_TURN',
     'no left turn allowed': 'NO_LEFT_TURN',
     'left turn prohibited': 'NO_LEFT_TURN',
@@ -35,12 +35,12 @@ _SIGN_NAME_ALIASES: dict[str, str] = {
     'no u turn': 'NO_U_TURN',
     'no u-turn': 'NO_U_TURN',
     'no parking': 'NO_PARKING',
-    'no stopping': 'NO_STOPPING',
-    'stop': 'M_STOP',
-    'stop sign': 'M_STOP',
-    'give way': 'M_YIELD_GIVE_WAY',
-    'yield': 'M_YIELD_GIVE_WAY',
-    'yield sign': 'M_YIELD_GIVE_WAY',
+    'no stopping': 'I_NO_STOPPING',
+    'stop': 'I_STOP',
+    'stop sign': 'I_STOP',
+    'give way': 'I_YIELD_GIVE_WAY',
+    'yield': 'I_YIELD_GIVE_WAY',
+    'yield sign': 'I_YIELD_GIVE_WAY',
     'pedestrian crossing': 'W_PEDESTRIAN_CROSSING',
     'school zone': 'W_SCHOOL_ZONE',
     'speed limit': 'R_SPEED_LIMIT',
@@ -53,16 +53,22 @@ _CATALOG_CLASS_ALIASES: dict[str, str] = {
     'close_for_all_road_users': 'road_closed_all_users',
     'close_for_all_vehicles': 'road_closed_all_vehicles',
     'weight_limit_on_one_axle': 'axle_weight_limit',
-    'no_entry_bicycle': 'p_no_bicycles',
-    'no_entry_bicycle_motorcycle_tricycle': 'p_no_bicycles_motorcycles_and_tricycles',
-    'no_entry_large_bus': 'p_no_buses',
-    'no_entry_large_truck': 'p_no_trucks',
-    'no_entry_motorcycle_drawn': 'p_no_motorcycle_drawn_carts',
-    'no_entry_motor_except_motorcycle': 'p_no_motor_vehicles',
-    'no_entry_motor_vehicles': 'p_no_motor_vehicles',
-    'stop': 'm_stop',
-    'give_way': 'm_yield_give_way',
-    'yield': 'm_yield_give_way',
+    'no_entry_bicycle': 'i_no_bicycles',
+    'no_entry_bicycle_motorcycle_tricycle': 'i_no_bicycles_motorcycles_and_tricycles',
+    'no_entry_large_bus': 'i_no_buses',
+    'no_entry_large_truck': 'i_no_trucks',
+    'no_entry_motorcycle_drawn': 'i_no_motorcycle_drawn_carts',
+    'no_entry_motor_except_motorcycle': 'i_no_motor_vehicles',
+    'no_entry_motor_vehicles': 'i_no_motor_vehicles',
+    'p_no_bicycles': 'i_no_bicycles',
+    'p_no_trucks': 'i_no_trucks',
+    'p_no_motor_vehicles': 'i_no_motor_vehicles',
+    'stop': 'i_stop',
+    'm_stop': 'i_stop',
+    'give_way': 'i_yield_give_way',
+    'yield': 'i_yield_give_way',
+    'm_yield_give_way': 'i_yield_give_way',
+    'no_entry': 'i_no_entry',
 }
 
 
@@ -202,6 +208,14 @@ def _match_catalog(sign_code: str = '', class_key: str = '', sign_name_en: str =
     code_norm = (sign_code or '').upper().replace('_', '-')
     key_norm = _canonical_class_key(class_key)
     name_norm = (sign_name_en or '').strip().lower()
+
+    # Prefer explicit aliases before fuzzy name matching (avoids Stop → customs/police stops).
+    alias_key = _SIGN_NAME_ALIASES.get(name_norm)
+    if alias_key:
+        aliased = _row_by_class_key(alias_key)
+        if aliased:
+            return aliased
+
     for row in _load_catalog():
         row_code = (row.get('sign_code') or '').upper()
         official = (row.get('official_sign_code') or '').upper()
@@ -213,9 +227,6 @@ def _match_catalog(sign_code: str = '', class_key: str = '', sign_name_en: str =
             return row
         if name_norm and row_name == name_norm:
             return row
-    alias_key = _SIGN_NAME_ALIASES.get(name_norm)
-    if alias_key:
-        return _row_by_class_key(alias_key)
     if name_norm:
         for row in _load_catalog():
             row_name = (row.get('sign_name_en') or '').strip().lower()

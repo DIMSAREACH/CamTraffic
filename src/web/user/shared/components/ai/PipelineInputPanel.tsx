@@ -185,7 +185,7 @@ export function PipelineInputPanel({
                 </div>
               )}
 
-              {!detecting && (
+              {!detecting && import.meta.env.VITE_ALLOW_DEMO_ASSETS === 'true' && (
                 <div className="detection-input-panel__demo-section">
                   <div className="detection-input-panel__demo-head">
                     <span className="detection-input-panel__demo-head-icon" aria-hidden>

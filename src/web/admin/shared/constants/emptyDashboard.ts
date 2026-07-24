@@ -16,6 +16,8 @@ export const EMPTY_DASHBOARD_STATS: DashboardStats = {
   monthly_detections: [],
   fine_by_reason: [],
   user_distribution: [],
+  recent_activity: [],
+  top_locations: [],
 };
 
 export const EMPTY_POLICE_STATS: PoliceDashboardStats = {

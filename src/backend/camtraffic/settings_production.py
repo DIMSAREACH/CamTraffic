@@ -48,18 +48,22 @@ if os.getenv('CORS_ALLOW_CAMTRAFFIC_STORE', 'true').lower() == 'true':
         CORS_ALLOWED_ORIGIN_REGEXES.append(_store_origin)  # noqa: F405
 
 # Render / small containers: avoid EasyOCR, auto-download YOLO weights, and warmup OOM.
+# Missing *.pt (gitignored) is the usual cause of POST /api/detection/image/ → 503.
 _on_render = os.getenv('RENDER', '').lower() == 'true'
-if _on_render or os.getenv('AI_HOSTED_LITE', '').lower() == 'true':
+_hosted_lite = os.getenv('AI_HOSTED_LITE', '').lower() == 'true'
+_weights_path = Path(AI_MODEL_PATH)  # noqa: F405
+_weights_missing = not _weights_path.is_file()
+if _on_render or _hosted_lite or (_weights_missing and not DEBUG):  # noqa: F405
     AI_WARMUP_MODELS = os.getenv('AI_WARMUP_MODELS', 'False').lower() == 'true'  # noqa: F405
-    _weights_path = Path(AI_MODEL_PATH)  # noqa: F405
-    if not _weights_path.is_file():
+    if _weights_missing:
         AI_USE_MOCK = True  # noqa: F405
     if os.getenv('AI_FORCE_FULL_PIPELINE', '').lower() != 'true':
         AI_PLATE_OCR_ENABLED = False  # noqa: F405
         AI_VEHICLE_ENABLED = False  # noqa: F405
-        if not _weights_path.is_file():
+        if _weights_missing:
             AI_USE_MOCK = True  # noqa: F405
-    elif os.getenv('AI_PLATE_OCR_ENABLED') is None:
-        AI_PLATE_OCR_ENABLED = False  # noqa: F405
-    elif os.getenv('AI_VEHICLE_ENABLED') is None:
-        AI_VEHICLE_ENABLED = False  # noqa: F405
+    else:
+        if os.getenv('AI_PLATE_OCR_ENABLED') is None:
+            AI_PLATE_OCR_ENABLED = False  # noqa: F405
+        if os.getenv('AI_VEHICLE_ENABLED') is None:
+            AI_VEHICLE_ENABLED = False  # noqa: F405

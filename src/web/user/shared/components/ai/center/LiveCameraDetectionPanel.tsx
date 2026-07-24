@@ -110,8 +110,12 @@ export function LiveCameraDetectionPanel({
     onDetectingChange(true);
     const persist = Boolean(autoSave || !opts?.silent);
     const extra: Record<string, string> = {
+      // Street CCTV: full frame vehicles + plates (ProcessFrameView also forces this)
+      full_frame: 'true',
       live_scan: persist ? 'false' : 'true',
       save_log: persist ? 'true' : 'false',
+      // Live loop: boxes only; Scan & Save / auto-save: OCR
+      enable_ocr: persist ? 'true' : 'false',
     };
     const demoOpts = buildDemoViolationOptions(demoObservedAction, {
       autoCreate: persist && Boolean(demoObservedAction?.trim()),
@@ -122,8 +126,8 @@ export function LiveCameraDetectionPanel({
     try {
       const res = (await camerasAPI.processFrame(String(selected.id), extra)) as CenterDetectionResult;
       const preview =
-        res.processed_image ||
         res.annotated_processed_image ||
+        res.processed_image ||
         res.uploaded_image ||
         src;
       setLastPreview(preview);

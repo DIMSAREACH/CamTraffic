@@ -191,14 +191,12 @@ export const finesAPI = USE_MOCK ? mockApi.finesAPI : {
     return sample.withListFallback(live, sample.sampleFines());
   },
   async getByDriver(driverId: string): Promise<Fine[]> {
-    const all = await finesAPI.getAll();
-    const owned = all.filter((f) => f.driver_id === driverId);
-    return sample.withListFallback(owned, sample.sampleFinesForDriver(driverId));
+    const live = unwrapList<Fine>(await apiClient.get('/fines/', { params: { page_size: 100, driver: driverId } }));
+    return sample.withListFallback(live, sample.sampleFinesForDriver(driverId));
   },
   async getByPolice(policeId: string): Promise<Fine[]> {
-    const all = await finesAPI.getAll();
-    const issued = all.filter((f) => f.police_id === policeId);
-    return sample.withListFallback(issued, sample.sampleFinesForPolice(policeId));
+    const live = unwrapList<Fine>(await apiClient.get('/fines/', { params: { page_size: 100, police: policeId } }));
+    return sample.withListFallback(live, sample.sampleFinesForPolice(policeId));
   },
   async create(data: Partial<Fine> & { driver_id?: string; violation_id?: string }): Promise<Fine> {
     return unwrap<Fine>(await apiClient.post('/fines/', {
@@ -409,6 +407,8 @@ export const aiAPI = USE_MOCK ? mockApi.aiAPI : {
     live_fast?: boolean;
     /** Street / video frame: run vehicle detect on full image (not sign crop). */
     full_frame?: boolean;
+    /** When false, skip EasyOCR (plate YOLO boxes still returned). */
+    enable_ocr?: boolean;
     /** When false with live_scan, skip writing AIDetectionLog. */
     save_log?: boolean;
     sign_only?: boolean;
@@ -422,6 +422,8 @@ export const aiAPI = USE_MOCK ? mockApi.aiAPI : {
     if (options?.live_scan) form.append('live_scan', 'true');
     if (options?.live_fast) form.append('live_fast', 'true');
     if (options?.full_frame) form.append('full_frame', 'true');
+    if (options?.enable_ocr === false) form.append('enable_ocr', 'false');
+    if (options?.enable_ocr === true) form.append('enable_ocr', 'true');
     if (options?.save_log === false) form.append('save_log', 'false');
     if (options?.save_log === true) form.append('save_log', 'true');
     if (options?.track_session) form.append('track_session', options.track_session);
@@ -545,7 +547,9 @@ export const aiAPI = USE_MOCK ? mockApi.aiAPI : {
   },
   async getLogs(userId?: number): Promise<AIDetectionLog[]> {
     const live = unwrapList<AIDetectionLog>(await apiClient.get(DETECTION_API.logs, { params: { page_size: 200 } }));
-    const logs = sample.withListFallback(live, sample.sampleAiLogs());
+    const logs = sample.withListFallback(live, sample.sampleAiLogs()).map((log) =>
+      normalizeDetectionMedia(log as unknown as Record<string, unknown>) as unknown as AIDetectionLog,
+    );
     if (userId) return logs.filter((l) => l.user_id === userId);
     return logs;
   },
@@ -634,14 +638,40 @@ export const notificationsAPI = USE_MOCK ? mockApi.notificationsAPI : {
     const live = unwrapList<Notification>(await apiClient.get('/notifications/', { params: { page_size: 100 } }));
     return sample.withListFallback(live, sample.sampleNotificationsForUser(_userId));
   },
-  async markRead(id: number): Promise<void> {
+  async markRead(id: string | number): Promise<void> {
     await apiClient.post(`/notifications/${id}/read/`);
   },
-  async markAllRead(_userId: number): Promise<void> {
+  async markAllRead(_userId?: number): Promise<void> {
     await apiClient.post('/notifications/read/');
   },
   async clearRead(): Promise<{ deleted: number }> {
     return unwrap(await apiClient.delete('/notifications/clear-read/'));
+  },
+  /** Admin: all notifications from DB */
+  async adminList(params?: {
+    q?: string;
+    type?: string;
+    role?: string;
+    is_read?: boolean;
+    page_size?: number;
+  }): Promise<Array<Notification & { user_email?: string; user_name?: string; user_role?: string }>> {
+    return unwrapList(await apiClient.get('/notifications/admin/', { params: { page_size: 200, ...params } }));
+  },
+  /** Admin: broadcast in-app notification to a role group */
+  async adminBroadcast(payload: {
+    title: string;
+    message: string;
+    type?: string;
+    recipient?: string;
+    channels?: string[];
+  }): Promise<{ created: number; recipient: string; channels: string[]; note?: string }> {
+    return unwrap(await apiClient.post('/notifications/admin/broadcast/', payload));
+  },
+  async adminGet(id: string): Promise<Notification & { user_email?: string; user_name?: string; user_role?: string }> {
+    return unwrap(await apiClient.get(`/notifications/admin/${id}/`));
+  },
+  async adminDelete(id: string): Promise<void> {
+    await apiClient.delete(`/notifications/admin/${id}/`);
   },
 };
 

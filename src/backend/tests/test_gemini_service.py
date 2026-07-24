@@ -4,7 +4,7 @@ import json
 from django.test import SimpleTestCase, override_settings
 
 from ai_detection.gemini_service import _extract_json, _match_catalog, _row_by_class_key, gemini_available
-from tests.catalog_helpers import use_full_sign_catalog
+from tests.catalog_helpers import use_full_sign_catalog, use_production_catalog
 
 
 class GeminiServiceTest(SimpleTestCase):
@@ -15,36 +15,40 @@ class GeminiServiceTest(SimpleTestCase):
         self.assertEqual(parsed['sign_code'], 'PW03-R1-01')
 
     def test_match_catalog_by_sign_code(self):
-        row = _match_catalog(sign_code='PW03-R1-04')
-        self.assertIsNotNone(row)
-        self.assertEqual(row['class_key'], 'NO_ENTRY')
+        with use_production_catalog():
+            row = _match_catalog(sign_code='PW03-R1-04')
+            self.assertIsNotNone(row)
+            self.assertEqual(row['class_key'], 'NO_ENTRY')
 
     def test_match_catalog_by_international_alias(self):
-        row = _match_catalog(sign_name_en='No Entry')
-        self.assertIsNotNone(row)
-        self.assertEqual(row['class_key'], 'NO_ENTRY')
+        with use_full_sign_catalog():
+            row = _match_catalog(sign_name_en='No Entry')
+            self.assertIsNotNone(row)
+            self.assertEqual(row['class_key'], 'I_NO_ENTRY')
 
     def test_match_catalog_stop_alias(self):
-        row = _match_catalog(sign_name_en='Stop')
-        self.assertIsNotNone(row)
-        self.assertEqual(row['class_key'], 'M_STOP')
+        with use_full_sign_catalog():
+            row = _match_catalog(sign_name_en='Stop')
+            self.assertIsNotNone(row)
+            self.assertEqual(row['class_key'], 'I_STOP')
 
     def test_match_catalog_yield_alias(self):
         with use_full_sign_catalog():
             row = _match_catalog(sign_name_en='Yield')
             self.assertIsNotNone(row)
-            self.assertEqual(row['class_key'], 'M_YIELD_GIVE_WAY')
+            self.assertEqual(row['class_key'], 'I_YIELD_GIVE_WAY')
 
     def test_match_catalog_yolo_training_alias(self):
         with use_full_sign_catalog():
             row = _match_catalog(class_key='NO_ENTRY_MOTOR_VEHICLES')
             self.assertIsNotNone(row)
-            self.assertEqual(row['class_key'], 'P_NO_MOTOR_VEHICLES')
+            self.assertEqual(row['class_key'], 'I_NO_MOTOR_VEHICLES')
 
     def test_row_by_class_key_normalizes_case(self):
-        row = _row_by_class_key('no_entry')
-        self.assertIsNotNone(row)
-        self.assertEqual(row['class_key'], 'NO_ENTRY')
+        with use_full_sign_catalog():
+            row = _row_by_class_key('no_entry')
+            self.assertIsNotNone(row)
+            self.assertEqual(row['class_key'], 'I_NO_ENTRY')
 
     @override_settings(GEMINI_API_KEY='abc', GEMINI_ENABLED=True)
     def test_gemini_available_with_key(self):

@@ -40,11 +40,11 @@ export function VideoUploadPanel({
   const [preview, setPreview] = useState<string | null>(null);
   const [detecting, setDetecting] = useState(false);
   const [dragging, setDragging] = useState(false);
-  const [confidence, setConfidence] = useState(0.5);
+  const [confidence, setConfidence] = useState(0.35);
   const [enableOcr, setEnableOcr] = useState(true);
   const [enableTracking, setEnableTracking] = useState(true);
   const [enableViolation, setEnableViolation] = useState(true);
-  const [maxFrames, setMaxFrames] = useState(6);
+  const [maxFrames, setMaxFrames] = useState(12);
 
   // Parent keeps using the blob after this panel unmounts during processing.
   const handleFile = (f: File | null) => {

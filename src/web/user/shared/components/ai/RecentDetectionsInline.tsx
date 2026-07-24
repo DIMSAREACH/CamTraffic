@@ -1,8 +1,7 @@
-import { useState } from 'react';
-import { Activity, AlertCircle, Camera, Car, ChevronRight, Clock, Hash, History } from 'lucide-react';
+import { Activity, ChevronRight, Clock, History } from 'lucide-react';
+import { DetectionThumb } from '@shared/components/ai/DetectionThumb';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { logDisplay, logDisplayColor } from '@shared/utils/detectionDisplay';
-import { getProfileImageUrl } from '@shared/utils/profileImage';
 import type { AIDetectionLog } from '@shared/types';
 
 const confColor = (c: number) => (c >= 95 ? '#10B981' : c >= 80 ? '#F59E0B' : '#EF4444');
@@ -12,45 +11,6 @@ const confGrad = (c: number) =>
     : c >= 80
       ? 'linear-gradient(90deg,#F59E0B,#F97316)'
       : 'linear-gradient(90deg,#EF4444,#EC4899)';
-
-function RecentDetectionThumb({
-  log,
-  accent,
-  mode,
-}: {
-  log: AIDetectionLog;
-  accent: string;
-  mode: 'sign' | 'vehicle' | 'plate' | 'unknown_sign' | 'no_sign';
-}) {
-  const { locale } = useLanguage();
-  const speechLocale = locale === 'en' ? 'en' : 'km';
-  const hero = logDisplay(log, speechLocale);
-  const [imgFailed, setImgFailed] = useState(false);
-  const src = getProfileImageUrl(log.uploaded_image);
-  const FallbackIcon =
-    mode === 'vehicle' ? Car : mode === 'plate' ? Hash : mode === 'no_sign' || mode === 'unknown_sign' ? AlertCircle : Camera;
-
-  if (src && !imgFailed) {
-    return (
-      <img
-        src={src}
-        alt={hero.title}
-        className="ai-detection-recent-thumb ai-detection-recent-thumb--photo"
-        style={{ boxShadow: `0 0 0 1.5px ${accent}35` }}
-        onError={() => setImgFailed(true)}
-      />
-    );
-  }
-
-  return (
-    <div
-      className="ai-detection-recent-thumb ai-detection-recent-thumb--fallback"
-      style={{ background: `${accent}18`, borderColor: `${accent}35` }}
-    >
-      <FallbackIcon size={17} strokeWidth={2.25} className="ai-detection-recent-thumb__icon" style={{ color: accent }} />
-    </div>
-  );
-}
 
 export function RecentDetectionsInline({
   logs,
@@ -117,7 +77,15 @@ export function RecentDetectionsInline({
                 key={log.id}
                 className="flex items-center gap-2.5 p-2.5 rounded-xl border border-border/70 bg-muted/25 hover:bg-muted/50 transition-colors"
               >
-                <RecentDetectionThumb log={log} accent={accent} mode={hero.mode} />
+                <DetectionThumb
+                  log={log}
+                  accent={accent}
+                  mode={hero.mode}
+                  asButton={false}
+                  imgClassName="ai-detection-recent-thumb ai-detection-recent-thumb--photo"
+                  emptyClassName="ai-detection-recent-thumb ai-detection-recent-thumb--fallback"
+                  iconSize={17}
+                />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <p className="text-[12px] font-bold truncate text-foreground">{hero.title}</p>

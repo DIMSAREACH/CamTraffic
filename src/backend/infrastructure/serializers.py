@@ -49,15 +49,32 @@ class RoadSerializer(serializers.ModelSerializer):
 class CameraSerializer(serializers.ModelSerializer):
     road_id = serializers.UUIDField(source='road.id', read_only=True)
     road_name = serializers.CharField(source='road.name', read_only=True)
+    # Write-only stream credential; never returned in GET responses.
+    password = serializers.CharField(
+        write_only=True, required=False, allow_blank=True, default='',
+    )
+    has_password = serializers.SerializerMethodField()
 
     class Meta:
         model = Camera
         fields = (
             'id', 'road_id', 'road_name', 'road', 'name', 'code', 'model', 'camera_type',
             'installed_date', 'latitude', 'longitude', 'status', 'frame_source_url',
+            'rtsp_url', 'resolution', 'brand', 'serial_number', 'username', 'password',
+            'has_password', 'ip_address', 'port', 'fps', 'bitrate', 'codec',
+            'onvif_enabled', 'recording_enabled', 'ai_enabled', 'detection_type',
+            'confidence_threshold', 'is_disabled', 'description',
+            'province', 'district', 'street',
+            'last_sync_at', 'last_ping', 'detection_count_today',
             'created_at', 'updated_at',
         )
-        read_only_fields = ('id', 'created_at', 'updated_at', 'road_id', 'road_name')
+        read_only_fields = (
+            'id', 'created_at', 'updated_at', 'road_id', 'road_name',
+            'has_password', 'last_sync_at', 'last_ping', 'detection_count_today',
+        )
+
+    def get_has_password(self, obj):
+        return bool((obj.password_encrypted or '').strip())
 
     def validate_road(self, value):
         if value.status == 'inactive':
@@ -74,3 +91,15 @@ class CameraSerializer(serializers.ModelSerializer):
         if qs.exists():
             raise serializers.ValidationError('Camera code already exists.')
         return code
+
+    def create(self, validated_data):
+        password = validated_data.pop('password', '') or ''
+        if password:
+            validated_data['password_encrypted'] = password
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        if password is not None and password != '':
+            validated_data['password_encrypted'] = password
+        return super().update(instance, validated_data)

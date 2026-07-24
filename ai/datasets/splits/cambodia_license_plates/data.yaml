@@ -1,0 +1,7 @@
+path: D:/Year4/Project Thesis/Expert System/Project/CamTraffic/ai/datasets/splits/cambodia_license_plates
+train: train/images
+val: valid/images
+test: test/images
+nc: 1
+names:
+  0: license_plate

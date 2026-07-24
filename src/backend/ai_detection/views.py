@@ -155,7 +155,12 @@ class DetectSignView(APIView):
                 _truthy_flag(request.data.get('full_frame'))
                 or name_l.startswith('video-preview')
                 or name_l.startswith('video-frame')
+                or name_l.startswith('webcam-street')
             )
+            enable_ocr = _flag_or_default(request.data.get('enable_ocr'), default=True)
+            # Live street preview: boxes first; OCR on Scan & Save (enable_ocr=true).
+            if live_scan and live_capture and full_frame and 'enable_ocr' not in request.data:
+                enable_ocr = False
             if live_scan and live_capture and not full_frame:
                 sign_only = True
                 live_fast = False
@@ -170,6 +175,7 @@ class DetectSignView(APIView):
                     track_session=track_session,
                     live_fast=False,
                     unified_prep=False,
+                    enable_ocr=enable_ocr,
                 )
             else:
                 sign_prep = prepare_unified_sign_input(detect_path, localize=True)
@@ -184,6 +190,7 @@ class DetectSignView(APIView):
                     track_session=track_session,
                     live_fast=live_fast,
                     unified_prep=True,
+                    enable_ocr=enable_ocr and not sign_only,
                 )
                 # Shared preprocess can weaken mid-confidence boxes — retry original frame.
                 sign_probe = (pipeline_out or {}).get('sign_result') or {}
@@ -276,6 +283,51 @@ class DetectSignView(APIView):
                 payload['live_preview'] = True
                 payload['log_id'] = None
                 payload['uploaded_image'] = ''
+                # Street / camera live: return annotated JPEG data-URL so UI shows clear boxes
+                try:
+                    overlay_items: list[dict] = []
+                    sb = payload.get('sign_bbox') or result.get('sign_bbox')
+                    if sb and (payload.get('sign_name_en') or float(result.get('confidence') or 0) > 0):
+                        overlay_items.append({
+                            'kind': 'sign',
+                            'bbox': sb,
+                            'label': payload.get('sign_name_en') or 'Sign',
+                            'confidence': float(result.get('confidence') or 0),
+                            'color': (245, 92, 139),
+                        })
+                    for v in (vehicles or [])[:12]:
+                        if float(v.get('confidence') or 0) < 25:
+                            continue
+                        vb = v.get('bbox') if isinstance(v, dict) else None
+                        if vb:
+                            overlay_items.append({
+                                'kind': 'vehicle',
+                                'bbox': vb,
+                                'label': v.get('label') or v.get('vehicle_type') or 'Vehicle',
+                                'confidence': float(v.get('confidence') or 0),
+                                'color': (214, 182, 6),
+                            })
+                    plate_boxes = list((plate_result or {}).get('plate_boxes') or [])
+                    pb0 = (plate_result or {}).get('plate_bbox') or payload.get('plate_bbox')
+                    if pb0 and not plate_boxes:
+                        plate_boxes = [{'bbox': pb0, 'confidence': float(payload.get('plate_confidence') or 0)}]
+                    for pb in plate_boxes[:4]:
+                        bb = pb.get('bbox') if isinstance(pb, dict) else None
+                        if bb:
+                            overlay_items.append({
+                                'kind': 'plate',
+                                'bbox': bb,
+                                'label': payload.get('detected_plate') or 'Plate',
+                                'confidence': float(pb.get('confidence') or 0),
+                                'color': (15, 158, 245),
+                            })
+                    ann = draw_detection_overlays_on_image(detect_path, overlay_items)
+                    if ann:
+                        extra_cleanup.append(ann)
+                        payload['annotated_processed_image'] = _debug_image_data_url(ann, max_side=960)
+                        payload['processed_image'] = payload.get('processed_image') or payload['annotated_processed_image']
+                except Exception:
+                    logger.exception('Live annotated preview failed')
                 payload['pipeline'] = build_pipeline_steps(
                     vehicles=vehicles,
                     plate_result=plate_result,
@@ -406,8 +458,38 @@ class DetectSignView(APIView):
                     is_violation=bool(enforcement.get('violation')),
                 )
         except Exception as e:
+            # Media/R2 or DB persist failures must not blank the UI with 503 when
+            # inference already succeeded (common on Render without working object storage).
             logger.exception('Detection save/enforcement failed')
-            return error_response(f'Detection could not be saved: {e}', status_code=503)
+            payload = (pipeline_out or {}).get('payload') or {}
+            result = (pipeline_out or {}).get('sign_result') or {}
+            vehicles = (pipeline_out or {}).get('vehicles') or []
+            plate_result = (pipeline_out or {}).get('plate_result') or {}
+            if not payload and not result:
+                return error_response(f'Detection could not be saved: {e}', status_code=503)
+            payload['log_id'] = None
+            payload['persisted'] = False
+            payload['persist_error'] = str(e)
+            payload['pipeline'] = build_pipeline_steps(
+                vehicles=vehicles,
+                plate_result=plate_result,
+                vehicle_summary=(pipeline_out or {}).get('vehicle_summary'),
+                log_id=None,
+                sign_name_en=result.get('sign_name_en') or payload.get('sign_name_en') or '',
+                sign_name_km=(
+                    result.get('sign_name_km')
+                    or payload.get('sign_name_km')
+                    or result.get('sign_name')
+                    or ''
+                ),
+                sign_confidence=float(
+                    payload.get('display_confidence') or result.get('confidence') or 0
+                ),
+            )
+            return success_response(
+                payload,
+                message='Detection complete (result not saved — check media storage)',
+            )
         finally:
             cleanup_temp_files([tmp_path, detect_path, *extra_cleanup])
 
@@ -418,11 +500,8 @@ class DetectionLogListView(APIView):
     permission_classes = [IsAuthenticated, IsPoliceOrAdmin]
 
     def get(self, request):
-        user = request.user
-        if user.role == 'admin':
-            logs = AIDetectionLog.objects.select_related('user').order_by('-created_at')
-        else:
-            logs = AIDetectionLog.objects.select_related('user').filter(user=user).order_by('-created_at')
+        # Admin and officers share the full operational detection history.
+        logs = AIDetectionLog.objects.select_related('user').order_by('-created_at')
         try:
             page_size = max(1, min(int(request.query_params.get('page_size', 50)), 200))
         except (ValueError, TypeError):
@@ -432,15 +511,11 @@ class DetectionLogListView(APIView):
 
 
 class DetectionLogExportView(APIView):
-    """Export AI detection logs as CSV (admin: all logs; officers: own logs)."""
+    """Export AI detection logs as CSV (admin + officers: all operational logs)."""
     permission_classes = [IsAuthenticated, IsPoliceOrAdmin]
 
     def get(self, request):
-        user = request.user
-        if user.role == 'admin':
-            logs = AIDetectionLog.objects.select_related('user').order_by('-created_at')
-        else:
-            logs = AIDetectionLog.objects.select_related('user').filter(user=user).order_by('-created_at')
+        logs = AIDetectionLog.objects.select_related('user').order_by('-created_at')
 
         try:
             limit = max(1, min(int(request.query_params.get('limit', 500)), 2000))
@@ -472,9 +547,8 @@ class DetectionLogExportView(APIView):
 
 
 def _detection_log_queryset_for_user(user):
-    if user.role == 'admin':
-        return AIDetectionLog.objects.select_related('user', 'matched_vehicle')
-    return AIDetectionLog.objects.select_related('user', 'matched_vehicle').filter(user=user)
+    # Admin and officers share the same detection log inventory.
+    return AIDetectionLog.objects.select_related('user', 'matched_vehicle')
 
 
 class DetectionLogDetailView(APIView):
@@ -523,6 +597,7 @@ class DetectVideoView(APIView):
         from .pipeline import _empty_plate_result
         from .video_utils import (
             ALLOWED_VIDEO_EXTENSIONS,
+            DEFAULT_VIDEO_MAX_FRAMES,
             MAX_VIDEO_UPLOAD_BYTES,
             MAX_VIDEO_UPLOAD_MB,
             build_annotated_preview_video,
@@ -542,7 +617,7 @@ class DetectVideoView(APIView):
             request.data.get('confidence') or request.data.get('min_confidence'),
             default=0.25,
         )
-        max_frames = _parse_max_frames(request.data.get('max_frames'), default=6)
+        max_frames = _parse_max_frames(request.data.get('max_frames'), default=DEFAULT_VIDEO_MAX_FRAMES)
         enable_ocr = _flag_or_default(request.data.get('enable_ocr'), True)
         enable_tracking = _flag_or_default(request.data.get('enable_tracking'), True)
         started_at = time.perf_counter()
@@ -611,6 +686,7 @@ class DetectVideoView(APIView):
                     or float(yolo_raw_frame.get('confidence') or 0) > 0
                 ):
                     overlay_items.append({
+                        'kind': 'sign',
                         'bbox': sign_bbox,
                         'label': payload.get('sign_name_en') or 'Sign',
                         'confidence': float(yolo_raw_frame.get('confidence') or score or 0),
@@ -620,19 +696,41 @@ class DetectVideoView(APIView):
                 vehicle_rows = []
                 for v in vehicles[:12]:
                     vb = v.get('bbox') if isinstance(v, dict) else None
+                    conf_v = float(v.get('confidence') or 0)
+                    if conf_v < 25:
+                        continue
                     vehicle_rows.append({
                         'vehicle_type': v.get('vehicle_type') or '',
                         'label': v.get('label') or v.get('vehicle_type') or 'Vehicle',
-                        'confidence': float(v.get('confidence') or 0),
+                        'confidence': conf_v,
                         'bbox': vb,
                     })
                     if vb:
                         overlay_items.append({
+                            'kind': 'vehicle',
                             'bbox': vb,
                             'label': vehicle_rows[-1]['label'],
                             'confidence': vehicle_rows[-1]['confidence'],
                             'color': (214, 182, 6),  # cyan-ish BGR
                         })
+                plate_result_frame = pipeline_out.get('plate_result') or {}
+                plate_boxes = list(plate_result_frame.get('plate_boxes') or [])
+                plate_bbox = plate_result_frame.get('plate_bbox') or payload.get('plate_bbox')
+                if plate_bbox and not plate_boxes:
+                    plate_boxes = [{'bbox': plate_bbox, 'confidence': float(payload.get('plate_confidence') or 0)}]
+                for pb in plate_boxes[:4]:
+                    bb = pb.get('bbox') if isinstance(pb, dict) else None
+                    if not bb:
+                        continue
+                    overlay_items.append({
+                        'kind': 'plate',
+                        'bbox': bb,
+                        'label': (payload.get('detected_plate') or 'Plate'),
+                        'confidence': float(pb.get('confidence') or payload.get('plate_confidence') or 0),
+                        'color': (15, 158, 245),  # amber BGR
+                    })
+                    if not payload.get('plate_bbox'):
+                        payload['plate_bbox'] = bb
                 objects = []
                 if payload.get('sign_name_en') or sign_bbox:
                     objects.append({
@@ -649,11 +747,19 @@ class DetectVideoView(APIView):
                         'bbox': vr.get('bbox'),
                     })
                 plate_text = (payload.get('detected_plate') or '').strip()
-                if plate_text:
+                for pb in plate_boxes[:4]:
+                    objects.append({
+                        'kind': 'plate',
+                        'label': plate_text or 'Plate',
+                        'confidence': float(pb.get('confidence') or payload.get('plate_confidence') or 0),
+                        'bbox': pb.get('bbox'),
+                    })
+                if plate_text and not plate_boxes:
                     objects.append({
                         'kind': 'plate',
                         'label': plate_text,
                         'confidence': float(payload.get('plate_confidence') or score),
+                        'bbox': plate_bbox,
                     })
                 annotate_base = detect_path
                 frame_ann = draw_detection_overlays_on_image(annotate_base, overlay_items)
@@ -675,6 +781,8 @@ class DetectVideoView(APIView):
                     'sign_name_en': payload.get('sign_name_en') or '',
                     'sign_bbox': sign_bbox,
                     'detected_plate': plate_text,
+                    'plate_bbox': payload.get('plate_bbox') or plate_bbox,
+                    'plate_boxes': plate_boxes,
                     'vehicle_count': len(vehicles),
                     'vehicles': vehicle_rows,
                     'objects': objects,
@@ -725,11 +833,27 @@ class DetectVideoView(APIView):
                     vb = v.get('bbox') if isinstance(v, dict) else None
                     if vb:
                         overlay_best.append({
+                            'kind': 'vehicle',
                             'bbox': vb,
                             'label': v.get('label') or v.get('vehicle_type') or 'Vehicle',
                             'confidence': float(v.get('confidence') or 0),
                             'color': (214, 182, 6),
                         })
+                plate_boxes_best = list((plate_result or {}).get('plate_boxes') or [])
+                plate_bbox_best = (plate_result or {}).get('plate_bbox') or payload.get('plate_bbox')
+                if plate_bbox_best and not plate_boxes_best:
+                    plate_boxes_best = [{'bbox': plate_bbox_best, 'confidence': float(payload.get('plate_confidence') or 0)}]
+                for pb in plate_boxes_best[:4]:
+                    bb = pb.get('bbox') if isinstance(pb, dict) else None
+                    if bb:
+                        overlay_best.append({
+                            'kind': 'plate',
+                            'bbox': bb,
+                            'label': payload.get('detected_plate') or 'Plate',
+                            'confidence': float(pb.get('confidence') or payload.get('plate_confidence') or 0),
+                            'color': (15, 158, 245),
+                        })
+                        payload['plate_bbox'] = payload.get('plate_bbox') or bb
             annotated_path = draw_detection_overlays_on_image(annotate_base, overlay_best)
             if not annotated_path:
                 annotated_path = draw_yolo_bbox_on_image(
@@ -903,6 +1027,18 @@ class ProcessFrameView(DetectSignView):
                     request.data['camera_id'] = camera_id
                 if not request.data.get('original_filename'):
                     request.data['original_filename'] = upload_name
+                # Infrastructure CCTV is always street full-frame (vehicles + plates)
+                request.data['full_frame'] = 'true'
+                if 'enable_ocr' not in request.data:
+                    # Live preview: boxes only; persist/save_log: OCR on
+                    save_log = request.data.get('save_log')
+                    live_scan = str(request.data.get('live_scan', '')).lower() in ('true', '1', 'yes')
+                    if save_log is not None and str(save_log).lower() in ('true', '1', 'yes'):
+                        request.data['enable_ocr'] = 'true'
+                    elif live_scan:
+                        request.data['enable_ocr'] = 'false'
+                    else:
+                        request.data['enable_ocr'] = 'true'
             finally:
                 if mutable is not None:
                     request.data._mutable = mutable  # type: ignore[attr-defined]

@@ -3,77 +3,63 @@
 from __future__ import annotations
 
 SAMPLE_MONTHLY_FINES = [
-    {'month': 'Jan', 'count': 78, 'revenue': 3900},
-    {'month': 'Feb', 'count': 92, 'revenue': 4600},
-    {'month': 'Mar', 'count': 104, 'revenue': 5200},
-    {'month': 'Apr', 'count': 86, 'revenue': 4300},
-    {'month': 'May', 'count': 95, 'revenue': 4750},
-    {'month': 'Jun', 'count': 110, 'revenue': 5500},
-    {'month': 'Jul', 'count': 88, 'revenue': 4400},
-    {'month': 'Aug', 'count': 102, 'revenue': 5100},
-    {'month': 'Sep', 'count': 97, 'revenue': 4850},
-    {'month': 'Oct', 'count': 115, 'revenue': 5750},
-    {'month': 'Nov', 'count': 89, 'revenue': 4450},
-    {'month': 'Dec', 'count': 68, 'revenue': 3400},
+    {'month': 'Feb', 'count': 142, 'revenue': 3120},
+    {'month': 'Mar', 'count': 168, 'revenue': 3680},
+    {'month': 'Apr', 'count': 186, 'revenue': 4120},
+    {'month': 'May', 'count': 210, 'revenue': 4680},
+    {'month': 'Jun', 'count': 248, 'revenue': 5420},
+    {'month': 'Jul', 'count': 286, 'revenue': 6280},
 ]
 
 SAMPLE_MONTHLY_DETECTIONS = [
-    {'month': 'Jan', 'count': 230}, {'month': 'Feb', 'count': 280}, {'month': 'Mar', 'count': 310},
-    {'month': 'Apr', 'count': 285}, {'month': 'May', 'count': 320}, {'month': 'Jun', 'count': 298},
-    {'month': 'Jul', 'count': 275}, {'month': 'Aug', 'count': 340}, {'month': 'Sep', 'count': 295},
-    {'month': 'Oct', 'count': 365}, {'month': 'Nov', 'count': 288}, {'month': 'Dec', 'count': 170},
+    {'month': 'Feb', 'count': 520}, {'month': 'Mar', 'count': 610}, {'month': 'Apr', 'count': 690},
+    {'month': 'May', 'count': 780}, {'month': 'Jun', 'count': 860}, {'month': 'Jul', 'count': 980},
 ]
 
 SAMPLE_MONTHLY_VIOLATIONS = [
-    {'month': 'Jan', 'count': 8}, {'month': 'Feb', 'count': 11}, {'month': 'Mar', 'count': 9},
-    {'month': 'Apr', 'count': 14}, {'month': 'May', 'count': 12}, {'month': 'Jun', 'count': 10},
-    {'month': 'Jul', 'count': 13}, {'month': 'Aug', 'count': 15}, {'month': 'Sep', 'count': 11},
-    {'month': 'Oct', 'count': 16}, {'month': 'Nov', 'count': 12}, {'month': 'Dec', 'count': 9},
+    {'month': 'Feb', 'count': 86}, {'month': 'Mar', 'count': 104}, {'month': 'Apr', 'count': 122},
+    {'month': 'May', 'count': 148}, {'month': 'Jun', 'count': 176}, {'month': 'Jul', 'count': 214},
 ]
 
 SAMPLE_VIOLATION_BY_TYPE = [
-    {'violation_type': 'SPEEDING', 'count': 28},
-    {'violation_type': 'NO_STOP', 'count': 22},
-    {'violation_type': 'NO_ENTRY', 'count': 19},
-    {'violation_type': 'NO_PARKING', 'count': 15},
-    {'violation_type': 'NO_LEFT_TURN', 'count': 12},
-    {'violation_type': 'NO_U_TURN', 'count': 10},
-    {'violation_type': 'NO_RIGHT_TURN', 'count': 8},
-    {'violation_type': 'RED_LIGHT', 'count': 6},
+    {'violation_type': 'SPEEDING', 'count': 214},
+    {'violation_type': 'NO_PARKING', 'count': 168},
+    {'violation_type': 'ILLEGAL_LEFT_TURN', 'count': 142},
+    {'violation_type': 'NO_ENTRY', 'count': 128},
+    {'violation_type': 'ILLEGAL_U_TURN', 'count': 116},
+    {'violation_type': 'RED_LIGHT', 'count': 98},
 ]
 
 SAMPLE_FINE_BY_REASON = [
-    {'reason': 'Speeding (80km/h in 60km/h zone)', 'count': 198},
-    {'reason': 'Running Red Light', 'count': 145},
-    {'reason': 'No Helmet (Motorcycle)', 'count': 132},
-    {'reason': 'Failure to Stop at Stop Sign (M-032)', 'count': 88},
-    {'reason': 'Illegal Parking (R2-10)', 'count': 76},
-    {'reason': 'No U-Turn at R1-03', 'count': 54},
-    {'reason': 'No Entry (R1-04)', 'count': 48},
-    {'reason': 'Speed Limit 20 km/h Exceeded (P-029)', 'count': 41},
+    {'reason': 'Speeding', 'count': 214},
+    {'reason': 'No Parking', 'count': 168},
+    {'reason': 'Illegal Left Turn', 'count': 142},
+    {'reason': 'No Entry', 'count': 128},
+    {'reason': 'Illegal U-Turn', 'count': 116},
+    {'reason': 'Running Red Light', 'count': 98},
 ]
 
 SAMPLE_USER_DISTRIBUTION = [
-    {'role': 'Drivers', 'count': 198},
-    {'role': 'Police', 'count': 45},
-    {'role': 'Admin', 'count': 5},
+    {'role': 'Drivers', 'count': 348},
+    {'role': 'Police', 'count': 56},
+    {'role': 'Admin', 'count': 8},
 ]
 
 SAMPLE_DASHBOARD_STATS = {
-    'total_users': 248,
-    'total_drivers': 198,
-    'total_police': 45,
-    'total_fines': 1024,
-    'paid_fines': 712,
-    'pending_fines': 231,
-    'total_detections': 3456,
-    'total_vehicles': 312,
-    'total_signs': 20,
-    'total_violations': 86,
-    'pending_violations': 12,
-    'confirmed_violations': 64,
-    'fine_revenue': 48500.0,
-    'detection_accuracy': 96.8,
+    'total_users': 412,
+    'total_drivers': 348,
+    'total_police': 56,
+    'total_fines': 1860,
+    'paid_fines': 1244,
+    'pending_fines': 412,
+    'total_detections': 5280,
+    'total_vehicles': 1260,
+    'total_signs': 412,
+    'total_violations': 980,
+    'pending_violations': 146,
+    'confirmed_violations': 712,
+    'fine_revenue': 42800.0,
+    'detection_accuracy': 94.6,
     'monthly_fines': SAMPLE_MONTHLY_FINES,
     'monthly_detections': SAMPLE_MONTHLY_DETECTIONS,
     'monthly_violations': SAMPLE_MONTHLY_VIOLATIONS,
@@ -222,38 +208,9 @@ def _has_chart_series(rows: list | None) -> bool:
 
 
 def enrich_report_stats(live: dict) -> dict:
-    """Merge demo enforcement analytics when live data is sparse (matches frontend mergeDashboardStats)."""
-    sample = dict(SAMPLE_DASHBOARD_STATS)
+    """Pass through live stats only — never inflate with SAMPLE_DASHBOARD_STATS.
 
-    if not _has_enforcement_data(live):
-        merged = {**sample}
-        merged['total_detections'] = max(live.get('total_detections') or 0, sample['total_detections'])
-        if (live.get('detection_accuracy') or 0) > 0:
-            merged['detection_accuracy'] = live['detection_accuracy']
-        return merged
-
-    merged = {**live}
-    if not _has_chart_series(live.get('monthly_fines')):
-        merged['monthly_fines'] = sample['monthly_fines']
-    if not _has_chart_series(live.get('monthly_detections')):
-        merged['monthly_detections'] = sample['monthly_detections']
-    if not _has_chart_series(live.get('monthly_violations')):
-        merged['monthly_violations'] = sample['monthly_violations']
-    if not live.get('fine_by_reason'):
-        merged['fine_by_reason'] = sample['fine_by_reason']
-    if not live.get('violation_by_type'):
-        merged['violation_by_type'] = sample['violation_by_type']
-    if not _has_chart_series(live.get('user_distribution')):
-        merged['user_distribution'] = sample['user_distribution']
-
-    for key in (
-        'total_users', 'total_drivers', 'total_police', 'total_vehicles', 'total_signs',
-        'total_fines', 'paid_fines', 'pending_fines', 'total_violations',
-        'pending_violations', 'confirmed_violations', 'fine_revenue',
-    ):
-        merged[key] = max(live.get(key) or 0, sample.get(key) or 0)
-
-    if (live.get('detection_accuracy') or 0) <= 0:
-        merged['detection_accuracy'] = sample['detection_accuracy']
-
-    return merged
+    Kept as a named hook so PDF/export views stay stable; production reports must
+    reflect the database, not demo floors (e.g. 412 users).
+    """
+    return dict(live) if live else {}

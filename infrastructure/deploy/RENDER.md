@@ -44,7 +44,18 @@ AI_PIPELINE_AUTO_CREATE_VIOLATION=False
 ALLOW_DEMO_SEED=False
 ```
 
-**Note:** YOLO weights (`*.pt`) are gitignored. Upload weights via Render disk/S3 or bake into a private image; otherwise set `AI_USE_MOCK=True` for API-only smoke tests.
+**Note:** YOLO weights (`*.pt`) are gitignored — they are **not** in the GitHub → Render image.  
+If `POST /api/detection/image/` returns **503**, set these on `camtraffic-api` and **redeploy**:
+
+```
+AI_USE_MOCK=True
+AI_HOSTED_LITE=True
+AI_WARMUP_MODELS=False
+AI_VEHICLE_ENABLED=False
+AI_PLATE_OCR_ENABLED=False
+```
+
+For real YOLO later: upload `best.pt` to `/app/ai/weights/` (Render disk or bake into image), then set `AI_USE_MOCK=False` and point `AI_MODEL_PATH=/app/ai/weights/best.pt`.
 
 After first deploy, bootstrap runs via `render_web_start.sh` / release command:
 

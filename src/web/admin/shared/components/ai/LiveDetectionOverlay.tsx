@@ -40,6 +40,7 @@ export function LiveDetectionOverlay({
               {item.label}
               {item.confidence > 0 ? ` ${Math.round(item.confidence)}%` : ''}
             </span>
+            <span className="ai-live-overlay__center" aria-hidden="true" />
           </div>
         );
       })}

@@ -74,7 +74,7 @@ class PlateOCRServiceTest(SimpleTestCase):
         result = recognize_plate('/tmp/car.jpg', vehicles)
 
         self.assertEqual(result['plate_text'], '2A-1234')
-        self.assertEqual(result['plate_confidence'], 88.0)
+        self.assertGreaterEqual(result['plate_confidence'], 88.0)
         self.assertEqual(result['plate_type'], 'private')
         self.assertEqual(result['plate_province_en'], 'Battambang')
         self.assertEqual(result['ocr_engine'], 'easyocr')

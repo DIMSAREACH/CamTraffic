@@ -224,14 +224,12 @@ export const finesAPI = USE_MOCK ? mockApi.finesAPI : {
     return sample.withListFallback(live, sample.sampleFines());
   },
   async getByDriver(driverId: string): Promise<Fine[]> {
-    const all = await finesAPI.getAll();
-    const owned = all.filter((f) => f.driver_id === driverId);
-    return sample.withListFallback(owned, sample.sampleFinesForDriver(driverId));
+    const live = unwrapList<Fine>(await apiClient.get('/fines/', { params: { page_size: 100, driver: driverId } }));
+    return sample.withListFallback(live, sample.sampleFinesForDriver(driverId));
   },
   async getByPolice(policeId: string): Promise<Fine[]> {
-    const all = await finesAPI.getAll();
-    const issued = all.filter((f) => f.police_id === policeId);
-    return sample.withListFallback(issued, sample.sampleFinesForPolice(policeId));
+    const live = unwrapList<Fine>(await apiClient.get('/fines/', { params: { page_size: 100, police: policeId } }));
+    return sample.withListFallback(live, sample.sampleFinesForPolice(policeId));
   },
   async create(data: Partial<Fine> & { driver_id?: string; violation_id?: string }): Promise<Fine> {
     const path = apiDomainFromPath() === 'officer' ? OFFICER_API.finesIssue : '/fines/';
@@ -327,6 +325,71 @@ export const finesAPI = USE_MOCK ? mockApi.finesAPI : {
   }> {
     return unwrap(await apiClient.post(`/fines/${fineId}/checkout/khqr/`, {}));
   },
+  async getById(id: string): Promise<Fine> {
+    const base = finesListPath().replace(/\/$/, '');
+    return unwrap<Fine>(await apiClient.get(`${base}/${id}/`));
+  },
+  async downloadReceiptPdf(fineId: string, includeEvidence = false): Promise<Blob> {
+    const res = await apiClient.get(`/fines/${fineId}/receipt/pdf/`, {
+      params: { include_evidence: includeEvidence },
+      responseType: 'blob',
+    });
+    return res.data as Blob;
+  },
+  async getInstallmentQuote(fineId: string, numInstallments: number) {
+    return unwrap<{
+      quote: {
+        original_amount: number;
+        num_installments: number;
+        installment_amount: number;
+        interest_rate: number;
+        total_interest: number;
+        setup_fee: number;
+        total_amount: number;
+      };
+    }>(await apiClient.post(`/fines/${fineId}/installments/quote/`, {
+      num_installments: numInstallments,
+    }));
+  },
+  async createInstallmentPlan(fineId: string, numInstallments: number, paymentDayOfMonth = 1) {
+    return unwrap(await apiClient.post(`/fines/${fineId}/installments/create/`, {
+      num_installments: numInstallments,
+      payment_day_of_month: paymentDayOfMonth,
+    }));
+  },
+  async getInstallmentPlan(fineId: string) {
+    return unwrap<{
+      plan: {
+        id: string;
+        fine_id: string;
+        total_amount: number;
+        paid_amount: number;
+        remaining_amount: number;
+        num_installments: number;
+        status: string;
+        start_date: string;
+        end_date: string;
+        next_payment_date?: string;
+      } | null;
+      payments: Array<{
+        id: string;
+        installment_number: number;
+        amount: number;
+        due_date: string;
+        status: string;
+        paid_at?: string;
+        late_fee: number;
+        days_overdue: number;
+      }>;
+    }>(await apiClient.get(`/fines/${fineId}/installments/`));
+  },
+  async payInstallment(paymentId: string, data: {
+    amount: number;
+    payment_method: string;
+    payment_reference?: string;
+  }) {
+    return unwrap(await apiClient.post(`/fines/installments/${paymentId}/pay/`, data));
+  },
 };
 
 // ── APPEALS ──────────────────────────────────────────────────────
@@ -407,6 +470,49 @@ export const violationsAPI = USE_MOCK ? mockApi.violationsAPI : {
     
     return unwrap<TrafficViolation>(await apiClient.post(violationsListPath(), data));
   },
+  async getMap(params?: { days?: number; status?: string; violation_type?: string }) {
+    return unwrap<{
+      violations: Array<{
+        id: string;
+        coordinates: { lat: number; lng: number };
+        type: string;
+        status: string;
+        date: string;
+        location: string;
+        detected_sign?: string;
+        camera_name?: string;
+        road_name?: string;
+        severity: number;
+        has_fine: boolean;
+        fine_amount?: number;
+        fine_status?: string;
+      }>;
+      total_count: number;
+      bounds?: { north: number; south: number; east: number; west: number } | null;
+    }>(await apiClient.get('/violations/map/', { params }));
+  },
+  async getHeatmap(params?: { days?: number; intensity?: 'count' | 'severity' }) {
+    return unwrap<{
+      heatmap: Array<{
+        lat: number;
+        lng: number;
+        intensity: number;
+        count: number;
+        avg_severity: number;
+        violations: Array<{ id: string; type: string; date: string }>;
+      }>;
+      statistics: {
+        total_violations: number;
+        unique_locations: number;
+        hotspot?: { lat: number; lng: number; count: number; avg_severity: number };
+        period_days: number;
+      };
+      legend?: {
+        type: string;
+        scale: Array<{ value: number; color: string; label: string }>;
+      };
+    }>(await apiClient.get('/violations/heatmap/', { params }));
+  },
   async update(id: string, data: Partial<Pick<TrafficViolation, 'status' | 'location' | 'description'>>): Promise<TrafficViolation> {
     const base = violationsListPath().replace(/\/$/, '');
     // Prefer officer workflow endpoints for approve/reject
@@ -477,6 +583,8 @@ export const aiAPI = USE_MOCK ? mockApi.aiAPI : {
     live_fast?: boolean;
     /** Street / video frame: run vehicle detect on full image (not sign crop). */
     full_frame?: boolean;
+    /** When false, skip EasyOCR (plate YOLO boxes still returned). */
+    enable_ocr?: boolean;
     /** When false with live_scan, skip writing AIDetectionLog. */
     save_log?: boolean;
     sign_only?: boolean;
@@ -490,6 +598,8 @@ export const aiAPI = USE_MOCK ? mockApi.aiAPI : {
     if (options?.live_scan) form.append('live_scan', 'true');
     if (options?.live_fast) form.append('live_fast', 'true');
     if (options?.full_frame) form.append('full_frame', 'true');
+    if (options?.enable_ocr === false) form.append('enable_ocr', 'false');
+    if (options?.enable_ocr === true) form.append('enable_ocr', 'true');
     if (options?.save_log === false) form.append('save_log', 'false');
     if (options?.save_log === true) form.append('save_log', 'true');
     if (options?.track_session) form.append('track_session', options.track_session);
@@ -613,7 +723,9 @@ export const aiAPI = USE_MOCK ? mockApi.aiAPI : {
   },
   async getLogs(userId?: number): Promise<AIDetectionLog[]> {
     const live = unwrapList<AIDetectionLog>(await apiClient.get(DETECTION_API.logs, { params: { page_size: 200 } }));
-    const logs = sample.withListFallback(live, sample.sampleAiLogs());
+    const logs = sample.withListFallback(live, sample.sampleAiLogs()).map((log) =>
+      normalizeDetectionMedia(log as unknown as Record<string, unknown>) as unknown as AIDetectionLog,
+    );
     if (userId) return logs.filter((l) => l.user_id === userId);
     return logs;
   },

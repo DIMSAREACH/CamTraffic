@@ -1,4 +1,12 @@
-"""ABA/KHQR payment session — static merchant QR + amount + bill reference."""
+"""
+ABA/KHQR payment session — static merchant QR + amount + bill reference.
+
+SANDBOX vs PRODUCTION:
+- Sandbox: Use ABA-provided test account (712832071) for development
+- Production: Use your live merchant account from ABA Bank
+
+See: ABA-SANDBOX-CREDENTIALS.md for setup details
+"""
 from __future__ import annotations
 
 import hashlib
@@ -9,7 +17,14 @@ from django.conf import settings
 
 
 def _normalize_account(raw: str) -> str:
+    """Extract digits from account number"""
     return ''.join(ch for ch in (raw or '') if ch.isdigit())
+
+
+def is_sandbox() -> bool:
+    """Check if running in sandbox/test environment"""
+    env = getattr(settings, 'KHQR_ENVIRONMENT', 'production').lower()
+    return env in ('sandbox', 'test', 'development', 'dev')
 
 
 def khqr_qr_image_url() -> str:
@@ -18,24 +33,60 @@ def khqr_qr_image_url() -> str:
 
 def create_khqr_session(*, fine) -> dict:
     """
-    Static ABA KHQR (screenshot in /payments/aba-khqr.png): payer scans, enters fine amount,
-    pays to USD/KHR account, then confirms with bill_reference in CamTraffic.
+    Create ABA KHQR payment session for a fine.
+    
+    Generates:
+    - Unique bill reference (CT-{fine_id}-{random})
+    - QR code URL (static merchant QR)
+    - Payment instructions
+    - Merchant account details
+    
+    Environment:
+    - Sandbox: Uses test account 712832071 (see ABA-SANDBOX-CREDENTIALS.md)
+    - Production: Uses live merchant account from settings
+    
+    Args:
+        fine: Fine object to generate payment for
+    
+    Returns:
+        dict with merchant info, bill_reference, QR URL, instructions
     """
+    sandbox = is_sandbox()
+    
+    # Get merchant details
     merchant = (getattr(settings, 'KHQR_MERCHANT_NAME', '') or 'CamTraffic').strip()
+    
+    # For sandbox, mobile can be used as account; for production, use separate USD/KHR accounts
     account_usd = _normalize_account(getattr(settings, 'KHQR_MERCHANT_ACCOUNT', '') or '')
     account_khr = _normalize_account(getattr(settings, 'KHQR_MERCHANT_ACCOUNT_KHR', '') or '')
+    
+    # Amount (convert KHR to USD for display if needed)
     amount = Decimal(str(fine.amount))
+    
+    # Generate unique bill reference
     bill_ref = f"CT-{str(fine.id).replace('-', '')[:12].upper()}-{uuid.uuid4().hex[:6].upper()}"
+    
+    # Security fingerprint
     fingerprint = hashlib.sha256(f'{fine.id}:{amount}:{bill_ref}'.encode()).hexdigest()[:16]
+    
+    # QR code image URL
     qr_url = khqr_qr_image_url()
-
+    
+    # Display account (prefer USD, fallback to KHR)
     acct_line = account_usd or account_khr
+    
+    # Instructions (multi-language ready)
+    env_label = ' (SANDBOX)' if sandbox else ''
     instructions_en = (
-        f'Scan the ABA KHQR below. In ABA Mobile tap + Enter amount and pay exactly {amount} USD'
+        f'Scan the ABA KHQR below{env_label}. In ABA Mobile tap "+" and select "Scan QR". '
+        f'Enter amount: {amount} USD'
         f'{f" to account {account_usd}" if account_usd else ""}'
         f'{f" (or KHR account {account_khr})" if account_khr else ""}. '
-        f'Add note/reference {bill_ref} if available. Then tap Pay now here (screenshot optional).'
+        f'Add payment reference: {bill_ref}. '
+        f'Then return here and tap "Submit Payment".'
     )
+    
+    instructions_km = instructions_en  # TODO: Add Khmer translation
 
     return {
         'merchant_name': merchant,
@@ -49,5 +100,7 @@ def create_khqr_session(*, fine) -> dict:
         'fingerprint': fingerprint,
         'qr_image_url': qr_url,
         'instructions_en': instructions_en,
-        'instructions_km': instructions_en,
+        'instructions_km': instructions_km,
+        'environment': 'sandbox' if sandbox else 'production',
+        'is_test': sandbox,
     }

@@ -403,10 +403,7 @@ function SignCardItem({
   const [photoInvalid, setPhotoInvalid] = useState(false);
 
   if (!catalogIncludesSign(sign, canManage)) return null;
-  if (!canManage && (!hasSignImage(sign) || photoInvalid)) return null;
-  const hideCard = () => {
-    if (!canManage) setPhotoInvalid(true);
-  };
+  const hideCard = () => {};
 
   const handleCardKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key !== 'Enter' && e.key !== ' ') return;
@@ -432,8 +429,8 @@ function SignCardItem({
         <div className="signs-card__img-wrap">
           <SignImage
             sign={sign}
-            hideFallback={!canManage}
-            strictProbe={!canManage}
+            hideFallback={false}
+            strictProbe={false}
             showcase
             fill
             onUnavailable={hideCard}
@@ -443,7 +440,10 @@ function SignCardItem({
       </div>
       <div className="signs-card__body">
         <SignNameLabels sign={sign} />
-        <div className="flex items-center justify-between gap-2 mt-3">
+        <p className="signs-card__code enforcement-page__code-pill mt-1.5 mb-0 inline-flex">
+          {sign.sign_code}
+        </p>
+        <div className="signs-card__footer flex items-center justify-between gap-2 mt-3">
           <CategoryBadge category={sign.category} className="signs-card__badge px-2.5 py-0.5 text-xs">
             {categoryLabel}
           </CategoryBadge>
@@ -586,10 +586,7 @@ function SignTableRow({
   const [photoInvalid, setPhotoInvalid] = useState(false);
 
   if (!catalogIncludesSign(sign, canManage)) return null;
-  if (!canManage && (!hasSignImage(sign) || photoInvalid)) return null;
-  const hideCard = () => {
-    if (!canManage) setPhotoInvalid(true);
-  };
+  const hideCard = () => {};
 
   return (
     <TableRow className="enforcement-page__table-row">
@@ -599,8 +596,8 @@ function SignTableRow({
             sign={sign}
             size={56}
             showcase
-            strictProbe={!canManage}
-            hideFallback={!canManage}
+            strictProbe={false}
+            hideFallback={false}
             onUnavailable={hideCard}
             className="signs-table-img"
           />
@@ -723,7 +720,6 @@ export function TrafficSignsPage() {
   }, []);
 
   const openSignDetail = (sign: TrafficSign) => {
-    if (!canManage && !hasSignImage(sign)) return;
     setDialogHero(true);
     setSelected(sign);
   };
@@ -802,18 +798,6 @@ export function TrafficSignsPage() {
 
   const CAT_KEYS: SignCategory[] = ['prohibitory', 'warning', 'mandatory', 'informative'];
   const catLabel = (cat: SignCategory) => t(`signCategories.${cat}`);
-
-  const groupedPageItems = useMemo(() => {
-    if (category !== 'all') {
-      return [{ category: category as SignCategory, items: pagination.pageItems }];
-    }
-    return CAT_KEYS
-      .map((cat) => ({
-        category: cat,
-        items: pagination.pageItems.filter((s) => s.category === cat),
-      }))
-      .filter((group) => group.items.length > 0);
-  }, [category, pagination.pageItems]);
 
   const openCategoryFromTab = (cat: SignCategory) => {
     setCategory(cat);
@@ -1030,59 +1014,20 @@ export function TrafficSignsPage() {
                 />
               )
             ) : viewMode === 'grid' ? (
-              category === 'all' ? (
-                <div className="signs-category-sections">
-                  {groupedPageItems.map((group) => {
-                    const Icon = CAT_ICONS[group.category];
-                    return (
-                      <section
-                        key={group.category}
-                        className="signs-category-section"
-                        data-category={group.category}
-                      >
-                        <div className="signs-category-section__head">
-                          <h3 className="signs-category-section__title">
-                            <Icon size={16} aria-hidden />
-                            {catLabel(group.category)}
-                          </h3>
-                          <span className="signs-category-section__count">
-                            {group.items.length}
-                          </span>
-                        </div>
-                        <div className="signs-card-grid">
-                          {group.items.map((sign) => (
-                            <div key={sign.id} className="signs-card-grid__slot min-w-0">
-                              <SignCardItem
-                                sign={sign}
-                                categoryLabel={catLabel(sign.category)}
-                                onSelect={() => openSignDetail(sign)}
-                                canManage={canManage}
-                                onEdit={() => openEdit(sign)}
-                                onDelete={() => setDeleteTarget(sign)}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      </section>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="signs-card-grid">
-                  {pagination.pageItems.map((sign) => (
-                    <div key={sign.id} className="signs-card-grid__slot min-w-0">
-                      <SignCardItem
-                        sign={sign}
-                        categoryLabel={catLabel(sign.category)}
-                        onSelect={() => openSignDetail(sign)}
-                        canManage={canManage}
-                        onEdit={() => openEdit(sign)}
-                        onDelete={() => setDeleteTarget(sign)}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )
+              <div className="signs-card-grid">
+                {pagination.pageItems.map((sign) => (
+                  <div key={sign.id} className="signs-card-grid__slot min-w-0">
+                    <SignCardItem
+                      sign={sign}
+                      categoryLabel={catLabel(sign.category)}
+                      onSelect={() => openSignDetail(sign)}
+                      canManage={canManage}
+                      onEdit={() => openEdit(sign)}
+                      onDelete={() => setDeleteTarget(sign)}
+                    />
+                  </div>
+                ))}
+              </div>
             ) : (
               <SignsTable
                 signs={pagination.pageItems}

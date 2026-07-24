@@ -9,6 +9,7 @@ import { useLanguage } from '@shared/context/LanguageContext';
 import { useSidebarState } from '@shared/hooks/useSidebarState';
 import { useLiveData } from '@shared/hooks/useLiveData';
 import { getUserDevUrl } from '@shared/utils/portal';
+import { trackAdminRecentView } from '@shared/utils/recentViews';
 import { notificationsAPI } from '@shared/services/api';
 import { AdminFooter } from '@admin/layout/AdminFooter';
 import { EnterpriseModuleSubNav } from '@shared/components/layout/EnterpriseModuleSubNav';
@@ -57,6 +58,11 @@ export function AdminLayout() {
   useEffect(() => {
     closeMobile();
   }, [location.pathname, closeMobile]);
+
+  useEffect(() => {
+    if (!user || user.role !== 'admin') return;
+    trackAdminRecentView(location.pathname);
+  }, [location.pathname, user]);
 
   useEffect(() => {
     if (!mobileOpen) return;

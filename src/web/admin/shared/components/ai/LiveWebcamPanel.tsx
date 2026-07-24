@@ -13,6 +13,7 @@ import {
   type WebcamDetectionResult,
 } from '@shared/hooks/useWebcamDetection';
 import { useWebcamSignRegionGuide } from '@shared/hooks/useWebcamSignRegionGuide';
+import { useContainFitRect } from '@shared/hooks/useContainFitRect';
 import { useVideoStreamStats } from '@shared/hooks/useVideoStreamStats';
 import { FilterSelect } from '@shared/components/ui/FilterSelect';
 import { cn } from '@shared/components/ui/utils';
@@ -48,6 +49,8 @@ export function LiveWebcamPanel({ onResult, disabled = false, pipelineOptions }:
     voteProgress,
     voteSlots,
     pipelineStage,
+    detectMode,
+    setDetectMode,
     startCamera,
     stopStream,
     runSingleScan,
@@ -72,7 +75,8 @@ export function LiveWebcamPanel({ onResult, disabled = false, pipelineOptions }:
   );
   const activePipelineStage = stableResult ? 'result' : pipelineStage;
 
-  const regionRect = useWebcamSignRegionGuide(videoRef, stageRef, streaming);
+  const regionRect = useWebcamSignRegionGuide(videoRef, stageRef, streaming && detectMode === 'sign');
+  const streetFit = useContainFitRect(videoRef, streaming && detectMode === 'street');
   const { fps, resolution } = useVideoStreamStats(videoRef, streaming);
 
   const liveFrameConfidence = frameResult
@@ -276,7 +280,7 @@ export function LiveWebcamPanel({ onResult, disabled = false, pipelineOptions }:
         />
         <canvas ref={canvasRef} className="hidden" aria-hidden />
 
-        {streaming && regionRect && (
+        {streaming && detectMode === 'sign' && regionRect && (
           <div className="absolute inset-0 pointer-events-none live-webcam-panel__guide-wrap">
             <div
               className="absolute live-webcam-panel__guide"
@@ -311,6 +315,30 @@ export function LiveWebcamPanel({ onResult, disabled = false, pipelineOptions }:
                 legendPlate={t('aiDetection.webcam.legendPlate')}
               />
             </div>
+          </div>
+        )}
+
+        {streaming && detectMode === 'street' && streetFit && (
+          <div
+            className="absolute pointer-events-none z-[5]"
+            style={{
+              left: streetFit.left,
+              top: streetFit.top,
+              width: streetFit.width,
+              height: streetFit.height,
+            }}
+          >
+            <LiveDetectionOverlay
+              items={overlayItems}
+              legendSign={t('aiDetection.webcam.legendSign')}
+              legendVehicle={t('aiDetection.webcam.legendVehicle')}
+              legendPlate={t('aiDetection.webcam.legendPlate')}
+            />
+            {scanning && (
+              <span className="absolute bottom-2 left-2 right-2 text-center text-[9px] font-bold uppercase tracking-wide text-white px-1.5 py-0.5 rounded bg-cyan-700/90">
+                {t('aiDetection.analysingShort')}
+              </span>
+            )}
           </div>
         )}
 
@@ -514,6 +542,38 @@ export function LiveWebcamPanel({ onResult, disabled = false, pipelineOptions }:
 
       {streaming && (
         <div className="flex flex-wrap items-center justify-between gap-2 px-0.5">
+          <div className="flex items-center gap-1 rounded-lg border border-violet-500/25 bg-violet-500/5 p-0.5">
+            <button
+              type="button"
+              className={cn(
+                'px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors',
+                detectMode === 'street'
+                  ? 'bg-cyan-600 text-white shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+              onClick={() => {
+                stopScanLoop();
+                setDetectMode('street');
+              }}
+            >
+              Street
+            </button>
+            <button
+              type="button"
+              className={cn(
+                'px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors',
+                detectMode === 'sign'
+                  ? 'bg-violet-600 text-white shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+              onClick={() => {
+                stopScanLoop();
+                setDetectMode('sign');
+              }}
+            >
+              Sign
+            </button>
+          </div>
           <label className="flex items-center gap-2 text-[11px] text-muted-foreground cursor-pointer">
             <input
               type="checkbox"
@@ -561,7 +621,7 @@ export function LiveWebcamPanel({ onResult, disabled = false, pipelineOptions }:
         />
       )}
 
-      {streaming && (
+      {streaming && detectMode === 'sign' && (
         <div className="flex flex-wrap items-center justify-between gap-2 px-0.5 text-[10px] text-muted-foreground">
           <span>
             {t('aiDetection.webcam.voteRule', {
@@ -578,6 +638,11 @@ export function LiveWebcamPanel({ onResult, disabled = false, pipelineOptions }:
             </span>
           ) : null}
         </div>
+      )}
+      {streaming && detectMode === 'street' && (
+        <p className="px-0.5 text-[10px] text-muted-foreground">
+          Street mode: full-frame Cambodia vehicles + plate boxes (OCR on Scan &amp; Save).
+        </p>
       )}
 
       {streaming && (

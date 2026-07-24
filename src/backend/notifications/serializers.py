@@ -4,6 +4,8 @@ from .models import Notification
 
 
 class NotificationSerializer(serializers.ModelSerializer):
+    user_id = serializers.UUIDField(source='user.id', read_only=True)
+
     class Meta:
         model = Notification
         fields = ('id', 'user_id', 'title', 'message', 'is_read', 'type', 'created_at')

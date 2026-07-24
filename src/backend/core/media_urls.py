@@ -19,8 +19,9 @@ def _public_media_path(name: str) -> str:
 def api_media_url(_request, field) -> str:
     """Return a browser-loadable media URL.
 
-    - Local disk / DEBUG hybrid: prefer `/media/...` so Vite can proxy to Django.
-    - Cloud (S3/R2) only: full https URL from storage when the object is not on disk.
+    Prefer `/media/...` so Vite (and nginx) can proxy to Django. Absolute R2
+    public URLs are only returned when the object is not available locally and
+    USE_S3_MEDIA is enabled — callers must still handle private/403 buckets.
     """
     if not field:
         return ''
@@ -28,7 +29,8 @@ def api_media_url(_request, field) -> str:
     if not name:
         return ''
 
-    # Dev / hybrid: files still on disk → serve via /media (Vite proxy), even if R2 is enabled.
+    # Always prefer local disk when the file exists — works with USE_S3_MEDIA=True
+    # hybrids where public R2 URLs are 403 but MEDIA_ROOT has a copy.
     try:
         if _local_media_path(name).is_file():
             path = _public_media_path(name)
@@ -44,10 +46,15 @@ def api_media_url(_request, field) -> str:
     except OSError:
         pass
 
+    # Local/dev SPA: never hand the browser a private R2 URL — use /media proxy path.
+    # Django will 404 until the file is restored locally; frontend can still fall back.
+    if getattr(settings, 'DEBUG', False) or not getattr(settings, 'USE_S3_MEDIA', False):
+        return _public_media_path(name)
+
     try:
         url = field.url
     except (ValueError, AttributeError):
-        return ''
+        return _public_media_path(name)
 
     # django-storages / custom domains already return a full public URL.
     if url.startswith(('http://', 'https://')):
@@ -64,7 +71,7 @@ def api_media_url(_request, field) -> str:
     if not path.startswith('/'):
         path = _public_media_path(name)
     elif not path.startswith('/media/'):
-        # e.g. storage returned /signs/... 
+        # e.g. storage returned /signs/...
         path = _public_media_path(path.lstrip('/'))
 
     public_base = (getattr(settings, 'PUBLIC_API_URL', None) or '').strip().rstrip('/')

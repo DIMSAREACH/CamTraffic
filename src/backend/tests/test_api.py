@@ -199,7 +199,10 @@ class UserManagementAPITest(TestCase):
         res = self.client.delete(f'/api/users/{self.target.pk}/')
         self.assertEqual(res.status_code, 200)
         self.assertTrue(res.data.get('success'))
-        self.assertFalse(User.objects.filter(pk=self.target.pk).exists())
+        # Default delete is soft-delete (account deactivated, row kept for audit)
+        self.target.refresh_from_db()
+        self.assertFalse(self.target.is_active)
+        self.assertTrue(User.objects.filter(pk=self.target.pk).exists())
 
 
 class InfrastructureAPITest(TestCase):

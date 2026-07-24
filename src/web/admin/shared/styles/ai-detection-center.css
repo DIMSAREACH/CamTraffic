@@ -3253,6 +3253,21 @@ html.dark .ai-center-results__metric-icon {
   background: color-mix(in srgb, var(--box-color, #22d3ee) 10%, transparent);
 }
 
+.ai-live-overlay__center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 999px;
+  background: var(--box-color, #22d3ee);
+  border: 1.5px solid #fff;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.4);
+  z-index: 1;
+  pointer-events: none;
+}
+
 .ai-live-overlay__label {
   position: absolute;
   left: -1px;

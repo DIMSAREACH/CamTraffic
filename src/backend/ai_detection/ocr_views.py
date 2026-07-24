@@ -22,8 +22,6 @@ class OCRResultListView(APIView):
         plate = request.query_params.get('plate', '').strip()
         if plate:
             qs = qs.filter(detected_plate__icontains=plate)
-        if request.user.role == 'police':
-            qs = qs.filter(user=request.user)
         try:
             limit = max(1, min(int(request.query_params.get('limit', 50)), 200))
         except (ValueError, TypeError):

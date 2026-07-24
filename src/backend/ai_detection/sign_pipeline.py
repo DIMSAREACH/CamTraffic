@@ -128,7 +128,7 @@ def draw_detection_overlays_on_image(
     h, w = img.shape[:2]
     drew = False
 
-    def _ok_bbox(bbox: dict) -> tuple[int, int, int, int] | None:
+    def _ok_bbox(bbox: dict, *, kind: str = '') -> tuple[int, int, int, int] | None:
         try:
             x1n = float(bbox.get('x1', 0))
             y1n = float(bbox.get('y1', 0))
@@ -140,11 +140,17 @@ def draw_detection_overlays_on_image(
         bh = y2n - y1n
         if bw <= 0 or bh <= 0:
             return None
-        # Drop slivers / tiny noise that look unprofessional on preview.
-        if bw < 0.03 or bh < 0.03 or (bw * bh) < 0.004:
+        # Plates are small horizontal strips — allow tighter geometry than vehicles/signs.
+        if kind == 'plate':
+            min_side, min_area = 0.012, 0.0008
+            max_ratio, min_ratio = 12.0, 0.08
+        else:
+            min_side, min_area = 0.03, 0.004
+            max_ratio, min_ratio = 8.0, 0.12
+        if bw < min_side or bh < min_side or (bw * bh) < min_area:
             return None
         ratio = bw / bh if bh else 99
-        if ratio > 8 or ratio < 0.12:
+        if ratio > max_ratio or ratio < min_ratio:
             return None
         x1 = int(max(0.0, x1n) * w)
         y1 = int(max(0.0, y1n) * h)
@@ -155,13 +161,20 @@ def draw_detection_overlays_on_image(
         return x1, y1, x2, y2
 
     for item in usable:
-        coords = _ok_bbox(item.get('bbox') or {})
+        kind = str(item.get('kind') or '').lower()
+        coords = _ok_bbox(item.get('bbox') or {}, kind=kind)
         if not coords:
             continue
         x1, y1, x2, y2 = coords
         color = item.get('color') or (0, 165, 255)
-        thickness = max(2, min(3, w // 220))
+        thickness = max(2, min(4 if kind == 'plate' else 3, w // 200))
         cv2.rectangle(img, (x1, y1), (x2, y2), color, thickness)
+        # Geometric center of the bbox (small filled dot).
+        cx = (x1 + x2) // 2
+        cy = (y1 + y2) // 2
+        radius = max(3, min(7, min(x2 - x1, y2 - y1) // 18))
+        cv2.circle(img, (cx, cy), radius, color, -1, cv2.LINE_AA)
+        cv2.circle(img, (cx, cy), radius, (255, 255, 255), 1, cv2.LINE_AA)
         label = str(item.get('label') or '').strip()
         conf = float(item.get('confidence') or 0)
         if label:

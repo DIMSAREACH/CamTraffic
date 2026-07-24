@@ -301,6 +301,18 @@ html.dark .dashboard-page--signs .enforcement-page__panel--signs {
   background: rgba(30, 41, 59, 0.92);
 }
 
+html.dark .dashboard-page--signs .signs-page__table .signs-page__desc,
+html.dark .dashboard-page--signs .signs-page__table .enforcement-page__cell-secondary,
+html.dark .dashboard-page--signs .signs-page__table .sign-name-labels__en,
+html.dark .dashboard-page--signs .signs-page__table .signs-card__name-en {
+  color: var(--portal-subtle) !important;
+}
+
+html.dark .dashboard-page--signs .signs-page__table .sign-name-labels__km,
+html.dark .dashboard-page--signs .signs-page__table .signs-card__name-km {
+  color: var(--portal-heading) !important;
+}
+
 .dashboard-page--signs .signs-page__panel-head {
   display: flex;
   align-items: flex-start;
@@ -313,20 +325,27 @@ html.dark .dashboard-page--signs .enforcement-page__panel--signs {
     linear-gradient(180deg, #f0fdfa, #ffffff);
 }
 
+html.dark .dashboard-page--signs .signs-page__panel-head {
+  background:
+    radial-gradient(circle at 0% 0%, rgba(13, 148, 136, 0.16), transparent 45%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.92));
+  border-bottom-color: rgba(148, 163, 184, 0.14);
+}
+
 .dashboard-page--signs .signs-page__panel-title {
   margin: 0;
   font-family: var(--dashboard-font-display);
   font-size: 1.15rem;
   font-weight: 800;
   letter-spacing: -0.02em;
-  color: #0f172a;
+  color: var(--portal-heading, #0f172a);
 }
 
 .dashboard-page--signs .signs-page__panel-subtitle {
   margin: 0.25rem 0 0;
   font-size: 0.88rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--portal-subtle, #64748b);
 }
 
 .dashboard-page--signs .signs-page__scroll {
@@ -363,7 +382,7 @@ html.dark .dashboard-page--signs .enforcement-page__panel--signs {
 .dashboard-page--signs .signs-page__table .enforcement-page__cell-secondary {
   font-size: 0.9rem !important;
   line-height: 1.5 !important;
-  color: #334155 !important;
+  color: var(--portal-body, #334155) !important;
 }
 
 .dashboard-page--signs .signs-page__table .signs-page__code-pill,

@@ -1,5 +1,9 @@
-import { type ReactNode, useEffect } from 'react';
-import { Users, Car, FileText, Camera, TrendingUp, AlertTriangle, Clock, ArrowUpRight, ArrowDownRight, Shield, RefreshCw } from 'lucide-react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router';
+import {
+  Users, Car, FileText, Camera, TrendingUp, AlertTriangle, Clock, ArrowUpRight, ArrowDownRight,
+  Shield, RefreshCw, Brain, MapPin, History, ArrowRight, ScanSearch, BarChart3, Gavel,
+} from 'lucide-react';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -8,9 +12,14 @@ import { useAdminDashboardStats, useCameraLiveStatus } from '@shared/hooks/queri
 import { EMPTY_DASHBOARD_STATS } from '@shared/constants/emptyDashboard';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
-import { formatAppDate, greetingKey, formatRevenue } from '@shared/i18n/localeFormat';
+import { formatAppDate, greetingKey, formatRevenue, formatAppCurrency } from '@shared/i18n/localeFormat';
 import { WelcomeProfileAvatar } from '@shared/components/WelcomeProfileAvatar';
-import type { DashboardStats, TrendBadge } from '@shared/types';
+import type { DashboardActivityItem, DashboardStats, TrendBadge } from '@shared/types';
+import {
+  clearAdminRecentViews,
+  getAdminRecentViews,
+  type RecentViewItem,
+} from '@shared/utils/recentViews';
 import { toast } from 'sonner';
 import {
   CHART,
@@ -23,20 +32,7 @@ import {
 } from '@shared/constants/chartPalette';
 
 const EMPTY_STATS: DashboardStats = {
-  total_users: 0,
-  total_drivers: 0,
-  total_police: 0,
-  total_fines: 0,
-  paid_fines: 0,
-  pending_fines: 0,
-  total_detections: 0,
-  total_vehicles: 0,
-  fine_revenue: 0,
-  detection_accuracy: 0,
-  monthly_fines: [],
-  monthly_detections: [],
-  fine_by_reason: [],
-  user_distribution: [],
+  ...EMPTY_DASHBOARD_STATS,
 };
 
 function translateRoleLabel(
@@ -56,8 +52,11 @@ function normalizeAdminStats(raw: Partial<DashboardStats>): DashboardStats {
     ...raw,
     monthly_fines: raw.monthly_fines ?? [],
     monthly_detections: raw.monthly_detections ?? [],
+    monthly_violations: raw.monthly_violations ?? [],
     fine_by_reason: raw.fine_by_reason ?? [],
     user_distribution: raw.user_distribution ?? [],
+    recent_activity: raw.recent_activity ?? [],
+    top_locations: raw.top_locations ?? [],
     total_detections: raw.total_detections ?? 0,
     total_fines: raw.total_fines ?? 0,
     total_signs: raw.total_signs ?? 0,
@@ -69,98 +68,99 @@ function normalizeAdminStats(raw: Partial<DashboardStats>): DashboardStats {
   };
 }
 
-const tooltipStyle = {
-  borderRadius: 12,
-  border: '1px solid rgba(37,99,235,0.1)',
-  fontSize: 12,
-  boxShadow: '0 8px 24px rgba(15,23,42,0.12)',
-  padding: '8px 12px',
-};
+function relativeTime(
+  iso: string,
+  t: (key: string, vars?: Record<string, string | number>) => string,
+): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  if (!Number.isFinite(ms) || ms < 60_000) return t('dashboard.justNow');
+  const mins = Math.floor(ms / 60_000);
+  if (mins < 60) return t('dashboard.minutesAgo', { n: mins });
+  const hours = Math.floor(mins / 60);
+  if (hours < 48) return t('dashboard.hoursAgo', { n: hours });
+  return t('dashboard.daysAgo', { n: Math.floor(hours / 24) });
+}
+
+function activityKindLabel(
+  kind: string,
+  t: (key: string, vars?: Record<string, string | number>) => string,
+): string {
+  if (kind === 'violation') return t('dashboard.activityViolation');
+  if (kind === 'fine') return t('dashboard.activityFine');
+  if (kind === 'detection') return t('dashboard.activityDetection');
+  return kind;
+}
 
 function StatCard({ title, value, sub, icon, gradient, glow, trend }: {
   title: string; value: string | number; sub: string;
   icon: ReactNode; gradient: string; glow?: string; trend?: TrendBadge | null;
 }) {
   return (
-    <div
-      className="admin-dashboard-kpi relative overflow-hidden rounded-2xl p-5 text-white shadow-lg transition-transform hover:-translate-y-0.5"
-      style={{ background: gradient, boxShadow: glow ? `0 12px 32px ${glow}` : undefined }}
-    >
-      <div className="absolute top-0 right-0 w-36 h-36 rounded-full -translate-y-10 translate-x-10"
-        style={{ background: 'rgba(255,255,255,0.07)' }} />
-      <div className="absolute bottom-0 left-0 w-20 h-20 rounded-full translate-y-8 -translate-x-6"
-        style={{ background: 'rgba(255,255,255,0.05)' }} />
-      <div className="relative flex items-start justify-between">
-        <div className="flex-1 min-w-0">
-          <p className="dashboard-kpi__label text-white/65">{title}</p>
-          <p className="dashboard-kpi__value text-white mt-2">
-            {typeof value === 'number' ? value.toLocaleString() : value}
-          </p>
-          <div className="flex items-center gap-2 mt-2">
-            {trend && (
-              <span className="dashboard-kpi__trend flex items-center gap-0.5 px-1.5 py-0.5 rounded-full"
-                style={{ background: 'rgba(255,255,255,0.18)', color: '#fff' }}>
-                {trend.up ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
-                {trend.value}%
-              </span>
-            )}
-            <p className="dashboard-kpi__sub text-white/55">{sub}</p>
-          </div>
-        </div>
-        <div className="w-11 h-11 bg-white/15 rounded-xl flex items-center justify-center flex-shrink-0 backdrop-blur-sm shadow-inner">
+    <div className="admin-dash-kpi admin-dash-kpi--color" style={{ background: gradient, boxShadow: glow ? `0 12px 28px ${glow}` : undefined }}>
+      <div className="admin-dash-kpi__orb" aria-hidden />
+      <div className="admin-dash-kpi__top">
+        <div className="admin-dash-kpi__icon admin-dash-kpi__icon--on-color">
           {icon}
         </div>
+        {trend && (
+          <span className="admin-dash-kpi__trend admin-dash-kpi__trend--on-color">
+            {trend.up ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+            {trend.value}%
+          </span>
+        )}
       </div>
+      <p className="admin-dash-kpi__value admin-dash-kpi__value--on-color">
+        {typeof value === 'number' ? value.toLocaleString() : value}
+      </p>
+      <p className="admin-dash-kpi__label admin-dash-kpi__label--on-color">{title}</p>
+      <p className="admin-dash-kpi__sub admin-dash-kpi__sub--on-color">{sub}</p>
     </div>
   );
 }
 
-function SecondaryCard({ label, value, sub, icon, bg, color, accent }: {
-  label: string; value: string | number; sub?: string; icon: ReactNode; bg: string; color: string; accent: string;
+function SecondaryCard({ label, value, sub, icon, accent, soft }: {
+  label: string; value: string | number; sub?: string; icon: ReactNode; accent: string; soft: string;
 }) {
   return (
-    <div
-      className="admin-dashboard-secondary rounded-2xl p-4 flex items-center gap-3.5 transition-all"
-      style={{ border: `1px solid ${accent}22`, borderTop: `3px solid ${accent}` }}
-    >
-      <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm"
-        style={{ background: bg, color }}>
+    <div className="admin-dash-ops-card admin-dash-ops-card--color" style={{ borderTopColor: accent, background: `linear-gradient(180deg, ${soft} 0%, var(--ad-card) 55%)` }}>
+      <div className="admin-dash-ops-card__icon" style={{ background: soft, color: accent, boxShadow: `0 6px 14px ${soft}` }}>
         {icon}
       </div>
       <div className="min-w-0">
-        <p className="dashboard-stat__value">{typeof value === 'number' ? value.toLocaleString() : value}</p>
-        <p className="dashboard-stat__label mt-0.5">{label}</p>
-        {sub ? <p className="dashboard-stat__sub mt-0.5">{sub}</p> : null}
+        <p className="admin-dash-ops-card__value">
+          {typeof value === 'number' ? value.toLocaleString() : value}
+        </p>
+        <p className="admin-dash-ops-card__label">{label}</p>
+        {sub ? <p className="admin-dash-ops-card__sub">{sub}</p> : null}
       </div>
     </div>
   );
 }
 
-function ChartCard({ title, subtitle, children, action, accent }: {
-  title: string; subtitle?: string; children: ReactNode; action?: ReactNode; accent: string;
+function Panel({ title, subtitle, children, action, className = '', accent }: {
+  title: string; subtitle?: string; children: ReactNode; action?: ReactNode; className?: string; accent?: string;
 }) {
   return (
-    <div className="admin-dashboard-chart bg-white rounded-2xl shadow-sm overflow-hidden" style={{ border: '1px solid #E2E8F0' }}>
-      <div className="h-1" style={{ background: accent }} />
-      <div className="px-5 pt-4 pb-3 flex items-start justify-between">
-        <div className="flex items-start gap-3">
-          <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: accent, boxShadow: `0 0 10px ${accent}` }} />
-          <div>
-            <h3 className="dashboard-card__title">{title}</h3>
-            {subtitle && <p className="dashboard-card__subtitle mt-0.5">{subtitle}</p>}
+    <section className={`admin-dash-panel admin-dash-panel--color ${className}`}>
+      {accent ? <div className="admin-dash-panel__accent" style={{ background: accent }} /> : null}
+      <header className="admin-dash-panel__head">
+        <div className="flex items-start gap-2.5 min-w-0">
+          {accent ? <span className="admin-dash-panel__dot" style={{ background: accent, boxShadow: `0 0 12px ${accent}` }} /> : null}
+          <div className="min-w-0">
+            <h3 className="admin-dash-panel__title">{title}</h3>
+            {subtitle ? <p className="admin-dash-panel__subtitle">{subtitle}</p> : null}
           </div>
         </div>
         {action}
-      </div>
-      <div className="px-3 pb-5">{children}</div>
-    </div>
+      </header>
+      <div className="admin-dash-panel__body">{children}</div>
+    </section>
   );
 }
 
 function ChartEmpty({ message }: { message: string }) {
   return (
-    <div className="flex items-center justify-center h-[220px] text-sm text-slate-400 rounded-xl"
-      style={{ background: '#F8FAFC', border: '1px dashed #E2E8F0' }}>
+    <div className="admin-dash-empty">
       {message}
     </div>
   );
@@ -171,6 +171,7 @@ const DASH_CACHE_KEY = 'camtraffic_admin_dashboard_v2';
 export function AdminDashboard() {
   const { user } = useAuth();
   const { t, locale } = useLanguage();
+  const navigate = useNavigate();
   const {
     data: rawStats,
     isLoading,
@@ -181,6 +182,7 @@ export function AdminDashboard() {
   const { data: cameraLive } = useCameraLiveStatus();
   const now = new Date();
   const chartYear = now.getFullYear();
+  const [recentViews, setRecentViews] = useState<RecentViewItem[]>(() => getAdminRecentViews());
 
   const stats = normalizeAdminStats(rawStats ?? EMPTY_DASHBOARD_STATS);
   const cameraSummary = cameraLive?.summary ?? { active: 0, offline: 0, total: 0 };
@@ -193,26 +195,42 @@ export function AdminDashboard() {
   }, [rawStats, isError, stats]);
 
   useEffect(() => {
-    if (isError) {
-      toast.error(t('dashboard.loadErrorTitle'));
-    }
+    if (isError) toast.error(t('dashboard.loadErrorTitle'));
   }, [isError, t]);
 
+  useEffect(() => {
+    setRecentViews(getAdminRecentViews());
+  }, [rawStats]);
+
+  const quickStartActions = useMemo(() => [
+    { label: t('dashboard.qaManageUsers'), icon: Users, path: '/admin/users', accent: DASHBOARD_PALETTE[1].solid },
+    {
+      label: t('dashboard.qaReviewViolations'),
+      icon: Gavel,
+      path: '/admin/violations',
+      accent: DASHBOARD_PALETTE[4].solid,
+      badge: (stats.pending_violations ?? 0) > 0 ? String(stats.pending_violations) : null,
+    },
+    { label: t('dashboard.qaIssueFines'), icon: FileText, path: '/admin/fines', accent: DASHBOARD_PALETTE[5].solid },
+    { label: t('dashboard.qaLiveCameras'), icon: Camera, path: '/admin/cameras', accent: DASHBOARD_PALETTE[2].solid },
+    { label: t('dashboard.qaRunAi'), icon: Brain, path: '/admin/ai-detection/new', accent: DASHBOARD_PALETTE[0].solid },
+    { label: t('dashboard.qaReports'), icon: BarChart3, path: '/admin/reports', accent: DASHBOARD_PALETTE[6].solid },
+  ], [stats.pending_violations, t]);
+
+  const recentActivity = (stats.recent_activity ?? []) as DashboardActivityItem[];
+  const hotLocations = stats.top_locations ?? [];
   const loading = isLoading && !rawStats;
+  const C = DASHBOARD_PALETTE;
 
   if (loading) {
     return (
-      <div className="dashboard-home space-y-5">
-        <div className="h-[100px] rounded-2xl animate-pulse" style={{ background: 'rgba(37,99,235,0.07)' }} />
+      <div className="dashboard-home admin-dashboard-page admin-dash space-y-5">
+        <div className="h-[96px] rounded-2xl animate-pulse bg-slate-100" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-[120px] rounded-2xl animate-pulse" style={{ background: 'rgba(37,99,235,0.07)' }} />
-          ))}
+          {[...Array(4)].map((_, i) => <div key={i} className="h-[112px] rounded-2xl animate-pulse bg-slate-100" />)}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {[...Array(2)].map((_, i) => (
-            <div key={i} className="h-[280px] rounded-2xl animate-pulse" style={{ background: 'rgba(37,99,235,0.05)' }} />
-          ))}
+          {[...Array(2)].map((_, i) => <div key={i} className="h-[260px] rounded-2xl animate-pulse bg-slate-50" />)}
         </div>
       </div>
     );
@@ -228,157 +246,197 @@ export function AdminDashboard() {
     role: translateRoleLabel(d.role, t),
   }));
 
-  const violationTypeChart = (stats.violation_by_type ?? []).map((row) => ({
-    reason: (row.violation_type || row.reason || 'Unknown').replace(/_/g, ' '),
-    count: row.count,
-  }));
+  const formatViolationLabel = (raw: string) => {
+    const cleaned = (raw || 'Unknown').replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+    return cleaned
+      .toLowerCase()
+      .replace(/\b\w/g, (c) => c.toUpperCase())
+      .replace(/\bU Turn\b/gi, 'U-Turn');
+  };
 
-  const topViolationChart = violationTypeChart.length > 0 ? violationTypeChart : stats.fine_by_reason;
-  const C = DASHBOARD_PALETTE;
+  const topViolationChart = (() => {
+    const source =
+      (stats.violation_by_type?.length ?? 0) > 0
+        ? (stats.violation_by_type ?? []).map((row) => ({
+            reason: formatViolationLabel(row.violation_type || row.reason || 'Unknown'),
+            count: row.count,
+          }))
+        : (stats.fine_by_reason ?? []).map((row) => ({
+            reason: formatViolationLabel(row.reason || 'Other'),
+            count: row.count,
+          }));
+
+    const merged = new Map<string, number>();
+    for (const row of source) {
+      const key = row.reason.toUpperCase();
+      merged.set(key, (merged.get(key) ?? 0) + (Number(row.count) || 0));
+    }
+    return [...merged.entries()]
+      .map(([key, count]) => ({ reason: formatViolationLabel(key), count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6);
+  })();
 
   return (
-    <div className="dashboard-home admin-dashboard-page space-y-5">
-      {/* Welcome banner */}
-      <div className="dashboard-welcome--hero admin-dashboard-hero relative overflow-hidden rounded-3xl p-6 lg:p-7" style={{ background: 'linear-gradient(135deg, #0B1220 0%, #1E1B4B 45%, #134E4A 100%)', border: '1px solid rgba(255,255,255,0.08)' }}>
-        {C.map((c, i) => (
-          <div
-            key={c.name}
-            className="admin-dashboard-hero__orb"
-            style={{
-              background: `radial-gradient(circle, ${c.solid}55 0%, transparent 70%)`,
-              top: i % 2 === 0 ? '-20%' : 'auto',
-              bottom: i % 2 === 1 ? '-25%' : 'auto',
-              left: `${8 + i * 12}%`,
-              width: `${120 + i * 20}px`,
-              height: `${120 + i * 20}px`,
-            }}
-          />
-        ))}
-        <div className="relative flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center gap-4 min-w-0">
-            <WelcomeProfileAvatar role="admin" variant="welcome" />
-            <div>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center"
-                style={{ background: C[0].grad }}>
-                <Shield size={14} className="text-white" />
-              </div>
-              <span className="dashboard-welcome__eyebrow" style={{ color: C[0].solid }}>{t('dashboard.adminEyebrow')}</span>
+    <div className="dashboard-home admin-dashboard-page admin-dash admin-dash--colorful space-y-5">
+      {/* Header */}
+      <header className="admin-dash-hero admin-dash-hero--colorful">
+        <div className="admin-dash-hero__glow admin-dash-hero__glow--1" aria-hidden />
+        <div className="admin-dash-hero__glow admin-dash-hero__glow--2" aria-hidden />
+        <div className="admin-dash-hero__glow admin-dash-hero__glow--3" aria-hidden />
+        <div className="admin-dash-hero__main relative">
+          <WelcomeProfileAvatar role="admin" variant="welcome" />
+          <div className="min-w-0">
+            <div className="admin-dash-hero__eyebrow">
+              <Shield size={13} />
+              <span>{t('dashboard.adminEyebrow')}</span>
+              <span className="admin-dash-hero__live">LIVE</span>
             </div>
-            <h1 className="dashboard-welcome__title text-white">
+            <h1 className="admin-dash-hero__title">
               {t(greetingKey(now.getHours()))}, {user?.full_name.split(' ')[0]}
             </h1>
-            <p className="dashboard-welcome__meta mt-1" style={{ color: 'rgba(148,163,184,0.75)' }}>
-              {formatAppDate(locale, now)}
+            <p className="admin-dash-hero__meta">
+              {formatAppDate(locale, now)} · Cambodia Traffic Enforcement
             </p>
-            </div>
-          </div>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <button
-              type="button"
-              onClick={() => { void refetch(); }}
-              disabled={isFetching}
-              className="admin-dashboard-refresh inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold text-white/90 transition-colors"
-            >
-              <RefreshCw size={14} />
-              {t('dashboard.refreshData')}
-            </button>
-            <div className="flex gap-3 flex-wrap">
-            {[
-              { label: t('dashboard.systemStatus'), value: t('dashboard.statusOnline'), color: C[3].solid },
-              { label: t('dashboard.aiModel'), value: t('dashboard.aiModelValue'), color: C[2].solid },
-              { label: t('dashboard.uptime'), value: '99.9%', color: C[0].solid },
-            ].map(s => (
-              <div key={s.label} className="dashboard-welcome__status-card px-3 py-2 rounded-xl text-center min-w-[7.5rem]"
-                style={{ borderTop: `2px solid ${s.color}`, background: 'rgba(255,255,255,0.06)' }}>
-                <div className="flex items-center justify-center gap-1.5 mb-1">
-                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: s.color, boxShadow: `0 0 8px ${s.color}` }} />
-                  <span className="dashboard-welcome__status-label">{s.label}</span>
-                </div>
-                <p className="dashboard-welcome__status-value">{s.value}</p>
-              </div>
-            ))}
-            </div>
           </div>
         </div>
-      </div>
+        <div className="admin-dash-hero__aside relative">
+          <div className="admin-dash-hero__pills">
+            <span className="admin-dash-pill is-online">{t('dashboard.statusOnline')}</span>
+            <span className="admin-dash-pill is-cyan">{t('dashboard.aiModelValue')}</span>
+            <span className="admin-dash-pill is-amber">
+              {(stats.total_violations ?? 0).toLocaleString()} {t('dashboard.totalViolations')}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => { void refetch(); }}
+            disabled={isFetching}
+            className="admin-dash-refresh"
+          >
+            <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
+            {t('dashboard.refreshData')}
+          </button>
+        </div>
+      </header>
 
-      {/* KPI Cards — 4 spectrum colors */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title={t('dashboard.totalUsers')} value={stats.total_users}
+      {/* KPI */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatCard
+          title={t('dashboard.totalUsers')}
+          value={stats.total_users}
           sub={t('dashboard.usersSub', { drivers: stats.total_drivers, officers: stats.total_police })}
-          icon={<Users size={19} />} gradient={C[1].grad} glow={C[1].soft}
-          trend={stats.trends?.users} />
-        <StatCard title={t('dashboard.totalFines')} value={stats.total_fines}
+          icon={<Users size={18} />}
+          gradient={C[6].grad}
+          glow={C[6].soft}
+          trend={stats.trends?.users}
+        />
+        <StatCard
+          title={t('dashboard.totalFines')}
+          value={stats.total_fines}
           sub={t('dashboard.collectionRate', { rate: fineRate })}
-          icon={<FileText size={19} />} gradient={C[5].grad} glow={C[5].soft}
-          trend={stats.trends?.fines} />
-        <StatCard title={t('dashboard.aiDetections')} value={Number(stats.total_detections).toLocaleString()}
+          icon={<FileText size={18} />}
+          gradient={C[1].grad}
+          glow={C[1].soft}
+          trend={stats.trends?.fines}
+        />
+        <StatCard
+          title={t('dashboard.aiDetections')}
+          value={Number(stats.total_detections).toLocaleString()}
           sub={t('dashboard.avgConfidence', { rate: stats.detection_accuracy })}
-          icon={<Camera size={19} />} gradient={C[0].grad} glow={C[0].soft}
-          trend={stats.trends?.detections} />
-        <StatCard title={t('dashboard.revenue')} value={revenueDisplay}
+          icon={<Camera size={18} />}
+          gradient={C[5].grad}
+          glow={C[5].soft}
+          trend={stats.trends?.detections}
+        />
+        <StatCard
+          title={t('dashboard.revenue')}
+          value={revenueDisplay}
           sub={t('dashboard.paidFinesSub', { count: stats.paid_fines })}
-          icon={<TrendingUp size={19} />} gradient={C[2].grad} glow={C[2].soft}
-          trend={stats.trends?.revenue} />
+          icon={<TrendingUp size={18} />}
+          gradient={C[4].grad}
+          glow={C[4].soft}
+          trend={stats.trends?.revenue}
+        />
       </div>
 
-      {/* Operations overview */}
-      <div>
-        <div className="admin-dashboard-section-head mb-3">
-          <h2 className="admin-dashboard-section-head__title">{t('dashboard.operationsOverview')}</h2>
-          <p className="admin-dashboard-section-head__subtitle">{t('dashboard.operationsOverviewSub')}</p>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
-          <SecondaryCard label={t('dashboard.registeredVehicles')} value={stats.total_vehicles} icon={<Car size={17} />} bg={C[6].soft} color={C[6].solid} accent={C[6].solid} />
-          <SecondaryCard label={t('dashboard.totalTrafficSigns')} value={stats.total_signs ?? 0} icon={<Shield size={17} />} bg={C[3].soft} color={C[3].solid} accent={C[3].solid} />
-          <SecondaryCard label={t('dashboard.totalViolations')} value={stats.total_violations ?? 0} icon={<AlertTriangle size={17} />} bg={C[4].soft} color={C[4].solid} accent={C[4].solid} />
-          <SecondaryCard label={t('dashboard.pendingViolations')} value={stats.pending_violations ?? 0} icon={<Clock size={17} />} bg={C[5].soft} color={C[5].solid} accent={C[5].solid} />
-          <SecondaryCard
-            label={t('dashboard.liveCameras')}
-            value={cameraSummary.total > 0 ? `${cameraSummary.active}/${cameraSummary.total}` : '—'}
-            sub={cameraSummary.total > 0 ? t('dashboard.liveCamerasSub', { offline: cameraSummary.offline }) : t('dashboard.liveCamerasEmpty')}
-            icon={<Camera size={17} />}
-            bg={C[2].soft}
-            color={C[2].solid}
-            accent={C[2].solid}
-          />
-        </div>
+      {/* Operations */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+        <SecondaryCard label={t('dashboard.registeredVehicles')} value={stats.total_vehicles} icon={<Car size={16} />} accent={C[7].solid} soft={C[7].soft} />
+        <SecondaryCard label={t('dashboard.totalTrafficSigns')} value={stats.total_signs ?? 0} icon={<Shield size={16} />} accent={C[3].solid} soft={C[3].soft} />
+        <SecondaryCard label={t('dashboard.totalViolations')} value={stats.total_violations ?? 0} icon={<AlertTriangle size={16} />} accent={C[0].solid} soft={C[0].soft} />
+        <SecondaryCard label={t('dashboard.pendingViolations')} value={stats.pending_violations ?? 0} icon={<Clock size={16} />} accent={C[1].solid} soft={C[1].soft} />
+        <SecondaryCard
+          label={t('dashboard.liveCameras')}
+          value={cameraSummary.total > 0 ? `${cameraSummary.active}/${cameraSummary.total}` : '—'}
+          sub={cameraSummary.total > 0 ? t('dashboard.liveCamerasSub', { offline: cameraSummary.offline }) : t('dashboard.liveCamerasEmpty')}
+          icon={<Camera size={16} />}
+          accent={C[5].solid}
+          soft={C[5].soft}
+        />
       </div>
+
+      {/* Quick Start — compact toolbar */}
+      <Panel title={t('dashboard.quickStartTitle')} subtitle={t('dashboard.quickStartHint')} accent={C[8].solid}>
+        <div className="admin-dash-quick-grid">
+          {quickStartActions.map((action) => {
+            const Icon = action.icon;
+            return (
+              <button
+                key={action.path}
+                type="button"
+                onClick={() => navigate(action.path)}
+                className="admin-dash-quick-btn admin-dash-quick-btn--color"
+                style={{ borderColor: `${action.accent}33`, background: `linear-gradient(135deg, ${action.accent}18 0%, var(--ad-card) 62%)` }}
+              >
+                <span className="admin-dash-quick-btn__icon" style={{ background: `${action.accent}22`, color: action.accent }}>
+                  <Icon size={16} />
+                </span>
+                <span className="admin-dash-quick-btn__label">{action.label}</span>
+                {action.badge && <span className="admin-dash-quick-btn__badge">{action.badge}</span>}
+                <ArrowRight size={13} className="admin-dash-quick-btn__arrow" style={{ color: action.accent }} />
+              </button>
+            );
+          })}
+        </div>
+      </Panel>
 
       {/* Charts row 1 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <div className="lg:col-span-2">
-          <ChartCard title={t('dashboard.monthlyFinesTitle', { year: chartYear })} subtitle={t('dashboard.monthlyFinesSubtitle')} accent={C[5].solid}>
-            {stats.monthly_fines.length === 0 ? (
-              <ChartEmpty message={t('dashboard.chartNoFines')} />
-            ) : (
-              <ResponsiveContainer width="100%" height={220}>
-                <AreaChart data={stats.monthly_fines}>
-                  <defs>
-                    <linearGradient id="fineGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={C[5].solid} stopOpacity={0.35} />
-                      <stop offset="95%" stopColor={C[5].solid} stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} vertical={false} />
-                  <XAxis dataKey="month" tick={chartAxisTick} axisLine={false} tickLine={false} />
-                  <YAxis tick={chartAxisTick} axisLine={false} tickLine={false} />
-                  <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
-                  <Area type="monotone" dataKey="count" name={t('dashboard.chartLegendFines')} stroke={C[5].solid} fill="url(#fineGrad)" strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: C[5].dark }} />
-                </AreaChart>
-              </ResponsiveContainer>
-            )}
-          </ChartCard>
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Panel
+          className="lg:col-span-2"
+          title={t('dashboard.monthlyFinesTitle', { year: chartYear })}
+          subtitle={t('dashboard.monthlyFinesSubtitle')}
+          accent={C[1].solid}
+        >
+          {stats.monthly_fines.length === 0 ? (
+            <ChartEmpty message={t('dashboard.chartNoFines')} />
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart data={stats.monthly_fines}>
+                <defs>
+                  <linearGradient id="fineGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={C[1].solid} stopOpacity={0.4} />
+                    <stop offset="95%" stopColor={C[1].solid} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} vertical={false} />
+                <XAxis dataKey="month" tick={chartAxisTick} axisLine={false} tickLine={false} />
+                <YAxis tick={chartAxisTick} axisLine={false} tickLine={false} />
+                <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
+                <Area type="monotone" dataKey="count" name={t('dashboard.chartLegendFines')} stroke={C[1].solid} fill="url(#fineGrad)" strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: C[1].dark }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
+        </Panel>
 
-        <ChartCard title={t('dashboard.userDistributionTitle')} subtitle={t('dashboard.userDistributionSubtitle')} accent={C[1].solid}>
-          {stats.user_distribution.every(d => d.count === 0) ? (
+        <Panel title={t('dashboard.userDistributionTitle')} subtitle={t('dashboard.userDistributionSubtitle')} accent={C[8].solid}>
+          {stats.user_distribution.every((d) => d.count === 0) ? (
             <ChartEmpty message={t('dashboard.chartNoUsers')} />
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <PieChart>
-                <Pie data={userDistributionChart} dataKey="count" nameKey="role" cx="50%" cy="45%" outerRadius={78} innerRadius={46} paddingAngle={3}>
+                <Pie data={userDistributionChart} dataKey="count" nameKey="role" cx="50%" cy="45%" outerRadius={76} innerRadius={44} paddingAngle={3}>
                   {userDistributionChart.map((_, i) => <Cell key={i} fill={CHART_ROLE_COLORS[i % CHART_ROLE_COLORS.length]} />)}
                 </Pie>
                 <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
@@ -386,12 +444,12 @@ export function AdminDashboard() {
               </PieChart>
             </ResponsiveContainer>
           )}
-        </ChartCard>
+        </Panel>
       </div>
 
       {/* Charts row 2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <ChartCard title={t('dashboard.topViolationsTitle')} subtitle={t('dashboard.topViolationsSubtitle')} accent={C[4].solid}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Panel title={t('dashboard.topViolationsTitle')} subtitle={t('dashboard.topViolationsSubtitle')} accent={C[0].solid}>
           {topViolationChart.length === 0 ? (
             <ChartEmpty message={t('dashboard.chartNoViolations')} />
           ) : (
@@ -399,7 +457,7 @@ export function AdminDashboard() {
               <BarChart data={topViolationChart} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} horizontal={false} />
                 <XAxis type="number" tick={chartAxisTick} axisLine={false} tickLine={false} />
-                <YAxis dataKey="reason" type="category" tick={chartCategoryTick} axisLine={false} tickLine={false} width={95} />
+                <YAxis dataKey="reason" type="category" tick={chartCategoryTick} axisLine={false} tickLine={false} width={118} />
                 <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
                 <Bar dataKey="count" name={t('dashboard.chartLegendCount')} radius={[0, 6, 6, 0]}>
                   {topViolationChart.map((_, i) => <Cell key={i} fill={CHART_SERIES[i % CHART_SERIES.length]} />)}
@@ -407,9 +465,9 @@ export function AdminDashboard() {
               </BarChart>
             </ResponsiveContainer>
           )}
-        </ChartCard>
+        </Panel>
 
-        <ChartCard title={t('dashboard.aiDetectionsMonthlyTitle')} subtitle={t('dashboard.aiDetectionsMonthlySubtitle')} accent={C[0].solid}>
+        <Panel title={t('dashboard.aiDetectionsMonthlyTitle')} subtitle={t('dashboard.aiDetectionsMonthlySubtitle')} accent={C[5].solid}>
           {stats.monthly_detections.length === 0 ? (
             <ChartEmpty message={t('dashboard.chartNoDetections')} />
           ) : (
@@ -419,7 +477,7 @@ export function AdminDashboard() {
                 <XAxis dataKey="month" tick={chartAxisTick} axisLine={false} tickLine={false} />
                 <YAxis tick={chartAxisTick} axisLine={false} tickLine={false} />
                 <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
-                <Bar dataKey="count" name={t('dashboard.chartLegendDetections')} radius={[6, 6, 0, 0]} maxBarSize={36}>
+                <Bar dataKey="count" name={t('dashboard.chartLegendDetections')} radius={[6, 6, 0, 0]} maxBarSize={34}>
                   {stats.monthly_detections.map((_, i) => (
                     <Cell key={i} fill={CHART_SERIES[i % CHART_SERIES.length]} />
                   ))}
@@ -427,9 +485,9 @@ export function AdminDashboard() {
               </BarChart>
             </ResponsiveContainer>
           )}
-        </ChartCard>
+        </Panel>
 
-        <ChartCard title={t('dashboard.monthlyViolationsTitle', { year: chartYear })} subtitle={t('dashboard.monthlyViolationsSubtitle')} accent={C[4].solid}>
+        <Panel title={t('dashboard.monthlyViolationsTitle', { year: chartYear })} subtitle={t('dashboard.monthlyViolationsSubtitle')} accent={C[4].solid}>
           {(stats.monthly_violations ?? []).length === 0 ? (
             <ChartEmpty message={t('dashboard.chartNoViolations')} />
           ) : (
@@ -437,7 +495,7 @@ export function AdminDashboard() {
               <AreaChart data={stats.monthly_violations ?? []}>
                 <defs>
                   <linearGradient id="violationGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={C[4].solid} stopOpacity={0.35} />
+                    <stop offset="5%" stopColor={C[4].solid} stopOpacity={0.4} />
                     <stop offset="95%" stopColor={C[4].solid} stopOpacity={0} />
                   </linearGradient>
                 </defs>
@@ -449,8 +507,145 @@ export function AdminDashboard() {
               </AreaChart>
             </ResponsiveContainer>
           )}
-        </ChartCard>
+        </Panel>
       </div>
+
+      {/* Under charts: activity + hotspots */}
+      <div className="grid grid-cols-1 xl:grid-cols-5 gap-4">
+        <Panel
+          className="xl:col-span-3"
+          title={t('dashboard.recentActivityTitle')}
+          subtitle={t('dashboard.recentActivityHint')}
+          accent={C[0].solid}
+          action={(
+            <button type="button" className="admin-dash-link" onClick={() => navigate('/admin/violations')}>
+              {t('dashboard.viewAll')}
+            </button>
+          )}
+        >
+          {recentActivity.length === 0 ? (
+            <ChartEmpty message={t('dashboard.recentActivityEmpty')} />
+          ) : (
+            <div className="admin-dash-activity">
+              {recentActivity.map((item) => {
+                const tone =
+                  item.kind === 'fine' ? C[1].solid
+                    : item.kind === 'detection' ? C[5].solid
+                      : C[0].solid;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => item.href && navigate(item.href)}
+                    className="admin-dash-activity__row"
+                  >
+                    <span className="admin-dash-activity__icon" style={{ background: `${tone}18`, color: tone }}>
+                      {item.kind === 'fine' ? <FileText size={14} />
+                        : item.kind === 'detection' ? <ScanSearch size={14} />
+                          : <AlertTriangle size={14} />}
+                    </span>
+                    <div className="admin-dash-activity__main">
+                      <div className="admin-dash-activity__title-row">
+                        <span className="admin-dash-activity__title">{item.title}</span>
+                        <span className="admin-dash-activity__kind" style={{ color: tone, background: `${tone}16` }}>
+                          {activityKindLabel(item.kind, t)}
+                        </span>
+                      </div>
+                      <p className="admin-dash-activity__meta">
+                        <MapPin size={11} />
+                        {item.subtitle}
+                        {item.meta ? ` · ${item.meta}` : ''}
+                      </p>
+                    </div>
+                    <div className="admin-dash-activity__aside">
+                      {typeof item.amount === 'number' && item.amount > 0 && (
+                        <span className="admin-dash-activity__amount">{formatAppCurrency(locale, item.amount)}</span>
+                      )}
+                      <span className="admin-dash-activity__time">{relativeTime(item.created_at, t)}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </Panel>
+
+        <Panel
+          className="xl:col-span-2"
+          title={t('dashboard.hotLocationsTitle')}
+          subtitle={t('dashboard.hotLocationsHint')}
+          accent={C[5].solid}
+        >
+          {hotLocations.length === 0 ? (
+            <ChartEmpty message={t('dashboard.hotLocationsEmpty')} />
+          ) : (
+            <ul className="admin-dash-hotspots">
+              {hotLocations.slice(0, 7).map((loc, idx) => {
+                const rankColor = CHART_SERIES[idx % CHART_SERIES.length];
+                return (
+                  <li key={`${loc.location || loc.name}-${idx}`} className="admin-dash-hotspots__row" style={{ background: `${rankColor}10`, borderColor: `${rankColor}22` }}>
+                    <span className="admin-dash-hotspots__rank" style={{ background: rankColor }}>{idx + 1}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="admin-dash-hotspots__name">{loc.name || loc.location}</p>
+                      <p className="admin-dash-hotspots__count">
+                        {(loc.detections ?? loc.fines ?? 0).toLocaleString()} events
+                      </p>
+                    </div>
+                    <MapPin size={14} style={{ color: rankColor }} className="shrink-0" />
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Panel>
+      </div>
+
+      {/* Recent view history — under charts / activity */}
+      <Panel
+        title={t('dashboard.recentViewsTitle')}
+        subtitle={t('dashboard.recentViewsHint')}
+        accent={C[7].solid}
+        action={recentViews.length > 0 ? (
+          <button
+            type="button"
+            className="admin-dash-link"
+            onClick={() => {
+              clearAdminRecentViews();
+              setRecentViews([]);
+            }}
+          >
+            {t('dashboard.clearRecentViews')}
+          </button>
+        ) : undefined}
+      >
+        {recentViews.length === 0 ? (
+          <div className="admin-dash-empty admin-dash-empty--sm">
+            <History size={18} className="opacity-40" />
+            <span>{t('dashboard.recentViewsEmpty')}</span>
+          </div>
+        ) : (
+          <div className="admin-dash-views">
+            {recentViews.map((view, idx) => {
+              const tone = CHART_SERIES[idx % CHART_SERIES.length];
+              return (
+                <button
+                  key={`${view.path}-${view.visitedAt}`}
+                  type="button"
+                  onClick={() => navigate(view.path)}
+                  className="admin-dash-views__row"
+                  style={{ borderColor: `${tone}33`, background: `linear-gradient(90deg, ${tone}18 0%, var(--ad-card) 48%)` }}
+                >
+                  <History size={14} style={{ color: tone }} />
+                  <span className="admin-dash-views__title">{view.title}</span>
+                  <span className="admin-dash-views__path">{view.path}</span>
+                  <span className="admin-dash-views__time">{relativeTime(view.visitedAt, t)}</span>
+                  <ArrowRight size={13} style={{ color: tone }} />
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </Panel>
     </div>
   );
 }

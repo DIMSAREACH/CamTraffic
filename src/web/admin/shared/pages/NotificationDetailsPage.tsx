@@ -1,17 +1,54 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { ArrowLeft, Download, RefreshCw, Trash2, Bell } from 'lucide-react';
+import { ArrowLeft, Loader2, Trash2, Bell } from 'lucide-react';
 import { Button } from '@shared/components/ui/button';
 import { useLanguage } from '@shared/context/LanguageContext';
-import { getEnterpriseNotification } from '@shared/constants/notificationCatalog';
+import { notificationsAPI } from '@shared/services/api';
 import { toast } from 'sonner';
+import type { Notification } from '@shared/types';
+
+type AdminNotif = Notification & {
+  user_email?: string;
+  user_name?: string;
+  user_role?: string;
+};
 
 export function NotificationDetailsPage() {
   const { notificationId = '' } = useParams();
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const [notif, setNotif] = useState<AdminNotif | null>(null);
+  const [loading, setLoading] = useState(true);
   const [deleted, setDeleted] = useState(false);
-  const notif = useMemo(() => getEnterpriseNotification(notificationId), [notificationId]);
+
+  const load = useCallback(async () => {
+    if (!notificationId) {
+      setNotif(null);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const row = await notificationsAPI.adminGet(notificationId);
+      setNotif(row);
+    } catch {
+      setNotif(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [notificationId]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  if (loading) {
+    return (
+      <div className="enforcement-page enforcement-page--notifications notif-center p-8 flex items-center gap-2">
+        <Loader2 className="animate-spin" size={18} /> Loading…
+      </div>
+    );
+  }
 
   if (!notif || deleted) {
     return (
@@ -26,11 +63,14 @@ export function NotificationDetailsPage() {
     );
   }
 
-  const handleResend = () => toast.success(t('notifCenter.toastResent'));
-  const handleDownload = () => toast.message(t('notifCenter.toastDownload'));
-  const handleDelete = () => {
-    setDeleted(true);
-    toast.success(t('notifCenter.toastDeleted'));
+  const handleDelete = async () => {
+    try {
+      await notificationsAPI.adminDelete(String(notif.id));
+      setDeleted(true);
+      toast.success(t('notifCenter.toastDeleted'));
+    } catch {
+      toast.error('Delete failed');
+    }
   };
 
   return (
@@ -53,61 +93,19 @@ export function NotificationDetailsPage() {
         </div>
       </div>
 
-      <section className="enforcement-page__panel notif-center__panel notif-center__details">
-        <dl className="notif-center__details-dl">
-          <div>
-            <dt>{t('notifCenter.detailsTitleField')}</dt>
-            <dd>{notif.title}</dd>
-          </div>
-          <div>
-            <dt>{t('notifCenter.colRecipient')}</dt>
-            <dd>
-              {t(`notifCenter.role.${notif.recipientRole}`)}
-              {notif.recipientName ? ` : ${notif.recipientName}` : ''}
-            </dd>
-          </div>
-          <div>
-            <dt>{t('notifCenter.colChannel')}</dt>
-            <dd>{notif.channels.map((c) => t(`notifCenter.channel.${c}`)).join(' + ')}</dd>
-          </div>
-          <div>
-            <dt>{t('notifCenter.colStatus')}</dt>
-            <dd>
-              <span className={`notif-center__status notif-center__status--${notif.status}`}>
-                {t(`notifCenter.status.${notif.status}`)}
-              </span>
-            </dd>
-          </div>
-          <div>
-            <dt>{t('notifCenter.detailsDeliveryTime')}</dt>
-            <dd>{notif.sentAt.replace('T', ' ').slice(0, 16)}</dd>
-          </div>
-          <div>
-            <dt>{t('notifCenter.detailsReadTime')}</dt>
-            <dd>{notif.readAt ? notif.readAt.replace('T', ' ').slice(0, 16) : '—'}</dd>
-          </div>
-        </dl>
-
-        <div className="notif-center__message-box">
-          <p className="notif-center__message-label">{t('notifCenter.fieldMessage')}</p>
-          <p className="notif-center__message-body">“{notif.message}”</p>
-        </div>
-
-        <div className="notif-center__details-actions">
-          <Button type="button" onClick={handleResend}>
-            <RefreshCw size={15} />
-            {t('notifCenter.actionResend')}
-          </Button>
-          <Button type="button" variant="outline" onClick={handleDownload}>
-            <Download size={15} />
-            {t('notifCenter.actionDownload')}
-          </Button>
-          <Button type="button" variant="outline" onClick={handleDelete}>
-            <Trash2 size={15} />
-            {t('notifCenter.actionDelete')}
+      <div className="enforcement-page__panel p-6 space-y-3">
+        <p><strong>Message:</strong> {notif.message}</p>
+        <p><strong>Type:</strong> {notif.type}</p>
+        <p><strong>Recipient:</strong> {notif.user_name || '—'} ({notif.user_email}) · {notif.user_role}</p>
+        <p><strong>Status:</strong> {notif.is_read ? 'read' : 'unread'}</p>
+        <p><strong>Created:</strong> {notif.created_at ? new Date(notif.created_at).toLocaleString() : '—'}</p>
+        <div className="flex gap-2 pt-2">
+          <Button type="button" variant="destructive" onClick={() => void handleDelete()}>
+            <Trash2 size={14} />
+            {t('notifCenter.actionDelete') !== 'notifCenter.actionDelete' ? t('notifCenter.actionDelete') : 'Delete'}
           </Button>
         </div>
-      </section>
+      </div>
     </div>
   );
 }

@@ -100,10 +100,13 @@ def get_admin_stats(request=None):
     violations = TrafficViolation.objects.all()
     monthly_fines = _monthly_fine_stats(fines)
 
+    # Match User Management: soft-deleted accounts stay in DB for FKs/audit but are not counted.
+    users = User.objects.not_deleted()
+
     stats = {
-        'total_users': User.objects.count(),
-        'total_drivers': User.objects.filter(role='driver').count(),
-        'total_police': User.objects.filter(role='police').count(),
+        'total_users': users.count(),
+        'total_drivers': users.filter(role='driver').count(),
+        'total_police': users.filter(role='police').count(),
         'total_fines': fines.count(),
         'paid_fines': paid.count(),
         'pending_fines': fines.filter(status='pending').count(),
@@ -122,17 +125,24 @@ def get_admin_stats(request=None):
         'monthly_detections': _monthly_counts(detections),
         'monthly_violations': _monthly_counts(violations, date_field='violation_date'),
         'fine_by_reason': [
-            {'reason': (row['reason'] or 'Other')[:40], 'count': row['count']}
+            {'reason': (row['reason'] or 'Other')[:48], 'count': row['count']}
             for row in fines.values('reason').annotate(count=Count('id')).order_by('-count')[:8]
         ],
         'violation_by_type': [
-            {'violation_type': (row['violation_type'] or 'Unknown'), 'count': row['count']}
-            for row in violations.values('violation_type').annotate(count=Count('id')).order_by('-count')[:8]
+            {
+                'violation_type': (row['violation_type'] or 'Unknown').strip().upper().replace(' ', '_'),
+                'count': row['count'],
+            }
+            for row in violations.exclude(violation_type__in=['', None])
+            .values('violation_type')
+            .annotate(count=Count('id'))
+            .order_by('-count')[:8]
+            if (row['violation_type'] or '').strip()
         ],
         'user_distribution': [
-            {'role': 'Drivers', 'count': User.objects.filter(role='driver').count()},
-            {'role': 'Police', 'count': User.objects.filter(role='police').count()},
-            {'role': 'Admins', 'count': User.objects.filter(role='admin').count()},
+            {'role': 'Drivers', 'count': users.filter(role='driver').count()},
+            {'role': 'Police', 'count': users.filter(role='police').count()},
+            {'role': 'Admins', 'count': users.filter(role='admin').count()},
         ],
         'trends': {
             'users': None,
@@ -144,73 +154,25 @@ def get_admin_stats(request=None):
     }
 
     try:
-        from .analytics_extensions import get_top_locations
+        from .analytics_extensions import get_recent_activity, get_top_locations
         stats['top_locations'] = get_top_locations()
+        stats['recent_activity'] = get_recent_activity(12)
     except Exception:
         stats['top_locations'] = []
+        stats['recent_activity'] = []
 
     return stats
 
 
 def get_police_report_stats(police_user, request=None):
-    """DashboardStats-shaped analytics scoped to fines issued by this officer."""
-    from users.models import Officer
-
-    fines = Fine.objects.filter(police=police_user)
-    paid = fines.filter(status='paid')
-    detections = AIDetectionLog.objects.filter(user=police_user)
-    monthly_fines = _monthly_fine_stats(fines)
-    driver_ids = list(fines.values_list('driver_id', flat=True).distinct())
-    officer = Officer.objects.filter(user=police_user).first()
-    violations = (
-        TrafficViolation.objects.filter(officer=officer)
-        if officer
-        else TrafficViolation.objects.none()
-    )
-
-    return {
-        'total_users': len(driver_ids),
-        'total_drivers': len(driver_ids),
-        'total_police': 1,
-        'total_fines': fines.count(),
-        'paid_fines': paid.count(),
-        'pending_fines': fines.filter(status='pending').count(),
-        'total_detections': detections.count(),
-        'total_vehicles': Vehicle.objects.filter(owner_id__in=driver_ids).count() if driver_ids else 0,
-        'total_signs': TrafficSign.objects.count(),
-        'total_violations': violations.count(),
-        'pending_violations': violations.filter(status='pending_review').count(),
-        'confirmed_violations': violations.filter(status='confirmed').count(),
-        'fine_revenue': float(paid.aggregate(total=Sum('amount'))['total'] or 0),
-        'detection_accuracy': round(
-            float(detections.aggregate(avg=Avg('confidence'))['avg'] or 0),
-            1,
-        ),
-        'monthly_fines': monthly_fines,
-        'monthly_detections': _monthly_counts(detections),
-        'monthly_violations': _monthly_counts(violations, date_field='violation_date'),
-        'fine_by_reason': [
-            {'reason': (row['reason'] or 'Other')[:40], 'count': row['count']}
-            for row in fines.values('reason').annotate(count=Count('id')).order_by('-count')[:8]
-        ],
-        'violation_by_type': [
-            {'violation_type': (row['violation_type'] or 'Unknown'), 'count': row['count']}
-            for row in violations.values('violation_type').annotate(count=Count('id')).order_by('-count')[:8]
-        ],
-        'user_distribution': [
-            {'role': 'Drivers fined', 'count': len(driver_ids)},
-        ],
-        'trends': {
-            'fines': _fine_trend(fines),
-            'detections': _fine_trend(detections),
-            'violations': _fine_trend(violations),
-            'revenue': _fine_trend(paid),
-        },
-    }
+    """DashboardStats-shaped analytics — same system-wide scope as admin reports."""
+    # Officers need the same operational picture as admins for Reports / Analytics.
+    return get_admin_stats(request)
 
 
 def get_police_stats(police_user, request=None):
-    fines = Fine.objects.filter(police=police_user).select_related('driver', 'police')
+    # Same fine inventory as admin — officers share operational system data.
+    fines = Fine.objects.select_related('driver', 'police').all()
     today = timezone.now().date()
     recent_qs = fines.order_by('-created_at')[:5]
     ctx = _serializer_context(request)

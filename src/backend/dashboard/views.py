@@ -15,7 +15,6 @@ from .analytics_extensions import (
     get_heatmap_points,
     get_officer_performance,
 )
-from .demo_stats import enrich_report_stats
 from .evidence_archive import search_evidence_archive
 from .excel_export import build_enforcement_monthly_workbook
 from .pdf_report import build_dashboard_report_pdf
@@ -58,7 +57,7 @@ class AdminReportPDFView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def get(self, request):
-        stats = enrich_report_stats(get_admin_stats(request))
+        stats = get_admin_stats(request)
         pdf = build_dashboard_report_pdf(
             stats,
             title='Admin Analytics Report',
@@ -74,14 +73,14 @@ class PoliceReportPDFView(APIView):
 
     def get(self, request):
         if request.user.role not in ('police', 'admin'):
-            stats = enrich_report_stats(get_driver_stats(request.user, request))
+            stats = get_driver_stats(request.user, request)
             pdf = build_dashboard_report_pdf(
                 stats,
                 title='Driver Summary Report',
                 scope=f'Driver: {request.user.full_name}',
             )
         else:
-            stats = enrich_report_stats(get_police_report_stats(request.user, request))
+            stats = get_police_report_stats(request.user, request)
             pdf = build_dashboard_report_pdf(
                 stats,
                 title='Police Analytics Report',

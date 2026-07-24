@@ -28,16 +28,44 @@ _CAMERA_CHILD_NULL_TABLES = (
 )
 
 
+def _table_exists(cursor, table: str) -> bool:
+    """True if table exists in the current database (PostgreSQL / SQLite)."""
+    vendor = connection.vendor
+    if vendor == 'postgresql':
+        cursor.execute(
+            'SELECT 1 FROM information_schema.tables '
+            'WHERE table_schema = current_schema() AND table_name = %s',
+            [table],
+        )
+        return cursor.fetchone() is not None
+    if vendor == 'sqlite':
+        cursor.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name = %s",
+            [table],
+        )
+        return cursor.fetchone() is not None
+    # Fallback: attempt and let caller ignore missing tables
+    return True
+
+
 def _detach_camera_dependencies(camera: Camera) -> None:
-    """Remove or null FK rows that would block deleting a camera."""
+    """Remove or null FK rows that would block deleting a camera.
+
+    Legacy table names are allowlisted; skip any that are not present so
+    schema drift does not cause admin camera DELETE to 500.
+    """
     cam_id = str(camera.pk)
     with connection.cursor() as cursor:
         for table in _CAMERA_CHILD_DELETE_TABLES:
+            if not _table_exists(cursor, table):
+                continue
             cursor.execute(
                 f'DELETE FROM {table} WHERE camera_id = %s',  # noqa: S608 — fixed allowlist
                 [cam_id],
             )
         for table in _CAMERA_CHILD_NULL_TABLES:
+            if not _table_exists(cursor, table):
+                continue
             cursor.execute(
                 f'UPDATE {table} SET camera_id = NULL WHERE camera_id = %s',  # noqa: S608
                 [cam_id],

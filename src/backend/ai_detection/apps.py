@@ -11,7 +11,7 @@ class AiDetectionConfig(AppConfig):
     name = 'ai_detection'
 
     def ready(self):
-        # Preload YOLO weights so the first detection request is not slow.
+        # Preload YOLO + OCR + catalog index so the first detection/stats request is fast.
         # Works with StatReloader (RUN_MAIN=true) and --noreload (no RUN_MAIN).
         import sys
         cmd = sys.argv[1] if len(sys.argv) > 1 else ''
@@ -40,10 +40,23 @@ class AiDetectionConfig(AppConfig):
             if vehicle_detection_enabled():
                 _get_vehicle_model()
                 logger.info('Vehicle model preloaded')
+
+            from .plate_detection import plate_detect_enabled, _get_model as _get_plate_model
+
+            if plate_detect_enabled():
+                _get_plate_model()
+                logger.info('Plate detector preloaded')
+
             from .plate_ocr import plate_ocr_enabled, _get_reader
 
             if plate_ocr_enabled():
                 _get_reader()
                 logger.info('EasyOCR reader preloaded')
+
+            if getattr(settings, 'AI_CATALOG_VISUAL_MATCH_ENABLED', True):
+                from .catalog_visual_match import warmup_catalog_visual_index
+
+                size = warmup_catalog_visual_index()
+                logger.info('Catalog visual index preloaded (%s refs)', size)
         except Exception:
-            logger.debug('AI model warmup skipped', exc_info=True)
+            logger.warning('AI model warmup skipped', exc_info=True)

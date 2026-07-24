@@ -4,7 +4,6 @@ import {
   Pause, Play, Search, Video, Wrench, CircleDot, Scan, Plus, Pencil, Trash2,
 } from 'lucide-react';
 import { SignNameLabels } from '@shared/components/signs/SignNameLabels';
-import { detectFromImageUrl } from '@shared/hooks/useWebcamDetection';
 import { signDisplayNames } from '@shared/utils/signDisplayNames';
 import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
@@ -457,26 +456,50 @@ function CameraFeedPreview({
   };
 
   const handleAiDetect = async () => {
-    if (!src || feedState !== 'ready') {
+    if (!camera || feedState !== 'ready') {
+      toast.error(t('pages.cameras.detectNeedFrame'));
+      return;
+    }
+    if (!(camera.frame_source_url || '').trim() && !demoCameraFramePath(camera)) {
       toast.error(t('pages.cameras.detectNeedFrame'));
       return;
     }
     setAiDetecting(true);
     try {
-      const res = await detectFromImageUrl(src);
+      // Server-side capture (HTTP/RTSP/local demo) — not browser fetch of preview URL
+      const res = (await camerasAPI.processFrame(String(camera.id), {
+        full_frame: 'true',
+        live_scan: 'false',
+        save_log: 'true',
+        enable_ocr: 'true',
+      })) as {
+        sign_name?: string;
+        sign_name_km?: string;
+        sign_name_en?: string;
+        confidence?: number;
+        display_confidence?: number;
+        sign_code?: string;
+        vehicle_count?: number;
+        detected_plate?: string;
+      };
+      const confidence = Number(res.display_confidence ?? res.confidence ?? 0);
       setAiResult({
-        sign_name: res.sign_name,
+        sign_name: res.sign_name || '',
         sign_name_km: res.sign_name_km,
         sign_name_en: res.sign_name_en,
-        confidence: res.confidence,
+        confidence,
         sign_code: res.sign_code,
       });
-      const { km, en } = signDisplayNames(res);
-      const label = km || en || res.sign_name;
+      const { km, en } = signDisplayNames(res as { sign_name?: string; sign_name_km?: string; sign_name_en?: string });
+      const plate = (res.detected_plate || '').trim();
+      const vehicles = Number(res.vehicle_count || 0);
+      const label = plate
+        ? `Plate ${plate}${vehicles ? ` · ${vehicles} vehicle(s)` : ''}`
+        : (km || en || res.sign_name || (vehicles ? `${vehicles} vehicle(s)` : 'Detection'));
       toast.success(
         t('pages.cameras.detectSuccess')
           .replace('{name}', label)
-          .replace('{confidence}', res.confidence.toFixed(1)),
+          .replace('{confidence}', confidence.toFixed(1)),
       );
     } catch {
       toast.error(t('pages.cameras.detectFailed'));

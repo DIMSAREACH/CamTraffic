@@ -27,7 +27,10 @@ class OfficerListCreateView(generics.ListCreateAPIView):
     ordering = ['badge_no']
 
     def get_queryset(self):
-        return Officer.objects.select_related('user', 'station').filter(user__role='police')
+        return (
+            Officer.objects.select_related('user', 'station')
+            .filter(user__role='police', user__deleted_at__isnull=True)
+        )
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -57,7 +60,10 @@ class OfficerListCreateView(generics.ListCreateAPIView):
 
 class OfficerDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated, IsPoliceOrAdmin]
-    queryset = Officer.objects.select_related('user', 'station').filter(user__role='police')
+    queryset = (
+        Officer.objects.select_related('user', 'station')
+        .filter(user__role='police', user__deleted_at__isnull=True)
+    )
     lookup_url_kwarg = 'pk'
 
     def get_serializer_class(self):
@@ -189,7 +195,10 @@ class DriverListCreateView(generics.ListCreateAPIView):
     ordering = ['license_no']
 
     def get_queryset(self):
-        return Driver.objects.select_related('user').filter(user__role='driver')
+        return Driver.objects.select_related('user').filter(
+            user__role='driver',
+            user__deleted_at__isnull=True,
+        )
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -218,7 +227,10 @@ class DriverListCreateView(generics.ListCreateAPIView):
 
 class DriverDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated, IsPoliceOrAdmin]
-    queryset = Driver.objects.select_related('user').filter(user__role='driver')
+    queryset = Driver.objects.select_related('user').filter(
+        user__role='driver',
+        user__deleted_at__isnull=True,
+    )
     lookup_url_kwarg = 'pk'
 
     def get_serializer_class(self):

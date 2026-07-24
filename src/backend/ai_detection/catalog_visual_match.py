@@ -16,7 +16,7 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-AI_ROOT = Path(settings.BASE_DIR).parent / 'ai'
+AI_ROOT = Path(getattr(settings, 'AI_ROOT', Path(settings.BASE_DIR).parent.parent / 'ai'))
 CATALOG_PATH = AI_ROOT / 'sign_catalog.json'
 MEDIA_SIGNS_DIR = Path(settings.MEDIA_ROOT) / 'signs'
 
@@ -150,6 +150,14 @@ def _ensure_index() -> tuple[dict[str, np.ndarray], dict[str, dict]]:
 
 
 def catalog_visual_index_size() -> int:
+    """Return cached index size without triggering a rebuild (safe for /api/ai/stats/)."""
+    if _INDEX is not None:
+        return len(_INDEX)
+    return int(_INDEX_SIZE or 0)
+
+
+def warmup_catalog_visual_index() -> int:
+    """Build the catalog histogram index once (call from AI warmup)."""
     index, _ = _ensure_index()
     return len(index)
 

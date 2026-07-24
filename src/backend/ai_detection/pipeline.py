@@ -287,7 +287,37 @@ def _empty_plate_result() -> dict:
         'plate_regions': [],
         'plate_region_found': False,
         'matched_vehicle': None,
+        'plate_bbox': None,
+        'plate_boxes': [],
     }
+
+
+def _plate_boxes_without_ocr(detect_path: str, vehicles: list[dict]) -> dict:
+    """Fast live path: plate YOLO boxes only (skip EasyOCR)."""
+    result = _empty_plate_result()
+    try:
+        from .plate_detection import detect_plate_boxes_near_vehicles, plate_detect_enabled
+        if not plate_detect_enabled():
+            return result
+        dets = detect_plate_boxes_near_vehicles(detect_path, vehicles)
+        boxes = []
+        for det in dets[:5]:
+            bb = det.get('bbox')
+            if not bb:
+                continue
+            boxes.append({
+                'bbox': bb,
+                'confidence': float(det.get('confidence') or 0),
+            })
+        if boxes:
+            result['plate_boxes'] = boxes
+            result['plate_bbox'] = boxes[0]['bbox']
+            result['plate_region_found'] = True
+            result['ocr_engine'] = 'yolo-bbox-only'
+            result['plate_confidence'] = float(boxes[0].get('confidence') or 0)
+    except Exception:
+        logger.exception('Plate bbox-only path failed for %s', detect_path)
+    return result
 
 
 def run_detection_pipeline(
@@ -299,6 +329,7 @@ def run_detection_pipeline(
     track_session: str = '',
     live_fast: bool = False,
     unified_prep: bool = False,
+    enable_ocr: bool = True,
 ) -> dict:
     """
     Execute pipeline in order: vehicle → plate region → OCR → sign (parallel metadata).
@@ -365,7 +396,10 @@ def run_detection_pipeline(
             vehicle_future = pool.submit(_run_vehicle_detection)
             sign_result = sign_future.result()
             vehicles = vehicle_future.result()
-        plate_result = recognize_plate(detect_path, vehicles)
+        if enable_ocr and plate_ocr_enabled():
+            plate_result = recognize_plate(detect_path, vehicles)
+        else:
+            plate_result = _plate_boxes_without_ocr(detect_path, vehicles)
     sign_result['processing_time'] = round(time.perf_counter() - started, 3)
 
     payload = compose_detection_payload(sign_result, vehicles, plate_result)

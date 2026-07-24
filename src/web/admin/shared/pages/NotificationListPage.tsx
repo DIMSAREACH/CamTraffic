@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Bell, Download, Plus, Search } from 'lucide-react';
+import { Bell, Download, Loader2, Plus, RefreshCw, Search } from 'lucide-react';
 import { Button } from '@shared/components/ui/button';
 import { FilterSelect } from '@shared/components/ui/FilterSelect';
 import {
@@ -9,24 +9,48 @@ import {
 import { TableEmptyState } from '@shared/components/ui/TableEmptyState';
 import { CrudRowActions } from '@shared/components/admin/CrudRowActions';
 import { useLanguage } from '@shared/context/LanguageContext';
-import {
-  ENTERPRISE_NOTIFICATIONS,
-  type EnterpriseNotifType,
-  type EnterpriseNotification,
-  type NotifDeliveryStatus,
-  type NotifRecipientRole,
-} from '@shared/constants/notificationCatalog';
-import { notifStatusBadgeStyle } from '@shared/utils/notifStatusBadge';
+import { notificationsAPI } from '@shared/services/api';
 import { toast } from 'sonner';
+import type { Notification } from '@shared/types';
+
+type AdminNotifRow = Notification & {
+  user_email?: string;
+  user_name?: string;
+  user_role?: string;
+};
 
 export function NotificationListPage() {
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const [rows, setRows] = useState<EnterpriseNotification[]>(ENTERPRISE_NOTIFICATIONS);
+  const [rows, setRows] = useState<AdminNotifRow[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [type, setType] = useState<EnterpriseNotifType | 'all'>('all');
-  const [status, setStatus] = useState<NotifDeliveryStatus | 'all'>('all');
-  const [recipient, setRecipient] = useState<NotifRecipientRole | 'all' | 'broadcast'>('all');
+  const [type, setType] = useState<string>('all');
+  const [role, setRole] = useState<string>('all');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await notificationsAPI.adminList({
+        q: search.trim() || undefined,
+        type: type === 'all' ? undefined : type,
+        role: role === 'all' ? undefined : role,
+        page_size: 200,
+      });
+      setRows(data);
+    } catch {
+      toast.error(t('notifCenter.loadFailed') !== 'notifCenter.loadFailed'
+        ? t('notifCenter.loadFailed')
+        : 'Failed to load notifications from API');
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [search, type, role, t]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const headers = [
     t('notifCenter.colTitle'),
@@ -37,26 +61,18 @@ export function NotificationListPage() {
     t('notifCenter.colActions'),
   ];
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return rows.filter((row) => {
-      if (type !== 'all' && row.type !== type) return false;
-      if (status !== 'all' && row.status !== status) return false;
-      if (recipient === 'broadcast') {
-        if (row.recipientRole !== 'all') return false;
-      } else if (recipient !== 'all' && row.recipientRole !== recipient) {
-        return false;
-      }
-      if (q && !row.title.toLowerCase().includes(q) && !row.recipientName.toLowerCase().includes(q)) {
-        return false;
-      }
-      return true;
-    });
-  }, [rows, search, type, status, recipient]);
+  const filtered = useMemo(() => rows, [rows]);
 
-  const handleDelete = (id: string) => {
-    setRows((prev) => prev.filter((r) => r.id !== id));
-    toast.success(t('notifCenter.toastDeleted'));
+  const handleDelete = async (id: string) => {
+    try {
+      await notificationsAPI.adminDelete(id);
+      setRows((prev) => prev.filter((r) => String(r.id) !== String(id)));
+      toast.success(t('notifCenter.toastDeleted'));
+    } catch {
+      toast.error(t('notifCenter.toastDeleteFail') !== 'notifCenter.toastDeleteFail'
+        ? t('notifCenter.toastDeleteFail')
+        : 'Delete failed');
+    }
   };
 
   return (
@@ -73,150 +89,124 @@ export function NotificationListPage() {
             <p className="enforcement-page__subtitle">{t('pages.notifications.listSubtitle')}</p>
           </div>
           <div className="notif-center__hero-actions">
+            <Button type="button" variant="outline" onClick={() => void load()} disabled={loading}>
+              {loading ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
+              {t('common.refresh') !== 'common.refresh' ? t('common.refresh') : 'Refresh'}
+            </Button>
             <Button type="button" onClick={() => navigate('/admin/notifications/send')}>
               <Plus size={15} />
               {t('notifCenter.actionNew')}
             </Button>
-            <Button type="button" variant="outline" onClick={() => toast.message(t('notifCenter.toastExport'))}>
+            <Button type="button" variant="outline" onClick={() => toast.message('Export uses live DB rows — copy from table or use audit export')}>
               <Download size={15} />
-              {t('notifCenter.actionExport')}
+              {t('notifCenter.actionExport') !== 'notifCenter.actionExport' ? t('notifCenter.actionExport') : 'Export'}
             </Button>
           </div>
         </div>
       </div>
 
-      <div className="enforcement-page__toolbar notif-list__toolbar">
-        <div className="notif-list__toolbar-row">
-          <div className="enforcement-page__search-wrap notif-list__search">
-            <Search size={14} className="enforcement-page__search-icon" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t('notifCenter.searchPlaceholder')}
-              className="enforcement-page__search"
-            />
-          </div>
-          <div className="enforcement-page__filters notif-list__filters">
-            <FilterSelect
-              tone="blue"
-              value={type}
-              onValueChange={(v) => setType(v as EnterpriseNotifType | 'all')}
-              ariaLabel={t('notifCenter.filterAllTypes')}
-              options={[
-                { value: 'all', label: t('notifCenter.filterAllTypes') },
-                { value: 'violation', label: t('notifCenter.type.violation') },
-                { value: 'ai', label: t('notifCenter.type.ai') },
-                { value: 'payment', label: t('notifCenter.type.payment') },
-                { value: 'appeal', label: t('notifCenter.type.appeal') },
-                { value: 'camera', label: t('notifCenter.type.camera') },
-                { value: 'system', label: t('notifCenter.type.system') },
-                { value: 'security', label: t('notifCenter.type.security') },
-                { value: 'maintenance', label: t('notifCenter.type.maintenance') },
-              ]}
-            />
-            <FilterSelect
-              tone="teal"
-              value={status}
-              onValueChange={(v) => setStatus(v as NotifDeliveryStatus | 'all')}
-              ariaLabel={t('notifCenter.filterAllStatuses')}
-              options={[
-                { value: 'all', label: t('notifCenter.filterAllStatuses') },
-                { value: 'sent', label: t('notifCenter.status.sent') },
-                { value: 'delivered', label: t('notifCenter.status.delivered') },
-                { value: 'read', label: t('notifCenter.status.read') },
-                { value: 'failed', label: t('notifCenter.status.failed') },
-                { value: 'scheduled', label: t('notifCenter.status.scheduled') },
-              ]}
-            />
-            <FilterSelect
-              tone="purple"
-              value={recipient}
-              onValueChange={(v) => setRecipient(v as NotifRecipientRole | 'all' | 'broadcast')}
-              ariaLabel={t('notifCenter.filterAllRecipients')}
-              options={[
-                { value: 'all', label: t('notifCenter.filterAllRecipients') },
-                { value: 'driver', label: t('notifCenter.role.driver') },
-                { value: 'officer', label: t('notifCenter.role.officer') },
-                { value: 'admin', label: t('notifCenter.role.admin') },
-                { value: 'broadcast', label: t('notifCenter.role.all') },
-              ]}
-            />
-          </div>
+      <div className="notif-center__filters">
+        <div className="notif-center__search">
+          <Search size={15} />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t('notifCenter.searchPlaceholder') !== 'notifCenter.searchPlaceholder'
+              ? t('notifCenter.searchPlaceholder')
+              : 'Search title, message, email…'}
+          />
         </div>
+        <FilterSelect
+          value={type}
+          onValueChange={setType}
+          options={[
+            { value: 'all', label: 'All types' },
+            { value: 'system', label: 'System' },
+            { value: 'fine', label: 'Fine' },
+            { value: 'violation', label: 'Violation' },
+            { value: 'detection', label: 'Detection' },
+            { value: 'alert', label: 'Alert' },
+            { value: 'payment', label: 'Payment' },
+            { value: 'appeal', label: 'Appeal' },
+          ]}
+          ariaLabel="Type"
+          size="sm"
+          tone="teal"
+        />
+        <FilterSelect
+          value={role}
+          onValueChange={setRole}
+          options={[
+            { value: 'all', label: 'All roles' },
+            { value: 'driver', label: 'Drivers' },
+            { value: 'police', label: 'Officers' },
+            { value: 'admin', label: 'Admins' },
+          ]}
+          ariaLabel="Role"
+          size="sm"
+          tone="teal"
+        />
       </div>
 
-      <div className="enforcement-page__panel enforcement-page__panel--notifications">
-        <div className="notif-list__panel-head">
-          <div>
-            <p className="notif-list__panel-title">{t('pages.notifications.listTitle')}</p>
-            <p className="notif-list__panel-subtitle">
-              {t('notifCenter.shownCount').replace('{count}', String(filtered.length))}
-            </p>
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          <Table className="enforcement-page__table mgmt-table__grid notif-center__table--6col">
-            <colgroup>
-              <col />
-              <col />
-              <col />
-              <col />
-              <col />
-              <col />
-            </colgroup>
-            <TableHeader>
-              <TableRow className="enforcement-page__table-head">
-                {headers.map((h) => (
-                  <TableHead key={h} className="enforcement-page__th text-left">{h}</TableHead>
-                ))}
+      <div className="enforcement-page__table-wrap">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {headers.map((h) => <TableHead key={h}>{h}</TableHead>)}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={headers.length}>
+                  <div className="flex items-center gap-2 p-6 text-muted-foreground">
+                    <Loader2 className="animate-spin" size={18} /> Loading from API…
+                  </div>
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.length === 0 ? (
-                <TableEmptyState
-                  colSpan={headers.length}
-                  tone="blue"
-                  icon={<Bell size={28} />}
-                  title={t('notifCenter.emptyList')}
-                />
-              ) : filtered.map((row) => (
-                <TableRow key={row.id} className="enforcement-page__table-row">
+            ) : filtered.length === 0 ? (
+              <TableEmptyState
+                colSpan={headers.length}
+                tone="blue"
+                icon={<Bell size={28} />}
+                title={t('notifCenter.emptyTitle') !== 'notifCenter.emptyTitle'
+                  ? t('notifCenter.emptyTitle')
+                  : 'No notifications in database'}
+                subtitle={t('notifCenter.emptyDesc') !== 'notifCenter.emptyDesc'
+                  ? t('notifCenter.emptyDesc')
+                  : 'Send a broadcast or wait for fines/violations to create live notifications.'}
+              />
+            ) : (
+              filtered.map((row) => (
+                <TableRow key={String(row.id)}>
                   <TableCell>
-                    <p className="enforcement-page__cell-primary" title={row.title}>{row.title}</p>
-                    <p className="enforcement-page__cell-secondary">{t(`notifCenter.type.${row.type}`)}</p>
+                    <button
+                      type="button"
+                      className="notif-center__title-link"
+                      onClick={() => navigate(`/admin/notifications/details/${row.id}`)}
+                    >
+                      {row.title}
+                    </button>
+                    <div className="text-xs text-muted-foreground line-clamp-1">{row.message}</div>
                   </TableCell>
                   <TableCell>
-                    <p className="enforcement-page__cell-body">{t(`notifCenter.role.${row.recipientRole}`)}</p>
-                    {row.recipientName ? (
-                      <p className="enforcement-page__cell-secondary" title={row.recipientName}>{row.recipientName}</p>
-                    ) : null}
+                    <div>{row.user_name || row.user_email || '—'}</div>
+                    <div className="text-xs text-muted-foreground">{row.user_role} · {row.user_email}</div>
                   </TableCell>
+                  <TableCell>in-app</TableCell>
+                  <TableCell>{row.created_at ? new Date(row.created_at).toLocaleString() : '—'}</TableCell>
+                  <TableCell>{row.is_read ? 'read' : 'unread'}</TableCell>
                   <TableCell>
-                    <span className="enforcement-page__code-pill">
-                      {row.channels.map((c) => t(`notifCenter.channel.${c}`)).join(', ')}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <p className="enforcement-page__cell-body">{row.sentLabel}</p>
-                  </TableCell>
-                  <TableCell>
-                    <span className="enforcement-page__badge" style={notifStatusBadgeStyle(row.status)}>
-                      {t(`notifCenter.status.${row.status}`)}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <div className="enforcement-page__table-actions">
-                      <CrudRowActions
-                        onView={() => navigate(`/admin/notifications/details/${row.id}`)}
-                        onDelete={() => handleDelete(row.id)}
-                      />
-                    </div>
+                    <CrudRowActions
+                      onView={() => navigate(`/admin/notifications/details/${row.id}`)}
+                      onDelete={() => void handleDelete(String(row.id))}
+                    />
                   </TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              ))
+            )}
+          </TableBody>
+        </Table>
       </div>
     </div>
   );

@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 
 from django.conf import settings
-from django.db.models import Avg, Count
+from django.db.models import Avg, Count, Sum
 
 from core.media_urls import api_media_url
 from traffic_signs.models import TrafficSign
@@ -19,13 +19,20 @@ CATEGORY_UI = {
 
 
 def _logs_for_user(user):
-    if getattr(user, 'role', None) == 'admin':
+    # Admin and officers share system-wide detection stats.
+    from core.role_scope import is_ops_staff
+
+    if is_ops_staff(user):
         return AIDetectionLog.objects.all()
     return AIDetectionLog.objects.filter(user=user)
 
 
+def _ai_root() -> Path:
+    return Path(getattr(settings, 'AI_ROOT', Path(settings.BASE_DIR).parent.parent / 'ai'))
+
+
 def _read_training_status() -> dict:
-    path = Path(settings.BASE_DIR).parent / 'ai' / 'weights' / 'training_status.json'
+    path = _ai_root() / 'weights' / 'training_status.json'
     if not path.is_file():
         return {}
     try:
@@ -61,7 +68,7 @@ def _trained_signs_queryset():
 
 
 def _count_training_images():
-    dataset_root = Path(settings.BASE_DIR).parent / 'ai' / 'dataset' / 'images'
+    dataset_root = _ai_root() / 'dataset' / 'images'
     if not dataset_root.exists():
         return int(getattr(settings, 'AI_TRAINING_SAMPLES', 0) or 0)
     total = 0
@@ -114,15 +121,20 @@ def get_ai_detection_page_stats(user, request=None):
     trained_codes = _trained_sign_codes()
 
     categories = []
+    names_by_cat: dict[str, list[str]] = {}
+    for sign in signs.only('category', 'sign_name_en', 'sign_name').iterator(chunk_size=200):
+        key = sign.category or 'warning'
+        bucket = names_by_cat.setdefault(key, [])
+        if len(bucket) >= 3:
+            continue
+        label = (sign.sign_name_en or sign.sign_name or '').strip()
+        if label:
+            bucket.append(label)
+
     for row in signs.values('category').annotate(count=Count('id')).order_by('category'):
         key = row['category'] or 'warning'
         meta = CATEGORY_UI.get(key, CATEGORY_UI['warning'])
-        names = list(
-            signs.filter(category=key).values_list('sign_name_en', flat=True)[:3],
-        )
-        names = [n for n in names if n] or list(
-            signs.filter(category=key).values_list('sign_name', flat=True)[:3],
-        )
+        names = names_by_cat.get(key) or []
         desc = ', '.join(names) if names else 'Trained signs in this category'
         categories.append({
             'key': key,
@@ -159,15 +171,9 @@ def get_ai_detection_page_stats(user, request=None):
     training_images = int(training_status.get('training_images') or 0) or _count_training_images()
     catalog_total = TrafficSign.objects.count() or sign_count
     yolo_class_count = int(training_status.get('yolo_class_count') or 0)
-    if yolo_class_count < 1 and weights_exist:
-        try:
-            from .services import _sign_model_class_count
-
-            yolo_class_count = _sign_model_class_count()
-        except Exception:
-            yolo_class_count = 0
+    # Never load YOLO weights just to answer /api/ai/stats/ — use status file / fallback.
     if yolo_class_count < 1:
-        yolo_class_count = 19
+        yolo_class_count = len(trained_codes) or 19
 
     catalog_visual_refs = 0
     try:
@@ -176,6 +182,12 @@ def get_ai_detection_page_stats(user, request=None):
         catalog_visual_refs = catalog_visual_index_size()
     except Exception:
         catalog_visual_refs = 0
+
+    vehicles_detected_total = 0
+    if total_scans:
+        vehicles_detected_total = int(
+            logs.aggregate(total=Sum('vehicle_count'))['total'] or 0
+        )
 
     return {
         'model': {
@@ -209,10 +221,7 @@ def get_ai_detection_page_stats(user, request=None):
             'accuracy_avg': avg_conf,
             'avg_speed_sec': avg_time,
             'sign_count': sign_count,
-            'vehicles_detected_total': sum(
-                int(row.get('vehicle_count') or 0)
-                for row in logs.values('vehicle_count')[:500]
-            ) if total_scans else 0,
+            'vehicles_detected_total': vehicles_detected_total,
         },
         'categories': categories,
         'sample_signs': sample_signs,

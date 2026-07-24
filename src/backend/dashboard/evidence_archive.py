@@ -100,16 +100,8 @@ def search_evidence_archive(
     ).order_by('-violation_date')
     fine_qs = Fine.objects.select_related('driver', 'police').order_by('-created_at')
 
-    if user.role == 'police':
-        det_qs = det_qs.filter(user=user)
-        if hasattr(user, 'officer_profile'):
-            viol_qs = viol_qs.filter(officer=user.officer_profile)
-        else:
-            from users.models import Officer
-            officer = Officer.objects.filter(user=user).first()
-            viol_qs = viol_qs.filter(officer=officer) if officer else viol_qs.none()
-        fine_qs = fine_qs.filter(police=user)
-    elif user.role == 'driver':
+    # Admin + police share full operational evidence; drivers see own records only.
+    if user.role == 'driver':
         det_qs = det_qs.filter(user=user)
         viol_qs = viol_qs.filter(driver__user=user)
         fine_qs = fine_qs.filter(driver=user)

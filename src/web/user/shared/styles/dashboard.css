@@ -1643,17 +1643,19 @@ html.dark .table-pagination:not(.table-pagination--footer) {
 }
 
 .app-dashboard .dashboard-page--signs .signs-card {
-  min-height: 22rem;
+  min-height: 24rem;
 }
 
 .app-dashboard .dashboard-page--signs .signs-card__media {
   position: relative;
+  max-height: 14.5rem;
+  overflow: hidden;
 }
 
 .app-dashboard .dashboard-page--signs .signs-card__img-wrap {
   width: 100%;
-  max-width: 15rem;
-  height: 15rem;
+  max-width: 14rem;
+  height: 11.5rem;
   margin: 0 auto;
 }
 
@@ -1663,16 +1665,17 @@ html.dark .table-pagination:not(.table-pagination--footer) {
 }
 
 .app-dashboard .dashboard-page--signs .signs-card__img {
-  width: 100% !important;
-  height: 100% !important;
+  width: auto !important;
+  height: auto !important;
   max-width: 100% !important;
-  max-height: 100% !important;
+  max-height: 10.5rem !important;
+  object-fit: contain;
   filter: drop-shadow(0 4px 12px rgba(15, 23, 42, 0.12));
   transition: transform 0.2s ease;
 }
 
 .app-dashboard .dashboard-page--signs .signs-card:hover .signs-card__img {
-  transform: scale(1.04);
+  transform: scale(1.03);
 }
 
 .app-dashboard .signs-img-stage {
@@ -10867,30 +10870,71 @@ html.dark .enforcement-page__action-btn--success:hover {
   color: #6ee7b7;
 }
 
-.enforcement-page__action-btn--violet {
-  color: #7c3aed;
-  background: rgba(139, 92, 246, 0.1);
-  border-color: rgba(139, 92, 246, 0.22);
-  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.08);
+.enforcement-page__action-btn--violet,
+.enforcement-page__action-btn--view {
+  color: #1d4ed8;
+  background: rgba(37, 99, 235, 0.1);
+  border-color: rgba(37, 99, 235, 0.28);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.1);
 }
 
-.enforcement-page__action-btn--violet:hover {
-  color: #6d28d9;
-  background: rgba(139, 92, 246, 0.16);
-  border-color: rgba(139, 92, 246, 0.34);
-  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.14);
+.enforcement-page__action-btn--violet:hover,
+.enforcement-page__action-btn--view:hover {
+  color: #1e40af;
+  background: rgba(37, 99, 235, 0.18);
+  border-color: rgba(37, 99, 235, 0.4);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.16);
 }
 
-html.dark .enforcement-page__action-btn--violet {
-  color: #c4b5fd;
-  background: rgba(139, 92, 246, 0.16);
-  border-color: rgba(167, 139, 250, 0.24);
+html.dark .enforcement-page__action-btn--violet,
+html.dark .enforcement-page__action-btn--view {
+  color: #93c5fd;
+  background: rgba(37, 99, 235, 0.18);
+  border-color: rgba(96, 165, 250, 0.32);
 }
 
-html.dark .enforcement-page__action-btn--violet:hover {
-  color: #ddd6fe;
-  background: rgba(139, 92, 246, 0.24);
-  border-color: rgba(167, 139, 250, 0.34);
+html.dark .enforcement-page__action-btn--violet:hover,
+html.dark .enforcement-page__action-btn--view:hover {
+  color: #bfdbfe;
+  background: rgba(37, 99, 235, 0.28);
+  border-color: rgba(96, 165, 250, 0.45);
+}
+
+.enforcement-page__action-btn--delete,
+.enforcement-page__action-btn--danger {
+  color: #dc2626;
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.28);
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.08);
+}
+
+.enforcement-page__action-btn--delete:hover,
+.enforcement-page__action-btn--danger:hover {
+  color: #b91c1c;
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(220, 38, 38, 0.4);
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.16);
+}
+
+.enforcement-page__action-btn--delete:disabled,
+.enforcement-page__action-btn--danger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+html.dark .enforcement-page__action-btn--delete,
+html.dark .enforcement-page__action-btn--danger {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(248, 113, 113, 0.32);
+}
+
+html.dark .enforcement-page__action-btn--delete:hover,
+html.dark .enforcement-page__action-btn--danger:hover {
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.26);
+  border-color: rgba(248, 113, 113, 0.45);
 }
 
 .enforcement-page__revenue {
@@ -14184,11 +14228,22 @@ html.dark .enforcement-page__sign-icon {
   justify-content: center;
   width: 3rem;
   height: 3rem;
+  padding: 0;
+  margin: 0;
   border-radius: 0.625rem;
   overflow: hidden;
   border: 1px solid var(--enforcement-border);
   background: var(--enforcement-muted);
+  cursor: pointer;
+  flex-shrink: 0;
   transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+button.enforcement-page__log-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  font: inherit;
+  color: inherit;
 }
 
 .enforcement-page__log-thumb:hover {

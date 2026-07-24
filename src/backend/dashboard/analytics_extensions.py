@@ -54,7 +54,7 @@ def get_heatmap_points():
 
 
 def get_top_locations():
-    """Ranked locations for reports (matches frontend top_locations shape)."""
+    """Ranked Cambodia enforcement locations (cameras + violation hotspots)."""
     rows = []
     for cam in Camera.objects.select_related('road').all()[:15]:
         count = TrafficViolation.objects.filter(camera=cam).count()
@@ -69,8 +69,89 @@ def get_top_locations():
             'lat': float(cam.latitude) if cam.latitude else None,
             'lng': float(cam.longitude) if cam.longitude else None,
         })
+
+    # Fall back / enrich with real violation location strings (Phnom Penh streets, NR1, etc.)
+    location_rows = (
+        TrafficViolation.objects.exclude(location='')
+        .values('location')
+        .annotate(count=Count('id'))
+        .order_by('-count')[:12]
+    )
+    for row in location_rows:
+        label = (row['location'] or '').strip()
+        if not label:
+            continue
+        if any(r['location'] == label or r['name'] == label for r in rows):
+            continue
+        rows.append({
+            'name': label,
+            'location': label,
+            'fines': row['count'],
+            'detections': row['count'],
+            'lat': None,
+            'lng': None,
+        })
+
     rows.sort(key=lambda r: r['detections'], reverse=True)
-    return rows[:10]
+    return rows[:8]
+
+
+def get_recent_activity(limit: int = 12):
+    """Unified recent enforcement feed for admin dashboard (Cambodia production view)."""
+    items: list[dict] = []
+
+    for v in (
+        TrafficViolation.objects.select_related('driver__user', 'vehicle')
+        .order_by('-created_at')[:limit]
+    ):
+        plate = ''
+        if v.vehicle_id and getattr(v.vehicle, 'plate_number', None):
+            plate = v.vehicle.plate_number
+        elif v.plate_detected:
+            plate = v.plate_detected
+        raw_type = (v.violation_type or '').strip()
+        if raw_type:
+            title = raw_type.replace('_', ' ').title()
+        else:
+            title = (v.description or 'Traffic Violation').split(':')[-1].strip()[:60] or 'Traffic Violation'
+        items.append({
+            'id': f'violation-{v.id}',
+            'kind': 'violation',
+            'title': title,
+            'subtitle': v.location or 'Cambodia road network',
+            'meta': plate or (v.driver.user.full_name if v.driver_id and v.driver.user_id else 'Unknown driver'),
+            'status': v.status,
+            'href': '/admin/violations',
+            'created_at': (v.created_at or timezone.now()).isoformat(),
+        })
+
+    for f in Fine.objects.select_related('driver', 'police').order_by('-created_at')[:limit]:
+        items.append({
+            'id': f'fine-{f.id}',
+            'kind': 'fine',
+            'title': (f.reason or 'Traffic fine')[:80],
+            'subtitle': f.location or 'Phnom Penh',
+            'meta': f.vehicle_plate or (f.driver.full_name if f.driver_id else ''),
+            'status': f.status,
+            'amount': float(f.amount),
+            'href': '/admin/fines',
+            'created_at': (f.created_at or timezone.now()).isoformat(),
+        })
+
+    for d in AIDetectionLog.objects.select_related('user').order_by('-created_at')[:limit]:
+        items.append({
+            'id': f'detection-{d.id}',
+            'kind': 'detection',
+            'title': d.detected_sign or 'AI Detection',
+            'subtitle': f"Confidence {float(d.confidence or 0):.1f}%",
+            'meta': d.detected_plate or (d.user.full_name if d.user_id else 'Officer'),
+            'status': 'logged',
+            'href': '/admin/ai-logs',
+            'created_at': (d.created_at or timezone.now()).isoformat(),
+        })
+
+    items.sort(key=lambda row: row.get('created_at') or '', reverse=True)
+    return items[:limit]
 
 
 def get_officer_performance():
@@ -96,7 +177,7 @@ def get_officer_performance():
 
 def get_driver_analytics():
     rows = []
-    for driver in User.objects.filter(role='driver').annotate(
+    for driver in User.objects.not_deleted().filter(role='driver').annotate(
         vehicle_count=Count('vehicles', distinct=True),
     ).order_by('-vehicle_count')[:50]:
         fines = Fine.objects.filter(driver=driver)
@@ -152,9 +233,11 @@ def get_ai_dashboard_stats(user, request=None):
 
 
 def get_detection_analytics(user):
+    from core.role_scope import is_ops_staff
+
     logs = (
         AIDetectionLog.objects.all()
-        if getattr(user, 'role', None) == 'admin'
+        if is_ops_staff(user)
         else AIDetectionLog.objects.filter(user=user)
     )
     agg = logs.aggregate(total=Count('id'), avg_conf=Avg('confidence'), avg_time=Avg('processing_time'))

@@ -75,6 +75,11 @@ npm run local:prod:up
 
 Good for offline practice; **not** a public pilot.
 
+### Option A4 — Render (chosen for Phase 0 public pilot)
+
+Public hosting without managing a VPS. Create API (Docker) + two static sites + Postgres (+ Redis).  
+See **Step 3** below and `infrastructure/deploy/RENDER.md`. First boot uses mock AI until weights are uploaded.
+
 ---
 
 ## B — Harden `.env.production` (required)
@@ -197,87 +202,108 @@ Keep auto-violation **off** for the whole pilot.
 - [x] Replace placeholder `SECRET_KEY` / `DB_PASSWORD` with openssl secrets
 - [x] Bootstrap admin env set (`dimsareach009@gmail.com`)
 - [x] Skip local Docker smoke (step 2) — go straight to public hosting
+- [x] **Host choice: Render** (option 2) — see Step 3 below
 - [x] Env prepared for bootstrap admin + Render docs
 - [x] Pushed branch `restructure-project` to GitHub (secrets not committed)
-- [ ] Configure Render services (API + admin + user) per `infrastructure/deploy/RENDER.md`
-- [ ] Set Render env secrets (DB, Redis, bootstrap admin, R2)
-- [ ] Upload/mount YOLO weights or temporary `AI_USE_MOCK=True`
-- [ ] Custom domains / OAuth callbacks
-- [ ] Login as Dim Sareach + create officers/drivers
-- [ ] First end-to-end pilot case recorded
+- [x] Public hosting live — `api.camtraffic.store` + `app.camtraffic.store` healthy (2026-07-23)
+- [ ] Fix `admin.camtraffic.store` if needed (DNS/TLS/Render custom domain)
+- [ ] Login as bootstrap admin + create officers/drivers
+- [ ] First end-to-end pilot case recorded (detect → approve → fine → pay)
+- [ ] Optional: real YOLO weights on Render (`AI_USE_MOCK=False`)
+- [ ] Optional: R2 media + Resend email + OAuth callbacks verified
 
 ---
 
-## Step 3 — Public VPS pilot (do this now)
+## Step 3 — Public Render pilot (do this now)
 
-You skipped local Docker. Work in this order:
+**Chosen host:** Render (faster public URL). Full detail: `infrastructure/deploy/RENDER.md` · `infrastructure/deploy/CAMTRAFFIC-STORE.md` Option B.
+
+**Important:** YOLO `*.pt` files are gitignored — first deploy uses **mock AI** (`AI_USE_MOCK=True`). Real YOLO later needs uploaded weights or a larger plan.
 
 ### 3.1 Prerequisites (you provide)
 
-| Need | Example |
-|------|---------|
-| Ubuntu VPS | 4–8 GB RAM, Docker-capable |
-| Public IPv4 | e.g. `203.0.113.10` |
-| Domain DNS access | `camtraffic.store` registrar |
+| Need | Notes |
+|------|--------|
+| [Render](https://dashboard.render.com) account | Free or paid |
+| GitHub repo connected | Prefer branch Render watches (`main` or `restructure-project`) |
+| Domain DNS (optional) | `camtraffic.store` for custom domains later |
 
-### 3.2 DNS (at registrar)
+### 3.2 Create managed add-ons (first)
 
-Point **A records** to your VPS IP:
+1. **PostgreSQL** → note Internal Database URL / host, db, user, password  
+2. **Redis** (Key Value) → note Internal Redis URL  
 
-```
-camtraffic.store       →  VPS_IP
-www.camtraffic.store   →  VPS_IP
-admin.camtraffic.store →  VPS_IP
-app.camtraffic.store   →  VPS_IP
-api.camtraffic.store   →  VPS_IP
-```
+### 3.3 Create `camtraffic-api` (Web Service · Docker)
 
-Also in Google OAuth console, add redirect URI:  
-`https://app.camtraffic.store/auth/oauth/callback`
+| Setting | Value |
+|---------|--------|
+| Repo | your CamTraffic GitHub repo |
+| Branch | `restructure-project` (or `main` if merged) |
+| Dockerfile path | `infrastructure/deploy/docker/Dockerfile.backend.prod` |
+| Docker context | repository root (`.`) |
+| Health check | `/health/` |
 
-### 3.3 On the VPS (SSH)
+**Environment:** paste from `infrastructure/deploy/env/.env.render.camtraffic.store.example`, then replace:
+
+- `SECRET_KEY` — strong random  
+- `DB_*` — from Render Postgres  
+- `REDIS_URL` / Celery URLs — from Render Redis  
+- `CAMTRAFFIC_BOOTSTRAP_ADMIN_*` — your real admin  
+- Keep **`AI_USE_MOCK=True`** + hosted-lite flags for first boot  
+
+Start command is already in the image (`render_web_start.sh` → migrate + bootstrap + gunicorn).
+
+### 3.4 Create static sites
+
+**Admin** (`camtraffic-admin`):
+
+| Setting | Value |
+|---------|--------|
+| Root directory | `src/web/admin` |
+| Build | `npm ci && npm run build` |
+| Publish | `dist` |
+| Env | `VITE_API_URL=https://<your-api>.onrender.com/api` |
+
+**User** (`camtraffic-user` — officer + citizen):
+
+| Setting | Value |
+|---------|--------|
+| Root directory | `src/web/user` |
+| Build | `npm ci && npm run build` |
+| Publish | `dist` |
+| Env | same `VITE_API_URL` as admin |
+
+After first API URL is known, set CORS on API to include both static site URLs.
+
+### 3.5 Smoke test (onrender.com first)
 
 ```bash
-# As root — install Docker + firewall
-sudo bash infrastructure/deploy/scripts/provision_vps_ubuntu.sh
-# (or after clone — see below)
-
-git clone https://github.com/SareachGenZ/CamTraffic.git /opt/camtraffic
-cd /opt/camtraffic
-
-# Copy your prepared env from laptop (do NOT commit it)
-# From your Windows machine (example with scp):
-#   scp infrastructure/deploy/env/.env.production user@VPS_IP:/opt/camtraffic/infrastructure/deploy/env/.env.production
-
-# Ensure YOLO weights exist (large — scp or git-lfs)
-#   scp ai/weights/best.pt user@VPS_IP:/opt/camtraffic/ai/weights/best.pt
-
-# Install Node if using npm scripts (or use bash deploy script)
-curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
-sudo apt-get install -y nodejs
-
-npm run docker:prod:up
-
-# After DNS has propagated:
-bash infrastructure/deploy/ssl/certbot-init.sh
-npm run docker:prod:restart
+curl -fsS https://<camtraffic-api>.onrender.com/health/
+curl -fsS https://<camtraffic-api>.onrender.com/health/ready/
 ```
 
-### 3.4 Smoke test
+Login: **Admin** → `https://<camtraffic-admin>.onrender.com`  
+Use bootstrap email/password from Render env (not demo passwords on public internet).
 
-```bash
-curl -fsS https://api.camtraffic.store/health/
-curl -o /dev/null -w "%{http_code}\n" https://admin.camtraffic.store/
-curl -o /dev/null -w "%{http_code}\n" https://app.camtraffic.store/
-```
+### 3.6 Optional — custom domains
 
-Login: **Admin** → `https://admin.camtraffic.store`  
-Email: `dimsareach009@gmail.com` (password from your `.env.production`)
+| Host | Points to |
+|------|-----------|
+| `api.camtraffic.store` | camtraffic-api |
+| `admin.camtraffic.store` | camtraffic-admin |
+| `app.camtraffic.store` | camtraffic-user |
 
-### 3.5 After login
+Then update `PUBLIC_API_URL`, `CORS_*`, `VITE_API_URL`, OAuth callbacks — see `RENDER.md` §4.
+
+### 3.7 After login
 
 1. Create officer + driver users (strong passwords)  
-2. Run one detection → officer review → fine → citizen pay  
+2. Run one detection (mock OK) → officer review → fine → citizen pay  
+3. Later: upload `best.pt` and set `AI_USE_MOCK=False` if the plan has enough RAM  
+
+### Alternative — VPS (if you switch later)
+
+Use Option A1 earlier in this doc + previous Step 3 VPS notes in git history / `CAMTRAFFIC-STORE.md` Option A.
 
 ---
 

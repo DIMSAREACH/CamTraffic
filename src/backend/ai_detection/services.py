@@ -16,7 +16,7 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-AI_ROOT = Path(settings.BASE_DIR).parent / 'ai'
+AI_ROOT = Path(getattr(settings, 'AI_ROOT', Path(settings.BASE_DIR).parent.parent / 'ai'))
 CATALOG_PATH = AI_ROOT / 'sign_catalog.json'
 CUSTOM_SIGNS_DIR = AI_ROOT / 'custom_signs'
 _CUSTOM_SIGN_HASH_CACHE: dict[str, str] | None = None
@@ -52,18 +52,26 @@ YOLO_CLASS_ALIASES = {
     'weight_limit_on_one_axle': 'axle_weight_limit',
     'road_closed_all_users': 'road_closed_all_users',
     'road_closed_all_vehicles': 'road_closed_all_vehicles',
-    # Training dataset keys that differ from catalog class_key
-    'no_entry_bicycle': 'p_no_bicycles',
-    'no_entry_bicycle_motorcycle_tricycle': 'p_no_bicycles_motorcycles_and_tricycles',
-    'no_entry_large_bus': 'p_no_buses',
-    'no_entry_large_truck': 'p_no_trucks',
-    'no_entry_motorcycle_drawn': 'p_no_motorcycle_drawn_carts',
-    'no_entry_motor_except_motorcycle': 'p_no_motor_vehicles',
-    'no_entry_motor_vehicles': 'p_no_motor_vehicles',
+    # Training dataset keys → current Cambodia catalog class_key (I_* scheme)
+    'no_entry_bicycle': 'i_no_bicycles',
+    'no_entry_bicycle_motorcycle_tricycle': 'i_no_bicycles_motorcycles_and_tricycles',
+    'no_entry_large_bus': 'i_no_buses',
+    'no_entry_large_truck': 'i_no_trucks',
+    'no_entry_motorcycle_drawn': 'i_no_motorcycle_drawn_carts',
+    'no_entry_motor_except_motorcycle': 'i_no_motor_vehicles',
+    'no_entry_motor_vehicles': 'i_no_motor_vehicles',
+    # Legacy P_* aliases still resolve to I_* rows
+    'p_no_bicycles': 'i_no_bicycles',
+    'p_no_trucks': 'i_no_trucks',
+    'p_no_motor_vehicles': 'i_no_motor_vehicles',
+    'p_no_buses': 'i_no_buses',
     # Common international / legacy keys
-    'stop': 'm_stop',
-    'give_way': 'm_yield_give_way',
-    'yield': 'm_yield_give_way',
+    'stop': 'i_stop',
+    'm_stop': 'i_stop',
+    'give_way': 'i_yield_give_way',
+    'yield': 'i_yield_give_way',
+    'm_yield_give_way': 'i_yield_give_way',
+    'no_entry': 'i_no_entry',
 }
 
 # Cambodia traffic sign knowledge base (used for mock / enrichment)
@@ -2322,7 +2330,7 @@ def _ensure_khmer_speech(result: dict) -> dict:
     """Khmer names/descriptions for voice on every detected sign."""
     import sys
 
-    ai_root = Path(settings.BASE_DIR).parent / 'ai'
+    ai_root = Path(getattr(settings, 'AI_ROOT', Path(settings.BASE_DIR).parent.parent / 'ai'))
     if str(ai_root) not in sys.path:
         sys.path.insert(0, str(ai_root))
     try:

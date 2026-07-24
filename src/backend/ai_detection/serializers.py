@@ -1,9 +1,16 @@
 from rest_framework import serializers
 
-from core.media_urls import api_media_url
+from core.media_urls import api_media_url, _local_media_path
 
 from .models import AIDetectionLog
 from .result_compose import compose_detection_payload
+
+
+def _local_media_exists(name: str) -> bool:
+    try:
+        return _local_media_path(name).is_file()
+    except OSError:
+        return False
 
 
 class AIDetectionLogSerializer(serializers.ModelSerializer):
@@ -128,10 +135,51 @@ class AIDetectionLogSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         return api_media_url(request, user.profile_image)
 
+    def _resolve_sign_image(self, obj: AIDetectionLog):
+        """Match TrafficSign catalog image when upload file is missing."""
+        from traffic_signs.models import TrafficSign
+
+        label = (obj.detected_sign or '').strip()
+        if not label:
+            return None
+
+        aliases = {
+            'yield sign': 'yield',
+            'stop sign': 'stop',
+            'one way': 'one-way',
+            'school zone': 'school',
+            'no u turn': 'no u-turn',
+        }
+        query = aliases.get(label.lower(), label)
+
+        sign = (
+            TrafficSign.objects.filter(sign_name_en__iexact=label).exclude(image='').first()
+            or TrafficSign.objects.filter(sign_name__iexact=label).exclude(image='').first()
+            or TrafficSign.objects.filter(sign_name_km=label).exclude(image='').first()
+            or TrafficSign.objects.filter(sign_name_en__icontains=query).exclude(image='').first()
+            or TrafficSign.objects.filter(sign_name__icontains=query).exclude(image='').first()
+            or TrafficSign.objects.filter(sign_name_en__icontains=label.split()[0]).exclude(image='').first()
+        )
+        if sign and sign.image:
+            return sign.image
+        return None
+
     def get_uploaded_image(self, obj):
-        if obj.uploaded_image:
-            request = self.context.get('request')
-            return api_media_url(request, obj.uploaded_image)
+        request = self.context.get('request')
+        field = obj.uploaded_image if obj.uploaded_image else None
+        # Prefer real upload on disk; otherwise fall back to matched Cambodia sign catalog image.
+        try:
+            if field and field.name and _local_media_exists(field.name):
+                return api_media_url(request, field)
+        except (ValueError, OSError, AttributeError):
+            pass
+
+        sign_image = self._resolve_sign_image(obj)
+        if sign_image:
+            return api_media_url(request, sign_image)
+
+        if field:
+            return api_media_url(request, field)
         return ''
 
     def get_vehicle_snapshot(self, obj):

@@ -31,17 +31,12 @@ class OfficerDetectionQueueView(APIView):
     permission_classes = [IsAuthenticated, IsOfficerOnly]
 
     def get(self, request):
-        from django.db.models import Q
-
+        # Shared pending queue for all officers (same operational view).
         qs = (
             TrafficViolation.objects.select_related('driver__user', 'vehicle', 'fine')
             .filter(status='pending_review')
-            .order_by('-violation_date')
+            .order_by('-violation_date')[:100]
         )
-        officer = _officer_profile(request.user)
-        if officer:
-            qs = qs.filter(Q(officer=officer) | Q(officer__isnull=True))
-        qs = qs[:100]
         data = TrafficViolationSerializer(qs, many=True, context={'request': request}).data
         return success_response({'results': data, 'count': len(data)})
 

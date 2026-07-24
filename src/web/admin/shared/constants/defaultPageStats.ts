@@ -125,15 +125,48 @@ export function resolveSampleSignImage(image?: string, signCode?: string): strin
 }
 
 function patchSampleSignImages(signs: AIDetectionSampleSign[]): AIDetectionSampleSign[] {
-  return signs.map((sign) => ({
-    ...sign,
-    image: resolveSampleSignImage(sign.image, sign.sign_code)
-      || DEMO_IMAGE_BY_SIGN_CODE[sign.sign_code?.toUpperCase().replace(/\s+/g, '') ?? '']
-      || sign.image,
-  }));
+  const allowDemo =
+    import.meta.env.DEV === true && import.meta.env.VITE_ALLOW_DEMO_ASSETS === 'true';
+  return signs.map((sign) => {
+    const resolved = resolveSampleSignImage(sign.image, allowDemo ? sign.sign_code : undefined);
+    return {
+      ...sign,
+      image: resolved || (allowDemo
+        ? (DEMO_IMAGE_BY_SIGN_CODE[sign.sign_code?.toUpperCase().replace(/\s+/g, '') ?? ''] || sign.image)
+        : (sign.image || '')),
+    };
+  });
 }
 
-/** Shown when /api/ai/stats/ is unreachable so the page still has demo data. */
+const EMPTY_PAGE_STATS: AIDetectionPageStats = {
+  model: {
+    name: '',
+    version: '',
+    mode: 'local',
+    detection_mode: 'local',
+    weights_loaded: false,
+    sign_classes: 0,
+    catalog_sign_count: 0,
+    yolo_trained_classes: 0,
+    training_images: 0,
+    vehicle_detection_enabled: false,
+    vehicle_model: '',
+    vehicle_classes: [],
+    plate_ocr_enabled: false,
+    plate_ocr_engine: '',
+    trained_sign_codes: [],
+  },
+  stats: {
+    total_scans: 0,
+    accuracy_avg: 0,
+    avg_speed_sec: 0,
+    sign_count: 0,
+  },
+  categories: [],
+  sample_signs: [],
+};
+
+/** Shown when /api/ai/stats/ is unreachable (sample-fallback mode only). */
 export const DEFAULT_PAGE_STATS: AIDetectionPageStats = {
   model: {
     name: 'YOLOv8-Cambodia',
@@ -163,11 +196,11 @@ export const DEFAULT_PAGE_STATS: AIDetectionPageStats = {
   sample_signs: patchSampleSignImages(sampleSigns),
 };
 
-/** Merge live /api/ai/stats/ with catalog demo data so the UI is never empty. */
+/** Merge live /api/ai/stats/ with catalog demo data only when sample fallback is on. */
 export function mergePageStatsWithDefaults(
   api: AIDetectionPageStats | null | undefined,
 ): AIDetectionPageStats {
-  if (!api) return DEFAULT_PAGE_STATS;
+  if (!api) return USE_SAMPLE_FALLBACK ? DEFAULT_PAGE_STATS : EMPTY_PAGE_STATS;
 
   if (!USE_SAMPLE_FALLBACK) {
     return {

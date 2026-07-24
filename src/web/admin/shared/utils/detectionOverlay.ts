@@ -26,6 +26,8 @@ export interface OverlayDetectionInput {
   vehicles?: VehicleDetectionItem[];
   detected_plate?: string;
   plate_confidence?: number;
+  plate_bbox?: NormalizedBbox;
+  plate_boxes?: Array<{ bbox: NormalizedBbox; confidence?: number }>;
   detection_mode?: 'sign' | 'vehicle' | 'plate' | 'no_sign';
   display_title_en?: string;
   display_title_km?: string;
@@ -51,7 +53,7 @@ function boxArea(bbox: NormalizedBbox): number {
   return Math.max(0, bbox.x2 - bbox.x1) * Math.max(0, bbox.y2 - bbox.y1);
 }
 
-function validBbox(bbox?: NormalizedBbox | null): bbox is NormalizedBbox {
+function validBbox(bbox?: NormalizedBbox | null, kind: OverlayBox['kind'] = 'vehicle'): bbox is NormalizedBbox {
   if (!bbox) return false;
   const { x1, y1, x2, y2 } = bbox;
   if (!(x2 > x1 && y2 > y1 && x1 >= -0.02 && y1 >= -0.02 && x2 <= 1.05 && y2 <= 1.05)) {
@@ -59,11 +61,15 @@ function validBbox(bbox?: NormalizedBbox | null): bbox is NormalizedBbox {
   }
   const w = x2 - x1;
   const h = y2 - y1;
-  if (w < MIN_BOX_SIDE || h < MIN_BOX_SIDE) return false;
-  if (boxArea(bbox) < MIN_BOX_AREA) return false;
+  const minSide = kind === 'plate' ? 0.012 : MIN_BOX_SIDE;
+  const minArea = kind === 'plate' ? 0.0008 : MIN_BOX_AREA;
+  if (w < minSide || h < minSide) return false;
+  if (boxArea(bbox) < minArea) return false;
   // Reject extreme aspect ratios (thin vertical/horizontal slivers).
   const ratio = w / h;
-  if (ratio > 8 || ratio < 0.12) return false;
+  const maxRatio = kind === 'plate' ? 12 : 8;
+  const minRatio = kind === 'plate' ? 0.08 : 0.12;
+  if (ratio > maxRatio || ratio < minRatio) return false;
   return true;
 }
 
@@ -169,7 +175,41 @@ export function buildDetectionOverlay(
   });
 
   const plateText = result.detected_plate?.trim();
-  if (plateText) {
+  const plateBoxes = (result.plate_boxes ?? [])
+    .filter((p) => validBbox(p.bbox, 'plate'))
+    .slice(0, 4);
+  if (plateBoxes.length > 0) {
+    plateBoxes.forEach((pb, index) => {
+      items.push({
+        id: `plate-${index}`,
+        kind: 'plate',
+        label: plateText || 'Plate',
+        confidence: Number(pb.confidence ?? result.plate_confidence ?? 0),
+        bbox: {
+          x1: clamp01(pb.bbox.x1),
+          y1: clamp01(pb.bbox.y1),
+          x2: clamp01(pb.bbox.x2),
+          y2: clamp01(pb.bbox.y2),
+        },
+        color: PLATE_COLOR,
+      });
+    });
+  } else if (validBbox(result.plate_bbox, 'plate')) {
+    items.push({
+      id: 'plate',
+      kind: 'plate',
+      label: plateText || 'Plate',
+      confidence: Number(result.plate_confidence ?? 0),
+      bbox: {
+        x1: clamp01(result.plate_bbox.x1),
+        y1: clamp01(result.plate_bbox.y1),
+        x2: clamp01(result.plate_bbox.x2),
+        y2: clamp01(result.plate_bbox.y2),
+      },
+      color: PLATE_COLOR,
+    });
+  } else if (plateText) {
+    // Fallback: inferred plate zone on primary vehicle (legacy)
     const hostVehicle = nmsVehicles(result.vehicles ?? [])[0] ?? result.vehicles?.[0];
     const plateBbox = hostVehicle ? plateZoneFromVehicle(hostVehicle) : null;
     if (plateBbox) {

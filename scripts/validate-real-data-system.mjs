@@ -13,11 +13,11 @@ const backend = path.join(root, 'backend');
 const shell = process.platform === 'win32';
 
 const envFiles = [
-  'frontend-user/.env',
-  'frontend-user/.env.example',
-  'frontend-admin/.env',
-  'frontend-admin/.env.example',
-  'apps/citizen/.env.example',
+  'src/web/user/.env',
+  'src/web/user/.env.example',
+  'src/web/admin/.env',
+  'src/web/admin/.env.example',
+  'src/web/citizen/.env.example',
 ];
 
 function parseEnv(filePath) {

@@ -155,6 +155,8 @@ export const ADMIN_ENTERPRISE_MODULES: EnterpriseModule[] = [
     matchPrefixes: [`${ADMIN_BASE}/notifications`],
     subNav: [
       { labelKey: 'sidebar.subNav.notifDashboard', path: `${ADMIN_BASE}/notifications` },
+      { labelKey: 'sidebar.subNav.notifList', path: `${ADMIN_BASE}/notifications/list` },
+      { labelKey: 'sidebar.subNav.notifSend', path: `${ADMIN_BASE}/notifications/send` },
     ],
   },
   {

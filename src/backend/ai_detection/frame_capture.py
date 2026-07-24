@@ -14,7 +14,8 @@ logger = logging.getLogger(__name__)
 
 
 def _repo_root() -> Path:
-    return Path(settings.BASE_DIR).resolve().parent
+    # BASE_DIR is src/backend → CamTraffic repo root
+    return Path(getattr(settings, 'REPO_ROOT', Path(settings.BASE_DIR).resolve().parents[1]))
 
 
 def resolve_local_frame_path(url: str) -> Path | None:
@@ -24,18 +25,25 @@ def resolve_local_frame_path(url: str) -> Path | None:
         return None
 
     candidates: list[Path] = []
+    root = _repo_root()
     if raw.startswith('/media/'):
         candidates.append(Path(settings.MEDIA_ROOT) / raw[len('/media/'):])
     elif raw.startswith('media/'):
         candidates.append(Path(settings.MEDIA_ROOT) / raw[len('media/'):])
     elif raw.startswith('/demo-cameras/') or raw.startswith('demo-cameras/'):
         rel = raw.lstrip('/')
-        root = _repo_root()
         candidates.extend([
+            # Current portal public folders
+            root / 'src' / 'web' / 'admin' / 'public' / rel,
+            root / 'src' / 'web' / 'user' / 'public' / rel,
+            # Legacy layout (older checkouts)
             root / 'frontend-admin' / 'public' / rel,
             root / 'frontend-user' / 'public' / rel,
             Path(settings.MEDIA_ROOT) / rel,
         ])
+    elif raw.startswith('/cameras/') or raw.startswith('cameras/'):
+        rel = raw.lstrip('/')
+        candidates.append(Path(settings.MEDIA_ROOT) / rel)
     else:
         # Bare relative path under MEDIA_ROOT
         candidates.append(Path(settings.MEDIA_ROOT) / raw.lstrip('/'))
@@ -57,9 +65,7 @@ def _absolute_http_url(url: str) -> str:
     if raw.startswith('/media/') or raw.startswith('media/'):
         path = raw if raw.startswith('/') else f'/{raw}'
         domain = (getattr(settings, 'AWS_S3_CUSTOM_DOMAIN', None) or '').strip()
-        location = (getattr(settings, 'AWS_LOCATION', 'media') or 'media').strip()
         if getattr(settings, 'USE_S3_MEDIA', False) and domain:
-            # path already includes /media/...
             return f'https://{domain}{path}'
         public = (getattr(settings, 'PUBLIC_API_URL', None) or '').strip().rstrip('/')
         if public:
@@ -78,14 +84,19 @@ def capture_camera_frame(camera_id) -> tuple[str | None, str | None]:
     if not camera:
         return None, None
 
-    url = (camera.frame_source_url or '').strip()
+    url = ''
+    if hasattr(camera, 'effective_frame_url'):
+        url = camera.effective_frame_url()
+    else:
+        url = (camera.frame_source_url or getattr(camera, 'rtsp_url', '') or '').strip()
     if not url:
         return None, None
 
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.jpg')
     tmp_path = tmp.name
     tmp.close()
-    fname = f'camera_{camera.code or camera.id}.jpg'
+    # Prefix so DetectSignView treats this as live street capture (full_frame / live_scan)
+    fname = f'webcam-street-camera-{camera.code or camera.id}.jpg'
 
     from .stream_remote_client import capture_snapshot_via_gateway, stream_gateway_enabled
 
@@ -119,9 +130,7 @@ def capture_camera_frame(camera_id) -> tuple[str | None, str | None]:
             if not ok or frame is None:
                 Path(tmp_path).unlink(missing_ok=True)
                 return None, None
-            import cv2 as cv
-
-            cv.imwrite(tmp_path, frame)
+            cv2.imwrite(tmp_path, frame)
         elif fetch_url.lower().startswith(('http://', 'https://')):
             req = urllib.request.Request(fetch_url, headers={'User-Agent': 'CamTraffic/1.0'})
             with urllib.request.urlopen(req, timeout=15) as resp:

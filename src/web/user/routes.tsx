@@ -33,6 +33,11 @@ import { OfficerDetectionQueuePage } from '@officer/pages/OfficerDetectionQueueP
 import { CitizenTrafficRulesPage } from '@citizen/pages/CitizenTrafficRulesPage';
 import { CitizenSupportPage } from '@citizen/pages/CitizenSupportPage';
 import { UserSettingsPage } from '@user/pages/UserSettingsPage';
+import FineDetailPage from '@citizen/pages/fines/FineDetailPage';
+import InstallmentPlanPage from '@citizen/pages/fines/InstallmentPlanPage';
+import ViolationMapPage from '@citizen/pages/violations/ViolationMapPage';
+import CitizenViolationHeatmapPage from '@citizen/pages/CitizenViolationHeatmapPage';
+import NotificationSettingsPage from '@citizen/pages/settings/NotificationSettingsPage';
 import { OperationalAiGuard } from '@shared/components/auth/OperationalAiGuard';
 import { RedirectToAdminPortal } from '@shared/components/PortalRedirect';
 import {
@@ -82,34 +87,55 @@ function GuardedEvidencePage() {
 }
 
 /** Shared child routes under /officer and /citizen (role-gated by layout). */
-const domainChildren = [
+const sharedDomainChildren = [
   { index: true, Component: DashboardPage },
-  { path: 'ai-detection/source', loader: () => redirect(`${OFFICER_PORTAL_BASE}/ai-detection/new`) },
   { path: 'ai-detection', Component: GuardedAiDetectionDashboardPage },
   { path: 'ai-detection/new', Component: GuardedEnterpriseAiDetectionPage },
   { path: 'cameras', Component: GuardedCamerasPage },
   { path: 'ai-logs', Component: GuardedAiLogsPage },
   { path: 'evidence', Component: GuardedEvidencePage },
   { path: 'fines', Component: FineManagement },
-  { path: 'fines/payments', Component: CitizenPaymentHistoryPage },
+  { path: 'fines/:fineId', Component: FineDetailPage },
   { path: 'settings', Component: UserSettingsPage },
+  { path: 'settings/notifications', Component: NotificationSettingsPage },
   { path: 'violations', Component: ViolationsPage },
-  { path: 'detection-queue', Component: OfficerDetectionQueuePage },
+  { path: 'violations/map', Component: ViolationMapPage },
+  { path: 'violations/heatmap', Component: CitizenViolationHeatmapPage },
   { path: 'signs', Component: TrafficSignsPage },
-  { path: 'vehicles', Component: VehiclesPage },
   { path: 'reports', Component: ReportsPage },
-  { path: 'reports/center', Component: ReportCenterPage },
   { path: 'reports/analytics', Component: ReportAnalyticsPage },
-  { path: 'reports/scheduled', Component: ScheduledReportsPage },
   { path: 'reports/details/:reportId', Component: ReportDetailsPage },
-  { path: 'appeals', Component: AppealsPage },
-  { path: 'unknown-vehicles', Component: UnknownVehiclesPage },
-  { path: 'driver-search', Component: OfficerDriverSearchPage },
-  { path: 'traffic-rules', Component: CitizenTrafficRulesPage },
-  { path: 'support', Component: CitizenSupportPage },
   { path: 'profile', Component: ProfilePage },
   { path: 'notifications', Component: NotificationsPage },
   { path: 'notifications/details/:notificationId', Component: NotificationDetailsPage },
+];
+
+/** Officer-only routes: review appeals, queue, cameras ops — no citizen create/mock catalog pages. */
+const officerChildren = [
+  ...sharedDomainChildren,
+  { path: 'ai-detection/source', loader: () => redirect(`${OFFICER_PORTAL_BASE}/ai-detection/new`) },
+  { path: 'appeals', Component: AppealsPage },
+  { path: 'detection-queue', Component: OfficerDetectionQueuePage },
+  { path: 'unknown-vehicles', Component: UnknownVehiclesPage },
+  { path: 'driver-search', Component: OfficerDriverSearchPage },
+  /** Real PDF/Excel hub — avoid mock ReportCenter/Scheduled catalog under officer. */
+  { path: 'reports/center', loader: () => redirect(`${OFFICER_PORTAL_BASE}/reports`) },
+  { path: 'reports/scheduled', loader: () => redirect(`${OFFICER_PORTAL_BASE}/reports`) },
+];
+
+/** Citizen-only routes: create appeals, payments, vehicles, support. */
+const citizenChildren = [
+  ...sharedDomainChildren,
+  { path: 'ai-detection/source', loader: () => redirect(`${CITIZEN_PORTAL_BASE}/ai-detection/new`) },
+  { path: 'fines/payments', Component: CitizenPaymentHistoryPage },
+  { path: 'fines/:fineId/installments', Component: InstallmentPlanPage },
+  { path: 'fines/:fineId/payment', Component: FineManagement },
+  { path: 'vehicles', Component: VehiclesPage },
+  { path: 'appeals', Component: AppealsPage },
+  { path: 'reports/center', Component: ReportCenterPage },
+  { path: 'reports/scheduled', Component: ScheduledReportsPage },
+  { path: 'traffic-rules', Component: CitizenTrafficRulesPage },
+  { path: 'support', Component: CitizenSupportPage },
 ];
 
 /** Redirect /dashboard/* → /officer/* or /citizen/* using stored role when available. */
@@ -150,20 +176,12 @@ export const router = createBrowserRouter([
   {
     path: OFFICER_PORTAL_BASE,
     Component: OfficerLayout,
-    children: domainChildren.map((child) =>
-      child.path === 'ai-detection/source'
-        ? { ...child, loader: () => redirect(`${OFFICER_PORTAL_BASE}/ai-detection/new`) }
-        : child,
-    ),
+    children: officerChildren,
   },
   {
     path: CITIZEN_PORTAL_BASE,
     Component: CitizenLayout,
-    children: domainChildren.map((child) =>
-      child.path === 'ai-detection/source'
-        ? { ...child, loader: () => redirect(`${CITIZEN_PORTAL_BASE}/ai-detection/new`) }
-        : child,
-    ),
+    children: citizenChildren,
   },
   { path: '/dashboard', loader: legacyDashboardLoader },
   { path: '/dashboard/*', loader: legacyDashboardLoader },

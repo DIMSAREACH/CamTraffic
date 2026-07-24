@@ -1,8 +1,8 @@
-"""Report export enrichment when enforcement data is sparse."""
+"""Report export enrichment must never inject sample/demo KPI floors."""
 from dashboard.demo_stats import enrich_report_stats
 
 
-def test_enrich_report_stats_fills_empty_enforcement():
+def test_enrich_report_stats_passes_through_live_only():
     live = {
         'total_users': 2,
         'total_drivers': 1,
@@ -21,9 +21,15 @@ def test_enrich_report_stats_fills_empty_enforcement():
         'violation_by_type': [],
     }
     enriched = enrich_report_stats(live)
-    assert enriched['total_fines'] == 1024
-    assert enriched['monthly_fines']
-    assert any(row['count'] > 0 for row in enriched['monthly_fines'])
-    assert enriched['fine_by_reason']
-    assert enriched['violation_by_type']
+    assert enriched['total_users'] == 2
+    assert enriched['total_fines'] == 0
+    assert enriched['total_detections'] == 134
     assert enriched['detection_accuracy'] == 87.0
+    assert enriched['monthly_fines'] == []
+    assert enriched['fine_by_reason'] == []
+    assert enriched['violation_by_type'] == []
+
+
+def test_enrich_report_stats_empty_live():
+    assert enrich_report_stats({}) == {}
+    assert enrich_report_stats(None) == {}

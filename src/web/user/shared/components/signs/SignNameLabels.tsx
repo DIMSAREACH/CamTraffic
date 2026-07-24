@@ -10,9 +10,8 @@ type Props = {
 /** Khmer title + English subtitle — used on sign cards and tables. */
 export function SignNameLabels({ sign, size = 'md', className = '', centered = false }: Props) {
   const { km, en } = signDisplayNames(sign);
-  const showEnglish = Boolean(en && en !== km);
-
-  if (!km && !en) return null;
+  const title = (km || en || sign.sign_code || 'Traffic sign').trim();
+  const subtitle = en && en !== title ? en : '';
 
   const align = centered ? ' text-center' : '';
   const titleClass =
@@ -34,21 +33,15 @@ export function SignNameLabels({ sign, size = 'md', className = '', centered = f
 
   return (
     <div className={`${className}${align}`.trim()}>
-      {km ? (
-        <p className={titleClass} style={size === 'detail' ? undefined : { color: 'var(--foreground)' }}>
-          {km}
-        </p>
-      ) : en ? (
-        <p className={titleClass} style={size === 'detail' ? undefined : { color: 'var(--foreground)' }}>
-          {en}
-        </p>
-      ) : null}
-      {showEnglish ? (
+      <p className={titleClass} style={size === 'detail' ? undefined : { color: '#0f172a' }}>
+        {title}
+      </p>
+      {subtitle ? (
         <p
           className={subClass}
-          style={size === 'detail' ? undefined : { color: 'var(--muted-foreground)', fontWeight: 500 }}
+          style={size === 'detail' ? undefined : { color: '#475569', fontWeight: 600 }}
         >
-          {en}
+          {subtitle}
         </p>
       ) : null}
     </div>

@@ -134,21 +134,31 @@ class ReportsExportCsvView(APIView):
 
 
 class ReportsExportPdfView(APIView):
-    """Summary export. Branded PDF: GET /api/dashboard/admin/report/pdf/."""
+    """Real branded PDF from live dashboard stats (no sample/demo enrichment)."""
 
     permission_classes = [IsAuthenticated, IsPoliceOrAdmin]
 
     def get(self, request):
-        summary = (
-            'CamTraffic Report\n'
-            f'Generated: {timezone.now().isoformat()}\n'
-            f'Violations: {TrafficViolation.objects.count()}\n'
-            f'Fines: {Fine.objects.count()}\n'
-            f'Pending reviews: {TrafficViolation.objects.filter(status="pending_review").count()}\n'
-            'See also: GET /api/dashboard/admin/report/pdf/\n'
-        )
-        response = HttpResponse(summary, content_type='application/octet-stream')
-        response['Content-Disposition'] = 'attachment; filename="camtraffic_report.txt"'
+        from .pdf_report import build_dashboard_report_pdf
+        from .services import get_admin_stats, get_driver_stats, get_police_report_stats
+
+        role = getattr(request.user, 'role', '')
+        if role == 'admin':
+            stats = get_admin_stats(request)
+            title = 'Admin Analytics Report'
+            scope = 'System-wide (all users)'
+        elif role == 'police':
+            stats = get_police_report_stats(request.user, request)
+            title = 'Police Analytics Report'
+            scope = f'Officer: {request.user.full_name}'
+        else:
+            stats = get_driver_stats(request.user, request)
+            title = 'Driver Summary Report'
+            scope = f'Driver: {request.user.full_name}'
+
+        pdf = build_dashboard_report_pdf(stats, title=title, scope=scope)
+        response = HttpResponse(pdf, content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="camtraffic_report.pdf"'
         return response
 
 

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { SpeakButton } from '@shared/components/SpeakButton';
 import { SignNameLabels } from '@shared/components/signs/SignNameLabels';
+import { DetectionThumb } from '@shared/components/ai/DetectionThumb';
 import { LiveWebcamPanel } from '@shared/components/ai/LiveWebcamPanel';
 import { DemoObservedActionSelect } from '@shared/components/ai/DemoObservedActionSelect';
 import type { DetectPipelineOptions } from '@shared/constants/observedActions';
@@ -868,45 +869,6 @@ function ResultCard({
 /* ═══════════════════════════════════════════════════════
    Recent detections
 ═══════════════════════════════════════════════════════ */
-function RecentDetectionThumb({
-  log,
-  accent,
-  mode,
-}: {
-  log: AIDetectionLog;
-  accent: string;
-  mode: 'sign' | 'vehicle' | 'plate' | 'unknown_sign' | 'no_sign';
-}) {
-  const { locale } = useLanguage();
-  const speechLocale = locale === 'en' ? 'en' : 'km';
-  const hero = logDisplay(log, speechLocale);
-  const [imgFailed, setImgFailed] = useState(false);
-  const src = getProfileImageUrl(log.uploaded_image);
-  const FallbackIcon = mode === 'vehicle' ? Car : mode === 'plate' ? Hash : (mode === 'no_sign' || mode === 'unknown_sign') ? AlertCircle : Camera;
-
-  if (src && !imgFailed) {
-    return (
-      <img
-        src={src}
-        alt={hero.title}
-        title={hero.title}
-        className="ai-detection-recent-thumb ai-detection-recent-thumb--photo"
-        style={{ boxShadow: `0 0 0 1.5px ${accent}30` }}
-        onError={() => setImgFailed(true)}
-      />
-    );
-  }
-
-  return (
-    <div
-      className="ai-detection-recent-thumb ai-detection-recent-thumb--fallback"
-      style={{ background: `${accent}18`, borderColor: `${accent}35` }}
-    >
-      <FallbackIcon size={18} strokeWidth={2.25} className="ai-detection-recent-thumb__icon" style={{ color: accent }} />
-    </div>
-  );
-}
-
 function RecentDetectionsCard({
   logs,
   loading,
@@ -965,7 +927,16 @@ function RecentDetectionsCard({
                 const cc = confColor(hero.confidence);
                 return (
                   <div key={log.id} className={rowClass}>
-                    <RecentDetectionThumb log={log} accent={sc} mode={hero.mode} />
+                    <DetectionThumb
+                      log={log}
+                      accent={sc}
+                      mode={hero.mode}
+                      asButton={false}
+                      className="ai-detection-recent-thumb ai-detection-recent-thumb--photo"
+                      imgClassName="ai-detection-recent-thumb ai-detection-recent-thumb--photo"
+                      emptyClassName="ai-detection-recent-thumb ai-detection-recent-thumb--fallback"
+                      iconSize={18}
+                    />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2 mb-1">
                         <p className="dashboard-text__title truncate">{hero.title}</p>
@@ -1304,7 +1275,7 @@ export function AIDetectionPage() {
         /* ignore polling errors */
       }
     };
-    const pollMs = inputMode === 'webcam' ? 30000 : 12000;
+    const pollMs = inputMode === 'webcam' ? 60000 : 45000;
     const intervalId = window.setInterval(poll, pollMs);
     window.addEventListener('focus', poll);
     return () => {

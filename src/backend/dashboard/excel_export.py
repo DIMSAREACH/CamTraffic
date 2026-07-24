@@ -9,7 +9,6 @@ from io import BytesIO
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
-from .demo_stats import SAMPLE_EXCEL_FINES, SAMPLE_EXCEL_VIOLATIONS
 
 User = get_user_model()
 
@@ -59,10 +58,6 @@ def build_enforcement_monthly_workbook(*, user, year: int, month: int) -> bytes:
         .order_by('-created_at')
     )
 
-    if user.role == 'police':
-        violations_qs = violations_qs.filter(officer__user=user)
-        fines_qs = fines_qs.filter(police=user)
-
     violation_fine_ids = {
         f.violation_id: f.id
         for f in fines_qs
@@ -94,24 +89,6 @@ def build_enforcement_monthly_workbook(*, user, year: int, month: int) -> bytes:
         ])
 
     violation_count = violations_qs.count()
-    if violation_count == 0:
-        for index, row in enumerate(SAMPLE_EXCEL_VIOLATIONS, start=1):
-            ws_v.append([
-                f'DEMO-V{index}',
-                row['date'],
-                row['driver'],
-                row['license'],
-                row['violation_type'],
-                row['observed_action'],
-                row['sign_code'],
-                row['class_key'],
-                row['location'],
-                row['status'],
-                row['plate'],
-                row['officer'],
-                '',
-            ])
-        violation_count = len(SAMPLE_EXCEL_VIOLATIONS)
 
     ws_f = wb.create_sheet('Fines')
     _header_row(ws_f, [
@@ -135,23 +112,6 @@ def build_enforcement_monthly_workbook(*, user, year: int, month: int) -> bytes:
         ])
 
     fine_count = fines_qs.count()
-    if fine_count == 0:
-        for index, row in enumerate(SAMPLE_EXCEL_FINES, start=1):
-            ws_f.append([
-                f'DEMO-F{index}',
-                row['issued'],
-                row['driver'],
-                row['license'],
-                row['amount'],
-                row['reason'],
-                row['status'],
-                row['location'],
-                row['plate'],
-                row['officer'],
-                '',
-                row['paid_at'],
-            ])
-        fine_count = len(SAMPLE_EXCEL_FINES)
 
     ws_s = wb.create_sheet('Summary')
     ws_s.append(['CamTraffic — Monthly Enforcement Export'])
@@ -159,8 +119,8 @@ def build_enforcement_monthly_workbook(*, user, year: int, month: int) -> bytes:
     ws_s.append(['Month', month])
     ws_s.append(['Violations', violation_count])
     ws_s.append(['Fines', fine_count])
-    if violations_qs.count() == 0 or fines_qs.count() == 0:
-        ws_s.append(['Note', 'Sample demo rows included where live records were empty'])
+    if violation_count == 0 and fine_count == 0:
+        ws_s.append(['Note', 'No enforcement records for this month'])
     ws_s.append(['Exported by', user.full_name])
     ws_s.append(['Exported at', timezone.localtime(timezone.now()).strftime('%Y-%m-%d %H:%M')])
 

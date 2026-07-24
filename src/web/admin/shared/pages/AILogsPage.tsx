@@ -735,7 +735,7 @@ export function AILogsPage() {
                       <div className="flex items-center justify-center gap-1.5">
                         <button
                           type="button"
-                          className="enforcement-page__action-btn enforcement-page__action-btn--violet"
+                          className="enforcement-page__action-btn enforcement-page__action-btn--view"
                           onClick={() => setSelected(log)}
                         >
                           <Eye size={13} /> {t('aiLogs.view')}
@@ -743,7 +743,7 @@ export function AILogsPage() {
                         {isAdmin ? (
                           <button
                             type="button"
-                            className="enforcement-page__action-btn"
+                            className="enforcement-page__action-btn enforcement-page__action-btn--delete"
                             disabled={deletingId === log.id}
                             onClick={() => void handleDelete(log)}
                             title={t('aiLogs.delete')}

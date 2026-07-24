@@ -43,16 +43,22 @@ class FineListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        qs = Fine.objects.select_related('driver', 'police')
-        if user.role == 'admin':
+        qs = Fine.objects.select_related('driver', 'police', 'violation')
+        # Admin + officer see all fines (same as violations); drivers see own only.
+        if user.role in ('admin', 'police'):
             return qs
-        if user.role == 'police':
-            return qs.filter(police=user)
         return qs.filter(driver=user)
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
-        serializer = FineSerializer(queryset, many=True, context={'request': request})
+        page = self.paginate_queryset(queryset)
+        serializer = FineSerializer(
+            page if page is not None else queryset,
+            many=True,
+            context={'request': request},
+        )
+        if page is not None:
+            return self.get_paginated_response(serializer.data)
         return success_response(serializer.data)
 
     def create(self, request, *args, **kwargs):
@@ -142,11 +148,9 @@ class FineDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        qs = Fine.objects.select_related('driver', 'police')
-        if user.role == 'admin':
+        qs = Fine.objects.select_related('driver', 'police', 'violation')
+        if user.role in ('admin', 'police'):
             return qs
-        if user.role == 'police':
-            return qs.filter(police=user)
         return qs.filter(driver=user)
 
     def patch(self, request, *args, **kwargs):

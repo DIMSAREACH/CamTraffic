@@ -96,9 +96,32 @@ class Camera(TimeStampedUUIDModel):
     frame_source_url = models.CharField(
         max_length=500,
         blank=True,
-        help_text='RTSP or HTTPS stream/snapshot URL (PRD: stream_url)',
+        default='',
+        help_text='Preferred snapshot/stream URL (HTTP JPEG, RTSP, or /demo-cameras/…)',
     )
-    resolution = models.CharField(max_length=10, blank=True, help_text='e.g. 1080p')
+    # Extended CCTV metadata (already present on production Postgres)
+    rtsp_url = models.CharField(max_length=500, blank=True, default='')
+    resolution = models.CharField(max_length=32, blank=True, default='', help_text='e.g. 1080p')
+    brand = models.CharField(max_length=100, blank=True, default='')
+    serial_number = models.CharField(max_length=100, blank=True, default='')
+    username = models.CharField(max_length=100, blank=True, default='')
+    password_encrypted = models.TextField(blank=True, default='')
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    port = models.IntegerField(default=554)
+    fps = models.IntegerField(default=25)
+    bitrate = models.CharField(max_length=50, blank=True, default='')
+    codec = models.CharField(max_length=50, blank=True, default='')
+    onvif_enabled = models.BooleanField(default=False)
+    recording_enabled = models.BooleanField(default=False)
+    ai_enabled = models.BooleanField(default=True)
+    detection_type = models.CharField(max_length=50, blank=True, default='street')
+    confidence_threshold = models.DecimalField(max_digits=5, decimal_places=2, default=0.35)
+    is_disabled = models.BooleanField(default=False)
+    description = models.TextField(blank=True, default='')
+    province = models.CharField(max_length=100, blank=True, default='')
+    district = models.CharField(max_length=100, blank=True, default='')
+    street = models.CharField(max_length=200, blank=True, default='')
+    last_sync_at = models.DateTimeField(null=True, blank=True)
     last_ping = models.DateTimeField(null=True, blank=True)
     detection_count_today = models.PositiveIntegerField(default=0)
 
@@ -109,6 +132,10 @@ class Camera(TimeStampedUUIDModel):
             models.Index(fields=['road', 'status'], name='idx_camera_road_status'),
             models.Index(fields=['status', '-last_ping'], name='idx_camera_status_ping'),
         ]
+
+    def effective_frame_url(self) -> str:
+        """Prefer frame_source_url; fall back to rtsp_url for legacy rows."""
+        return (self.frame_source_url or self.rtsp_url or '').strip()
 
     def __str__(self):
         return f'{self.name} ({self.road.name})'

@@ -20,7 +20,16 @@ Fine names (STOP, NO ENTRY, …) live in **VIA CSV** `data/CAM_TSR_csv.csv`.
 | Output weights (when done) | `ai/weights/best_b2_named.pt` |
 
 **Dataset:** 1093 images · 26 named classes · train 771 / val 220 / test 111  
-**Training:** fine-tune from `best.pt` → **26-class** head, **15 epochs**, CPU (running in background).
+**Training:** fine-tune from `best.pt` → **26-class** head, **15 epochs**, CPU — **completed**.
+
+| Metric (epoch 15 val) | Value |
+|-----------------------|------:|
+| mAP@50 | **0.432** |
+| mAP@50-95 | **0.371** |
+| Precision | 0.526 |
+| Recall | 0.426 |
+
+Weights: `ai/weights/best_b2_named.pt` ✅
 
 ```bash
 # Rebuild only

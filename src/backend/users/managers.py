@@ -3,6 +3,10 @@ from django.db import transaction
 
 
 class UserManager(BaseUserManager):
+    def not_deleted(self):
+        """Accounts still shown in User Management (excludes soft-deleted)."""
+        return self.get_queryset().filter(deleted_at__isnull=True)
+
     @transaction.atomic
     def create_user(self, email, password=None, **extra_fields):
         if not email:

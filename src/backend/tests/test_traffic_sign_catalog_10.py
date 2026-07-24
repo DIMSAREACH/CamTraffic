@@ -8,7 +8,7 @@ from django.test import SimpleTestCase
 
 from ai_detection.sign_catalog_loader import load_sign_catalog_rows, resolve_catalog_path
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]  # CamTraffic repo root (tests → backend → src → root)
 CATALOG_PATH = ROOT / 'ai' / 'traffic_sign_catalog_10.json'
 
 # Original thesis pilot set — still the first entries in the 50-class catalog.

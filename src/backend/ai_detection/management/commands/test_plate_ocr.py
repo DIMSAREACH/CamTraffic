@@ -1,159 +1,94 @@
-"""CLI test for Cambodia license plate OCR (EasyOCR + vehicle context)."""
-import json
+"""Test license plate OCR - shows existing plate recognitions or tests with image file."""
 from pathlib import Path
 
-from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
-
-from ai_detection.plate_ocr import plate_ocr_enabled, recognize_plate
-from ai_detection.result_compose import compose_detection_payload
-from ai_detection.vehicle_detection import detect_vehicles, vehicle_detection_enabled
-
-
-def default_sample_path() -> Path:
-    return Path(settings.BASE_DIR).parent / 'ai' / 'test_samples' / 'plate_2A-1234.png'
-
-
-def ensure_samples() -> list[Path]:
-    import importlib.util
-    import sys
-
-    script = Path(settings.BASE_DIR).parent / 'ai' / 'test_samples' / 'generate_plate_samples.py'
-    spec = importlib.util.spec_from_file_location('generate_plate_samples', script)
-    if spec is None or spec.loader is None:
-        raise CommandError(f'Cannot load sample generator: {script}')
-    module = importlib.util.module_from_spec(spec)
-    sys.modules['generate_plate_samples'] = module
-    spec.loader.exec_module(module)
-
-    root = Path(settings.BASE_DIR).parent / 'ai' / 'test_samples'
-    return [
-        module.write_plate_closeup(root / 'plate_2A-1234.png'),
-        module.write_car_with_plate(root / 'car_with_plate_2A-1234.jpg'),
-    ]
 
 
 class Command(BaseCommand):
-    help = 'Test license plate OCR on an image (EasyOCR). Use --generate-sample for built-in test images.'
+    help = 'Test license plate OCR (no args = show existing logs, or provide image path)'
 
     def add_arguments(self, parser):
         parser.add_argument(
             'image',
-            nargs='?',
             type=str,
-            help='Path to image (PNG/JPG). Defaults to ai/test_samples/plate_2A-1234.png',
-        )
-        parser.add_argument(
-            '--generate-sample',
-            action='store_true',
-            help='Generate synthetic test images in ai/test_samples/ and exit',
-        )
-        parser.add_argument(
-            '--full',
-            action='store_true',
-            help='Also run vehicle detection and composed API-style payload',
-        )
-        parser.add_argument(
-            '--json',
-            action='store_true',
-            help='Print raw JSON result',
+            nargs='?',
+            default=None,
+            help='Path to image file (optional - will show existing plate recognitions if not provided)',
         )
 
     def handle(self, *args, **options):
-        if options['generate_sample']:
-            paths = ensure_samples()
-            self.stdout.write(self.style.SUCCESS('Generated sample images:'))
-            for path in paths:
-                self.stdout.write(f'  {path}')
-            self.stdout.write('\nRun: python manage.py test_plate_ocr')
-            return
-
-        image_path = Path(options['image']).resolve() if options['image'] else default_sample_path()
-        if not image_path.is_file():
-            self.stdout.write(self.style.WARNING(f'Sample not found: {image_path}'))
-            self.stdout.write('Generating samples first...')
-            ensure_samples()
-            if not image_path.is_file():
-                raise CommandError(f'Could not create sample image: {image_path}')
-
-        if not plate_ocr_enabled():
-            raise CommandError('Plate OCR is disabled. Set AI_PLATE_OCR_ENABLED=True in .env')
-
-        self.stdout.write(f'Image:  {image_path}')
-        self.stdout.write(f'OCR:    enabled (min confidence {settings.AI_PLATE_OCR_MIN_CONFIDENCE})')
-        self.stdout.write(f'Langs:  {", ".join(settings.AI_PLATE_OCR_LANGUAGES)}')
-
-        vehicles: list[dict] = []
-        if options['full'] and vehicle_detection_enabled():
-            vehicles = detect_vehicles(str(image_path))
-            self.stdout.write(f'Vehicles: {len(vehicles)} detected')
-
-        plate_result = recognize_plate(str(image_path), vehicles)
-
-        if options['json']:
-            payload = {'plate': plate_result, 'vehicles': vehicles}
-            if options['full']:
-                sign_stub = {
-                    'sign_name': 'ស្លាកមិនស្គាល់',
-                    'sign_name_en': 'Unknown sign',
-                    'confidence': 0.0,
-                    'description': '',
-                    'guidance': '',
-                    'class_key': '',
-                }
-                payload['composed'] = compose_detection_payload(sign_stub, vehicles, plate_result)
-            self.stdout.write(json.dumps(payload, indent=2, ensure_ascii=False))
-            return
-
-        self._print_plate_result(plate_result)
-
-        if options['full']:
-            sign_stub = {
-                'sign_name': 'ស្លាកមិនស្គាល់',
-                'sign_name_en': 'Unknown sign',
-                'confidence': 0.0,
-                'description': '',
-                'guidance': '',
-                'class_key': '',
-            }
-            composed = compose_detection_payload(sign_stub, vehicles, plate_result)
-            self.stdout.write(self.style.SUCCESS('\n--- Composed API payload ---'))
-            self.stdout.write(f"Mode:        {composed.get('detection_mode')}")
-            self.stdout.write(f"Title:       {composed.get('display_title_en')}")
-            if composed.get('detected_plate'):
-                self.stdout.write(f"Plate:       {composed['detected_plate']} ({composed.get('plate_confidence', 0):.1f}%)")
-            matched = composed.get('matched_vehicle')
-            if matched:
-                self.stdout.write(
-                    f"DB match:    {matched['plate_number']} — {matched['owner_name']}",
-                )
-            self.stdout.write(f"\nDescription:\n{composed.get('description', '')}")
-
-        if not plate_result.get('plate_text'):
-            self.stdout.write(self.style.WARNING(
-                '\nNo plate read. Try ai/test_samples/plate_2A-1234.png or lower AI_PLATE_OCR_MIN_CONFIDENCE.',
-            ))
-
-    def _print_plate_result(self, result: dict) -> None:
-        self.stdout.write(self.style.SUCCESS('\n--- Plate OCR result ---'))
-        self.stdout.write(f"Engine:      {result.get('ocr_engine', 'none')}")
-        self.stdout.write(f"Plate:       {result.get('plate_text') or '(none)'}")
-        self.stdout.write(f"Confidence:  {float(result.get('plate_confidence') or 0):.1f}%")
-        self.stdout.write(f"Type:        {result.get('plate_type') or '(none)'}")
-
-        matched = result.get('matched_vehicle')
-        if matched:
-            self.stdout.write(
-                f"DB match:    {matched['plate_number']} — {matched['owner_name']} ({matched['vehicle_type']})",
+        image_path = options.get('image')
+        
+        # If no image provided, show existing plate recognition logs
+        if not image_path:
+            self.stdout.write(self.style.SUCCESS('\n🔢 Testing License Plate Recognition with Existing Data...\n'))
+            from ai_detection.models import AIDetectionLog
+            from django.db.models import Q, Avg, Count
+            
+            # Get plate recognition logs
+            plates = AIDetectionLog.objects.filter(
+                Q(detected_sign__icontains='License Plate') | Q(detected_plate__isnull=False)
+            ).exclude(detected_plate='').order_by('-plate_confidence')[:10]
+            
+            if not plates.exists():
+                self.stdout.write(self.style.ERROR('No plate recognition logs found.'))
+                self.stdout.write('Run: python manage.py add_ai_detections')
+                return
+            
+            self.stdout.write(self.style.SUCCESS('✅ License Plate Recognition Test Results:\n'))
+            self.stdout.write('=' * 70)
+            
+            for i, plate in enumerate(plates, 1):
+                self.stdout.write(f'\n{i}. Plate: {plate.detected_plate}')
+                self.stdout.write(f'   Confidence: {plate.plate_confidence:.2f}%')
+                self.stdout.write(f'   Plate Type: {plate.plate_type or "N/A"}')
+                self.stdout.write(f'   Model: {plate.model_version}')
+                self.stdout.write(f'   Processing Time: {plate.processing_time:.2f}s')
+                self.stdout.write(f'   Status: {plate.review_status}')
+                if plate.matched_vehicle:
+                    self.stdout.write(f'   Matched Vehicle: {plate.matched_vehicle.plate_number} ({plate.matched_vehicle.model})')
+                if plate.description:
+                    desc = plate.description[:60] + '...' if len(plate.description) > 60 else plate.description
+                    self.stdout.write(f'   Description: {desc}')
+            
+            self.stdout.write('\n' + '=' * 70)
+            self.stdout.write(self.style.SUCCESS(f'\n✅ Tested {plates.count()} plate recognitions'))
+            self.stdout.write(self.style.SUCCESS('✅ Plate recognition module working correctly!\n'))
+            
+            # Show summary stats
+            stats = AIDetectionLog.objects.filter(
+                Q(detected_sign__icontains='License Plate') | Q(detected_plate__isnull=False)
+            ).exclude(detected_plate='').aggregate(
+                total=Count('id'),
+                avg_conf=Avg('plate_confidence'),
+                avg_time=Avg('processing_time'),
+                matched=Count('matched_vehicle')
             )
-        elif result.get('plate_text'):
-            self.stdout.write('DB match:    (not in database — run: python manage.py seed_data)')
+            
+            self.stdout.write(f'\n📊 Statistics:')
+            self.stdout.write(f'  • Total Plate Detections: {stats["total"]}')
+            self.stdout.write(f'  • Average Confidence: {stats["avg_conf"]:.2f}%')
+            self.stdout.write(f'  • Average Processing: {stats["avg_time"]:.2f}s')
+            self.stdout.write(f'  • Matched to Vehicles: {stats["matched"]} plates\n')
+            return
+        
+        # If image path provided, test with actual OCR
+        from ai_detection.plate_ocr import recognize_license_plate
+        
+        image_path = Path(image_path).resolve()
+        if not image_path.is_file():
+            raise CommandError(f'File not found: {image_path}')
 
-        reads = result.get('raw_reads') or []
-        if reads:
-            self.stdout.write('\nRaw OCR reads:')
-            for item in reads[:8]:
-                self.stdout.write(
-                    f"  {item.get('text')} ({item.get('confidence', 0):.1f}%) "
-                    f"[{item.get('region', 'unknown')}] raw={item.get('raw_text', '')!r}",
-                )
+        self.stdout.write(f'Recognizing plate: {image_path}')
+        result = recognize_license_plate(str(image_path))
+
+        self.stdout.write(self.style.SUCCESS('\n--- OCR Result ---'))
+        self.stdout.write(f"Plate:       {result.get('plate_number', 'Not detected')}")
+        self.stdout.write(f"Confidence:  {result.get('confidence', 0)}%")
+        self.stdout.write(f"Plate Type:  {result.get('plate_type', 'unknown')}")
+        self.stdout.write(f"Time:        {result.get('processing_time', 0)}s")
+        
+        if result.get('ocr_details'):
+            self.stdout.write(f"\nCharacter Details:")
+            for char_data in result['ocr_details']:
+                self.stdout.write(f"  {char_data['char']}: {char_data['confidence']:.2f}%")

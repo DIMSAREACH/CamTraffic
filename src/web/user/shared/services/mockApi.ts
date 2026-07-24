@@ -381,6 +381,57 @@ export const finesAPI = {
     fines[idx] = { ...fines[idx], status: 'paid', paid_at: new Date().toISOString(), payment_method: 'aba' };
     return { ...fines[idx] };
   },
+  async getById(id: string) {
+    const row = fines.find((f) => String(f.id) === String(id));
+    if (!row) throw new Error('Fine not found');
+    return { ...row };
+  },
+  async downloadReceiptPdf(_fineId: string, _includeEvidence = false) {
+    return new Blob(['%PDF-1.4 mock'], { type: 'application/pdf' });
+  },
+  async getInstallmentQuote(_fineId: string, numInstallments: number) {
+    return {
+      quote: {
+        original_amount: 50,
+        num_installments: numInstallments,
+        installment_amount: 50 / numInstallments,
+        interest_rate: 0,
+        total_interest: 0,
+        setup_fee: 0,
+        total_amount: 50,
+      },
+    };
+  },
+  async createInstallmentPlan(fineId: string, numInstallments: number) {
+    return {
+      success: true,
+      plan: {
+        id: 'mock-plan',
+        fine_id: fineId,
+        total_amount: 50,
+        num_installments: numInstallments,
+        installment_amount: 50 / numInstallments,
+        start_date: new Date().toISOString(),
+        end_date: new Date().toISOString(),
+        status: 'active',
+      },
+    };
+  },
+  async getInstallmentPlan(_fineId: string) {
+    return { plan: null, payments: [] as Array<{
+      id: string;
+      installment_number: number;
+      amount: number;
+      due_date: string;
+      status: string;
+      paid_at?: string;
+      late_fee: number;
+      days_overdue: number;
+    }> };
+  },
+  async payInstallment(_paymentId: string, _data: { amount: number; payment_method: string; payment_reference?: string }) {
+    return { success: true };
+  },
 };
 
 const appeals: import('../types').ViolationAppeal[] = [];
@@ -931,6 +982,15 @@ export const violationsAPI = {
       confirmed: mockViolations.filter((v) => v.status === 'confirmed').length,
       rejected: mockViolations.filter((v) => v.status === 'rejected').length,
       by_type: [],
+    };
+  },
+  async getMap() {
+    return { violations: [], total_count: 0, bounds: null };
+  },
+  async getHeatmap() {
+    return {
+      heatmap: [],
+      statistics: { total_violations: 0, unique_locations: 0, period_days: 90 },
     };
   },
 };

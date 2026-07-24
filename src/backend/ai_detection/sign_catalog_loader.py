@@ -10,7 +10,7 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-AI_ROOT = Path(settings.BASE_DIR).parent / 'ai'
+AI_ROOT = Path(getattr(settings, 'AI_ROOT', Path(settings.BASE_DIR).parent.parent / 'ai'))
 DEFAULT_CATALOG_PATH = AI_ROOT / 'sign_catalog.json'
 CATALOG_10_PATH = AI_ROOT / 'traffic_sign_catalog_10.json'
 TRAINING_STATUS_PATH = AI_ROOT / 'weights' / 'training_status.json'

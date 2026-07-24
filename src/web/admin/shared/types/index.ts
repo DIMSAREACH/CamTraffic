@@ -207,6 +207,8 @@ export interface AIDetectionLog {
   user_email?: string;
   user_profile_image?: string;
   uploaded_image: string;
+  vehicle_snapshot?: string;
+  plate_snapshot?: string;
   detected_sign: string;
   confidence: number;
   description: string;
@@ -304,12 +306,12 @@ export interface AIDetectionPageStats {
 }
 
 export interface Notification {
-  id: number;
-  user_id: number;
+  id: string | number;
+  user_id?: string | number;
   title: string;
   message: string;
   is_read: boolean;
-  type: NotificationType;
+  type: NotificationType | string;
   created_at: string;
 }
 
@@ -467,6 +469,7 @@ export interface DashboardStats {
   top_locations?: ReportLocationRow[];
   peak_hours?: ReportHourCount[];
   monthly_registrations?: MonthlyData[];
+  recent_activity?: DashboardActivityItem[];
   trends?: {
     users?: TrendBadge | null;
     fines?: TrendBadge | null;
@@ -474,6 +477,18 @@ export interface DashboardStats {
     violations?: TrendBadge | null;
     revenue?: TrendBadge | null;
   };
+}
+
+export interface DashboardActivityItem {
+  id: string;
+  kind: 'violation' | 'fine' | 'detection' | string;
+  title: string;
+  subtitle: string;
+  meta?: string;
+  status?: string;
+  amount?: number;
+  href?: string;
+  created_at: string;
 }
 
 export interface RBACPermission {

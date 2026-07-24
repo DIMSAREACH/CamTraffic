@@ -48,6 +48,22 @@ const VIOLATION_REASONS = [
   { key: 'noRegistration', value: 'No Vehicle Registration' },
 ] as const;
 
+/** Common Cambodia enforcement locations for production-ready fine issuance. */
+const CAMBODIA_LOCATIONS = [
+  'Monivong Blvd, Chamkarmon, Phnom Penh',
+  'Norodom Blvd, Daun Penh, Phnom Penh',
+  'Russian Blvd, Tuol Kork, Phnom Penh',
+  'Mao Tse Tung Blvd, Boeng Keng Kang, Phnom Penh',
+  'Sihanouk Blvd, Independence Monument, Phnom Penh',
+  'Sisowath Quay, Riverside, Phnom Penh',
+  'Kampuchea Krom Blvd, 7 Makara, Phnom Penh',
+  'Veng Sreng Blvd, Mean Chey, Phnom Penh',
+  'National Road 1, Kien Svay Interchange',
+  'National Road 4, Chaom Chau Roundabout',
+  'Siem Reap, Sivatha Blvd',
+  'Battambang, Street 1 City Center',
+] as const;
+
 const REASON_VALUE_TO_KEY = Object.fromEntries(
   VIOLATION_REASONS.map((reason) => [reason.value, reason.key]),
 ) as Record<string, typeof VIOLATION_REASONS[number]['key']>;
@@ -269,7 +285,9 @@ export function OfficerDashboard() {
       <div className="enforcement-page__panel police-dashboard-quick-panel mb-4">
         <div className="police-dashboard-quick-panel__head">
           <h2 className="dashboard-section__title">{t('dashboard.quickActions')}</h2>
-          <p className="dashboard-section__subtitle">{t('dashboard.quickActionsHint')}</p>
+          <p className="dashboard-section__subtitle">
+            {t('dashboard.quickActionsHint')} · {t('dashboard.cambodiaOpsHint')}
+          </p>
         </div>
         <div className="police-dashboard-quick-grid">
           {quickActions.map((action) => {
@@ -547,10 +565,23 @@ export function OfficerDashboard() {
             </div>
             <div>
               <Label className="enforcement-page__form-label">{t('fines.locationLabel')} *</Label>
+              <Select
+                value={fineForm.location || undefined}
+                onValueChange={(v) => setFineForm((f) => ({ ...f, location: v }))}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder={t('fines.locationPlaceholder')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {CAMBODIA_LOCATIONS.map((loc) => (
+                    <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Input
-                className="mt-1"
-                placeholder={t('fines.locationPlaceholder')}
-                value={fineForm.location}
+                className="mt-2"
+                placeholder={t('fines.locationCustomHint')}
+                value={(CAMBODIA_LOCATIONS as readonly string[]).includes(fineForm.location) ? '' : fineForm.location}
                 onChange={(e) => setFineForm((f) => ({ ...f, location: e.target.value }))}
               />
             </div>

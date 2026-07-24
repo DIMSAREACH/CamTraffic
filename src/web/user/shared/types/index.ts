@@ -207,6 +207,8 @@ export interface AIDetectionLog {
   user_email?: string;
   user_profile_image?: string;
   uploaded_image: string;
+  vehicle_snapshot?: string;
+  plate_snapshot?: string;
   detected_sign: string;
   confidence: number;
   description: string;
@@ -347,8 +349,8 @@ export interface TrendBadge {
 
 export type RoadStatus = 'active' | 'inactive' | 'maintenance';
 export type RoadType = 'highway' | 'urban' | 'rural' | 'intersection';
-export type CameraStatus = 'active' | 'inactive' | 'maintenance';
-export type CameraType = 'fixed' | 'ptz' | 'speed';
+export type CameraStatus = 'active' | 'inactive' | 'maintenance' | 'offline';
+export type CameraType = 'fixed' | 'ptz' | 'mobile' | 'speed';
 
 export interface Road {
   id: string;
@@ -380,6 +382,32 @@ export interface Camera {
   longitude?: number | null;
   status: CameraStatus;
   frame_source_url: string;
+  rtsp_url?: string;
+  resolution?: string;
+  brand?: string;
+  serial_number?: string;
+  username?: string;
+  /** Write-only on create/update; never returned from API. */
+  password?: string;
+  has_password?: boolean;
+  ip_address?: string | null;
+  port?: number;
+  fps?: number;
+  bitrate?: string;
+  codec?: string;
+  onvif_enabled?: boolean;
+  recording_enabled?: boolean;
+  ai_enabled?: boolean;
+  detection_type?: string;
+  confidence_threshold?: number | string;
+  is_disabled?: boolean;
+  description?: string;
+  province?: string;
+  district?: string;
+  street?: string;
+  last_sync_at?: string | null;
+  last_ping?: string | null;
+  detection_count_today?: number;
   created_at: string;
   updated_at: string;
 }
@@ -460,6 +488,7 @@ export interface DashboardStats {
   top_locations?: ReportLocationRow[];
   peak_hours?: ReportHourCount[];
   monthly_registrations?: MonthlyData[];
+  recent_activity?: DashboardActivityItem[];
   trends?: {
     users?: TrendBadge | null;
     fines?: TrendBadge | null;
@@ -467,6 +496,18 @@ export interface DashboardStats {
     violations?: TrendBadge | null;
     revenue?: TrendBadge | null;
   };
+}
+
+export interface DashboardActivityItem {
+  id: string;
+  kind: 'violation' | 'fine' | 'detection' | string;
+  title: string;
+  subtitle: string;
+  meta?: string;
+  status?: string;
+  amount?: number;
+  href?: string;
+  created_at: string;
 }
 
 export interface RBACPermission {

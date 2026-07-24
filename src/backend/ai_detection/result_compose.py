@@ -24,7 +24,14 @@ def _is_unknown_sign(sign_result: dict) -> bool:
 
 
 def _apply_plate_fields(payload: dict, plate_result: dict | None) -> None:
-    if not plate_result or not plate_result.get('plate_text'):
+    if not plate_result:
+        return
+    # Always attach plate detector bbox when present (even if OCR text empty)
+    if plate_result.get('plate_bbox'):
+        payload['plate_bbox'] = plate_result['plate_bbox']
+    if plate_result.get('plate_boxes'):
+        payload['plate_boxes'] = plate_result['plate_boxes']
+    if not plate_result.get('plate_text'):
         return
     payload['detected_plate'] = plate_result['plate_text']
     payload['plate_confidence'] = float(plate_result.get('plate_confidence') or 0)
@@ -128,6 +135,8 @@ def compose_detection_payload(
             payload['description_en'] = sign_result['description_en']
         if sign_result.get('guidance_en'):
             payload['guidance_en'] = sign_result['guidance_en']
+        _apply_plate_fields(payload, plate_result)
+        _append_plate_description(payload, plate_result)
         return payload
     for key in (
         'sign_name_km', 'sign_name_en', 'sign_code', 'category',
@@ -193,6 +202,8 @@ def compose_detection_payload(
                 'សូមប្រើរូបច្បាស់ជាងនេះ រឺបណ្តោងស្លាកកណ្តាល រឺ train YOLO '
                 'លើប្រភេទស្លាកនេះ (មើល ai/README.md)។'
             )
+        _apply_plate_fields(payload, plate_result)
+        _append_plate_description(payload, plate_result)
         return payload
 
     payload['detection_mode'] = 'sign'

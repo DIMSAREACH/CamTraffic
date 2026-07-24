@@ -68,7 +68,7 @@ class ViolationListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         user = self.request.user
         qs = TrafficViolation.objects.select_related(
-            'driver__user', 'officer__user', 'vehicle', 'fine',
+            'driver__user', 'officer__user', 'vehicle', 'fine', 'ai_detection_log',
         )
         if user.role == 'admin':
             return qs
@@ -84,7 +84,14 @@ class ViolationListCreateView(generics.ListCreateAPIView):
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
-        serializer = TrafficViolationSerializer(queryset, many=True, context={'request': request})
+        page = self.paginate_queryset(queryset)
+        serializer = TrafficViolationSerializer(
+            page if page is not None else queryset,
+            many=True,
+            context={'request': request},
+        )
+        if page is not None:
+            return self.get_paginated_response(serializer.data)
         return success_response(serializer.data)
 
     def create(self, request, *args, **kwargs):
@@ -203,7 +210,7 @@ class ViolationDetailView(generics.RetrieveUpdateDestroyAPIView):
     def get_queryset(self):
         user = self.request.user
         qs = TrafficViolation.objects.select_related(
-            'driver__user', 'officer__user', 'vehicle', 'fine',
+            'driver__user', 'officer__user', 'vehicle', 'fine', 'ai_detection_log',
         )
         if user.role == 'admin':
             return qs

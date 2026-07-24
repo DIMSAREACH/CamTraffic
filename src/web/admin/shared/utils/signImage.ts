@@ -49,15 +49,41 @@ export function resolveCatalogDemoImage(signCode?: string | null): string | null
   return resolvePublicAssetPath(path);
 }
 
-/** Ordered image URLs: API media first, then bundled demo art. */
+/** Ordered image URLs: API media first, then /media path derived from CDN, then demo art. */
 export function trafficSignImageCandidates(
   sign: Pick<TrafficSign, 'image' | 'sign_code'>,
 ): string[] {
   const urls: string[] = [];
-  const primary = signImageSrc(sign.image);
-  if (primary) urls.push(primary);
-  const demo = resolveCatalogDemoImage(sign.sign_code);
-  if (demo && !urls.includes(demo)) urls.push(demo);
+  const seen = new Set<string>();
+  const push = (url: string | null | undefined) => {
+    if (!url || seen.has(url)) return;
+    seen.add(url);
+    urls.push(url);
+  };
+
+  push(signImageSrc(sign.image));
+
+  const raw = sign.image?.trim() || '';
+  if (/^https?:\/\//i.test(raw)) {
+    try {
+      const { pathname } = new URL(raw);
+      if (pathname.includes('/media/') || pathname.includes('/signs/')) {
+        const mediaPath = pathname.startsWith('/media/')
+          ? pathname
+          : pathname.includes('/signs/')
+            ? `/media${pathname.slice(pathname.indexOf('/signs/'))}`
+            : `/media${pathname}`;
+        push(signImageSrc(mediaPath));
+        push(getProfileImageUrl(mediaPath));
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  if (import.meta.env.DEV === true && import.meta.env.VITE_ALLOW_DEMO_ASSETS === 'true') {
+    push(resolveCatalogDemoImage(sign.sign_code));
+  }
   return urls;
 }
 

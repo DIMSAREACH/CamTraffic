@@ -6,6 +6,10 @@ import { Label } from '@shared/components/ui/label';
 
 const AUTO_VALUE = '_auto';
 
+/** Only show demo violation override when explicitly enabled (never in production builds). */
+export const ALLOW_DEMO_VIOLATION_UI =
+  import.meta.env.DEV === true && import.meta.env.VITE_ALLOW_DEMO_VIOLATION === 'true';
+
 interface DemoObservedActionSelectProps {
   value: string;
   onChange: (value: string) => void;
@@ -35,6 +39,10 @@ export function DemoObservedActionSelect({
       })),
     ];
   }, [t]);
+
+  if (!ALLOW_DEMO_VIOLATION_UI) {
+    return null;
+  }
 
   return (
     <div className={`ai-detection-demo-select${className ? ` ${className}` : ''}`}>

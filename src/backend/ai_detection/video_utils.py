@@ -13,9 +13,10 @@ ALLOWED_VIDEO_EXTENSIONS = {'.mp4', '.webm', '.mov', '.avi', '.mkv', '.m4v'}
 # Keep in sync with frontend VideoUploadPanel MAX_VIDEO_MB (default 500).
 MAX_VIDEO_UPLOAD_MB = max(1, int(os.getenv('AI_VIDEO_MAX_MB', '500')))
 MAX_VIDEO_UPLOAD_BYTES = MAX_VIDEO_UPLOAD_MB * 1024 * 1024
+DEFAULT_VIDEO_MAX_FRAMES = max(2, min(24, int(os.getenv('AI_VIDEO_MAX_FRAMES', '12'))))
 
 
-def extract_video_frames(video_path: str, max_frames: int = 6) -> list[tuple[str, float]]:
+def extract_video_frames(video_path: str, max_frames: int = 12) -> list[tuple[str, float]]:
     """
     Sample evenly spaced frames from a video file.
     Returns list of (temp_jpeg_path, timestamp_seconds).
@@ -33,19 +34,49 @@ def extract_video_frames(video_path: str, max_frames: int = 6) -> list[tuple[str
     try:
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
         fps = float(cap.get(cv2.CAP_PROP_FPS) or 0)
-        if total_frames <= 0:
-            total_frames = 1
         if fps <= 0:
             fps = 25.0
+
+        frames: list[tuple[str, float]] = []
+        if total_frames <= 0:
+            # Sequential sample for codecs with unknown length (common with .webm)
+            idx = 0
+            target = max(1, max_frames)
+            while len(frames) < target:
+                ok, frame = cap.read()
+                if not ok or frame is None:
+                    break
+                stride = 8
+                if idx % stride == 0:
+                    tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.jpg')
+                    tmp_path = tmp.name
+                    tmp.close()
+                    if cv2.imwrite(tmp_path, frame):
+                        frames.append((tmp_path, idx / fps))
+                    else:
+                        Path(tmp_path).unlink(missing_ok=True)
+                idx += 1
+                if idx > target * stride * 4:
+                    break
+            return frames
 
         count = max(1, min(max_frames, total_frames))
         if count == 1:
             indices = [max(0, total_frames // 2)]
         else:
-            step = max(1, total_frames // count)
-            indices = [min(i * step, total_frames - 1) for i in range(count)]
+            # Evenly span full clip (include near start and end)
+            indices = [
+                min(total_frames - 1, int(round(i * (total_frames - 1) / (count - 1))))
+                for i in range(count)
+            ]
+            seen: set[int] = set()
+            uniq: list[int] = []
+            for i in indices:
+                if i not in seen:
+                    seen.add(i)
+                    uniq.append(i)
+            indices = uniq
 
-        frames: list[tuple[str, float]] = []
         for frame_idx in indices:
             cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
             ok, frame = cap.read()
@@ -66,7 +97,8 @@ def extract_video_frames(video_path: str, max_frames: int = 6) -> list[tuple[str
 
 def build_annotated_preview_video(frame_paths: list[str], out_path: str, *, fps: float = 2.0) -> bool:
     """
-    Stitch sampled annotated JPEGs into a short MP4 preview (each frame ~1s at default fps).
+    Stitch sampled annotated JPEGs into a short MP4 preview (each frame held ~0.5–1s).
+    Tries browser-friendlier codecs first (avc1 / H264), then mp4v.
     Returns True when out_path was written.
     """
     if not frame_paths:
@@ -92,14 +124,21 @@ def build_annotated_preview_video(frame_paths: list[str], out_path: str, *, fps:
         return False
 
     hold = max(1, int(round(fps)))
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    writer = cv2.VideoWriter(out_path, fourcc, fps, size)
-    if not writer.isOpened():
-        return False
-    try:
-        for img in images:
-            for _ in range(hold):
-                writer.write(img)
-        return True
-    finally:
-        writer.release()
+    # Prefer mp4v first on Windows (avc1/H264 often needs OpenH264 DLL).
+    codec_candidates = ('mp4v', 'avc1', 'XVID')
+    for codec in codec_candidates:
+        fourcc = cv2.VideoWriter_fourcc(*codec)
+        writer = cv2.VideoWriter(out_path, fourcc, fps, size)
+        if not writer.isOpened():
+            writer.release()
+            continue
+        try:
+            for img in images:
+                for _ in range(hold):
+                    writer.write(img)
+        finally:
+            writer.release()
+        if Path(out_path).is_file() and Path(out_path).stat().st_size > 1000:
+            return True
+        Path(out_path).unlink(missing_ok=True)
+    return False

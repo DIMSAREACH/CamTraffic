@@ -16,7 +16,9 @@ from django.conf import settings
 from .vehicle_detection import (
     COCO_VEHICLE_CLASSES,
     _build_detection,
+    _class_map,
     _confidence_threshold,
+    _detect_model_mode,
     _resolve_vehicle_model_path,
     vehicle_detection_enabled,
 )
@@ -49,7 +51,12 @@ def _create_track_model():
     from ultralytics import YOLO
 
     path = _resolve_vehicle_model_path()
-    return YOLO(str(path))
+    model = YOLO(str(path))
+    # Align class mapping with detect_vehicles() for Cambodia custom weights
+    import ai_detection.vehicle_detection as vd
+
+    vd._VEHICLE_MODEL_MODE = _detect_model_mode(model)
+    return model
 
 
 def _purge_stale_sessions(now: float | None = None) -> None:
@@ -110,14 +117,19 @@ def track_vehicles(image_path: str, session_id: str) -> list[dict]:
     try:
         model = _get_session_model(session_id)
         threshold = _confidence_threshold()
-        results = model.track(
-            source=str(path),
-            conf=threshold,
-            verbose=False,
-            persist=True,
-            classes=list(COCO_VEHICLE_CLASSES.keys()),
-            tracker='bytetrack.yaml',
-        )
+        track_kwargs = {
+            'source': str(path),
+            'conf': threshold,
+            'verbose': False,
+            'persist': True,
+            'tracker': 'bytetrack.yaml',
+        }
+        # Only apply COCO class filter for COCO weights
+        class_map = _class_map()
+        if class_map is COCO_VEHICLE_CLASSES or set(class_map.keys()) == set(COCO_VEHICLE_CLASSES.keys()):
+            track_kwargs['classes'] = list(COCO_VEHICLE_CLASSES.keys())
+
+        results = model.track(**track_kwargs)
         if not results:
             return []
 
