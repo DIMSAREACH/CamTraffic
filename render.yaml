@@ -24,7 +24,7 @@ services:
     runtime: node
     repo: https://github.com/DIMSAREACH/CamTraffic.git  
     branch: restructure-project
-    buildCommand: cd src/web/admin && npm ci && npm run build
+    buildCommand: npm ci && npm run build --workspace=src/web/admin
     staticPublishPath: ./src/web/admin/dist
 
   - type: static  
@@ -32,7 +32,7 @@ services:
     runtime: node
     repo: https://github.com/DIMSAREACH/CamTraffic.git
     branch: restructure-project  
-    buildCommand: cd src/web/user && npm ci && npm run build
+    buildCommand: npm ci && npm run build --workspace=src/web/user
     staticPublishPath: ./src/web/user/dist
 
 databases:
