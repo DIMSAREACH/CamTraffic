@@ -1,0 +1,195 @@
+"""Password reset email helper."""
+import logging
+from urllib.parse import urlencode
+
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
+
+from .resend_email import get_resend_from_email, resend_configured, send_resend_email
+
+logger = logging.getLogger(__name__)
+User = get_user_model()
+
+DEFAULT_RESET_URL = 'http://localhost:5173/reset-password'
+# Hostnames that currently have no public DNS — never put these in emails.
+_BROKEN_RESET_HOSTS = frozenset({'app.camtraffic.store'})
+_FALLBACK_RESET_URL = 'https://camtraffic-user.onrender.com/reset-password'
+
+
+def _reset_base_url() -> str:
+    raw = getattr(settings, 'FRONTEND_PASSWORD_RESET_URL', DEFAULT_RESET_URL).rstrip('/')
+    from urllib.parse import urlparse
+
+    host = (urlparse(raw).hostname or '').lower()
+    if host in _BROKEN_RESET_HOSTS:
+        logger.warning(
+            'FRONTEND_PASSWORD_RESET_URL host %s has no DNS; using %s',
+            host,
+            _FALLBACK_RESET_URL,
+        )
+        return _FALLBACK_RESET_URL
+    return raw or DEFAULT_RESET_URL
+
+
+def smtp_configured() -> bool:
+    return bool(getattr(settings, 'EMAIL_HOST_USER', '') and getattr(settings, 'EMAIL_HOST_PASSWORD', ''))
+
+
+def email_configured() -> bool:
+    return resend_configured() or smtp_configured()
+
+
+def from_email() -> str:
+    if resend_configured():
+        return get_resend_from_email()
+    return (
+        getattr(settings, 'DEFAULT_FROM_EMAIL', '')
+        or getattr(settings, 'EMAIL_HOST_USER', '')
+        or 'noreply@camtraffic.kh'
+    )
+
+
+def frontend_reset_url(uid: str, token: str) -> str:
+    """SPA URL with query params (must be a hostname that resolves in DNS)."""
+    base = _reset_base_url()
+    return f'{base}?{urlencode({"uid": uid, "token": token})}'
+
+
+def build_reset_link(user) -> tuple[str, str, str]:
+    """Build the link placed in reset emails.
+
+    When PUBLIC_API_URL is set, emails use an API continue URL that 302-redirects
+    to FRONTEND_PASSWORD_RESET_URL. That way broken custom domains (e.g. missing
+    app.camtraffic.store DNS) do not strand users — the API host still works.
+    """
+    uid = urlsafe_base64_encode(force_bytes(str(user.pk)))
+    token = default_token_generator.make_token(user)
+    public = (getattr(settings, 'PUBLIC_API_URL', None) or '').strip().rstrip('/')
+    if public:
+        link = f'{public}/api/auth/password-reset/continue/?{urlencode({"uid": uid, "token": token})}'
+    else:
+        link = frontend_reset_url(uid, token)
+    return link, uid, token
+
+
+def _render_reset_bodies(user, to_email: str) -> tuple[str, str, str, str]:
+    recipient = to_email.strip()
+    link, _, _ = build_reset_link(user)
+    name = user.full_name or recipient.split('@')[0]
+    context = {
+        'name': name,
+        'email': recipient,
+        'reset_link': link,
+    }
+    subject = 'CamTraffic — Reset your password'
+    text_body = render_to_string('authentication/email/password_reset.txt', context)
+    html_body = render_to_string('authentication/email/password_reset.html', context)
+    return recipient, subject, text_body, html_body
+
+
+def _send_via_smtp(recipient: str, subject: str, text_body: str, html_body: str) -> bool:
+    try:
+        message = EmailMultiAlternatives(
+            subject=subject,
+            body=text_body,
+            from_email=from_email(),
+            to=[recipient],
+        )
+        message.attach_alternative(html_body, 'text/html')
+        message.send(fail_silently=False)
+        logger.info('SMTP password reset email sent to %s', recipient)
+        return True
+    except Exception:
+        logger.exception('SMTP failed to send password reset email to %s', recipient)
+        return False
+
+
+_last_send_error: str | None = None
+
+
+def get_last_send_error() -> str | None:
+    return _last_send_error
+
+
+def send_password_reset_email(user, to_email: str) -> bool:
+    """Send HTML reset email to the address entered on the forgot-password form."""
+    global _last_send_error
+    _last_send_error = None
+    recipient, subject, text_body, html_body = _render_reset_bodies(user, to_email)
+
+    if resend_configured():
+        ok, err = send_resend_email(to=recipient, subject=subject, html=html_body, text=text_body)
+        if ok:
+            return True
+        _last_send_error = err
+        if not smtp_configured():
+            return False
+
+    if smtp_configured():
+        return _send_via_smtp(recipient, subject, text_body, html_body)
+
+    if settings.DEBUG:
+        link = build_reset_link(user)[0]
+        print(f'\n[CamTraffic] Email not configured — reset link for {recipient}:\n{link}\n')
+        print('Set RESEND_API_KEY + RESEND_FROM_EMAIL (recommended) or SMTP in backend/.env.\n')
+        return True
+
+    return False
+
+
+class PasswordResetError(Exception):
+    def __init__(self, code: str, message: str):
+        self.code = code
+        self.message = message
+        super().__init__(message)
+
+
+def request_password_reset(email: str) -> User:
+    """Send reset email only when a registered, active account exists."""
+    email = email.strip()
+    try:
+        user = User.objects.get(email__iexact=email)
+    except User.DoesNotExist:
+        raise PasswordResetError(
+            'not_found',
+            'No account found with this email address.',
+        )
+    except Exception as exc:
+        logger.exception('Password reset lookup failed for %s', email)
+        raise PasswordResetError(
+            'send_failed',
+            'Could not process the reset request. Please try again later.',
+        ) from exc
+    if not user.is_active:
+        raise PasswordResetError(
+            'inactive',
+            'This account is deactivated. Please contact support.',
+        )
+    if not email_configured() and not settings.DEBUG:
+        raise PasswordResetError(
+            'send_failed',
+            'Email delivery is not configured on the server. Contact an administrator or use demo login.',
+        )
+    try:
+        if not send_password_reset_email(user, to_email=email):
+            if settings.DEBUG:
+                link = build_reset_link(user)[0]
+                print(f'\n[CamTraffic] Email send failed for {email}. Use this reset link locally:\n{link}\n')
+                logger.warning('Password reset email send failed in DEBUG mode: %s', get_last_send_error())
+                return user
+            detail = get_last_send_error() or 'Could not send the reset email right now.'
+            raise PasswordResetError('send_failed', detail)
+    except PasswordResetError:
+        raise
+    except Exception as exc:
+        logger.exception('Password reset email failed for %s', email)
+        raise PasswordResetError(
+            'send_failed',
+            'Could not send the reset email. Please try again later or contact support.',
+        ) from exc
+    return user

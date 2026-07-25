@@ -10,9 +10,9 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const envSpecs = {
-  'backend/.env.example': ['SECRET_KEY', 'DEBUG', 'ALLOWED_HOSTS'],
-  'frontend-admin/.env.example': ['VITE_API_URL', 'VITE_USE_MOCK', 'VITE_USE_SAMPLE_FALLBACK'],
-  'frontend-user/.env.example': ['VITE_API_URL', 'VITE_USE_MOCK', 'VITE_USE_SAMPLE_FALLBACK'],
+  'src/backend/.env.example': ['SECRET_KEY', 'DEBUG', 'ALLOWED_HOSTS'],
+  'src/web/admin/.env.example': ['VITE_API_URL', 'VITE_USE_MOCK', 'VITE_USE_SAMPLE_FALLBACK'],
+  'src/web/user/.env.example': ['VITE_API_URL', 'VITE_USE_MOCK', 'VITE_USE_SAMPLE_FALLBACK'],
 };
 
 function parseKeys(filePath) {

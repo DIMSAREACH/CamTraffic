@@ -10,6 +10,11 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const targets = [
+  'src/web/admin/.env',
+  'src/web/admin/.env.example',
+  'src/web/user/.env',
+  'src/web/user/.env.example',
+  // Legacy paths (pre-restructure) — keep for older checkouts
   'frontend-admin/.env',
   'frontend-admin/.env.example',
   'frontend-user/.env',
@@ -30,23 +35,37 @@ function parseEnv(filePath) {
 }
 
 let failed = 0;
+let checked = 0;
 
 for (const rel of targets) {
   const full = path.join(root, rel);
   if (!fs.existsSync(full)) {
-    console.warn(`SKIP missing ${rel}`);
+    if (!rel.startsWith('frontend-')) {
+      console.warn(`SKIP missing ${rel}`);
+    }
     continue;
   }
+  checked += 1;
   const env = parseEnv(full);
   if (env.VITE_USE_MOCK === 'true') {
     console.error(`FAIL ${rel}: VITE_USE_MOCK must be false for production truth`);
     failed++;
     continue;
   }
-  if (env.VITE_USE_SAMPLE_FALLBACK === 'true' && rel.endsWith('.env.example')) {
-    console.warn(`WARN ${rel}: VITE_USE_SAMPLE_FALLBACK=true (dev-only; not recommended in examples)`);
+  if (env.VITE_USE_SAMPLE_FALLBACK === 'true' && !rel.endsWith('.env.example')) {
+    console.error(`FAIL ${rel}: VITE_USE_SAMPLE_FALLBACK must be false for real data`);
+    failed++;
+    continue;
   }
-  console.log(`OK   ${rel} — production-truth (${env.VITE_USE_MOCK ?? 'unset'} mock)`);
+  if (env.VITE_USE_SAMPLE_FALLBACK === 'true' && rel.endsWith('.env.example')) {
+    console.warn(`WARN ${rel}: VITE_USE_SAMPLE_FALLBACK=true — set false in examples for real-data default`);
+  }
+  console.log(`OK   ${rel} — production-truth (mock=${env.VITE_USE_MOCK ?? 'unset'}, sample=${env.VITE_USE_SAMPLE_FALLBACK ?? 'unset'})`);
+}
+
+if (checked === 0) {
+  console.error('FAIL: no frontend .env files found under src/web/admin or src/web/user');
+  process.exit(1);
 }
 
 process.exit(failed ? 1 : 0);

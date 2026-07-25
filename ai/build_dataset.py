@@ -3,11 +3,11 @@
 Build YOLOv8 dataset from Cambodia road sign reference PNGs.
 
 Source folder (thesis reference):
-  Reference(PDF Download)/Dim Sareach/ស្លាកសញ្ញាចរាចរណ៏/
+  Reference(PDF Download)/Dim Sareach/Dataset/Road signs in Cambodia/
 
 Usage:
   python build_dataset.py
-  python build_dataset.py --source "D:/path/to/ស្លាកសញ្ញាចរាចរណ៏"
+  python build_dataset.py --source "D:/path/to/Road signs in Cambodia"
 """
 from __future__ import annotations
 
@@ -15,18 +15,17 @@ import argparse
 import random
 import re
 import shutil
+import sys
 from pathlib import Path
 
 import numpy as np
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent
-CAMBODIA_REFERENCE_ROOT = (
-    ROOT.parent.parent.parent
-    / 'Reference(PDF Download)'
-    / 'Dim Sareach'
-    / 'Road signs in Cambodia'
-)
+sys.path.insert(0, str(ROOT / 'scripts'))
+from dim_sareach_paths import road_signs_root  # noqa: E402
+
+CAMBODIA_REFERENCE_ROOT = road_signs_root()
 META_PATH = ROOT / 'reference_sign_meta.json'
 STEM_MAP_PATH = ROOT / 'cambodia_stem_to_class.json'
 DEFAULT_SOURCES = (CAMBODIA_REFERENCE_ROOT,)
@@ -188,7 +187,10 @@ def collect_sources(source_dir: Path, *, skip_folders: set[str] | None = None) -
     for path in image_paths:
         if skip_folders:
             rel_parts = path.relative_to(source_dir).parts
-            if rel_parts and rel_parts[0] in skip_folders:
+            if rel_parts and (
+                rel_parts[0] in skip_folders
+                or _normalize_folder_name(rel_parts[0]) in skip_folders
+            ):
                 continue
         code = class_key_from_path(path, stem_map)
         if not code:
@@ -211,6 +213,17 @@ FOLDER_TO_CATEGORY = {
     'Street name signs': 'informative',
     'Road markings': 'informative',
 }
+
+_FOLDER_NUMBER_PREFIX = re.compile(r'^\d+\s*-\s*')
+
+
+def _normalize_folder_name(name: str) -> str:
+    cleaned = _FOLDER_NUMBER_PREFIX.sub('', (name or '').strip())
+    return re.sub(r'\s+', ' ', cleaned).strip()
+
+
+def category_for_folder(folder_name: str) -> str:
+    return FOLDER_TO_CATEGORY.get(_normalize_folder_name(folder_name), 'informative')
 
 
 def _source_folder_tag(source_dir: Path) -> str:
@@ -262,6 +275,8 @@ def load_reference_meta() -> dict[str, dict]:
 def write_catalog(classes: list[str], out_path: Path) -> None:
     import json
 
+    from khmer_speech import enrich_catalog_row
+
     reference_meta = load_reference_meta()
     catalog = []
     for code in classes:
@@ -281,6 +296,7 @@ def write_catalog(classes: list[str], out_path: Path) -> None:
             'guidance_en': meta.get('guidance_en', ''),
             'class_key': code,
         }
+        enrich_catalog_row(row)
         catalog.append(row)
     out_path.write_text(json.dumps(catalog, ensure_ascii=False, indent=2), encoding='utf-8')
 

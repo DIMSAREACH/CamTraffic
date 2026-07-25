@@ -1,0 +1,57 @@
+{
+  "evaluated_at": "2026-07-11T20:53:16.345363+00:00",
+  "weights": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\weights\\best_v2.pt",
+  "data": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\training\\yolo\\.dataset_signs_10.yaml",
+  "map50": 0.9083687363834421,
+  "map50_95": 0.7956495098039216,
+  "precision": 0.9598020417121769,
+  "recall": 0.1962719147025188,
+  "fps_cpu": 21.587806947545968,
+  "per_class": {
+    "NO_ENTRY": {
+      "ap50": 0.995,
+      "precision": 1.0,
+      "recall": 0.0
+    },
+    "NO_LEFT_TURN": {
+      "ap50": 0.21531862745098038,
+      "precision": 1.0,
+      "recall": 0.0
+    },
+    "NO_RIGHT_TURN": {
+      "ap50": 0.995,
+      "precision": 1.0,
+      "recall": 0.0
+    },
+    "NO_U_TURN": {
+      "ap50": 0.995,
+      "precision": 1.0,
+      "recall": 0.0
+    },
+    "NO_PARKING": {
+      "ap50": 0.995,
+      "precision": 1.0,
+      "recall": 0.0
+    },
+    "M_STOP": {
+      "ap50": 0.995,
+      "precision": 0.638218375409592,
+      "recall": 1.0
+    },
+    "P_SPEED_LIMIT_20_KM_H": {
+      "ap50": 0.995,
+      "precision": 1.0,
+      "recall": 0.0
+    },
+    "P_SPEED_LIMIT_50_KM_H": {
+      "ap50": 0.995,
+      "precision": 1.0,
+      "recall": 0.7664472323226694
+    },
+    "W_PEDESTRIAN_CROSSING": {
+      "ap50": 0.995,
+      "precision": 1.0,
+      "recall": 0.0
+    }
+  }
+}

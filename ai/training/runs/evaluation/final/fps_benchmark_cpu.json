@@ -1,0 +1,7 @@
+{
+  "evaluated_at": "2026-07-11T20:52:53.863495+00:00",
+  "weights": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\weights\\best_v2.pt",
+  "imgsz": 640,
+  "iterations": 30,
+  "fps_cpu": 19.950461673643417
+}

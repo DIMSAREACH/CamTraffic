@@ -1,18 +1,22 @@
 # Administrator Manual — CamTraffic
 
-**Role:** System Administrator  
-**Portal:** http://localhost:5174 (dev) · `admin.<domain>` (production)  
+**Role:** System Administrator (Administration domain)  
+**Portal:** http://localhost:5174 → `/admin` (dev) · `admin.<domain>` (production)  
+**API namespace:** `/api/v1/admin/`  
 **Task:** 375
 
 ---
 
 ## 1. Login
 
-1. Open the admin portal URL.
-2. Enter admin email and password.
-3. You land on **Dashboard** with KPI widgets (auto-refresh every 30 seconds).
+1. Open the admin portal URL (http://localhost:5174).
+2. Enter admin email and password (demo: `admin@camtraffic.demo`).
+3. You land on **`/admin/dashboard`** with KPI widgets (auto-refresh every 30 seconds).
 
 If OAuth is enabled, Google/GitHub buttons appear on the login page.
+
+**Scope:** Admins configure users, RBAC, cameras, AI models, reports, and audit logs.  
+**Admins do not** approve AI detections or issue fines — that is the Officer domain (`/officer`).
 
 ---
 

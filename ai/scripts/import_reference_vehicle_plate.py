@@ -20,11 +20,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from _common import DATASETS_ROOT, MANIFESTS_DIR, REPORTS_DIR, sha256_file
+from dim_sareach_paths import vehicle_detect_root
 
-DEFAULT_SOURCE = Path(
-    r'D:\Year4\Project Thesis\Expert System\Reference(PDF Download)'
-    r'\Dim Sareach\Vichicle Detect'
-)
+DEFAULT_SOURCE = vehicle_detect_root()
 BATCH_ID = 'BATCH-REF-VEH-PLATE-001'
 
 PLATE_SOURCES = ('Plate_Number', 'Vichicle&PlateNumber')

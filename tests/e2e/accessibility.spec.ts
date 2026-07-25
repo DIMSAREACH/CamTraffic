@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { gotoAdminLogin } from './helpers/login';
 
 test.describe('Accessibility smoke (axe-core)', () => {
   test('admin login page — no critical or serious violations', async ({ page }) => {
@@ -15,7 +16,7 @@ test.describe('Accessibility smoke (axe-core)', () => {
   });
 
   test('skip-to-main link is present on dashboard after login', async ({ page }) => {
-    await page.goto('/');
+    await gotoAdminLogin(page);
     await page.locator('#admin-email').fill('admin@camtraffic.demo');
     await page.locator('#admin-password').fill('CamTraffic@2026!');
     await page.getByRole('button', { name: /sign in to console/i }).click();

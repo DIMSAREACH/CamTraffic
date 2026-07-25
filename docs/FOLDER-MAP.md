@@ -30,16 +30,20 @@ CamTraffic/
 │   ├── tests/                # Automated tests
 │   ├── media/ logs/ backups/ # Runtime (gitignored)
 │   └── manage.py
-├── frontend-admin/           # Admin portal (Vite + React)
-│   ├── admin/                # Admin layout, dashboard, users
-│   ├── shared/               # Pages, API client, styles, i18n
-│   ├── routes.tsx
-│   └── dist/                 # Production build output
-├── frontend-user/            # User portal — police + driver
-│   ├── user/                 # User layout, sidebar
-│   ├── shared/               # Synced copy of shared modules
+├── frontend-admin/           # Administration domain (Vite + React)
+│   ├── admin/                # Admin layout, dashboard, users, RBAC
+│   ├── shared/
+│   └── routes.tsx            # /admin/*
+├── frontend-user/            # Traffic Ops + Citizen Service (one Vite app)
+│   ├── officer/              # /officer/* — layout, nav, pages
+│   ├── citizen/              # /citizen/* — layout, nav, pages
+│   ├── user/                 # Shared UserLayout + dashboard switcher
+│   ├── shared/
 │   └── routes.tsx
-├── ai/                       # ML assets (not a separate FastAPI service)
+├── backend/
+│   ├── domains/              # /api/v1/admin|officer|citizen facades
+│   ├── camtraffic/
+│   └── … (violations, fines, users, ai_detection, …)
 │   ├── weights/              # best.pt (gitignored)
 │   ├── dataset/              # 236-class YOLO signs (gitignored)
 │   ├── dataset_10/           # 10-class YOLO dataset

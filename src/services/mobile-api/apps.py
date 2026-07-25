@@ -1,0 +1,10 @@
+"""Mobile-optimized REST API surface for CamTraffic (Flutter / React Native clients)."""
+
+from django.apps import AppConfig
+
+
+class MobileApiConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'mobile_api'
+    label = 'mobile_api'
+    verbose_name = 'Mobile API'

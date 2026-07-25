@@ -1,0 +1,77 @@
+{
+  "evaluated_at": "2026-07-12T21:24:52.077096+00:00",
+  "conditions": [
+    "scratches",
+    "dirt",
+    "angle",
+    "fade",
+    "glare",
+    "motion_blur",
+    "low_res",
+    "partial_damage",
+    "noise",
+    "contrast"
+  ],
+  "results": {
+    "2BJ-5260_jpg.rf.288593406067e346343f040a1b627fce.jpg": {
+      "scratches": true,
+      "dirt": true,
+      "angle": true,
+      "fade": true,
+      "glare": true,
+      "motion_blur": true,
+      "low_res": true,
+      "partial_damage": true,
+      "noise": true,
+      "contrast": true
+    },
+    "2BQ-2973_jpg.rf.8efad966c9f7687610cdd743be11badb.jpg": {
+      "scratches": true,
+      "dirt": true,
+      "angle": true,
+      "fade": true,
+      "glare": true,
+      "motion_blur": true,
+      "low_res": false,
+      "partial_damage": false,
+      "noise": true,
+      "contrast": true
+    },
+    "BTM2A-9079_jpg.rf.51b0ed8d613faae01f8dbb14787fe2c1.jpg": {
+      "scratches": true,
+      "dirt": true,
+      "angle": true,
+      "fade": true,
+      "glare": true,
+      "motion_blur": true,
+      "low_res": true,
+      "partial_damage": true,
+      "noise": true,
+      "contrast": true
+    },
+    "BTM2B-0689_jpg.rf.0bca81fb29bec21ea393b7b4a9445bc2.jpg": {
+      "scratches": true,
+      "dirt": true,
+      "angle": true,
+      "fade": true,
+      "glare": true,
+      "motion_blur": false,
+      "low_res": false,
+      "partial_damage": true,
+      "noise": true,
+      "contrast": true
+    },
+    "BTM2B-2641_jpg.rf.2a70de856a0b16557848301d2773a951.jpg": {
+      "scratches": true,
+      "dirt": true,
+      "angle": true,
+      "fade": true,
+      "glare": true,
+      "motion_blur": true,
+      "low_res": false,
+      "partial_damage": true,
+      "noise": true,
+      "contrast": true
+    }
+  }
+}

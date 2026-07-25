@@ -196,4 +196,5 @@ Rollback: redeploy previous Docker image tags from registry or local cache.
 | `deploy/README.md` | Full deployment runbook |
 | `docs/INSTALLATION-GUIDE.md` | Dev setup |
 | `deploy/env/BACKUP.md` | Backup policy |
+| `docs/PRODUCTION-RUNBOOK.md` | Real-world go-live checklist |
 | `docs/final-year-project/STAGE10-PRODUCTION-DEPLOYMENT-REPORT.md` | Stage 10 report |

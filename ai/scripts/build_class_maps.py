@@ -40,22 +40,23 @@ PLATE_CLASSES = ['plate_private', 'plate_commercial', 'plate_government']
 
 
 def build_combined_classes() -> list[dict]:
-    sign_names = load_yaml_names(AI_ROOT / 'dataset_10' / 'data.yaml')
-    signs = [sign_names[i] for i in sorted(sign_names)]
+    combined_yaml = AI_ROOT / 'datasets' / 'splits' / 'training_combined' / 'data.yaml'
+    if not combined_yaml.is_file():
+        raise FileNotFoundError(f'Missing combined dataset yaml: {combined_yaml}')
+    sign_names = load_yaml_names(combined_yaml)
     rows: list[dict] = []
-    idx = 0
-    for name in signs:
-        rows.append({'id': idx, 'name': name, 'group': 'traffic_sign', 'source': 'dataset_10'})
-        idx += 1
-    for name in VEHICLE_CLASSES:
-        rows.append({'id': idx, 'name': name, 'group': 'vehicle', 'source': 'roboflow_cambodia_traffic'})
-        idx += 1
-    for name in PLATE_CLASSES:
-        rows.append({'id': idx, 'name': name, 'group': 'license_plate', 'source': 'plate_number_reference'})
-        idx += 1
-    for name in EXTRA_SIGNS:
-        rows.append({'id': idx, 'name': name, 'group': 'traffic_sign', 'source': 'ai/dataset'})
-        idx += 1
+    for idx in sorted(sign_names):
+        name = sign_names[idx]
+        if name.startswith('plate_'):
+            group = 'license_plate'
+            source = 'plate_number_reference'
+        elif name in VEHICLE_CLASSES:
+            group = 'vehicle'
+            source = 'roboflow_cambodia_traffic'
+        else:
+            group = 'traffic_sign'
+            source = 'dataset_10' if idx < 10 else 'ai/dataset'
+        rows.append({'id': idx, 'name': name, 'group': group, 'source': source})
     if len(rows) != 31:
         raise RuntimeError(f'Expected 31 classes, got {len(rows)}')
     return rows

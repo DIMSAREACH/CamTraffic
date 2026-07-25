@@ -5,15 +5,15 @@ Do not use these credentials in production.
 
 | Role | Portal | URL | Email | Password |
 |------|--------|-----|-------|----------|
-| Admin | Admin | http://localhost:5174 | `admin@camtraffic.demo` | `CamTraffic@2026!` |
-| Officer | User → Officer tab | http://localhost:5173 | `officer@camtraffic.demo` | `CamTraffic@2026!` |
-| Driver | User → Driver tab | http://localhost:5173 | `driver@camtraffic.demo` | `CamTraffic@2026!` |
-| Driver (alt) | User → Driver tab | http://localhost:5173 | `driver2@camtraffic.demo` | `CamTraffic@2026!` |
+| Admin | Administration | http://localhost:5174 → `/admin` | `admin@camtraffic.demo` | `CamTraffic@2026!` |
+| Officer | Traffic Operations | http://localhost:5173 → `/officer` | `officer@camtraffic.demo` | `CamTraffic@2026!` |
+| Driver | Citizen Service | http://localhost:5173 → `/citizen` | `driver@camtraffic.demo` | `CamTraffic@2026!` |
+| Driver (alt) | Citizen Service | http://localhost:5173 → `/citizen` | `driver2@camtraffic.demo` | `CamTraffic@2026!` |
 
 ## Setup
 
 ```bash
-cd backend
+cd src/backend
 python manage.py migrate
 python manage.py seed_demo
 python manage.py runserver
@@ -26,6 +26,9 @@ npm run setup:env
 npm run seed:demo
 npm run dev
 ```
+
+Phase A status: [`PHASE-A-READY.md`](PHASE-A-READY.md)  
+Test images: `ai/test_samples/demo_*.png`
 
 Reset demo passwords:
 
@@ -55,9 +58,12 @@ Run `npm run setup:env` to copy `.env.example` → `.env` if missing.
 
 ## AI weights
 
-Place `ai/weights/best_v2.pt` and set in `backend/.env`:
+Place `ai/weights/best.pt` and set in `src/backend/.env` (248-class live default):
 
 ```env
 AI_USE_MOCK=False
-AI_MODEL_PATH=../ai/weights/best_v2.pt
+AI_MODEL_PATH=../ai/weights/best.pt
 ```
+
+For thesis mAP demo only, switch temporarily to `best_v2.pt` (10-class).
+Canonical explanation: [`docs/AI-MODEL-STORY.md`](../AI-MODEL-STORY.md)

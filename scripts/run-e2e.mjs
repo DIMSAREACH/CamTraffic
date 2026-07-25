@@ -20,4 +20,11 @@ function run(command, args) {
 
 run('npm', ['install']);
 run('npx', ['playwright', 'install', 'chromium']);
-run('npm', ['test']);
+
+const extraArgs = process.argv.slice(2);
+const playwrightArgs = extraArgs[0] === '--' ? extraArgs.slice(1) : extraArgs;
+if (playwrightArgs.length > 0) {
+  run('npx', ['playwright', 'test', '-c', 'playwright.config.ts', ...playwrightArgs]);
+} else {
+  run('npm', ['test']);
+}

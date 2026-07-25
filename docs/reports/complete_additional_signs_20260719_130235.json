@@ -1,0 +1,38 @@
+{
+  "source": "D:\\Year4\\Project Thesis\\Expert System\\Reference(PDF Download)\\Dim Sareach\\Road signs in Cambodia\\4-Direction signs",
+  "output": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\splits\\cambodia_direction_signs_dim_sareach",
+  "created_at": "2026-07-19T13:02:35.414231+00:00",
+  "images_total": 7,
+  "nc": 7,
+  "names": [
+    "I_DIRECTIONS_TO_CITY_OR_PROVINCE",
+    "I_DIRECTION_SIGN_TO_CITIES_OR_PROVINCES_AT",
+    "I_DIRECTION_SIGN_TO_CITIES_OR_PROVINCES_AT_2",
+    "I_DIRECTION_SIGN_TO_OTHER_AREAS_AT_DETOUR",
+    "I_DIRECTION_SIGN_TO_OTHER_AREAS_AT_JUNCTIO",
+    "I_GUIDE_SIGN_TO_OTHER_PLACES",
+    "I_WEIGH_STATION"
+  ],
+  "split": {
+    "train": 4,
+    "val": 1,
+    "test": 2
+  },
+  "by_class": {
+    "I_DIRECTIONS_TO_CITY_OR_PROVINCE": 1,
+    "I_DIRECTION_SIGN_TO_CITIES_OR_PROVINCES_AT": 1,
+    "I_DIRECTION_SIGN_TO_CITIES_OR_PROVINCES_AT_2": 1,
+    "I_DIRECTION_SIGN_TO_OTHER_AREAS_AT_DETOUR": 1,
+    "I_DIRECTION_SIGN_TO_OTHER_AREAS_AT_JUNCTIO": 1,
+    "I_GUIDE_SIGN_TO_OTHER_PLACES": 1,
+    "I_WEIGH_STATION": 1
+  },
+  "missing_from_stem_map": [],
+  "seed": 42,
+  "notes": [
+    "Catalog icons: one image per Additional-sign class",
+    "BBox = content-aware (non-white / non-transparent), fallback 0.92 full-frame",
+    "Class keys from cambodia_stem_to_class.json (informative I_* codes)",
+    "Not the thesis 10-class detector set \u2014 supplementary panels only"
+  ]
+}

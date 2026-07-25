@@ -1,0 +1,33 @@
+# B2 named-signs dataset — generated 2026-07-22T21:59:49.664763+00:00
+path: D:/Year4/Project Thesis/Expert System/Project/CamTraffic/ai/datasets/splits/b2_cambodia_named_signs
+train: images/train
+val: images/val
+test: images/test
+nc: 26
+names:
+  0: CARRIAGEWAY_NARROWS
+  1: CHILDREN_CROSSING
+  2: END_PROHIBIT
+  3: END_SPEED_LIMIT
+  4: HOSPITAL
+  5: JUNCTION_LEFT
+  6: JUNCTION_RIGHT
+  7: KEEP_RIGHT
+  8: LEFT_BEND
+  9: NO_ENTRY
+  10: NO_HORN
+  11: NO_PARKING
+  12: NO_U_TURN
+  13: PEDESTRIAN_AREA
+  14: PEDESTRIAN_CROSSING
+  15: PRIORITY_ROAD
+  16: RIGHT_BEND
+  17: ROAD_JUNCTION
+  18: SLOW_DOWN
+  19: SPEED_LIMIT_30
+  20: SPEED_LIMIT_40
+  21: SPEED_LIMIT_60
+  22: SPEED_LIMIT_80
+  23: STEEP_ASCENT
+  24: STOP
+  25: WINDING_ROAD

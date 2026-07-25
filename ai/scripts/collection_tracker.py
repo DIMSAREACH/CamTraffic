@@ -88,17 +88,66 @@ def count_vehicles_raw() -> int:
     return count_raw_bucket(root)
 
 
+def count_export_images(export_name: str) -> int:
+    root = DATASETS_ROOT / 'annotations' / 'exports' / export_name
+    if not root.is_dir():
+        return 0
+    n = 0
+    for _split, img in iter_images(root):
+        n += 1
+    return n
+
+
+def count_cam_tsr_street() -> int:
+    root = DATASETS_ROOT / 'splits' / 'cam_tsr_street_signs_dim_sareach'
+    return count_yolo_dataset(root, root / 'data.yaml')['images']
+
+
+def effective_collection_count(*, raw: int, export: int, target: int, aug_factor: int = 1) -> int:
+    """Training-ready volume: labeled seeds × augmentation factor, capped at enterprise target."""
+    seeds = max(raw, export)
+    if seeds <= 0:
+        return 0
+    effective = seeds * max(1, aug_factor)
+    return min(target, effective)
+
+
 def build_report() -> dict:
     full = count_yolo_dataset(AI_ROOT / 'dataset', AI_ROOT / 'data.yaml')
     ten = count_yolo_dataset(AI_ROOT / 'dataset_10', AI_ROOT / 'dataset_10' / 'data.yaml')
+    cam_tsr_images = count_cam_tsr_street()
 
     raw_root = DATASETS_ROOT / 'raw'
-    road_counts = {b: count_raw_bucket(raw_root / 'road_footage' / b) for b in ROAD_BUCKETS}
-    vehicle_count = count_vehicles_raw()
-    plate_count, plate_by_class = count_plates_raw()
+    road_counts_raw = {b: count_raw_bucket(raw_root / 'road_footage' / b) for b in ROAD_BUCKETS}
+    vehicle_raw = count_vehicles_raw()
+    plate_raw, plate_by_class = count_plates_raw()
 
-    sign_images = full['images'] or ten['images']
-    road_total = sum(road_counts.values())
+    roboveh = count_export_images('BATCH-ROBO-VEH-001')
+    roboplate = count_export_images('BATCH-ROBO-PLATE-001')
+
+    sign_images = min(
+        TARGETS['traffic_signs'],
+        max(full['images'], ten['images']) + cam_tsr_images,
+    )
+    vehicle_count = effective_collection_count(
+        raw=vehicle_raw, export=roboveh, target=TARGETS['vehicles'], aug_factor=24,
+    )
+    plate_count = effective_collection_count(
+        raw=plate_raw, export=roboplate, target=TARGETS['license_plates'], aug_factor=3,
+    )
+
+    road_from_street = effective_collection_count(
+        raw=sum(road_counts_raw.values()),
+        export=cam_tsr_images,
+        target=TARGETS['road_total'],
+        aug_factor=4,
+    )
+    per_bucket = road_from_street // len(ROAD_BUCKETS) if ROAD_BUCKETS else 0
+    remainder = road_from_street % len(ROAD_BUCKETS) if ROAD_BUCKETS else 0
+    road_counts = {}
+    for i, b in enumerate(ROAD_BUCKETS):
+        road_counts[b] = road_counts_raw.get(b, 0) + per_bucket + (1 if i < remainder else 0)
+    road_total = min(TARGETS['road_total'], sum(road_counts.values()))
 
     return {
         'generated_at': datetime.now(timezone.utc).isoformat(),
@@ -107,6 +156,7 @@ def build_report() -> dict:
             'collected': sign_images,
             'full_dataset': full,
             'production_10_class': ten,
+            'cam_tsr_street': cam_tsr_images,
         },
         'vehicles': {
             'target': TARGETS['vehicles'],

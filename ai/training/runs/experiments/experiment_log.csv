@@ -1,0 +1,4 @@
+run_id,model,dataset,epochs,map50,map50_95,weights
+camtraffic-v1,yolo11n,dataset_10 (10 cls),5,0.6070,0.6070,best.pt
+camtraffic-v2,yolo11n,dataset_10 (10 cls),10,0.9084,0.7956,best_v2.pt
+camtraffic-combined,yolo11n,training_combined (31 cls),5,0.4132,0.3158,best_combined.pt

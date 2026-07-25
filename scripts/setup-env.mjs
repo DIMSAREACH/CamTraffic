@@ -10,9 +10,9 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const pairs = [
-  ['backend/.env.example', 'backend/.env'],
-  ['frontend-admin/.env.example', 'frontend-admin/.env'],
-  ['frontend-user/.env.example', 'frontend-user/.env'],
+  ['src/backend/.env.example', 'src/backend/.env'],
+  ['src/web/admin/.env.example', 'src/web/admin/.env'],
+  ['src/web/user/.env.example', 'src/web/user/.env'],
 ];
 
 for (const [example, target] of pairs) {

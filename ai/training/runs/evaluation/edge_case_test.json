@@ -1,0 +1,60 @@
+{
+  "evaluated_at": "2026-07-11T20:53:34.188113+00:00",
+  "weights": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\weights\\best_v2.pt",
+  "conditions": [
+    "baseline",
+    "blur",
+    "noise",
+    "dark",
+    "bright",
+    "rain",
+    "occlusion"
+  ],
+  "results": {
+    "I_ONE_WAY_TRAFFIC_One-way traffic_09.jpg": {
+      "baseline": 0,
+      "blur": 0,
+      "noise": 0,
+      "dark": 0,
+      "bright": 0,
+      "rain": 0,
+      "occlusion": 0
+    },
+    "M_STOP_Stop_02.jpg": {
+      "baseline": 0,
+      "blur": 0,
+      "noise": 0,
+      "dark": 0,
+      "bright": 0,
+      "rain": 0,
+      "occlusion": 0
+    },
+    "NO_ENTRY_No entry_01.jpg": {
+      "baseline": 0,
+      "blur": 0,
+      "noise": 0,
+      "dark": 0,
+      "bright": 0,
+      "rain": 0,
+      "occlusion": 0
+    },
+    "NO_LEFT_TURN_No left turn_05.jpg": {
+      "baseline": 0,
+      "blur": 0,
+      "noise": 0,
+      "dark": 0,
+      "bright": 0,
+      "rain": 0,
+      "occlusion": 0
+    },
+    "NO_LEFT_TURN_No left turn_07.jpg": {
+      "baseline": 0,
+      "blur": 0,
+      "noise": 0,
+      "dark": 0,
+      "bright": 0,
+      "rain": 0,
+      "occlusion": 0
+    }
+  }
+}

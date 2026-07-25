@@ -17,13 +17,13 @@ Detect traffic signs and license plates with YOLO + OCR, manage violations, fine
 
 ```bash
 node scripts/setup-env.mjs
-# Edit backend/.env, frontend-admin/.env, frontend-user/.env
+# Edit src/backend/.env, src/web/admin/.env, src/web/user/.env
 ```
 
 ### 2. Backend
 
 ```bash
-cd backend
+cd src/backend
 python -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
@@ -52,16 +52,32 @@ docker compose up -d --build
 
 | Path | Description |
 |------|-------------|
-| `backend/` | Django REST API + AI pipeline |
-| `frontend-admin/` | Administrator portal |
-| `frontend-user/` | Police & driver portal |
+| `src/` | **All source code** |
+| `src/backend/` | Django REST API + AI pipeline |
+| `src/web/admin/` | Administrator portal |
+| `src/web/user/` | Police & driver portal |
+| `src/web/citizen/` | Next.js citizen PWA (Enterprise v2) |
+| `src/services/` | **All microservices** |
+| `src/services/ai-service/` | Thesis FastAPI inference (YOLOv8 + OCR) |
+| `src/services/mobile-api/` | Mobile-optimized REST (`/api/mobile/`) |
+| `src/services/ai-vision/` | FastAPI AI microservice (Enterprise v2) |
+| `src/services/ocr-service/` | FastAPI OCR / ANPR microservice (Enterprise v2) |
+| `src/services/stream-gateway/` | RTSP ingest + frame dispatch (Enterprise v2) |
+| `ai/` | AI models, datasets, training |
+| `ai/weights/` | Model weights (.pt, .onnx) |
+| `ai/datasets/` | Training datasets |
+| `ai/training/runs/` | Training run outputs |
+| `infrastructure/` | Deployment & infrastructure |
+| `infrastructure/deploy/` | Production Docker & scripts |
 | `packages/` | Shared `@camtraffic/*` libraries |
-| `ai/` | Weights, dataset, training |
-| `deploy/` | Production Docker & scripts |
 | `tests/` | E2E, integration, performance |
 | `docs/` | PRD, SRS, thesis, checklist |
 
-See [`docs/FOLDER-MAP.md`](docs/FOLDER-MAP.md) for the full tree.
+See [`FOLDER_STRUCTURE.md`](FOLDER_STRUCTURE.md) for the complete structure.
+
+## Data import
+
+Admin CSV/Excel bulk import: Settings → **Import Data**. See [`docs/DATA-IMPORT.md`](docs/DATA-IMPORT.md).
 
 ## Scripts
 
@@ -89,7 +105,7 @@ npm run test:e2e
 
 ## Production deployment
 
-See [`deploy/README.md`](deploy/README.md) and [`docs/INSTALLATION-GUIDE.md`](docs/INSTALLATION-GUIDE.md).
+See [`infrastructure/deploy/README.md`](infrastructure/deploy/README.md), [`infrastructure/deploy/CAMTRAFFIC-STORE.md`](infrastructure/deploy/CAMTRAFFIC-STORE.md) (domain **camtraffic.store**), and [`docs/INSTALLATION-GUIDE.md`](docs/INSTALLATION-GUIDE.md).
 
 ```bash
 npm run docker:prod:up
@@ -104,6 +120,11 @@ npm run docker:prod:up
 ## Documentation
 
 - [`docs/README.md`](docs/README.md) — documentation index  
+- [`docs/GOVERNMENT_WEB_SYSTEM.md`](docs/GOVERNMENT_WEB_SYSTEM.md) — Cambodia government web enforcement workflow  
+- [`docs/AI-MODEL-STORY.md`](docs/AI-MODEL-STORY.md) — **canonical AI story** (10-class metrics vs 248 catalog)  
+- [`docs/THESIS-ARCHITECTURE-ALIGNMENT.md`](docs/THESIS-ARCHITECTURE-ALIGNMENT.md) — thesis folder/API mapping (`src/web/`, `src/services/`)  
+- [`docs/enterprise/README.md`](docs/enterprise/README.md) — **Enterprise v2 specification** (nationwide deployment)  
+- [`docs/enterprise/IMPLEMENTATION-ROADMAP.md`](docs/enterprise/IMPLEMENTATION-ROADMAP.md) — v2 implementation phases  
 - [`docs/CHECKLIST.md`](docs/CHECKLIST.md) — 440-task master checklist (440/440 done)  
 - [`docs/INSTALLATION-GUIDE.md`](docs/INSTALLATION-GUIDE.md) — setup guide  
 - [`docs/final-year-project/thesis/`](docs/final-year-project/thesis/) — thesis chapters  
