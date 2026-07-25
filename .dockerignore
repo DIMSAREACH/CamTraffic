@@ -41,6 +41,7 @@ governance
 reports
 *.md
 !infrastructure/deploy/**/*.md
+!src/deploy/**
 
 # Large / local-only
 terminals
