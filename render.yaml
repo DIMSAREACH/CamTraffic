@@ -1,0 +1,44 @@
+services:
+  - type: web
+    name: camtraffic-api
+    runtime: docker
+    repo: https://github.com/DIMSAREACH/CamTraffic.git
+    branch: restructure-project  # Use latest branch instead of main
+    dockerfilePath: ./infrastructure/deploy/docker/Dockerfile.backend.prod
+    dockerContext: .
+    healthCheckPath: /health/
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: camtraffic.settings_production
+      - key: AI_USE_MOCK
+        value: "True"  # No AI weights in container
+      - key: AI_PIPELINE_AUTO_CREATE_VIOLATION
+        value: "False"
+      - key: ALLOW_DEMO_SEED
+        value: "False"
+      - key: USE_S3_MEDIA
+        value: "True"
+
+  - type: static
+    name: camtraffic-admin
+    runtime: node
+    repo: https://github.com/DIMSAREACH/CamTraffic.git  
+    branch: restructure-project
+    buildCommand: cd src/web/admin && npm ci && npm run build
+    staticPublishPath: ./src/web/admin/dist
+
+  - type: static  
+    name: camtraffic-user
+    runtime: node
+    repo: https://github.com/DIMSAREACH/CamTraffic.git
+    branch: restructure-project  
+    buildCommand: cd src/web/user && npm ci && npm run build
+    staticPublishPath: ./src/web/user/dist
+
+databases:
+  - name: camtraffic-postgres
+    databaseName: camtraffic_db
+    user: camtraffic_user
+
+  - name: camtraffic-redis
+    type: redis
