@@ -10,8 +10,10 @@ import { useLiveData } from '@shared/hooks/useLiveData';
 import { aiAPI, camerasAPI } from '@shared/services/api';
 import {
   DEFAULT_PAGE_STATS,
+  EMPTY_PAGE_STATS,
   mergePageStatsWithDefaults,
 } from '@shared/constants/defaultPageStats';
+import { USE_SAMPLE_FALLBACK } from '@shared/config/dataMode';
 import type { AIDetectionLog, AIDetectionPageStats } from '@shared/types';
 import { cn } from '@shared/components/ui/utils';
 
@@ -32,7 +34,9 @@ export function AIDetectionDashboardPage() {
   const [view, setView] = useState<ViewTab>(
     searchParams.get('tab') === 'history' ? 'history' : 'dashboard',
   );
-  const [pageStats, setPageStats] = useState<AIDetectionPageStats>(DEFAULT_PAGE_STATS);
+  const [pageStats, setPageStats] = useState<AIDetectionPageStats>(
+    USE_SAMPLE_FALLBACK ? DEFAULT_PAGE_STATS : EMPTY_PAGE_STATS,
+  );
   const [recentLogs, setRecentLogs] = useState<AIDetectionLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(true);
   const [liveCameraCount, setLiveCameraCount] = useState(0);
@@ -42,7 +46,7 @@ export function AIDetectionDashboardPage() {
       const data = await aiAPI.getPageStats();
       setPageStats(mergePageStatsWithDefaults(data));
     } catch {
-      /* keep defaults */
+      setPageStats(USE_SAMPLE_FALLBACK ? DEFAULT_PAGE_STATS : EMPTY_PAGE_STATS);
     }
   }, []);
 

@@ -1,6 +1,4 @@
 import type { DashboardStats, Fine } from '@shared/types';
-import { mockFines } from './mockData';
-import { DEMO_DRIVER_FINES } from './sampleDataFallback';
 
 const MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
 const MONTH_FULL = [
@@ -34,17 +32,6 @@ export type ReportOutputPreview = {
   };
 };
 
-const SYNTHETIC_FINES: Omit<Fine, 'id' | 'driver_id' | 'police_id' | 'created_at'>[] = [
-  { driver_name: 'Kosal Pich', driver_license: 'DL-KH-2024-001234', police_name: 'Dara Chan', amount: 100, reason: 'Speeding (80km/h in 60km/h zone)', status: 'pending', location: 'Russian Blvd, Phnom Penh', vehicle_plate: '2AK 7788' },
-  { driver_name: 'Vanna Sok', driver_license: 'DL-KH-2024-002345', police_name: 'Srey Neang', amount: 25, reason: 'Failure to Stop at Stop Sign (M-032)', status: 'paid', location: 'Monivong Blvd, Phnom Penh', vehicle_plate: '1CC 9012', paid_at: '2026-06-02T10:00:00Z' },
-  { driver_name: 'Ratana Heng', driver_license: 'DL-KH-2024-004567', police_name: 'Bora Keo', amount: 50, reason: 'No Entry (R1-04)', status: 'pending', location: 'Street 271, Sen Sok', vehicle_plate: '2EE 7890' },
-  { driver_name: 'Chenda Ros', driver_license: 'DL-KH-2024-006789', police_name: 'Dara Chan', amount: 30, reason: 'No U-Turn at R1-03', status: 'overdue', location: 'Sihanouk Blvd, Phnom Penh', vehicle_plate: '3FF 2345' },
-  { driver_name: 'Pisey Mao', driver_license: 'DL-KH-2024-003456', police_name: 'Srey Neang', amount: 15, reason: 'Illegal Parking (R2-10)', status: 'paid', location: 'Central Market, Phnom Penh', vehicle_plate: '2BB 5566', paid_at: '2026-06-12T09:00:00Z' },
-  { driver_name: 'Demo Driver', driver_license: 'DRV-DEMO-001', police_name: 'Dara Chan', amount: 20, reason: 'Speed Limit 20 km/h Exceeded (P-029)', status: 'dismissed', location: 'School zone, Sen Sok', vehicle_plate: '1PP 4455' },
-  { driver_name: 'Kosal Pich', driver_license: 'DL-KH-2024-001234', police_name: 'Bora Keo', amount: 30, reason: 'No Left Turn (R1-01)', status: 'pending', location: 'Norodom Blvd, Phnom Penh', vehicle_plate: '2AA 1234' },
-  { driver_name: 'Vanna Sok', driver_license: 'DL-KH-2024-002345', police_name: 'Dara Chan', amount: 10, reason: 'No Helmet (Motorcycle)', status: 'paid', location: 'Street 271, Sen Sok', vehicle_plate: '1CC 9012', paid_at: '2026-06-18T14:00:00Z' },
-];
-
 function monthSlice(stats: DashboardStats, month: number) {
   const label = MONTH_ABBR[month - 1];
   const fines = stats.monthly_fines?.find((m) => m.month === label);
@@ -59,33 +46,9 @@ function monthSlice(stats: DashboardStats, month: number) {
   };
 }
 
-function allSampleFines(): Fine[] {
-  const seen = new Set<number>();
-  const merged: Fine[] = [];
-  for (const fine of [...mockFines, ...DEMO_DRIVER_FINES]) {
-    if (seen.has(fine.id)) continue;
-    seen.add(fine.id);
-    merged.push(fine);
-  }
-  return merged;
-}
-
-function finesForPeriod(year: number, month: number): Fine[] {
-  const matched = allSampleFines().filter((fine) => {
-    const d = new Date(fine.created_at);
-    return d.getUTCFullYear() === year && d.getUTCMonth() + 1 === month;
-  });
-  if (matched.length >= 4) {
-    return matched.sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at)).slice(0, 8);
-  }
-
-  return SYNTHETIC_FINES.map((row, index) => ({
-    id: 9000 + index,
-    driver_id: index + 4,
-    police_id: index % 2 === 0 ? 2 : 3,
-    created_at: `${year}-${String(month).padStart(2, '0')}-${String(3 + index * 2).padStart(2, '0')}T${String(9 + (index % 6)).padStart(2, '0')}:30:00Z`,
-    ...row,
-  }));
+/** Preview excel rows come from live dashboard stats only — no synthetic fine rows. */
+function finesForPeriod(_year: number, _month: number): Fine[] {
+  return [];
 }
 
 function fineToExcelRow(fine: Fine): ReportExcelRow {

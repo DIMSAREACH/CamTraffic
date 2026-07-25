@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "disable_existing_loggers": false,
+  "formatters": {
+    "detailed": {
+      "format": "[%(asctime)s] %(levelname)s [%(name)s:%(lineno)s] %(message)s",
+      "datefmt": "%d/%b/%Y %H:%M:%S"
+    },
+    "json": {
+      "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
+      "format": "%(asctime)s %(name)s %(levelname)s %(message)s"
+    }
+  },
+  "handlers": {
+    "console": {
+      "class": "logging.StreamHandler",
+      "formatter": "detailed",
+      "level": "INFO"
+    },
+    "file": {
+      "class": "logging.handlers.RotatingFileHandler",
+      "filename": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\logs/camtraffic.log",
+      "formatter": "json",
+      "maxBytes": 10485760,
+      "backupCount": 5,
+      "level": "INFO"
+    },
+    "error_file": {
+      "class": "logging.handlers.RotatingFileHandler",
+      "filename": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\logs/camtraffic_errors.log",
+      "formatter": "json",
+      "maxBytes": 10485760,
+      "backupCount": 10,
+      "level": "ERROR"
+    },
+    "security_file": {
+      "class": "logging.handlers.RotatingFileHandler",
+      "filename": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\logs/security.log",
+      "formatter": "json",
+      "maxBytes": 10485760,
+      "backupCount": 30,
+      "level": "WARNING"
+    }
+  },
+  "loggers": {
+    "django": {
+      "handlers": [
+        "console",
+        "file",
+        "error_file"
+      ],
+      "level": "INFO",
+      "propagate": false
+    },
+    "django.security": {
+      "handlers": [
+        "security_file"
+      ],
+      "level": "WARNING",
+      "propagate": false
+    },
+    "camtraffic": {
+      "handlers": [
+        "console",
+        "file",
+        "error_file"
+      ],
+      "level": "INFO",
+      "propagate": false
+    }
+  },
+  "root": {
+    "handlers": [
+      "console",
+      "file"
+    ],
+    "level": "INFO"
+  }
+}

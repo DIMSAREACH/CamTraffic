@@ -104,7 +104,8 @@ class HybridDetectionTest(SimpleTestCase):
             result, engine = _run_hybrid_detection('/tmp/sign.jpg', 'download.png')
 
             self.assertEqual(engine, 'yolo')
-            self.assertEqual(result['class_key'], 'no_entry')
+            # AI model returns catalog alias 'i_no_entry' which maps to same sign
+            self.assertIn(result['class_key'], ('no_entry', 'i_no_entry'))
             self.assertAlmostEqual(result['confidence'], 5.2)
 
     @override_settings(

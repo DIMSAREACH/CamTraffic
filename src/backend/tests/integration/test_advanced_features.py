@@ -26,7 +26,7 @@ from fines.pdf_receipt import generate_fine_receipt_pdf
 from notifications.models import Notification, PushDevice, SMSLog
 from notifications.push_service import PushNotificationService
 from notifications.sms_service import SMSService
-from violations.models import Violation
+from violations.models import TrafficViolation as Violation
 
 User = get_user_model()
 

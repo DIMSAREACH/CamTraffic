@@ -15,29 +15,6 @@ import {
   modelStatusLabel,
   type EnrichedAIModel,
 } from '@shared/utils/aiModelUi';
-import type { AIModelVersion } from '@shared/types';
-
-const DEMO_MODELS: AIModelVersion[] = [
-  {
-    id: 'demo-v1',
-    version: 'v1.0',
-    model_file: 'runs/camtraffic-v1/weights/best.pt',
-    description: 'YOLOv11 Cambodian Traffic',
-    accuracy: 98.7,
-    is_active: true,
-    uploaded_at: new Date().toISOString(),
-  },
-  {
-    id: 'demo-v09',
-    version: 'v0.9',
-    model_file: 'runs/camtraffic-v09/weights/best.pt',
-    description: 'YOLOv11 Cambodian Traffic',
-    accuracy: 97.5,
-    is_active: false,
-    uploaded_at: new Date(Date.now() - 86400000 * 12).toISOString(),
-  },
-];
-
 export function AIDeploymentsPage() {
   const { t } = useLanguage();
   const { user } = useAuth();
@@ -65,10 +42,6 @@ export function AIDeploymentsPage() {
   useEffect(() => { void load(); }, [load]);
 
   const handleActivate = async (id: string) => {
-    if (String(id).startsWith('demo-')) {
-      toast.error(tr('aiModels.toastActivateFail', 'Failed to activate model'));
-      return;
-    }
     try {
       await aiModelsAPI.activate(id);
       toast.success(tr('aiModels.toastActivated', 'Model activated'));

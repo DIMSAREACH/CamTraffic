@@ -1,9 +1,10 @@
-"""Capture a single frame from a camera HTTP snapshot, RTSP stream, or local demo path."""
+"""Capture a single frame from a camera HTTP snapshot, RTSP stream, or local demo path/video."""
 from __future__ import annotations
 
 import logging
 import shutil
 import tempfile
+import time
 import urllib.request
 from pathlib import Path
 
@@ -11,6 +12,8 @@ from django.conf import settings
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
+
+_VIDEO_SUFFIXES = {'.webm', '.mp4', '.avi', '.mov', '.mkv', '.m4v'}
 
 
 def _repo_root() -> Path:
@@ -73,6 +76,42 @@ def _absolute_http_url(url: str) -> str:
     return raw
 
 
+def _is_video_path(path: Path | str) -> bool:
+    return Path(str(path)).suffix.lower() in _VIDEO_SUFFIXES
+
+
+def _sample_frame_from_video(source: str | Path, dest_jpeg: str) -> bool:
+    """
+    Grab one JPEG frame from a local/remote video.
+    Rotates through the timeline so live detection sees different moments.
+    """
+    import cv2
+
+    cap = cv2.VideoCapture(str(source))
+    if not cap.isOpened():
+        logger.warning('Video open failed: %s', source)
+        return False
+
+    try:
+        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
+        fps = float(cap.get(cv2.CAP_PROP_FPS) or 0) or 25.0
+        if frame_count > 1:
+            # Advance ~1s of wall clock per second of video so successive captures move
+            idx = int(time.time() * max(1.0, fps * 0.35)) % frame_count
+            cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
+
+        ok, frame = cap.read()
+        if (not ok or frame is None) and frame_count > 1:
+            # Seek failed on some codecs — fall back to first readable frame
+            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            ok, frame = cap.read()
+        if not ok or frame is None:
+            return False
+        return bool(cv2.imwrite(dest_jpeg, frame))
+    finally:
+        cap.release()
+
+
 def capture_camera_frame(camera_id) -> tuple[str | None, str | None]:
     """
     Grab one frame for camera_id. Returns (temp_jpeg_path, filename) or (None, None).
@@ -96,7 +135,7 @@ def capture_camera_frame(camera_id) -> tuple[str | None, str | None]:
     tmp_path = tmp.name
     tmp.close()
     # Prefix so DetectSignView treats this as live street capture (full_frame / live_scan)
-    fname = f'webcam-street-camera-{camera.code or camera.id}.jpg'
+    fname = f'camera_{camera.code or camera.id}.jpg'
 
     from .stream_remote_client import capture_snapshot_via_gateway, stream_gateway_enabled
 
@@ -111,7 +150,12 @@ def capture_camera_frame(camera_id) -> tuple[str | None, str | None]:
     try:
         local = resolve_local_frame_path(url)
         if local is not None:
-            shutil.copyfile(local, tmp_path)
+            if _is_video_path(local):
+                if not _sample_frame_from_video(local, tmp_path):
+                    Path(tmp_path).unlink(missing_ok=True)
+                    return None, None
+            else:
+                shutil.copyfile(local, tmp_path)
             camera.last_ping = timezone.now()
             camera.save(update_fields=['last_ping'])
             return tmp_path, fname
@@ -131,9 +175,14 @@ def capture_camera_frame(camera_id) -> tuple[str | None, str | None]:
                 Path(tmp_path).unlink(missing_ok=True)
                 return None, None
             cv2.imwrite(tmp_path, frame)
+        elif Path(fetch_url.split('?', 1)[0]).suffix.lower() in _VIDEO_SUFFIXES:
+            if not _sample_frame_from_video(fetch_url, tmp_path):
+                Path(tmp_path).unlink(missing_ok=True)
+                return None, None
         elif fetch_url.lower().startswith(('http://', 'https://')):
+            # Short timeout: unreachable LAN CCTV must not block API/audits for 15s+
             req = urllib.request.Request(fetch_url, headers={'User-Agent': 'CamTraffic/1.0'})
-            with urllib.request.urlopen(req, timeout=15) as resp:
+            with urllib.request.urlopen(req, timeout=4) as resp:
                 data = resp.read()
             if not data:
                 Path(tmp_path).unlink(missing_ok=True)

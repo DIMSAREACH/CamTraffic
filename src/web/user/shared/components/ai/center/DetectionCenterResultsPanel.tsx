@@ -14,6 +14,7 @@ import { useLanguage } from '@shared/context/LanguageContext';
 import { detectionSpeechText, useSpeech } from '@shared/hooks/useSpeech';
 import type { WebcamDetectionResult } from '@shared/hooks/useWebcamDetection';
 import type { OverlayDetectionInput } from '@shared/utils/detectionOverlay';
+import { buildDetectionOverlay } from '@shared/utils/detectionOverlay';
 import { signDisplayNames } from '@shared/utils/signDisplayNames';
 import { resolveDetectionMode } from '@shared/utils/detectionDisplay';
 import { downloadMediaUrl } from '@shared/utils/downloadMedia';
@@ -71,6 +72,8 @@ export type CenterDetectionResult = WebcamDetectionResult & {
       sign_name_en?: string;
       sign_bbox?: { x1: number; y1: number; x2: number; y2: number };
       detected_plate?: string;
+      plate_bbox?: { x1: number; y1: number; x2: number; y2: number };
+      plate_boxes?: Array<{ bbox?: { x1: number; y1: number; x2: number; y2: number }; confidence?: number }>;
       vehicle_count?: number;
       above_threshold?: boolean;
       vehicles?: Array<{
@@ -184,7 +187,7 @@ function DetectionLoadingPanel({ hint }: { hint: string }) {
   useEffect(() => {
     const id = window.setInterval(() => {
       setActiveStep((prev) => (prev + 1) % stepCount);
-    }, 1500);
+    }, 380);
     return () => window.clearInterval(id);
   }, [stepCount]);
 
@@ -423,7 +426,18 @@ export function DetectionCenterResultsPanel({
     );
   }
 
-  const displaySrc = result.annotated_processed_image || result.uploaded_image || originalSrc || '';
+  const displaySrc = (() => {
+    const speechLocale = locale === 'en' ? 'en' : 'km';
+    const canOverlay = buildDetectionOverlay(result as OverlayDetectionInput, speechLocale).length > 0;
+    if (canOverlay) {
+      return result.uploaded_image || originalSrc || result.processed_image || result.annotated_processed_image || '';
+    }
+    return result.annotated_processed_image || result.uploaded_image || originalSrc || '';
+  })();
+  const useCssOverlay = buildDetectionOverlay(
+    result as OverlayDetectionInput,
+    locale === 'en' ? 'en' : 'km',
+  ).length > 0;
   const originalImage = originalSrc || result.uploaded_image || '';
   const speechText = detectionSpeechText(result as Parameters<typeof detectionSpeechText>[0], locale);
   const { km, en } = signDisplayNames(result as Parameters<typeof signDisplayNames>[0]);
@@ -603,7 +617,8 @@ export function DetectionCenterResultsPanel({
                 <AnnotatedDetectionImage
                   src={displaySrc}
                   alt={t('aiCenter.detectionImage')}
-                  result={result as OverlayDetectionInput}
+                  result={useCssOverlay ? (result as OverlayDetectionInput) : null}
+                  showOverlay={useCssOverlay}
                   hero
                   filterKind={overlayFilter}
                 />
@@ -779,6 +794,9 @@ export function DetectionCenterResultsPanel({
               {hasPlateHit ? (
                 <>
                   <p className="ai-center-detect-card__plate">{result.detected_plate}</p>
+                  <p className="ai-center-detect-card__hint text-xs text-amber-700 mt-1">
+                    {t('aiCenter.ocrConfirmRequired', 'OCR assist only — officer must confirm plate before issuing a fine.')}
+                  </p>
                   {ocrReads.length > 0 && (
                     <ul className="ai-center-detect-card__list">
                       {ocrReads.map((read, i) => (

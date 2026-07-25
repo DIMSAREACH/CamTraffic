@@ -5,6 +5,7 @@ import { TablePagination } from '@shared/components/ui/TablePagination';
 import {
   Search, Plus, Eye, CheckCircle, XCircle, Clock, AlertTriangle,
   MapPin, FileText, User, Hash, Car, BadgeCheck, CreditCard, Pencil, Trash2,
+  QrCode, Upload, Wallet, Loader2, ShieldCheck,
 } from 'lucide-react';
 import { RielIcon } from '@shared/components/RielIcon';
 import { Button } from '@shared/components/ui/button';
@@ -154,8 +155,8 @@ export function FineManagement() {
   const [editForm, setEditForm] = useState({ reason: '', amount: '', location: '', vehicle_plate: '' });
   const [savingEdit, setSavingEdit] = useState(false);
 
-  const canIssue = user?.role === 'admin' || user?.role === 'police';
-  const canManage = canIssue;
+  const canIssue = user?.role === 'police';
+  const canManage = user?.role === 'admin' || user?.role === 'police';
   const isDriver = user?.role === 'driver';
   const isAdmin = user?.role === 'admin';
 
@@ -166,18 +167,18 @@ export function FineManagement() {
     if (!user) return;
     if (!silent) setLoading(true);
     try {
-      let data: Fine[];
-      if (user.role === 'admin') data = await finesAPI.getAll();
-      else if (user.role === 'police') data = await finesAPI.getByPolice(user.id);
-      else data = await finesAPI.getByDriver(user.id);
+      // Admin/officer see all system fines (matches dashboard); citizen domain list is already scoped.
+      const data = await finesAPI.getAll();
       setFines(data.map((f) => {
         const n = typeof f.amount === 'number' ? f.amount : Number(f.amount);
         return { ...f, amount: Number.isFinite(n) ? n : 0 };
       }));
+    } catch {
+      if (!silent) toast.error(t('fines.toastLoadFail'));
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [user]);
+  }, [t, user]);
 
   useEffect(() => { loadFines(); }, [loadFines]);
   useLiveData(() => loadFines(true), 30_000, Boolean(user));
@@ -254,8 +255,11 @@ export function FineManagement() {
       toast.success(
         approve ? t('fines.toastPaymentVerified') : t('fines.toastPaymentRejected'),
       );
-    } catch {
-      toast.error(t('fines.toastVerifyFail'));
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message
+        || (err as { message?: string })?.message
+        || t('fines.toastVerifyFail');
+      toast.error(String(msg));
     }
   };
 
@@ -865,96 +869,168 @@ export function FineManagement() {
       </Dialog>
 
       <Dialog open={paymentOpen} onOpenChange={setPaymentOpen}>
-        <DialogContent accent="success" className="max-w-md">
+        <DialogContent accent="success" className="max-w-lg fines-pay-dialog">
           <DialogHeader>
-            <DialogTitle>{t('fines.payFine')}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2.5">
+              <div className="enforcement-page__dialog-icon enforcement-page__dialog-icon--teal">
+                <Wallet size={15} />
+              </div>
+              <span className="enforcement-page__dialog-title">{t('fines.payFine')}</span>
+            </DialogTitle>
           </DialogHeader>
           {selected && (
-            <div className="ct-dialog-form">
-              <p className="text-sm text-[color:var(--dialog-subtitle-fg)]">{formatFineReason(selected.reason)} — {formatAppCurrency(locale, selected.amount)}</p>
-              <ol className="rounded-lg border border-[color:var(--dialog-border)] bg-[color:var(--dialog-surface-muted,#f8fafc)] p-3 space-y-1.5 text-xs text-[color:var(--dialog-subtitle-fg)] list-decimal list-inside">
-                <li>{t('fines.khqrStep1')}</li>
-                <li>{t('fines.khqrStep2')}</li>
-                <li>{t('fines.khqrStep3')}</li>
-              </ol>
-              {paymentModes.includes('stripe') && (
-                <Button type="button" variant="default" className="w-full" disabled={paying} onClick={handleStripeCheckout}>
-                  Pay with card (Stripe)
-                </Button>
-              )}
-              {paymentModes.includes('khqr') && (
-                <div className="rounded-lg border border-[color:var(--dialog-border)] p-3 space-y-2">
-                  <p className="text-sm font-medium">
-                    {t('fines.khqrTitle')} — {khqrSession?.merchant_name ?? 'Merchant'}
-                  </p>
-                  {khqrSession?.qr_image_url && (
-                    <img
-                      src={khqrSession.qr_image_url}
-                      alt={t('fines.khqrTitle')}
-                      className="mx-auto max-h-48 w-auto rounded-md border"
-                    />
-                  )}
-                  {khqrSession && (
-                    <>
-                      <p className="text-sm">
-                        <strong>{t('fines.khqrAmountLabel')}:</strong> {khqrSession.amount_usd} USD
-                      </p>
-                      {khqrSession.merchant_account_usd && (
-                        <p className="text-xs text-[color:var(--dialog-subtitle-fg)]">
-                          USD: {khqrSession.merchant_account_usd}
-                        </p>
-                      )}
-                      {khqrSession.merchant_account_khr && (
-                        <p className="text-xs text-[color:var(--dialog-subtitle-fg)]">
-                          KHR: {khqrSession.merchant_account_khr}
-                        </p>
-                      )}
-                      <p className="text-xs text-[color:var(--dialog-subtitle-fg)]">
-                        {t('fines.paymentReference')}: <strong>{khqrSession.bill_reference}</strong>
-                      </p>
-                    </>
-                  )}
-                  {!khqrSession && (
-                    <Button type="button" variant="outline" className="w-full" disabled={paying} onClick={handleKhqrSession}>
-                      {t('fines.loadKhqr')}
-                    </Button>
-                  )}
+            <div className="fines-pay-dialog__body">
+              <div className="fines-pay-dialog__hero">
+                <div className="fines-pay-dialog__hero-copy">
+                  <p className="fines-pay-dialog__hero-label">{formatFineReason(selected.reason)}</p>
+                  <p className="fines-pay-dialog__hero-amount">{formatAppCurrency(locale, selected.amount)}</p>
+                  <p className="fines-pay-dialog__hero-usd">≈ ${khrToUsd(selected.amount).toFixed(2)} USD</p>
                 </div>
+                <div className="fines-pay-dialog__hero-badge" aria-hidden>
+                  <ShieldCheck size={22} />
+                </div>
+              </div>
+
+              <ol className="fines-pay-dialog__steps">
+                <li><span>1</span>{t('fines.khqrStep1')}</li>
+                <li><span>2</span>{t('fines.khqrStep2')}</li>
+                <li><span>3</span>{t('fines.khqrStep3')}</li>
+              </ol>
+
+              {paymentModes.includes('stripe') && (
+                <button
+                  type="button"
+                  className="fines-pay-dialog__stripe-btn"
+                  disabled={paying}
+                  onClick={handleStripeCheckout}
+                >
+                  <CreditCard size={16} />
+                  Pay with card (Stripe)
+                </button>
               )}
+
+              {paymentModes.includes('khqr') && (
+                <section className="fines-pay-dialog__khqr">
+                  <header className="fines-pay-dialog__khqr-head">
+                    <div className="fines-pay-dialog__khqr-icon">
+                      <QrCode size={16} />
+                    </div>
+                    <div>
+                      <p className="fines-pay-dialog__khqr-title">{t('fines.khqrTitle')}</p>
+                      <p className="fines-pay-dialog__khqr-merchant">
+                        {khqrSession?.merchant_name ?? 'Merchant'}
+                      </p>
+                    </div>
+                  </header>
+
+                  {khqrSession?.qr_image_url ? (
+                    <div className="fines-pay-dialog__qr-frame">
+                      <img
+                        src={khqrSession.qr_image_url}
+                        alt={t('fines.khqrTitle')}
+                        className="fines-pay-dialog__qr-img"
+                      />
+                    </div>
+                  ) : (
+                    <div className="fines-pay-dialog__qr-loading">
+                      {paying ? <Loader2 size={22} className="animate-spin" /> : <QrCode size={22} />}
+                      <p>{paying ? t('fines.issuing') : t('fines.loadKhqr')}</p>
+                    </div>
+                  )}
+
+                  {khqrSession ? (
+                    <div className="fines-pay-dialog__meta">
+                      <div className="fines-pay-dialog__meta-row fines-pay-dialog__meta-row--accent">
+                        <span>{t('fines.khqrAmountLabel')}</span>
+                        <strong>{khqrSession.amount_usd} USD</strong>
+                      </div>
+                      {khqrSession.merchant_account_usd ? (
+                        <div className="fines-pay-dialog__meta-row">
+                          <span>USD account</span>
+                          <strong>{khqrSession.merchant_account_usd}</strong>
+                        </div>
+                      ) : null}
+                      {khqrSession.merchant_account_khr ? (
+                        <div className="fines-pay-dialog__meta-row">
+                          <span>KHR account</span>
+                          <strong>{khqrSession.merchant_account_khr}</strong>
+                        </div>
+                      ) : null}
+                      <div className="fines-pay-dialog__meta-row">
+                        <span>{t('fines.paymentReference')}</span>
+                        <strong className="fines-pay-dialog__ref">{khqrSession.bill_reference}</strong>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="fines-pay-dialog__reload"
+                      disabled={paying}
+                      onClick={handleKhqrSession}
+                    >
+                      <QrCode size={15} />
+                      {t('fines.loadKhqr')}
+                    </button>
+                  )}
+                </section>
+              )}
+
               {paymentModes.includes('manual') && (
-              <>
-              <div className="ct-dialog-field">
-                <Label>{t('fines.paymentMethod')}</Label>
-                <Select value={paymentForm.payment_method} onValueChange={(v) => setPaymentForm((f) => ({ ...f, payment_method: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {(['aba', 'wing', 'acleda', 'bank_transfer'] as const).map((m) => (
-                      <SelectItem key={m} value={m}>{t(`fines.methods.${m}`)}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="ct-dialog-field">
-                <Label>{t('fines.paymentReference')}</Label>
-                <Input value={paymentForm.payment_reference} onChange={(e) => setPaymentForm((f) => ({ ...f, payment_reference: e.target.value }))} />
-              </div>
-              <div className="ct-dialog-field">
-                <Label>{t('fines.paymentScreenshot')}</Label>
-                <p className="text-xs text-[color:var(--dialog-subtitle-fg)] mb-1.5">{t('fines.uploadProofHint')}</p>
-                <Input type="file" accept="image/*" onChange={(e) => setPaymentForm((f) => ({ ...f, screenshot: e.target.files?.[0] ?? null }))} />
-                {paymentForm.screenshot && (
-                  <p className="text-xs text-[color:var(--dialog-subtitle-fg)] mt-1 truncate">
-                    {paymentForm.screenshot.name}
-                  </p>
-                )}
-              </div>
-              </>
+                <section className="fines-pay-dialog__form">
+                  <div className="fines-pay-dialog__field">
+                    <Label className="fines-pay-dialog__label">{t('fines.paymentMethod')}</Label>
+                    <Select value={paymentForm.payment_method} onValueChange={(v) => setPaymentForm((f) => ({ ...f, payment_method: v }))}>
+                      <SelectTrigger className="fines-pay-dialog__select"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {(['aba', 'wing', 'acleda', 'bank_transfer'] as const).map((m) => (
+                          <SelectItem key={m} value={m}>{t(`fines.methods.${m}`)}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="fines-pay-dialog__field">
+                    <Label className="fines-pay-dialog__label">{t('fines.paymentReference')}</Label>
+                    <Input
+                      className="fines-pay-dialog__input"
+                      value={paymentForm.payment_reference}
+                      onChange={(e) => setPaymentForm((f) => ({ ...f, payment_reference: e.target.value }))}
+                    />
+                  </div>
+                  <div className="fines-pay-dialog__field">
+                    <Label className="fines-pay-dialog__label">{t('fines.paymentScreenshot')}</Label>
+                    <p className="fines-pay-dialog__hint">{t('fines.uploadProofHint')}</p>
+                    <label className={`fines-pay-dialog__upload ${paymentForm.screenshot ? 'is-ready' : ''}`}>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="sr-only"
+                        onChange={(e) => setPaymentForm((f) => ({ ...f, screenshot: e.target.files?.[0] ?? null }))}
+                      />
+                      <Upload size={18} />
+                      <span>
+                        {paymentForm.screenshot
+                          ? paymentForm.screenshot.name
+                          : t('fines.paymentScreenshot')}
+                      </span>
+                    </label>
+                  </div>
+                </section>
               )}
             </div>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPaymentOpen(false)}>{t('fines.cancel')}</Button>
-            <Button onClick={handlePayment} disabled={paying}>{t('fines.confirmPayment')}</Button>
+          <DialogFooter className="fines-pay-dialog__footer">
+            <Button variant="outline" onClick={() => setPaymentOpen(false)} disabled={paying}>
+              {t('fines.cancel')}
+            </Button>
+            <button
+              type="button"
+              className="fines-pay-dialog__submit"
+              onClick={() => void handlePayment()}
+              disabled={paying}
+            >
+              {paying ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle size={15} />}
+              {t('fines.confirmPayment')}
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

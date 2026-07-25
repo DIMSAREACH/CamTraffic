@@ -301,8 +301,8 @@ export interface AIDetectionPageStats {
 }
 
 export interface Notification {
-  id: number;
-  user_id: number;
+  id: string;
+  user_id: string;
   title: string;
   message: string;
   is_read: boolean;

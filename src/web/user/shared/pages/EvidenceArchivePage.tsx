@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Archive, Search, ImageIcon, Car, Hash, MapPin, RefreshCw, Loader2,
-  Camera, AlertTriangle, FileText, Eye, X, ExternalLink, Maximize2, Clock,
+  Camera, AlertTriangle, FileText, X, ExternalLink, Maximize2, Clock,
 } from 'lucide-react';
 import { Button } from '@shared/components/ui/button';
 import { Dialog, DialogContent } from '@shared/components/ui/dialog';
@@ -182,6 +182,7 @@ function EvidenceDetailDialog({
                     src={displayImageUrl}
                     alt={item.title}
                     sourceType={item.source_type}
+                    plain
                     imgClassName="evidence-archive-dialog__hero-img"
                   />
                   <span className="evidence-archive-dialog__hero-zoom">
@@ -498,6 +499,7 @@ export function EvidenceArchivePage() {
                           src={displayImageUrl}
                           alt={row.title}
                           sourceType={row.source_type}
+                          plain
                           imgClassName="evidence-archive-card__img"
                           loading="lazy"
                         />
@@ -513,8 +515,8 @@ export function EvidenceArchivePage() {
                       {t(`evidenceArchive.type.${row.source_type}`)}
                     </span>
                     <div className="evidence-archive-card__overlay">
-                      <Eye size={18} aria-hidden />
-                      {t('evidenceArchive.viewEvidence')}
+                      <Maximize2 size={18} aria-hidden />
+                      {t('evidenceArchive.viewFullImage')}
                     </div>
                   </div>
                   <div className="evidence-archive-card__body">

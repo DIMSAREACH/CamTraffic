@@ -11,9 +11,9 @@ import type {
   RBACRole, RBACPermission, OfficerProfile, DriverProfile, PoliceStation, SystemBackupItem,
   ImportDataType, ImportValidateResult, ImportJobSummary, ImportJobDetail, ImportTypeInfo,
 } from '../types';
-import { getRefreshToken } from '@shared/utils/authStorage';
+import { getAccessToken, getRefreshToken } from '@shared/utils/authStorage';
 import { normalizeDetectionMedia } from '@shared/utils/profileImage';
-import { apiClient, unwrap, unwrapList } from './axiosClient';
+import { apiClient, fetchAllPages, unwrap, unwrapList } from './axiosClient';
 import { API_CATALOG, DETECTION_API } from './detectionEndpoints';
 import * as mockApi from './mockApi';
 import * as sample from './sampleDataFallback';
@@ -122,7 +122,7 @@ export const profileAPI = USE_MOCK ? mockApi.profileAPI : {
 // ── USERS ────────────────────────────────────────────────────────
 export const usersAPI = USE_MOCK ? mockApi.usersAPI : {
   async getAll(): Promise<User[]> {
-    const live = unwrapList<User>(await apiClient.get(ADMIN_API.users, { params: { page_size: 100 } }));
+    const live = await fetchAllPages<User>(ADMIN_API.users);
     return sample.withListFallback(live, sample.sampleUsers());
   },
   async getById(id: string): Promise<User> {
@@ -187,15 +187,15 @@ export const vehiclesAPI = USE_MOCK ? mockApi.vehiclesAPI : {
 // ── FINES ────────────────────────────────────────────────────────
 export const finesAPI = USE_MOCK ? mockApi.finesAPI : {
   async getAll(): Promise<Fine[]> {
-    const live = unwrapList<Fine>(await apiClient.get('/fines/', { params: { page_size: 100 } }));
+    const live = await fetchAllPages<Fine>('/fines/');
     return sample.withListFallback(live, sample.sampleFines());
   },
   async getByDriver(driverId: string): Promise<Fine[]> {
-    const live = unwrapList<Fine>(await apiClient.get('/fines/', { params: { page_size: 100, driver: driverId } }));
+    const live = await fetchAllPages<Fine>('/fines/', { driver: driverId });
     return sample.withListFallback(live, sample.sampleFinesForDriver(driverId));
   },
   async getByPolice(policeId: string): Promise<Fine[]> {
-    const live = unwrapList<Fine>(await apiClient.get('/fines/', { params: { page_size: 100, police: policeId } }));
+    const live = await fetchAllPages<Fine>('/fines/', { police: policeId });
     return sample.withListFallback(live, sample.sampleFinesForPolice(policeId));
   },
   async create(data: Partial<Fine> & { driver_id?: string; violation_id?: string }): Promise<Fine> {
@@ -325,7 +325,7 @@ export const aiModelsAPI = USE_MOCK ? mockApi.aiModelsAPI : {
 // ── VIOLATIONS ───────────────────────────────────────────────────
 export const violationsAPI = USE_MOCK ? mockApi.violationsAPI : {
   async getAll(): Promise<TrafficViolation[]> {
-    const live = unwrapList<TrafficViolation>(await apiClient.get('/violations/', { params: { page_size: 100 } }));
+    const live = await fetchAllPages<TrafficViolation>('/violations/');
     return sample.withListFallback(live, sample.SAMPLE_VIOLATIONS);
   },
   async getById(id: string): Promise<TrafficViolation> {
@@ -567,6 +567,10 @@ export const aiAPI = USE_MOCK ? mockApi.aiAPI : {
   async deleteLog(logId: string | number): Promise<void> {
     await apiClient.delete(`/ai/logs/${logId}/`);
   },
+  /** Preload YOLO so Detect returns in <3s. Safe to call repeatedly. */
+  async warmup(): Promise<{ warm: boolean; elapsed_sec?: number }> {
+    return unwrap(await apiClient.get(DETECTION_API.warmup, { timeout: 120000 }));
+  },
   async detectVideo(file: File, options?: {
     observed_action?: string;
     demo_violation?: boolean;
@@ -575,6 +579,7 @@ export const aiAPI = USE_MOCK ? mockApi.aiAPI : {
     max_frames?: number;
     enable_ocr?: boolean;
     enable_tracking?: boolean;
+    live_fast?: boolean;
     signal?: AbortSignal;
   }) {
     const form = new FormData();
@@ -586,6 +591,7 @@ export const aiAPI = USE_MOCK ? mockApi.aiAPI : {
     if (options?.max_frames != null) form.append('max_frames', String(options.max_frames));
     if (options?.enable_ocr != null) form.append('enable_ocr', options.enable_ocr ? 'true' : 'false');
     if (options?.enable_tracking != null) form.append('enable_tracking', options.enable_tracking ? 'true' : 'false');
+    if (options?.live_fast != null) form.append('live_fast', options.live_fast ? 'true' : 'false');
     return normalizeDetectionMedia(unwrap(await apiClient.post(DETECTION_API.video, form, {
       headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 600000,
@@ -619,6 +625,24 @@ export const aiAPI = USE_MOCK ? mockApi.aiAPI : {
     }
     return blob;
   },
+  /** Canonical thesis/runtime metrics (10-class mAP vs 248 live). */
+  async getModelMetrics(): Promise<{
+    live_model?: { path?: string; classes?: number; role?: string };
+    thesis_eval_10_class?: {
+      map50?: number | null;
+      map50_95?: number | null;
+      precision?: number | null;
+      recall?: number | null;
+      note?: string;
+      weights?: string;
+      classes?: number;
+    };
+    full_248_class?: { map50?: number | null; note?: string; classes?: number };
+    ocr?: { exact_match_rate?: number; note?: string; engine?: string };
+    b2_named_26_class?: { map50?: number | null; classes?: number };
+  }> {
+    return unwrap(await apiClient.get('/ai/model-metrics/'));
+  },
 };
 
 export const catalogAPI = USE_MOCK ? mockApi.catalogAPI : {
@@ -635,8 +659,13 @@ export const catalogAPI = USE_MOCK ? mockApi.catalogAPI : {
 // ── NOTIFICATIONS ────────────────────────────────────────────────
 export const notificationsAPI = USE_MOCK ? mockApi.notificationsAPI : {
   async getByUser(_userId: string | number): Promise<Notification[]> {
-    const live = unwrapList<Notification>(await apiClient.get('/notifications/', { params: { page_size: 100 } }));
-    return sample.withListFallback(live, sample.sampleNotificationsForUser(_userId));
+    if (!getAccessToken()) return [];
+    try {
+      const live = unwrapList<Notification>(await apiClient.get('/notifications/', { params: { page_size: 100 } }));
+      return sample.withListFallback(live, sample.sampleNotificationsForUser(_userId));
+    } catch {
+      return [];
+    }
   },
   async markRead(id: string | number): Promise<void> {
     await apiClient.post(`/notifications/${id}/read/`);
@@ -664,7 +693,16 @@ export const notificationsAPI = USE_MOCK ? mockApi.notificationsAPI : {
     type?: string;
     recipient?: string;
     channels?: string[];
-  }): Promise<{ created: number; recipient: string; channels: string[]; note?: string }> {
+  }): Promise<{
+    created: number;
+    recipient: string;
+    channels: string[];
+    note?: string;
+    email_sent?: number;
+    push_sent?: number;
+    sms_sent?: number;
+    channel_status?: Record<string, boolean>;
+  }> {
     return unwrap(await apiClient.post('/notifications/admin/broadcast/', payload));
   },
   async adminGet(id: string): Promise<Notification & { user_email?: string; user_name?: string; user_role?: string }> {
@@ -672,6 +710,39 @@ export const notificationsAPI = USE_MOCK ? mockApi.notificationsAPI : {
   },
   async adminDelete(id: string): Promise<void> {
     await apiClient.delete(`/notifications/admin/${id}/`);
+  },
+  async channelStatus(): Promise<Record<string, boolean>> {
+    return unwrap(await apiClient.get('/notifications/admin/channels/'));
+  },
+  async listTemplates(): Promise<Array<Record<string, unknown>>> {
+    return unwrapList(await apiClient.get('/notifications/admin/templates/'));
+  },
+  async createTemplate(payload: Record<string, unknown>): Promise<{ id: string; slug: string }> {
+    return unwrap(await apiClient.post('/notifications/admin/templates/', payload));
+  },
+  async deleteTemplate(id: string): Promise<void> {
+    await apiClient.delete(`/notifications/admin/templates/${id}/`);
+  },
+  async listSchedules(): Promise<Array<Record<string, unknown>>> {
+    return unwrapList(await apiClient.get('/notifications/admin/schedules/'));
+  },
+  async createSchedule(payload: Record<string, unknown>): Promise<{ id: string }> {
+    return unwrap(await apiClient.post('/notifications/admin/schedules/', payload));
+  },
+  async deleteSchedule(id: string): Promise<void> {
+    await apiClient.delete(`/notifications/admin/schedules/${id}/`);
+  },
+  async listReportSchedules(): Promise<Array<Record<string, unknown>>> {
+    return unwrapList(await apiClient.get('/notifications/admin/report-schedules/'));
+  },
+  async createReportSchedule(payload: Record<string, unknown>): Promise<{ id: string }> {
+    return unwrap(await apiClient.post('/notifications/admin/report-schedules/', payload));
+  },
+  async deleteReportSchedule(id: string): Promise<void> {
+    await apiClient.delete(`/notifications/admin/report-schedules/${id}/`);
+  },
+  async runDueSchedules(): Promise<Record<string, unknown>> {
+    return unwrap(await apiClient.post('/notifications/admin/run-due/', {}));
   },
 };
 

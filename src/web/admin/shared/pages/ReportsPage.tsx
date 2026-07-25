@@ -16,10 +16,6 @@ import { formatRevenue } from '@shared/i18n/localeFormat';
 import { useLiveData } from '@shared/hooks/useLiveData';
 import { camerasAPI, dashboardAPI, officersAPI } from '@shared/services/api';
 import { EMPTY_DASHBOARD_STATS } from '@shared/constants/emptyDashboard';
-import {
-  CAMBODIA_PROVINCES,
-  VEHICLE_TYPE_DISTRIBUTION,
-} from '@shared/constants/reportCatalog';
 import { toast } from 'sonner';
 import type { DashboardStats } from '@shared/types';
 import {
@@ -161,20 +157,24 @@ export function ReportsPage() {
 
   const provinceChart = useMemo(() => {
     const locations = stats.top_locations ?? [];
-    if (locations.length > 0) {
-      return locations.slice(0, 8).map((row) => {
-        const label = (row.name || row.location || '—').trim() || '—';
-        return {
-          name: label.length > 22 ? `${label.slice(0, 20)}…` : label,
-          count: row.detections ?? row.fines ?? 0,
-        };
-      });
+    if (locations.length === 0) return [];
+    return locations.slice(0, 8).map((row) => {
+      const label = (row.name || row.location || '—').trim() || '—';
+      return {
+        name: label.length > 22 ? `${label.slice(0, 20)}…` : label,
+        count: row.detections ?? row.fines ?? 0,
+      };
+    });
+  }, [stats]);
+
+  const vehicleTypeChart = useMemo(() => {
+    const rows = (stats as DashboardStats & {
+      vehicle_type_distribution?: Array<{ name: string; value: number }>;
+    }).vehicle_type_distribution;
+    if (Array.isArray(rows) && rows.length > 0) {
+      return rows.filter((r) => Number(r.value) > 0);
     }
-    const base = stats.total_violations ?? stats.total_fines ?? 100;
-    return CAMBODIA_PROVINCES.map((name, i) => ({
-      name,
-      count: Math.max(4, Math.round(base * (0.28 - i * 0.03) + (i % 3) * 12)),
-    }));
+    return [];
   }, [stats]);
 
   const monthlyViolations = stats.monthly_violations?.length
@@ -385,26 +385,34 @@ export function ReportsPage() {
             icon={<BarChart3 size={16} />}
             accent="rose"
           >
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={provinceChart} layout="vertical" margin={{ left: 8, right: 12 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} horizontal={false} />
-                <XAxis type="number" tick={chartAxisTick} axisLine={false} tickLine={false} />
-                <YAxis
-                  type="category"
-                  dataKey="name"
-                  width={110}
-                  tick={{ ...chartAxisTick, fontSize: 10 }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
-                <Bar dataKey="count" name={t('reports.legendDetections')} radius={[0, 4, 4, 0]}>
-                  {provinceChart.map((_, i) => (
-                    <Cell key={i} fill={chartSeriesColor(i)} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            {provinceChart.length === 0 ? (
+              <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
+                {t('reports.noChartData') !== 'reports.noChartData'
+                  ? t('reports.noChartData')
+                  : 'No location data for this period'}
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={provinceChart} layout="vertical" margin={{ left: 8, right: 12 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} horizontal={false} />
+                  <XAxis type="number" tick={chartAxisTick} axisLine={false} tickLine={false} />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    width={110}
+                    tick={{ ...chartAxisTick, fontSize: 10 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
+                  <Bar dataKey="count" name={t('reports.legendDetections')} radius={[0, 4, 4, 0]}>
+                    {provinceChart.map((_, i) => (
+                      <Cell key={i} fill={chartSeriesColor(i)} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </ReportChartPanel>
 
           <ReportChartPanel
@@ -412,26 +420,34 @@ export function ReportsPage() {
             icon={<PieChartIcon size={16} />}
             accent="teal"
           >
-            <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
-                <Pie
-                  data={[...VEHICLE_TYPE_DISTRIBUTION]}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={92}
-                  innerRadius={48}
-                  paddingAngle={3}
-                >
-                  {VEHICLE_TYPE_DISTRIBUTION.map((_, i) => (
-                    <Cell key={i} fill={CHART_SERIES[i % CHART_SERIES.length]} />
-                  ))}
-                </Pie>
-                <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-              </PieChart>
-            </ResponsiveContainer>
+            {vehicleTypeChart.length === 0 ? (
+              <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
+                {t('reports.noChartData') !== 'reports.noChartData'
+                  ? t('reports.noChartData')
+                  : 'No vehicle-type data for this period'}
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={280}>
+                <PieChart>
+                  <Pie
+                    data={vehicleTypeChart}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={92}
+                    innerRadius={48}
+                    paddingAngle={3}
+                  >
+                    {vehicleTypeChart.map((_, i) => (
+                      <Cell key={i} fill={CHART_SERIES[i % CHART_SERIES.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip cursor={false} contentStyle={chartTooltipStyle} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </ReportChartPanel>
         </div>
       </div>

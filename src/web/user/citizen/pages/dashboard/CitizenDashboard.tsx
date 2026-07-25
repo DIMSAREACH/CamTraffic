@@ -73,10 +73,10 @@ export function CitizenDashboard() {
   const statusLabel = (status: string) => t(`fines.status.${status}` as 'fines.status.pending');
 
   const statCards = [
-    { tone: 'teal', icon: Car, value: String(stats?.vehicles ?? 0), label: t('dashboard.statMyVehicles') },
-    { tone: 'blue', icon: FileText, value: String(stats?.total_fines ?? 0), label: t('dashboard.statTotalFines') },
-    { tone: 'amber', icon: Clock, value: String(stats?.pending ?? 0), label: t('dashboard.statOutstanding') },
-    { tone: 'rose', icon: AlertTriangle, value: formatAppCurrency(locale, stats?.owed ?? 0), label: t('dashboard.statAmountOwed') },
+    { tone: 'teal', icon: Car, value: String(stats?.vehicles ?? 0), label: t('dashboard.statMyVehicles'), path: CITIZEN_PORTAL_ROUTES.vehicles },
+    { tone: 'blue', icon: FileText, value: String(stats?.total_fines ?? 0), label: t('dashboard.statTotalFines'), path: CITIZEN_PORTAL_ROUTES.fines },
+    { tone: 'amber', icon: Clock, value: String(stats?.pending ?? 0), label: t('dashboard.statOutstanding'), path: CITIZEN_PORTAL_ROUTES.fines },
+    { tone: 'rose', icon: AlertTriangle, value: formatAppCurrency(locale, stats?.owed ?? 0), label: t('dashboard.statAmountOwed'), path: CITIZEN_PORTAL_ROUTES.finesPayments },
   ];
 
   const quickActions = [
@@ -203,7 +203,13 @@ export function CitizenDashboard() {
         {statCards.map((card) => {
           const Icon = card.icon;
           return (
-            <div key={card.label} className={`enforcement-page__stat-card enforcement-page__stat-card--${card.tone}`}>
+            <button
+              key={card.label}
+              type="button"
+              onClick={() => navigate(card.path)}
+              className={`enforcement-page__stat-card enforcement-page__stat-card--${card.tone} enforcement-page__stat-card--link`}
+              aria-label={card.label}
+            >
               <div className={`enforcement-page__stat-icon enforcement-page__stat-icon--${card.tone}`}>
                 <Icon size={18} />
               </div>
@@ -213,7 +219,7 @@ export function CitizenDashboard() {
                   {card.label}
                 </p>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>

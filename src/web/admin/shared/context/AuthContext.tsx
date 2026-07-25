@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, type ReactNode } from 'react';
 import { useAuthStore } from '@camtraffic/store';
 import { AUTH_SESSION_EXPIRED } from '@camtraffic/store';
 import type { User, AuthResponse, LoginOptions } from '../types';
@@ -36,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener(AUTH_SESSION_EXPIRED, onSessionExpired);
   }, [clearSession]);
 
-  const login = async (
+  const login = useCallback(async (
     email: string,
     password: string,
     options?: LoginOptions,
@@ -45,14 +45,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response = await authAPI.login(email, password, options);
     setSession(response, remember);
     return response.user;
-  };
+  }, [setSession]);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await authAPI.logout();
     } catch { /* ignore */ }
     clearSession();
-  };
+  }, [clearSession]);
 
   return (
     <AuthContext.Provider value={{ user, token, isLoading, login, setSession, logout, updateUser }}>
@@ -61,10 +61,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useAuth() {
+/**
+ * Prefer React context from AuthProvider.
+ * Fall back to the Zustand auth store when context is missing (common during Vite HMR
+ * when AuthContext.tsx remounts with a new createContext identity).
+ */
+export function useAuth(): AuthContextType {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
-  return ctx;
+  const user = useAuthStore((s) => s.user);
+  const token = useAuthStore((s) => s.token);
+  const isLoading = useAuthStore((s) => s.isLoading);
+  const setSession = useAuthStore((s) => s.setSession);
+  const clearSession = useAuthStore((s) => s.clearSession);
+  const updateUser = useAuthStore((s) => s.updateUser);
+
+  const login = useCallback(async (
+    email: string,
+    password: string,
+    options?: LoginOptions,
+    remember = false,
+  ) => {
+    const response = await authAPI.login(email, password, options);
+    setSession(response, remember);
+    return response.user;
+  }, [setSession]);
+
+  const logout = useCallback(async () => {
+    try {
+      await authAPI.logout();
+    } catch { /* ignore */ }
+    clearSession();
+  }, [clearSession]);
+
+  if (ctx) return ctx;
+
+  return {
+    user,
+    token,
+    isLoading,
+    login,
+    setSession,
+    logout,
+    updateUser,
+  };
 }
 
 export { useAuthStore };

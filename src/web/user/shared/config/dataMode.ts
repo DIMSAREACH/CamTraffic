@@ -2,15 +2,39 @@
  * Production-truth data mode.
  * - Production builds always use live Django APIs (no mock, no sample merge).
  * - Development may opt in via .env flags.
+ * - Driver (/citizen) portal never merges sample rows (runtime guard).
  */
 export const IS_DEV = import.meta.env.DEV;
 export const IS_PROD_BUILD = import.meta.env.PROD;
 
+function isCitizenPortalPath(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.location.pathname.startsWith('/citizen');
+}
+
 /** Full in-memory API (mockApi.ts) — development only, requires VITE_USE_MOCK=true */
 export const USE_MOCK_API = IS_DEV && import.meta.env.VITE_USE_MOCK === 'true';
 
-/** Inject demo rows when live API returns empty — development only, requires VITE_USE_SAMPLE_FALLBACK=true */
-export const USE_SAMPLE_FALLBACK = IS_DEV && import.meta.env.VITE_USE_SAMPLE_FALLBACK === 'true';
+/** Env flag for sample merge — still gated at runtime by allowSampleFallback(). */
+export const USE_SAMPLE_FALLBACK =
+  IS_DEV && import.meta.env.VITE_USE_SAMPLE_FALLBACK === 'true';
+
+/**
+ * Allow demo_violation / Auto rule-matching on detect requests.
+ * Production-truth: keep VITE_ALLOW_DEMO_VIOLATION=false (real observed_action only).
+ */
+export const ALLOW_DEMO_VIOLATION =
+  IS_DEV && import.meta.env.VITE_ALLOW_DEMO_VIOLATION === 'true';
+
+/**
+ * Runtime guard for injecting demo rows.
+ * Always false on Driver (/citizen) routes — production-truth only.
+ */
+export function allowSampleFallback(): boolean {
+  if (!USE_SAMPLE_FALLBACK) return false;
+  if (isCitizenPortalPath()) return false;
+  return true;
+}
 
 export function assertProductionDataMode(): void {
   if (IS_PROD_BUILD && import.meta.env.VITE_USE_MOCK === 'true') {
@@ -23,9 +47,20 @@ export function assertProductionDataMode(): void {
       'CamTraffic: VITE_USE_SAMPLE_FALLBACK must be false for production builds. Use live API data only.',
     );
   }
+  if (IS_PROD_BUILD && import.meta.env.VITE_ALLOW_DEMO_VIOLATION === 'true') {
+    throw new Error(
+      'CamTraffic: VITE_ALLOW_DEMO_VIOLATION must be false for production builds.',
+    );
+  }
+  if (IS_PROD_BUILD && import.meta.env.VITE_ALLOW_DEMO_ASSETS === 'true') {
+    throw new Error(
+      'CamTraffic: VITE_ALLOW_DEMO_ASSETS must be false for production builds. Use real RTSP/HTTP camera URLs.',
+    );
+  }
 }
 
 export function dataModeLabel(): string {
+  if (isCitizenPortalPath()) return 'production-truth-citizen';
   if (USE_MOCK_API) return 'mock-api';
   if (USE_SAMPLE_FALLBACK) return 'live+sample-fallback';
   return 'production-truth';

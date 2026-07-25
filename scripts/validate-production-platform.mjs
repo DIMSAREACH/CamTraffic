@@ -14,13 +14,13 @@ const backend = path.join(root, 'backend');
 const shell = process.platform === 'win32';
 
 const deployArtifacts = [
-  'deploy/docker/docker-compose.prod.yml',
-  'deploy/docker/Dockerfile.backend.prod',
-  'deploy/docker/Dockerfile.nginx.prod',
-  'deploy/nginx/camtraffic.conf',
-  'deploy/scripts/deploy_production.sh',
-  'deploy/env/.env.production.example',
-  'deploy/ssl/certbot-init.sh',
+  'infrastructure/deploy/docker/docker-compose.prod.yml',
+  'infrastructure/deploy/docker/Dockerfile.backend.prod',
+  'infrastructure/deploy/docker/Dockerfile.nginx.prod',
+  'infrastructure/deploy/nginx/camtraffic.conf',
+  'infrastructure/deploy/scripts/deploy_production.sh',
+  'infrastructure/deploy/env/.env.production.example',
+  'infrastructure/deploy/ssl/certbot-init.sh',
 ];
 
 function run(label, command, args, cwd = root) {

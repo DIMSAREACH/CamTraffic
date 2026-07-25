@@ -1,6 +1,6 @@
 # AI Detection — Phase 10 Test Log
 
-**Generated:** 2026-07-21T23:25:26.104877+00:00
+**Generated:** 2026-07-25T18:24:07.957021+00:00
 **Weights:** `D:\Year4\Project Thesis\Expert System\Project\CamTraffic\ai\weights\best.pt`
 **Confidence threshold (YOLO):** 0.25
 
@@ -8,16 +8,16 @@
 
 | Metric | Value |
 |--------|------:|
-| Images tested | 20 |
-| Sign detected (≥1 box) | 4 |
-| Detection rate | 20.0% |
-| Mean inference (ms) | 131.6 |
+| Images tested | 0 |
+| Sign detected (≥1 box) | 0 |
+| Detection rate | 0% |
+| Mean inference (ms) | 0 |
 
 ## Automated batch — videos (frame sampling + YOLO)
 
 | Metric | Value |
 |--------|------:|
-| Videos tested | 5 |
+| Videos tested | 0 |
 | Videos with sign on a sampled frame | 0 |
 
 ## Manual — Webcam & live camera (officer UAT)
@@ -31,4 +31,4 @@
 
 ## Raw JSON
 
-See `phase10_detection_test_20260721_232526.json`
+See `phase10_detection_test_20260725_182407.json`

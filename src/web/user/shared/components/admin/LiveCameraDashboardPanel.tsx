@@ -1,6 +1,6 @@
 import { Cctv, MapPin, Radio } from 'lucide-react';
 import { useLanguage } from '@shared/context/LanguageContext';
-import { isDemoCameraFrame, resolveCameraFrameUrl } from '@shared/constants/cameraFrameDemo';
+import { isCameraVideoUrl, isDemoCameraFrame, resolveCameraFrameUrl } from '@shared/constants/cameraFrameDemo';
 import type { Camera, CameraStatus } from '@shared/types';
 import { cn } from '@shared/components/ui/utils';
 
@@ -34,8 +34,9 @@ function LiveCameraCard({
   const { t } = useLanguage();
   const meta = STATUS_STYLE[camera.status];
   const isActive = camera.status === 'active';
-  const src = isActive ? resolveCameraFrameUrl(camera.frame_source_url, camera) : '';
-  const bust = src ? frameUrl(src, refreshTick) : '';
+  const resolved = isActive ? resolveCameraFrameUrl(camera.frame_source_url, camera) : '';
+  const isVideo = isCameraVideoUrl(camera.frame_source_url) || isCameraVideoUrl(resolved);
+  const src = isVideo ? resolved : (resolved ? frameUrl(resolved, refreshTick) : '');
   const isDemo = isDemoCameraFrame(camera.frame_source_url, camera);
 
   return (
@@ -51,8 +52,20 @@ function LiveCameraCard({
       )}
     >
       <div className="cameras-live-card__viewport">
-        {bust ? (
-          <img src={bust} alt="" className="cameras-live-card__img" loading="lazy" />
+        {src ? (
+          isVideo ? (
+            <video
+              src={src}
+              className="cameras-live-card__img"
+              autoPlay
+              muted
+              loop
+              playsInline
+              aria-hidden
+            />
+          ) : (
+            <img src={src} alt="" className="cameras-live-card__img" loading="lazy" />
+          )
         ) : (
           <div className={cn('cameras-live-card__placeholder', dock && 'cameras-live-card__placeholder--dock')}>
             <Cctv size={dock ? 26 : compact ? 20 : 28} strokeWidth={1.5} />
@@ -61,7 +74,7 @@ function LiveCameraCard({
             )}
           </div>
         )}
-        {isActive && bust && !compact && (
+        {isActive && src && !compact && (
           <span className={cn('cameras-live-card__live', isDemo && 'cameras-live-card__live--demo')}>
             {!isDemo && <span className="cameras-live-card__live-dot" />}
             {isDemo ? t('pages.cameras.demoFrameBadge') : t('pages.cameras.liveBadge')}

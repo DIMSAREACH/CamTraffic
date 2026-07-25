@@ -28,6 +28,7 @@ export interface OverlayDetectionInput {
   plate_confidence?: number;
   plate_bbox?: NormalizedBbox;
   plate_boxes?: Array<{ bbox: NormalizedBbox; confidence?: number }>;
+  plate_ocr_details?: Array<{ text?: string; confidence?: number; is_province_line?: boolean }>;
   detection_mode?: 'sign' | 'vehicle' | 'plate' | 'no_sign';
   display_title_en?: string;
   display_title_km?: string;
@@ -47,6 +48,63 @@ const NMS_IOU = 0.45;
 
 function clamp01(value: number) {
   return Math.max(0, Math.min(1, value));
+}
+
+/**
+ * YOLO/OCR often returns a tight text box on stop/prohibitory signs.
+ * Expand to a near-square face around the geometric center so the overlay
+ * and center marker represent the sign body, not just the glyph.
+ */
+export function expandSignBboxToFace(bbox: NormalizedBbox): NormalizedBbox {
+  const w = Math.max(0, bbox.x2 - bbox.x1);
+  const h = Math.max(0, bbox.y2 - bbox.y1);
+  if (w <= 0 || h <= 0) return bbox;
+
+  const cx = (bbox.x1 + bbox.x2) / 2;
+  const cy = (bbox.y1 + bbox.y2) / 2;
+  const ratio = w / h;
+
+  // Already a healthy square/circle-like face — light pad only.
+  let side = Math.max(w, h);
+  if (ratio >= 0.72 && ratio <= 1.35 && boxArea(bbox) >= 0.02) {
+    side *= 1.12;
+  } else {
+    // Text-tight / elongated → grow into a square around the center.
+    side = Math.max(w, h) * 1.65;
+    // Keep very small detections from exploding to full-frame.
+    side = Math.min(side, Math.max(w, h) * 2.4, 0.92);
+  }
+
+  const half = side / 2;
+  let x1 = cx - half;
+  let y1 = cy - half;
+  let x2 = cx + half;
+  let y2 = cy + half;
+
+  // Keep centered if we hit image edges.
+  if (x1 < 0) {
+    x2 = Math.min(1, x2 - x1);
+    x1 = 0;
+  }
+  if (y1 < 0) {
+    y2 = Math.min(1, y2 - y1);
+    y1 = 0;
+  }
+  if (x2 > 1) {
+    x1 = Math.max(0, x1 - (x2 - 1));
+    x2 = 1;
+  }
+  if (y2 > 1) {
+    y1 = Math.max(0, y1 - (y2 - 1));
+    y2 = 1;
+  }
+
+  return {
+    x1: clamp01(x1),
+    y1: clamp01(y1),
+    x2: clamp01(x2),
+    y2: clamp01(y2),
+  };
 }
 
 function boxArea(bbox: NormalizedBbox): number {
@@ -98,6 +156,75 @@ function nmsVehicles(vehicles: VehicleDetectionItem[]): VehicleDetectionItem[] {
   return kept;
 }
 
+function isDegenerateVehicleBox(bbox: NormalizedBbox): boolean {
+  const w = bbox.x2 - bbox.x1;
+  const h = bbox.y2 - bbox.y1;
+  const area = w * h;
+  if (area < 0.04) return true;
+  if (w < 0.12 || h < 0.15) return true;
+  const ratio = h > 0 ? w / h : 99;
+  // Tall thin side strip (taillight fragment).
+  return ratio < 0.45 && area < 0.18;
+}
+
+function bboxContains(outer: NormalizedBbox, inner: NormalizedBbox, pad = 0.06): boolean {
+  return (
+    outer.x1 - pad <= inner.x1
+    && outer.y1 - pad <= inner.y1
+    && outer.x2 + pad >= inner.x2
+    && outer.y2 + pad >= inner.y2
+  );
+}
+
+/** When YOLO only hits a taillight, expand a rear-car box around the plate. */
+export function vehicleBoxFromPlate(plate: NormalizedBbox): NormalizedBbox {
+  const pw = Math.max(plate.x2 - plate.x1, 0.02);
+  const ph = Math.max(plate.y2 - plate.y1, 0.01);
+  let x1 = Math.max(0, plate.x1 - pw * 1.8);
+  let x2 = Math.min(1, plate.x2 + pw * 1.8);
+  let y2 = Math.min(1, plate.y2 + ph * 2.2);
+  let y1 = Math.max(0, plate.y1 - ph * 8.5);
+  if (x2 - x1 < 0.35) {
+    const cx = (x1 + x2) / 2;
+    x1 = Math.max(0, cx - 0.28);
+    x2 = Math.min(1, cx + 0.28);
+  }
+  if (y2 - y1 < 0.35) {
+    y1 = Math.max(0, y2 - 0.55);
+  }
+  return { x1: clamp01(x1), y1: clamp01(y1), x2: clamp01(x2), y2: clamp01(y2) };
+}
+
+function primaryPlateBbox(result: OverlayDetectionInput): NormalizedBbox | null {
+  const fromBoxes = (result.plate_boxes ?? []).find((p) => validBbox(p.bbox, 'plate'));
+  if (fromBoxes?.bbox) return fromBoxes.bbox;
+  if (validBbox(result.plate_bbox, 'plate')) return result.plate_bbox;
+  return null;
+}
+
+function refineOverlayVehicles(
+  vehicles: VehicleDetectionItem[],
+  plateBbox: NormalizedBbox | null,
+): VehicleDetectionItem[] {
+  const ranked = nmsVehicles(vehicles).filter((v) => !isDegenerateVehicleBox(v.bbox));
+  const fallback = nmsVehicles(vehicles);
+  const base = ranked.length ? ranked : fallback;
+
+  if (!plateBbox) return base;
+
+  const covered = base.some((v) => bboxContains(v.bbox, plateBbox));
+  const primaryBad = !base.length || isDegenerateVehicleBox(base[0].bbox);
+  if (covered && !primaryBad) return base;
+
+  const synth: VehicleDetectionItem = {
+    vehicle_type: base[0]?.vehicle_type || 'car',
+    label: base[0]?.label || 'Car',
+    confidence: Math.max(Number(base[0]?.confidence ?? 0), 55),
+    bbox: vehicleBoxFromPlate(plateBbox),
+  };
+  return [synth, ...base.filter((v) => !isDegenerateVehicleBox(v.bbox))].slice(0, MAX_VEHICLES);
+}
+
 function plateZoneFromVehicle(vehicle: VehicleDetectionItem): NormalizedBbox | null {
   const bbox = vehicle.bbox;
   if (!validBbox(bbox)) return null;
@@ -142,22 +269,24 @@ export function buildDetectionOverlay(
     && mode !== 'no_sign'
     && mode !== 'vehicle'
   ) {
+    const face = expandSignBboxToFace({
+      x1: clamp01(result.sign_bbox.x1),
+      y1: clamp01(result.sign_bbox.y1),
+      x2: clamp01(result.sign_bbox.x2),
+      y2: clamp01(result.sign_bbox.y2),
+    });
     items.push({
       id: 'sign',
       kind: 'sign',
       label: signLabel,
       confidence: signConfidence,
-      bbox: {
-        x1: clamp01(result.sign_bbox.x1),
-        y1: clamp01(result.sign_bbox.y1),
-        x2: clamp01(result.sign_bbox.x2),
-        y2: clamp01(result.sign_bbox.y2),
-      },
+      bbox: face,
       color: SIGN_COLOR,
     });
   }
 
-  nmsVehicles(result.vehicles ?? []).forEach((vehicle, index) => {
+  const plateBbox = primaryPlateBbox(result);
+  refineOverlayVehicles(result.vehicles ?? [], plateBbox).forEach((vehicle, index) => {
     const trackLabel = vehicle.track_id != null ? ` #${vehicle.track_id}` : '';
     items.push({
       id: vehicle.track_id != null ? `vehicle-${vehicle.track_id}` : `vehicle-${index}`,
@@ -174,7 +303,13 @@ export function buildDetectionOverlay(
     });
   });
 
-  const plateText = result.detected_plate?.trim();
+  const plateText = (
+    result.detected_plate
+    || [...(result.plate_ocr_details ?? [])]
+      .filter((r) => r?.text && !r.is_province_line)
+      .sort((a, b) => Number(b.confidence ?? 0) - Number(a.confidence ?? 0))[0]?.text
+    || ''
+  ).trim();
   const plateBoxes = (result.plate_boxes ?? [])
     .filter((p) => validBbox(p.bbox, 'plate'))
     .slice(0, 4);

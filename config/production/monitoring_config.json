@@ -1,0 +1,20 @@
+{
+  "health_checks": {
+    "api_endpoint": "/health/ready/",
+    "check_interval_seconds": 30,
+    "timeout_seconds": 10,
+    "alert_threshold_failures": 3
+  },
+  "metrics": {
+    "response_time_threshold_ms": 2000,
+    "error_rate_threshold_percent": 5.0,
+    "cpu_threshold_percent": 80.0,
+    "memory_threshold_percent": 85.0,
+    "disk_threshold_percent": 90.0
+  },
+  "alerts": {
+    "email": "admin@camtraffic.store",
+    "webhook_url": "https://api.camtraffic.store/webhooks/monitoring/",
+    "notification_cooldown_minutes": 15
+  }
+}

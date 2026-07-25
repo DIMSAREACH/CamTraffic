@@ -47,6 +47,14 @@ class Fine(TimeStampedUUIDModel):
     payment_screenshot = models.ImageField(upload_to='fines/payments/', blank=True, null=True)
     officer_note = models.TextField(blank=True)
     paid_at = models.DateTimeField(null=True, blank=True)
+    payment_verified_at = models.DateTimeField(null=True, blank=True)
+    payment_verified_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='fines_payment_verified',
+    )
 
     class Meta:
         db_table = 'fines'

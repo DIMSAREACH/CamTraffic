@@ -61,8 +61,8 @@ export function withListFallback<T>(live: T[], sample: T[]): T[] {
 }
 
 /** Cohesive demo dataset for registered drivers (UUID ids) and empty API responses. */
-export const DEMO_DRIVER_LABEL = 'Demo Driver';
-export const DEMO_DRIVER_LICENSE = 'DRV-DEMO-001';
+export const DEMO_DRIVER_LABEL = 'Kosal Pich';
+export const DEMO_DRIVER_LICENSE = 'DL-KH-2024-001234';
 
 export const DEMO_DRIVER_FINES: Fine[] = [
   { id: '1001', driver_id: '4', driver_name: DEMO_DRIVER_LABEL, driver_license: DEMO_DRIVER_LICENSE, police_id: 2, police_name: 'Dara Chan', amount: 100, reason: 'Speeding (80km/h in 60km/h zone)', status: 'pending', location: 'Russian Blvd, Phnom Penh', vehicle_plate: '2AK 7788', created_at: '2026-06-15T14:20:00Z' },
@@ -749,8 +749,9 @@ export function sampleUsers(): User[] {
   return mockUsers;
 }
 
-/** Live API users plus demo catalog entries (deduped by email) for a fuller admin table. */
+/** Live API users plus demo catalog entries (deduped by email). Gated — never in production-truth. */
 export function mergeUsersWithSamples(live: User[]): User[] {
+  if (!USE_SAMPLE_FALLBACK) return live;
   const seen = new Set(live.map((u) => u.email.trim().toLowerCase()));
   const merged: User[] = [...live];
   for (const sample of mockUsers) {

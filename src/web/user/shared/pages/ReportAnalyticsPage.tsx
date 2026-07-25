@@ -9,9 +9,8 @@ import {
   ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Cell,
 } from 'recharts';
 import { useLanguage } from '@shared/context/LanguageContext';
-import { USER_PORTAL_ROUTES } from '@shared/constants/userPortalPaths';
 import { useLiveData } from '@shared/hooks/useLiveData';
-import { dashboardAPI } from '@shared/services/api';
+import { aiAPI, dashboardAPI } from '@shared/services/api';
 import { EMPTY_DASHBOARD_STATS } from '@shared/constants/emptyDashboard';
 import { useAuth } from '@shared/context/AuthContext';
 import type { DashboardStats } from '@shared/types';
@@ -51,20 +50,48 @@ function RainbowFillGradient({ id }: { id: string }) {
 }
 
 type AiMetrics = {
-  accuracy: number;
-  precision: number;
-  recall: number;
-  map50: number;
-  f1: number;
+  accuracy: number | null;
+  precision: number | null;
+  recall: number | null;
+  map50: number | null;
+  f1: number | null;
+  note?: string;
+  liveClasses?: number | null;
 };
 
-const DEFAULT_AI_METRICS: AiMetrics = {
-  accuracy: 98.7,
-  precision: 97.4,
-  recall: 96.1,
-  map50: 94.8,
-  f1: 96.7,
+const EMPTY_AI_METRICS: AiMetrics = {
+  accuracy: null,
+  precision: null,
+  recall: null,
+  map50: null,
+  f1: null,
 };
+
+function formatMetricPct(value: number | null): string {
+  if (value == null || !Number.isFinite(value)) return '—';
+  const pct = value <= 1 ? value * 100 : value;
+  return `${pct.toFixed(2)}%`;
+}
+
+function mapPublishedToAiMetrics(raw: Awaited<ReturnType<typeof aiAPI.getModelMetrics>>): AiMetrics {
+  const thesis = raw.thesis_eval_10_class ?? {};
+  const map50 = thesis.map50 ?? null;
+  const precision = thesis.precision ?? null;
+  const recall = thesis.recall ?? null;
+  let f1: number | null = null;
+  if (precision != null && recall != null && precision + recall > 0) {
+    f1 = (2 * precision * recall) / (precision + recall);
+  }
+  return {
+    accuracy: map50,
+    precision,
+    recall,
+    map50,
+    f1,
+    note: thesis.note || raw.full_248_class?.note,
+    liveClasses: raw.live_model?.classes ?? null,
+  };
+}
 
 type AnalyticsTab = 'detection' | 'violations' | 'cameras' | 'ai' | 'people';
 
@@ -81,7 +108,7 @@ export function ReportAnalyticsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats>(() => ({ ...EMPTY_DASHBOARD_STATS }));
-  const [aiMetrics, setAiMetrics] = useState<AiMetrics>(DEFAULT_AI_METRICS);
+  const [aiMetrics, setAiMetrics] = useState<AiMetrics>(EMPTY_AI_METRICS);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [tab, setTab] = useState<AnalyticsTab>('detection');
@@ -91,38 +118,43 @@ export function ReportAnalyticsPage() {
     if (!silent) setLoading(true);
     else setRefreshing(true);
 
-    const request = user.role === 'admin'
+    const isAdmin = user.role === 'admin';
+    const request = isAdmin
       ? dashboardAPI.getAdminStats()
       : dashboardAPI.getPoliceReportStats();
 
     request
-      .then((s) => {
-        setStats(s);
-        setAiMetrics((prev) => ({
-          ...prev,
-          accuracy: s.detection_accuracy || prev.accuracy,
-        }));
-      })
+      .then((s) => setStats(s))
       .catch(() => setStats({ ...EMPTY_DASHBOARD_STATS }))
       .finally(() => {
         if (!silent) setLoading(false);
         setRefreshing(false);
       });
 
-    void dashboardAPI.getDetectionAnalytics()
-      .then((raw) => {
-        const rec = raw as Record<string, number>;
-        setAiMetrics((prev) => ({
-          accuracy: Number(rec.accuracy ?? rec.detection_accuracy ?? prev.accuracy),
-          precision: Number(rec.precision ?? prev.precision),
-          recall: Number(rec.recall ?? prev.recall),
-          map50: Number(rec.map50 ?? rec.mAP50 ?? rec.map ?? prev.map50),
-          f1: Number(rec.f1 ?? rec.f1_score ?? prev.f1),
-        }));
-      })
-      .catch(() => {
-        /* keep defaults */
-      });
+    void aiAPI.getModelMetrics()
+      .then((raw) => setAiMetrics(mapPublishedToAiMetrics(raw)))
+      .catch(() => { /* never fabricate */ });
+
+    if (isAdmin) {
+      void dashboardAPI.getDetectionAnalytics()
+        .then((raw) => {
+          const rec = raw as Record<string, number>;
+          const num = (v: unknown) => {
+            const n = Number(v);
+            return Number.isFinite(n) ? n : null;
+          };
+          setAiMetrics((prev) => ({
+            ...prev,
+            accuracy: prev.map50 ?? num(rec.accuracy ?? rec.detection_accuracy) ?? prev.accuracy,
+            precision: prev.precision ?? num(rec.precision),
+            recall: prev.recall ?? num(rec.recall),
+            f1: prev.f1 ?? num(rec.f1 ?? rec.f1_score),
+          }));
+        })
+        .catch(() => {
+          /* never fabricate metrics */
+        });
+    }
   }, [user]);
 
   useEffect(() => {
@@ -182,7 +214,7 @@ export function ReportAnalyticsPage() {
     {
       key: 'ai' as const,
       label: t('reports.metricAccuracy'),
-      value: `${aiMetrics.accuracy.toFixed(1)}%`,
+      value: formatMetricPct(aiMetrics.accuracy),
       icon: Target,
       variant: 'teal' as const,
     },
@@ -228,7 +260,7 @@ export function ReportAnalyticsPage() {
             <button
               type="button"
               className="enforcement-page__hero-btn enforcement-page__hero-btn--outline"
-              onClick={() => navigate(USER_PORTAL_ROUTES.reports)}
+              onClick={() => navigate('/admin/reports')}
             >
               <ArrowLeft size={15} aria-hidden />
               {t('reports.backToReports')}
@@ -403,11 +435,16 @@ export function ReportAnalyticsPage() {
         {tab === 'ai' && (
           <div className="reports-page__analytics-pane reports-page__analytics-pane--stack">
             <div className="reports-page__mini-grid reports-page__mini-grid--five">
-              <ReportMiniStat label={t('reports.metricAccuracy')} value={`${aiMetrics.accuracy.toFixed(2)}%`} variant="emerald" />
-              <ReportMiniStat label={t('reports.metricPrecision')} value={`${aiMetrics.precision.toFixed(2)}%`} variant="blue" />
-              <ReportMiniStat label={t('reports.metricRecall')} value={`${aiMetrics.recall.toFixed(2)}%`} variant="violet" />
-              <ReportMiniStat label={t('reports.metricMap')} value={`${aiMetrics.map50.toFixed(2)}%`} variant="amber" />
-              <ReportMiniStat label={t('reports.metricF1')} value={`${aiMetrics.f1.toFixed(2)}%`} variant="teal" />
+              <ReportMiniStat label={t('reports.metricAccuracy')} value={formatMetricPct(aiMetrics.accuracy)} variant="emerald" />
+              <ReportMiniStat label={t('reports.metricPrecision')} value={formatMetricPct(aiMetrics.precision)} variant="blue" />
+              <ReportMiniStat label={t('reports.metricRecall')} value={formatMetricPct(aiMetrics.recall)} variant="violet" />
+              <ReportMiniStat label={t('reports.metricMap')} value={formatMetricPct(aiMetrics.map50)} variant="amber" />
+              <ReportMiniStat label={t('reports.metricF1')} value={formatMetricPct(aiMetrics.f1)} variant="teal" />
+              {aiMetrics.note ? (
+                <p className="text-xs text-muted-foreground col-span-full mt-2">{aiMetrics.note}
+                  {aiMetrics.liveClasses != null ? ` Live model: ${aiMetrics.liveClasses} classes.` : ''}
+                </p>
+              ) : null}
             </div>
             <div className="reports-page__grid reports-page__grid--two">
               <ReportChartPanel

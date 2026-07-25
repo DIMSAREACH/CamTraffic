@@ -390,30 +390,226 @@ def extract_plate_province_code(plate_text: str) -> str | None:
     return match.group(1)
 
 
+# Printed province/city lines on Cambodia plates → official registration code.
+_PROVINCE_NAME_TO_CODE: dict[str, str] = {
+    'PHNOMPENH': '12',
+    'PHNOM': '12',
+    'PENH': '12',
+    'BATTAMBANG': '2',
+    'SIEMREAP': '17',
+    'KAMPONGCHAM': '3',
+    'KAMPONGCHHNANG': '4',
+    'KAMPONGSPEU': '5',
+    'KAMPONGTHOM': '6',
+    'KAMPOT': '7',
+    'KANDAL': '8',
+    'KOHKONG': '9',
+    'KRATIE': '10',
+    'MONDULKIRI': '11',
+    'PREAHVIHEAR': '13',
+    'PREYVENG': '14',
+    'PURSAT': '15',
+    'RATANAKIRI': '16',
+    'PREAHSIHANOUK': '18',
+    'SIHANOUK': '18',
+    'STUNGTRENG': '19',
+    'SVAYRIENG': '20',
+    'TAKEO': '21',
+    'ODDARMEANCHEY': '22',
+    'KEP': '23',
+    'PAILIN': '24',
+    'TBONGKHMUM': '25',
+    'BANTEAYMEANCHEY': '1',
+}
+
+
+def _normalize_province_token(text: str) -> str:
+    return re.sub(r'[^A-Z]', '', (text or '').upper())
+
+
+# EasyOCR often garbles the red city line; keep high-signal Phnom Penh patterns.
+_PHNOM_PENH_OCR_HINT = re.compile(
+    r'(PHNOM|P[HKNR][YNO][OQM]M|P[RK][TY]OM|PNOM|PSORP|PAOMP|PORP|PKIOM|PRYOM|PFOMP).{0,8}'
+    r'(PENH|P[EZ]NH|PZNH?|PZM|PIN|PIVE|PN\b)|'
+    r'(PSORPI|PSORPIVE|PAOMPN|PORPIN|PKIOMPIN|PRYOMPZN)|'
+    r'(^|[^A-Z])(PENH|PZNH|P[EZ]NH)([^A-Z]|$)',
+    re.I,
+)
+
+
+def _fuzzy_province_from_token(token: str) -> dict | None:
+    """Map noisy OCR tokens to a province when similarity is strong enough."""
+    from difflib import SequenceMatcher
+
+    token = _normalize_province_token(token)
+    if len(token) < 5:
+        return None
+
+    # Strong Phnom Penh heuristics (most common + most garbled in this dataset).
+    if _PHNOM_PENH_OCR_HINT.search(token) or _PHNOM_PENH_OCR_HINT.search(' '.join(token[i:i + 4] for i in range(0, len(token), 4))):
+        entry = CAMBODIA_PLATE_PROVINCES['12']
+        return {'code': '12', 'name_en': entry['en'], 'name_km': entry['km'], 'source': 'ocr_fuzzy'}
+    if token.startswith('P') and SequenceMatcher(None, token, 'PHNOMPENH').ratio() >= 0.42:
+        # Require beating the next-best long province name
+        others = []
+        for name, code in _PROVINCE_NAME_TO_CODE.items():
+            if code == '12' or len(name) < 6:
+                continue
+            others.append(SequenceMatcher(None, token, name).ratio())
+        pp_score = SequenceMatcher(None, token, 'PHNOMPENH').ratio()
+        if not others or pp_score >= max(others) + 0.03:
+            entry = CAMBODIA_PLATE_PROVINCES['12']
+            return {'code': '12', 'name_en': entry['en'], 'name_km': entry['km'], 'source': 'ocr_fuzzy'}
+
+    best_name = ''
+    best_code = ''
+    best_score = 0.0
+    for name, code in _PROVINCE_NAME_TO_CODE.items():
+        if len(name) < 6:
+            continue
+        score = SequenceMatcher(None, token, name).ratio()
+        if score > best_score:
+            best_score = score
+            best_name = name
+            best_code = code
+    if best_score >= 0.62 and best_code:
+        entry = CAMBODIA_PLATE_PROVINCES.get(best_code)
+        if entry:
+            return {
+                'code': best_code,
+                'name_en': entry['en'],
+                'name_km': entry['km'],
+                'source': 'ocr_fuzzy',
+            }
+    return None
+
+
+def detect_province_from_ocr_text(*texts: str) -> dict | None:
+    """
+    Prefer the province/city name printed on the plate (e.g. PHNOM PENH)
+    over digit-prefix mapping. Also accepts common EasyOCR garble of that line.
+    """
+    tokens: list[str] = []
+    raw_blobs: list[str] = []
+    for raw in texts:
+        if not raw:
+            continue
+        if isinstance(raw, dict):
+            raw = str(raw.get('text') or raw.get('raw_text') or raw.get('region') or '')
+        raw_s = str(raw)
+        raw_blobs.append(raw_s)
+        compact = _normalize_province_token(raw_s)
+        if compact:
+            tokens.append(compact)
+        for part in re.split(r'[\s,/|]+', raw_s.upper()):
+            p = _normalize_province_token(part)
+            if p and len(p) >= 3:
+                tokens.append(p)
+
+    # Exact / substring match first (longest name wins).
+    ranked = sorted(_PROVINCE_NAME_TO_CODE.items(), key=lambda kv: len(kv[0]), reverse=True)
+    for token in tokens:
+        for name, code in ranked:
+            if token == name or name in token or token in name:
+                if len(token) < 4 and name not in ('PENH', 'PHNOM', 'KEP'):
+                    continue
+                entry = CAMBODIA_PLATE_PROVINCES.get(code)
+                if entry:
+                    return {'code': code, 'name_en': entry['en'], 'name_km': entry['km'], 'source': 'ocr_text'}
+
+    # Phnom Penh pattern across the joined OCR blob (e.g. "PRYOM PZN").
+    joined = _normalize_province_token(' '.join(raw_blobs))
+    if joined and _PHNOM_PENH_OCR_HINT.search(joined):
+        entry = CAMBODIA_PLATE_PROVINCES['12']
+        return {'code': '12', 'name_en': entry['en'], 'name_km': entry['km'], 'source': 'ocr_fuzzy'}
+
+    for token in tokens:
+        fuzzy = _fuzzy_province_from_token(token)
+        if fuzzy:
+            return fuzzy
+    return None
+
+
 def lookup_plate_province(plate_text: str) -> dict | None:
     """Map plate leading digits to Cambodia province names (EN + KM)."""
     code_raw = extract_plate_province_code(plate_text)
     if not code_raw:
         return None
+    # Prefer 2-digit codes (12=Phnom Penh) before single-digit (2=Battambang).
     if len(code_raw) >= 2:
         two_digit = code_raw[:2]
         if two_digit in CAMBODIA_PLATE_PROVINCES:
             entry = CAMBODIA_PLATE_PROVINCES[two_digit]
-            return {'code': two_digit, 'name_en': entry['en'], 'name_km': entry['km']}
+            return {'code': two_digit, 'name_en': entry['en'], 'name_km': entry['km'], 'source': 'plate_digits'}
     one_digit = code_raw[0]
     if one_digit in CAMBODIA_PLATE_PROVINCES:
         entry = CAMBODIA_PLATE_PROVINCES[one_digit]
-        return {'code': one_digit, 'name_en': entry['en'], 'name_km': entry['km']}
+        return {'code': one_digit, 'name_en': entry['en'], 'name_km': entry['km'], 'source': 'plate_digits'}
+    return None
+
+
+def maybe_repair_plate_for_province(plate_text: str, province_code: str) -> str | None:
+    """
+    If OCR dropped a leading province digit (2U-3108 vs 12U-3108 for Phnom Penh),
+    repair when the printed province name strongly disagrees with the digit code.
+    """
+    normalized = normalize_plate_text(plate_text)
+    if not normalized or not province_code:
+        return None
+    digit_code = extract_plate_province_code(normalized)
+    if not digit_code or digit_code == province_code:
+        return None
+    # Only auto-fix single-digit → two-digit when the digit matches the code suffix
+    # (e.g. code 12 + OCR 2U-3108 → 12U-3108).
+    if (
+        len(digit_code) == 1
+        and len(province_code) == 2
+        and province_code.endswith(digit_code)
+        and normalized[0] == province_code[-1]
+    ):
+        repaired = province_code[0] + normalized
+        if _PLATE_FORMAT.match(repaired) or _PLATE_LOOSE.match(repaired.replace('-', '')):
+            return repaired
     return None
 
 
 def enrich_plate_result(plate_text: str, result: dict) -> dict:
-    """Attach province lookup fields when a private plate code is recognized."""
-    province = lookup_plate_province(plate_text)
-    if province:
-        result['plate_province_code'] = province['code']
-        result['plate_province_en'] = province['name_en']
-        result['plate_province_km'] = province['name_km']
+    """
+    Attach province fields — OCR-printed city/province name wins over digit prefix.
+
+    Real Cambodia plates often print e.g. ``2U-3108`` + ``PHNOM PENH`` (digit ≠ code 12).
+    Keep the visible serial text; do not rewrite it to ``12U-…``.
+    """
+    raw_reads = result.get('raw_reads') or []
+    ocr_texts = [plate_text, result.get('best_region') or '']
+    for read in raw_reads:
+        if isinstance(read, dict):
+            ocr_texts.append(str(read.get('text') or ''))
+            ocr_texts.append(str(read.get('raw_text') or ''))
+            ocr_texts.append(str(read.get('region') or ''))
+        else:
+            ocr_texts.append(str(read))
+    for region in result.get('plate_regions') or []:
+        ocr_texts.append(str(region))
+
+    province = detect_province_from_ocr_text(*ocr_texts)
+    digit_province = lookup_plate_province(plate_text)
+
+    if province and digit_province and province['code'] != digit_province['code']:
+        # Optional candidate for fuzzy DB search only — never overwrite OCR text.
+        repaired = maybe_repair_plate_for_province(plate_text, province['code'])
+        if repaired:
+            result['plate_text_canonical_candidate'] = repaired
+
+    # Printed province name on the plate is authoritative when present.
+    chosen = province or digit_province
+    if chosen:
+        result['plate_province_code'] = chosen['code']
+        result['plate_province_en'] = chosen['name_en']
+        result['plate_province_km'] = chosen['name_km']
+        result['plate_province_source'] = chosen.get('source') or 'unknown'
+        if province and digit_province and province['code'] != digit_province['code']:
+            result['digit_province_mismatch'] = True
     return result
 
 
@@ -447,13 +643,13 @@ def _enhance_for_ocr(image_bgr: np.ndarray, quality: bool = False) -> list[np.nd
 
     image_bgr = _upscale_for_ocr(image_bgr)
     gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
-    gray = cv2.bilateralFilter(gray, 9, 75, 75)
-    variants = [gray]
-
+    gray = cv2.bilateralFilter(gray, 5, 50, 50)
+    variants: list[np.ndarray] = [gray]
     _, otsu = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     variants.append(otsu)
 
-    if _ocr_fast_mode() and not quality:
+    # Fast path (default): 2 variants max — keeps Detect under ~2s after warmup.
+    if _ocr_fast_mode():
         return variants
 
     adaptive = cv2.adaptiveThreshold(
@@ -465,13 +661,12 @@ def _enhance_for_ocr(image_bgr: np.ndarray, quality: bool = False) -> list[np.nd
     sharpened = cv2.filter2D(gray, -1, kernel)
     variants.append(sharpened)
 
-    # High-contrast stretch helps faded Cambodia plates
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(4, 4))
     variants.append(clahe.apply(gray))
     return variants
 
 
-_OCR_ALLOWLIST = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-'
+_OCR_ALLOWLIST = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ- '
 
 
 def _bbox_x_center(bbox) -> float:
@@ -486,7 +681,15 @@ def _ingest_ocr_results(results, region: str, reads: list[dict]) -> None:
     """Parse EasyOCR boxes into normalized plate candidates (incl. joined fragments)."""
     fragments: list[tuple[float, str, float]] = []
     for bbox, text, conf in results:
+        # Keep province/city lines for province lookup — never use them as plate numbers.
         if _is_province_noise(text):
+            reads.append({
+                'text': re.sub(r'[^A-Z0-9 \-]', '', (text or '').upper()).strip(),
+                'raw_text': text,
+                'confidence': round(float(conf) * 100, 1),
+                'region': region,
+                'is_province_line': True,
+            })
             continue
         frag = _clean_fragment(text)
         if not frag or len(frag) < 1:
@@ -495,6 +698,19 @@ def _ingest_ocr_results(results, region: str, reads: list[dict]) -> None:
         # Single ranked normalize (applies 4↔1, ghost-digit, O→Q repairs)
         normalized = normalize_plate_text(text)
         if not normalized:
+            # Letter-only OCR (often garbled city line) — keep for province detection.
+            # Important: count digits on the raw string (province token strips digits).
+            letters = _normalize_province_token(text)
+            raw_compact = re.sub(r'[^A-Z0-9]', '', (text or '').upper())
+            digit_count = sum(ch.isdigit() for ch in raw_compact)
+            if len(letters) >= 5 and digit_count == 0:
+                reads.append({
+                    'text': re.sub(r'[^A-Z0-9 \-]', '', (text or '').upper()).strip(),
+                    'raw_text': text,
+                    'confidence': round(float(conf) * 100, 1),
+                    'region': region,
+                    'is_province_line': True,
+                })
             continue
         score = float(conf) * 100
         if _PLATE_FORMAT.match(normalized):
@@ -521,6 +737,54 @@ def _ingest_ocr_results(results, region: str, reads: list[dict]) -> None:
                 'confidence': round(score, 1),
                 'region': region,
             })
+        else:
+            letters = _normalize_province_token(joined)
+            raw_compact = re.sub(r'[^A-Z0-9]', '', joined.upper())
+            if len(letters) >= 6 and sum(ch.isdigit() for ch in raw_compact) == 0:
+                reads.append({
+                    'text': joined.upper(),
+                    'raw_text': joined,
+                    'confidence': round(avg_conf * 100, 1),
+                    'region': region,
+                    'is_province_line': True,
+                })
+
+
+def _read_province_band(image_bgr: np.ndarray, region: str, reads: list[dict]) -> None:
+    """One fast OCR pass on the bottom band (printed city/province line)."""
+    h = image_bgr.shape[0]
+    if h < 16:
+        return
+    band = image_bgr[int(h * 0.52):, :]
+    if band.size == 0 or band.shape[0] < 6:
+        return
+    # Skip if we already have a printable province hint.
+    if detect_province_from_ocr_text(*[
+        str(r.get('raw_text') or r.get('text') or '')
+        for r in reads
+        if isinstance(r, dict)
+    ]):
+        return
+
+    reader = _get_reader()
+    scale = 3 if band.shape[0] < 40 else 2
+    big = cv2.resize(band, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
+    gray = cv2.cvtColor(big, cv2.COLOR_BGR2GRAY)
+    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(4, 4)).apply(gray)
+    rgb = cv2.cvtColor(clahe, cv2.COLOR_GRAY2RGB)
+    letter_allow = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ '
+    try:
+        results = reader.readtext(
+            rgb, detail=1, paragraph=False, allowlist=letter_allow,
+        )
+    except TypeError:
+        try:
+            results = reader.readtext(rgb, detail=1, paragraph=False)
+        except Exception:
+            return
+    except Exception:
+        return
+    _ingest_ocr_results(results, f'{region}_province_band', reads)
 
 
 def _read_text_from_image(image_bgr: np.ndarray, region: str) -> list[dict]:
@@ -529,16 +793,16 @@ def _read_text_from_image(image_bgr: np.ndarray, region: str) -> list[dict]:
     early_exit = _ocr_early_exit_confidence()
     quality = str(region).startswith('yolo_plate_')
 
-    # Cambodia Latin serial is usually on the lower portion of the plate crop
+    # Cambodia Latin serial is usually mid-plate; city/province is the bottom line.
     crops = [image_bgr]
     h = image_bgr.shape[0]
     if h >= 24:
-        # One lower band is enough when YOLO already cropped the plate
-        top_frac = 0.38 if quality else 0.35
+        # YOLO plate crop: one lower band is enough (avoid multi-crop OCR latency).
+        top_frac = 0.35 if quality else 0.35
         lower = image_bgr[int(h * top_frac):, :]
         if lower.size and lower.shape[0] >= 12:
             crops.append(lower)
-        if not quality:
+        if not quality and not _ocr_fast_mode():
             mid = image_bgr[int(h * 0.2):int(h * 0.85), :]
             if mid.size and mid.shape[0] >= 12:
                 crops.append(mid)
@@ -558,7 +822,6 @@ def _read_text_from_image(image_bgr: np.ndarray, region: str) -> list[dict]:
                     allowlist=_OCR_ALLOWLIST,
                 )
             except TypeError:
-                # Older EasyOCR without allowlist
                 try:
                     results = reader.readtext(rgb, detail=1, paragraph=False)
                 except Exception:
@@ -570,8 +833,15 @@ def _read_text_from_image(image_bgr: np.ndarray, region: str) -> list[dict]:
 
             _ingest_ocr_results(results, region, reads)
             best = _pick_best_read(reads)
-            if best and best['confidence'] >= early_exit and _PLATE_FORMAT.match(best['text']):
-                return reads
+            if best and _PLATE_FORMAT.match(best['text']):
+                # Province band once we have a serial (even mid-confidence).
+                if quality:
+                    _read_province_band(image_bgr, region, reads)
+                if float(best.get('confidence') or 0) >= early_exit:
+                    return reads
+
+    if quality:
+        _read_province_band(image_bgr, region, reads)
     return reads
 
 
@@ -579,7 +849,15 @@ def _pick_best_read(reads: list[dict]) -> dict | None:
     if not reads:
         return None
     min_conf = _min_confidence() * 100
-    valid = [r for r in reads if r['confidence'] >= min_conf]
+    # Never treat printed province/city lines as the plate serial.
+    valid = [
+        r for r in reads
+        if r.get('confidence', 0) >= min_conf
+        and not r.get('is_province_line')
+        and (r.get('text') or '').strip()
+        and not _is_province_noise(str(r.get('text') or ''))
+        and not _is_province_noise(str(r.get('raw_text') or ''))
+    ]
     if not valid:
         return None
 
@@ -588,7 +866,8 @@ def _pick_best_read(reads: list[dict]) -> dict | None:
         is_private = 1 if _PLATE_FORMAT.match(text) else 0
         has_digit = 1 if any(ch.isdigit() for ch in text) else 0
         pr = _plate_rank(text) if text else 0
-        return (is_private, pr, has_digit, r['confidence'])
+        # Confidence first among private plates — avoids low-conf 1ZU beating 2U.
+        return (is_private, float(r.get('confidence') or 0), pr, has_digit)
 
     valid.sort(key=rank, reverse=True)
     return valid[0]
@@ -712,9 +991,35 @@ def _plate_hint_from_filename(path: Path) -> dict | None:
 
 
 def link_plate_to_vehicle(plate_text: str) -> dict | None:
+    """Exact match first, then fuzzy Cambodia plate match against registered vehicles."""
     if not plate_text:
         return None
     from vehicles.models import Vehicle
+
+    def _pack(vehicle) -> dict:
+        owner_name = ''
+        driver_id = None
+        try:
+            owner_name = vehicle.owner.full_name if vehicle.owner_id else ''
+        except Exception:
+            owner_name = ''
+        try:
+            if getattr(vehicle, 'driver_id', None):
+                driver_id = str(vehicle.driver_id)
+            elif vehicle.owner_id and getattr(vehicle.owner, 'role', None) == 'driver':
+                from users.models import Driver
+                profile = Driver.objects.filter(user_id=vehicle.owner_id).first()
+                if profile:
+                    driver_id = str(profile.id)
+        except Exception:
+            driver_id = None
+        return {
+            'id': vehicle.id,
+            'plate_number': vehicle.plate_number,
+            'owner_name': owner_name,
+            'vehicle_type': vehicle.vehicle_type,
+            'driver_id': driver_id,
+        }
 
     try:
         vehicle = (
@@ -722,22 +1027,42 @@ def link_plate_to_vehicle(plate_text: str) -> dict | None:
             .select_related('owner')
             .first()
         )
+        if vehicle:
+            return _pack(vehicle)
+
+        # Fuzzy: ignore dashes/spaces; allow 1-char OCR edits on serial
+        compact = re.sub(r'[^A-Z0-9]', '', plate_text.upper())
+        if len(compact) < 5:
+            return None
+        candidates = Vehicle.objects.exclude(plate_number='').select_related('owner')[:500]
+        best = None
+        best_score = 0
+        for v in candidates:
+            vc = re.sub(r'[^A-Z0-9]', '', (v.plate_number or '').upper())
+            if not vc:
+                continue
+            if vc == compact:
+                return _pack(v)
+            # Same length ±1 and share prefix province digit
+            if abs(len(vc) - len(compact)) > 1:
+                continue
+            if vc[0] != compact[0]:
+                continue
+            # Hamming on min length
+            n = min(len(vc), len(compact))
+            diffs = sum(1 for i in range(n) if vc[i] != compact[i]) + abs(len(vc) - len(compact))
+            score = n - diffs
+            if diffs <= 1 and score > best_score:
+                best_score = score
+                best = v
+        if best:
+            packed = _pack(best)
+            packed['fuzzy_match'] = True
+            return packed
     except Exception:
         logger.exception('Plate→vehicle lookup failed for %s', plate_text)
         return None
-    if not vehicle:
-        return None
-    owner_name = ''
-    try:
-        owner_name = vehicle.owner.full_name if vehicle.owner_id else ''
-    except Exception:
-        owner_name = ''
-    return {
-        'id': vehicle.id,
-        'plate_number': vehicle.plate_number,
-        'owner_name': owner_name,
-        'vehicle_type': vehicle.vehicle_type,
-    }
+    return None
 
 
 def recognize_plate(image_path: str, vehicles: list[dict] | None = None) -> dict:

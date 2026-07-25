@@ -8,64 +8,40 @@ CamTraffic/
 ├── package.json              # Root workspace scripts
 ├── turbo.json                # Turborepo pipeline
 ├── tsconfig.base.json        # Shared TypeScript strict config
-├── docker-compose.yml        # Postgres, Redis, backend, Celery
-├── docs/                     # PRD, SRS, architecture, checklist
+├── docker-compose.yml        # Postgres, Redis, backend, Celery, SPAs (+ optional AI)
+├── docs/                     # PRD, SRS, DECISIONS, MASTER-BUILD-STATUS, …
 ├── scripts/                  # validate, setup-env, dataset tools
 ├── packages/                 # Shared npm packages (@camtraffic/*)
-│   ├── types/                # User, Auth, API types
-│   ├── utils/                # cn(), formatters
-│   ├── api/                  # createApiClient(), unwrap()
-│   ├── hooks/                # useMediaQuery, useDebouncedValue
-│   └── ui/                   # Theme tokens (colors, fonts)
-├── backend/                  # Django REST API
-│   ├── camtraffic/           # settings, urls, celery, wsgi
-│   ├── config/               # logging.py, monitoring.py
-│   ├── core/                 # middleware, backup, permissions, SystemSetting
-│   ├── authentication/       # JWT, OAuth, password reset
-│   ├── users/                # User model (admin/police/driver)
-│   ├── ai_detection/         # YOLO + OCR pipeline API
-│   ├── violations/ fines/ appeals/
-│   ├── traffic_signs/ vehicles/ infrastructure/
-│   ├── dashboard/ notifications/ audit/ rbac/
-│   ├── tests/                # Automated tests
-│   ├── media/ logs/ backups/ # Runtime (gitignored)
-│   └── manage.py
-├── frontend-admin/           # Administration domain (Vite + React)
-│   ├── admin/                # Admin layout, dashboard, users, RBAC
-│   ├── shared/
-│   └── routes.tsx            # /admin/*
-├── frontend-user/            # Traffic Ops + Citizen Service (one Vite app)
-│   ├── officer/              # /officer/* — layout, nav, pages
-│   ├── citizen/              # /citizen/* — layout, nav, pages
-│   ├── user/                 # Shared UserLayout + dashboard switcher
-│   ├── shared/
-│   └── routes.tsx
-├── backend/
-│   ├── domains/              # /api/v1/admin|officer|citizen facades
-│   ├── camtraffic/
-│   └── … (violations, fines, users, ai_detection, …)
-│   ├── weights/              # best.pt (gitignored)
-│   ├── dataset/              # 236-class YOLO signs (gitignored)
-│   ├── dataset_10/           # 10-class YOLO dataset
-│   ├── datasets/             # Phase 7 manifests + raw/processed layout
-│   ├── scripts/              # collection_tracker, dedup, validate
-│   ├── runs/                 # Training outputs
-│   ├── requirements.txt
-│   └── README.md
-└── deploy/
-    ├── env/BACKUP.md
-    ├── env/DATASET_BACKUP.md
-    ├── gunicorn/gunicorn.conf.py
-    └── docker/docker-compose.prod.yml
+│   ├── types/ store/ query/ …
+│   └── ui/                   # Theme tokens
+├── src/
+│   ├── backend/              # Django REST API + embedded AI pipeline
+│   │   ├── camtraffic/       # settings, urls, celery, wsgi
+│   │   ├── authentication/ users/ rbac/
+│   │   ├── ai_detection/     # YOLO + OCR (primary runtime)
+│   │   ├── violations/ fines/ appeals/
+│   │   ├── traffic_signs/ vehicles/ infrastructure/
+│   │   ├── dashboard/ notifications/ audit/
+│   │   └── manage.py
+│   ├── web/
+│   │   ├── admin/            # Admin portal (Vite :5174) → /admin/*
+│   │   ├── user/             # Officer + driver (Vite :5173)
+│   │   └── citizen/          # Optional Next.js citizen PWA
+│   └── services/             # Optional microservices (thesis/experiments)
+├── ai/                       # weights/, dataset_10/, training/, runs/
+├── infra/docker/             # Local Dockerfiles (backend, celery, SPAs, …)
+└── infrastructure/deploy/    # Production Compose + nginx + env
 ```
 
 ## Notes
 
-- **Shared UI code** lives in `frontend-*/shared/` (duplicated between portals). Packages under `packages/ui` provide **tokens only**; full components remain in `shared/`.
-- **API client** used at runtime: `frontend-*/shared/services/api.ts`. `@camtraffic/api` is the canonical factory for new code.
-- **AI inference** runs inside Django (`backend/ai_detection/`), not a separate `ai-service/` container.
+- Master-prompt paths `backend/` / `frontend-*` map to `src/backend/` / `src/web/*` — see [`DECISIONS.md`](DECISIONS.md) D1.
+- **Shared UI** lives in each portal’s `shared/` (kept in sync). `packages/ui` = tokens.
+- **Primary AI** is Django `ai_detection/`. Optional Compose AI containers are not required for portal loops.
 
 ## Related
 
 - `docs/ARCHITECTURE.md` — logical architecture
+- `docs/DECISIONS.md` — layout/stack judgment calls vs Master Build Prompt
+- `docs/MASTER-BUILD-STATUS.md` — phase/acceptance tracker
 - `scripts/scaffold-folders.mjs` — create runtime directories

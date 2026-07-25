@@ -12,10 +12,9 @@ import { TableEmptyState } from '@shared/components/ui/TableEmptyState';
 import { CrudRowActions } from '@shared/components/admin/CrudRowActions';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
-import { aiModelsAPI } from '@shared/services/api';
+import { aiAPI, aiModelsAPI } from '@shared/services/api';
 import { toast } from 'sonner';
 import { AIMlopsHero } from '@shared/components/admin/AIMlopsHero';
-import type { AIModelVersion } from '@shared/types';
 import {
   enrichAIModels,
   formatPct,
@@ -24,36 +23,6 @@ import {
   type EnrichedAIModel,
   type ModelUiStatus,
 } from '@shared/utils/aiModelUi';
-
-const DEMO_MODELS: AIModelVersion[] = [
-  {
-    id: 'demo-v1',
-    version: 'v1.0',
-    model_file: 'runs/camtraffic-v1/weights/best.pt',
-    description: 'YOLOv11 Cambodian Traffic',
-    accuracy: 98.7,
-    is_active: true,
-    uploaded_at: new Date().toISOString(),
-  },
-  {
-    id: 'demo-v09',
-    version: 'v0.9',
-    model_file: 'runs/camtraffic-v09/weights/best.pt',
-    description: 'YOLOv11 Cambodian Traffic',
-    accuracy: 97.5,
-    is_active: false,
-    uploaded_at: new Date(Date.now() - 86400000 * 12).toISOString(),
-  },
-  {
-    id: 'demo-v08',
-    version: 'v0.8',
-    model_file: 'runs/combined/weights/best.pt',
-    description: 'YOLOv11 Combined Detection',
-    accuracy: 96.2,
-    is_active: false,
-    uploaded_at: new Date(Date.now() - 86400000 * 28).toISOString(),
-  },
-];
 
 export function AIModelsPage() {
   const { t } = useLanguage();
@@ -65,6 +34,7 @@ export function AIModelsPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | ModelUiStatus>('all');
   const [form, setForm] = useState({ version: '', model_file: 'best.pt', description: '', accuracy: '' });
+  const [publishedNote, setPublishedNote] = useState('');
 
   const tr = (key: string, fb: string) => {
     const v = t(key);
@@ -77,6 +47,18 @@ export function AIModelsPage() {
     try {
       const live = await aiModelsAPI.getAll();
       setModels(enrichAIModels(live));
+      try {
+        const m = await aiAPI.getModelMetrics();
+        const map50 = m.thesis_eval_10_class?.map50;
+        const liveClasses = m.live_model?.classes;
+        setPublishedNote(
+          map50 != null
+            ? `Published thesis mAP@50=${(map50 <= 1 ? map50 * 100 : map50).toFixed(2)}% (10-class best_v2). Live runtime: ${liveClasses ?? '—'} classes. Do not claim 0.908 for 248-class best.pt.`
+            : (m.full_248_class?.note || ''),
+        );
+      } catch {
+        setPublishedNote('');
+      }
     } catch {
       setModels([]);
     } finally {
@@ -158,6 +140,10 @@ export function AIModelsPage() {
           </>
         )}
       />
+
+      {publishedNote ? (
+        <p className="text-xs text-muted-foreground px-1 mb-3">{publishedNote}</p>
+      ) : null}
 
       <div className="ai-mlops-toolbar">
         <div className="ai-mlops-toolbar__search">

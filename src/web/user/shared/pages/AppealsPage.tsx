@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { usePagination } from '@shared/hooks/usePagination';
 import { TablePagination } from '@shared/components/ui/TablePagination';
 import {
-  Search, Plus, Eye, CheckCircle, XCircle, Clock, Scale, MapPin, FileText,
+  Search, Plus, CheckCircle, XCircle, Clock, Scale, MapPin, FileText, Gavel,
 } from 'lucide-react';
 import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
@@ -12,8 +12,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@shared/components/ui/table';
 import { TableEmptyState } from '@shared/components/ui/TableEmptyState';
+import { CrudRowActions } from '@shared/components/admin/CrudRowActions';
+import { EntityDetailField, EntityViewDialog } from '@shared/components/admin/EntityViewDialog';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
+import { formatAppDate } from '@shared/i18n/localeFormat';
 import { useLiveData } from '@shared/hooks/useLiveData';
 import { appealsAPI, violationsAPI } from '@shared/services/api';
 import { toast } from 'sonner';
@@ -43,8 +46,19 @@ const STATUS_STYLE: Record<string, { icon: React.ReactNode; bg: string; color: s
   },
 };
 
+const STAT_CARDS = [
+  { key: 'all', labelKey: 'appeals.statTotal', icon: Scale, variant: 'violet', filterable: true },
+  { key: 'pending', labelKey: 'appeals.statPending', icon: Clock, variant: 'amber', filterable: true },
+  { key: 'upheld', labelKey: 'appeals.statUpheld', icon: XCircle, variant: 'rose', filterable: true },
+  { key: 'dismissed', labelKey: 'appeals.statDismissed', icon: CheckCircle, variant: 'emerald', filterable: true },
+] as const;
+
+function initials(name: string) {
+  return name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'DR';
+}
+
 export function AppealsPage() {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const { user } = useAuth();
   const canReview = user?.role === 'admin' || user?.role === 'police';
   const canSubmit = user?.role === 'driver';
@@ -74,12 +88,14 @@ export function AppealsPage() {
       ]);
       setAppeals(appealRows);
       setViolations(violationRows);
+    } catch {
+      if (!silent) toast.error(t('appeals.toastLoadFail'));
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [user, canSubmit]);
+  }, [user, canSubmit, t]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { void load(); }, [load]);
   useLiveData(() => load(true), 30_000, Boolean(user));
 
   const filtered = useMemo(() => {
@@ -89,8 +105,10 @@ export function AppealsPage() {
       const q = search.toLowerCase();
       rows = rows.filter((a) =>
         a.driver_name.toLowerCase().includes(q)
+        || (a.driver_license || '').toLowerCase().includes(q)
         || a.reason.toLowerCase().includes(q)
-        || (a.violation_type || '').toLowerCase().includes(q),
+        || (a.violation_type || '').toLowerCase().includes(q)
+        || (a.violation_location || '').toLowerCase().includes(q),
       );
     }
     return rows;
@@ -125,7 +143,7 @@ export function AppealsPage() {
       toast.success(t('appeals.toastSubmitted'));
       setSubmitOpen(false);
       setForm({ violation_id: '', reason: '', evidence: null });
-      load();
+      void load();
     } catch {
       toast.error(t('appeals.toastSubmitFail'));
     } finally {
@@ -141,7 +159,7 @@ export function AppealsPage() {
       toast.success(t('appeals.toastReviewed'));
       setReviewOpen(false);
       setSelected(null);
-      load();
+      void load();
     } catch {
       toast.error(t('appeals.toastReviewFail'));
     } finally {
@@ -149,10 +167,17 @@ export function AppealsPage() {
     }
   };
 
+  const openReview = (row: ViolationAppeal) => {
+    setSelected(row);
+    setReviewForm({ status: 'dismissed', officer_comments: '' });
+    setReviewOpen(true);
+  };
+
   return (
     <div className="enforcement-page enforcement-page--appeals dashboard-page--appeals">
       <div className="enforcement-page__hero">
         <div className="enforcement-page__hero-glow--primary" aria-hidden />
+        <div className="enforcement-page__hero-glow--secondary" aria-hidden />
         <div className="enforcement-page__hero-inner">
           <div>
             <div className="enforcement-page__eyebrow">
@@ -163,11 +188,36 @@ export function AppealsPage() {
             <p className="enforcement-page__subtitle">{t('pages.appeals.subtitle')}</p>
           </div>
           {canSubmit && (
-            <button type="button" className="enforcement-page__hero-btn" onClick={() => setSubmitOpen(true)}>
+            <button type="button" className="enforcement-page__hero-btn enforcement-page__hero-btn--teal" onClick={() => setSubmitOpen(true)}>
               <Plus size={16} /> {t('appeals.submitAppeal')}
             </button>
           )}
         </div>
+      </div>
+
+      <div className="enforcement-page__stat-grid enforcement-page__stat-grid--four">
+        {STAT_CARDS.map((card) => {
+          const Icon = card.icon;
+          const active = card.filterable && statusFilter === card.key;
+          return (
+            <button
+              key={card.key}
+              type="button"
+              onClick={() => setStatusFilter(card.key as StatusTab)}
+              className={`enforcement-page__stat-card enforcement-page__stat-card--${card.variant}${active ? ' enforcement-page__stat-card--active' : ''}`}
+            >
+              <div className={`enforcement-page__stat-icon enforcement-page__stat-icon--${card.variant}`}>
+                <Icon size={18} />
+              </div>
+              <div className="enforcement-page__stat-copy">
+                <p className="enforcement-page__stat-value">{counts[card.key]}</p>
+                <p className={`enforcement-page__stat-label enforcement-page__stat-label--${card.variant}`}>
+                  {t(card.labelKey)}
+                </p>
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       <div className="enforcement-page__toolbar">
@@ -177,20 +227,20 @@ export function AppealsPage() {
               const active = statusFilter === tab;
               const meta = tab !== 'all' ? STATUS_STYLE[tab] : null;
               return (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setStatusFilter(tab)}
-                className={`enforcement-page__filter-btn${active ? ' enforcement-page__filter-btn--active' : ''}`}
-                style={active ? {
-                  background: meta?.gradient ?? 'linear-gradient(135deg, #0F172A, #1E293B)',
-                } : undefined}
-              >
-                {statusLabel(tab)}
-                <span className={`enforcement-page__filter-count${active ? ' enforcement-page__filter-count--active' : ''}`}>
-                  {counts[tab]}
-                </span>
-              </button>
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setStatusFilter(tab)}
+                  className={`enforcement-page__filter-btn${active ? ' enforcement-page__filter-btn--active' : ''}`}
+                  style={active ? {
+                    background: meta?.gradient ?? 'linear-gradient(135deg, #0F172A, #1E293B)',
+                  } : undefined}
+                >
+                  {statusLabel(tab)}
+                  <span className={`enforcement-page__filter-count${active ? ' enforcement-page__filter-count--active' : ''}`}>
+                    {counts[tab]}
+                  </span>
+                </button>
               );
             })}
           </div>
@@ -206,19 +256,30 @@ export function AppealsPage() {
         </div>
       </div>
 
-      <div className="enforcement-page__panel">
+      <div className="enforcement-page__panel enforcement-page__panel--appeals">
         <div className="overflow-x-auto">
-          <Table className="enforcement-page__table mgmt-table__grid">
+          <Table className="enforcement-page__table mgmt-table__grid appeals-table__grid">
+            <colgroup>
+              <col className="appeals-table__col appeals-table__col--driver" />
+              <col className="appeals-table__col appeals-table__col--violation" />
+              <col className="appeals-table__col appeals-table__col--reason" />
+              <col className="appeals-table__col appeals-table__col--date" />
+              <col className="appeals-table__col appeals-table__col--status" />
+              <col className="appeals-table__col appeals-table__col--actions" />
+            </colgroup>
             <TableHeader>
               <TableRow className="enforcement-page__table-head">
-                {[t('appeals.colDriver'), t('appeals.colViolation'), t('appeals.colReason'), t('appeals.colSubmitted'), t('appeals.colStatus'), t('appeals.colActions')].map((h) => (
-                  <TableHead key={h} className="enforcement-page__th text-left">{h}</TableHead>
-                ))}
+                <TableHead className="enforcement-page__th appeals-table__th appeals-table__th--driver text-left">{t('appeals.colDriver')}</TableHead>
+                <TableHead className="enforcement-page__th appeals-table__th appeals-table__th--violation text-left">{t('appeals.colViolation')}</TableHead>
+                <TableHead className="enforcement-page__th appeals-table__th appeals-table__th--reason text-left">{t('appeals.colReason')}</TableHead>
+                <TableHead className="enforcement-page__th appeals-table__th appeals-table__th--date text-left">{t('appeals.colSubmitted')}</TableHead>
+                <TableHead className="enforcement-page__th appeals-table__th appeals-table__th--status text-left">{t('appeals.colStatus')}</TableHead>
+                <TableHead className="enforcement-page__th appeals-table__th appeals-table__th--actions text-left">{t('appeals.colActions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                [...Array(4)].map((_, i) => (
+                [...Array(5)].map((_, i) => (
                   <TableRow key={i}>
                     {[...Array(6)].map((__, j) => (
                       <TableCell key={j}><div className="enforcement-page__skeleton" /></TableCell>
@@ -247,36 +308,57 @@ export function AppealsPage() {
               ) : pagination.pageItems.map((row) => {
                 const st = STATUS_STYLE[row.status] ?? STATUS_STYLE.pending;
                 return (
-                  <TableRow key={row.id} className="enforcement-page__table-row">
-                    <TableCell>
-                      <p className="enforcement-page__cell-primary">{row.driver_name}</p>
-                      <p className="enforcement-page__cell-mono">{row.driver_license}</p>
+                  <TableRow key={row.id} className="enforcement-page__table-row appeals-table__row">
+                    <TableCell className="appeals-table__td appeals-table__td--driver">
+                      <div className="appeals-table__driver">
+                        <div className="enforcement-page__avatar enforcement-page__avatar--driver appeals-table__avatar">
+                          {initials(row.driver_name)}
+                        </div>
+                        <div className="appeals-table__driver-copy min-w-0">
+                          <p className="appeals-table__driver-name">{row.driver_name}</p>
+                          <p className="appeals-table__driver-license">{row.driver_license || '—'}</p>
+                        </div>
+                      </div>
                     </TableCell>
-                    <TableCell>
-                      <p className="enforcement-page__cell-primary">{row.violation_type || '—'}</p>
-                      <p className="enforcement-page__location-meta"><MapPin size={9} /> {row.violation_location || '—'}</p>
+                    <TableCell className="appeals-table__td appeals-table__td--violation">
+                      <div className="appeals-table__violation">
+                        <p className="appeals-table__violation-title" title={row.violation_type || undefined}>
+                          {row.violation_type || '—'}
+                        </p>
+                        <p className="appeals-table__violation-location" title={row.violation_location || undefined}>
+                          <MapPin size={11} strokeWidth={2.25} aria-hidden />
+                          <span>{row.violation_location || '—'}</span>
+                        </p>
+                      </div>
                     </TableCell>
-                    <TableCell className="max-w-[200px] truncate" title={row.reason}>{row.reason}</TableCell>
-                    <TableCell>{new Date(row.submitted_at).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      <span className="enforcement-page__badge" style={{ background: st.bg, color: st.color }}>
+                    <TableCell className="appeals-table__td appeals-table__td--reason">
+                      <p className="appeals-table__reason" title={row.reason}>{row.reason}</p>
+                    </TableCell>
+                    <TableCell className="appeals-table__td appeals-table__td--date">
+                      <time className="appeals-table__date" dateTime={row.submitted_at}>
+                        {formatAppDate(locale, row.submitted_at, { year: 'numeric', month: 'short', day: 'numeric' })}
+                      </time>
+                    </TableCell>
+                    <TableCell className="appeals-table__td appeals-table__td--status">
+                      <span className="appeals-table__status enforcement-page__badge" style={{ background: st.bg, color: st.color }}>
                         {st.icon}{statusLabel(row.status)}
                       </span>
                     </TableCell>
-                    <TableCell>
-                      <div className="enforcement-page__table-actions">
-                        <button type="button" className="enforcement-page__action-btn" onClick={() => setSelected(row)}>
-                          <Eye size={12} /> {t('appeals.view')}
-                        </button>
-                        {canReview && row.status === 'pending' && (
-                          <button
-                            type="button"
-                            className="enforcement-page__action-btn enforcement-page__action-btn--success"
-                            onClick={() => { setSelected(row); setReviewOpen(true); }}
-                          >
-                            {t('appeals.review')}
-                          </button>
-                        )}
+                    <TableCell className="appeals-table__td appeals-table__td--actions" onClick={(e) => e.stopPropagation()}>
+                      <div className="appeals-table__actions" role="group" aria-label={t('appeals.colActions')}>
+                        <CrudRowActions onView={() => setSelected(row)}>
+                          {canReview && row.status === 'pending' ? (
+                            <button
+                              type="button"
+                              className="crud-actions__btn crud-actions__btn--edit"
+                              onClick={() => openReview(row)}
+                              aria-label={t('appeals.review')}
+                              title={t('appeals.review')}
+                            >
+                              <Gavel size={13} />
+                            </button>
+                          ) : null}
+                        </CrudRowActions>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -291,11 +373,16 @@ export function AppealsPage() {
       <Dialog open={submitOpen} onOpenChange={setSubmitOpen}>
         <DialogContent accent="violet" className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{t('appeals.submitAppeal')}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <span className="enforcement-page__dialog-icon enforcement-page__dialog-icon--violet">
+                <FileText size={16} />
+              </span>
+              {t('appeals.submitAppeal')}
+            </DialogTitle>
           </DialogHeader>
           <div className="ct-dialog-form">
             <div className="ct-dialog-field">
-              <Label>{t('appeals.selectViolation')}</Label>
+              <Label className="enforcement-page__form-label">{t('appeals.selectViolation')}</Label>
               <Select value={form.violation_id} onValueChange={(v) => setForm((f) => ({ ...f, violation_id: v }))}>
                 <SelectTrigger><SelectValue placeholder={t('appeals.selectViolation')} /></SelectTrigger>
                 <SelectContent>
@@ -308,29 +395,34 @@ export function AppealsPage() {
               </Select>
             </div>
             <div className="ct-dialog-field">
-              <Label>{t('appeals.reason')}</Label>
+              <Label className="enforcement-page__form-label">{t('appeals.reason')}</Label>
               <Textarea value={form.reason} onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))} rows={4} />
             </div>
             <div className="ct-dialog-field">
-              <Label>{t('appeals.evidenceOptional')}</Label>
+              <Label className="enforcement-page__form-label">{t('appeals.evidenceOptional')}</Label>
               <Input type="file" accept="image/*" onChange={(e) => setForm((f) => ({ ...f, evidence: e.target.files?.[0] ?? null }))} />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSubmitOpen(false)}>{t('profile.cancel')}</Button>
-            <Button onClick={handleSubmit} disabled={submitting}>{t('appeals.submitAppeal')}</Button>
+            <Button onClick={() => void handleSubmit()} disabled={submitting}>{t('appeals.submitAppeal')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
+      <Dialog open={reviewOpen} onOpenChange={(open) => { setReviewOpen(open); if (!open && !selected) return; }}>
         <DialogContent accent="amber" className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{t('appeals.reviewAppeal')}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <span className="enforcement-page__dialog-icon enforcement-page__dialog-icon--amber">
+                <Gavel size={16} />
+              </span>
+              {t('appeals.reviewAppeal')}
+            </DialogTitle>
           </DialogHeader>
           <div className="ct-dialog-form">
             <div className="ct-dialog-field">
-              <Label>{t('appeals.decision')}</Label>
+              <Label className="enforcement-page__form-label">{t('appeals.decision')}</Label>
               <Select value={reviewForm.status} onValueChange={(v) => setReviewForm((f) => ({ ...f, status: v as 'upheld' | 'dismissed' }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -340,36 +432,39 @@ export function AppealsPage() {
               </Select>
             </div>
             <div className="ct-dialog-field">
-              <Label>{t('appeals.officerComments')}</Label>
+              <Label className="enforcement-page__form-label">{t('appeals.officerComments')}</Label>
               <Textarea value={reviewForm.officer_comments} onChange={(e) => setReviewForm((f) => ({ ...f, officer_comments: e.target.value }))} rows={3} />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setReviewOpen(false)}>{t('profile.cancel')}</Button>
-            <Button onClick={handleReview} disabled={reviewing}>{t('appeals.submitReview')}</Button>
+            <Button onClick={() => void handleReview()} disabled={reviewing}>{t('appeals.submitReview')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!selected && !reviewOpen} onOpenChange={(open) => !open && setSelected(null)}>
-        <DialogContent accent="teal" className="max-w-md">
-          {selected && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <FileText size={16} /> {t('appeals.appealDetails')}
-                </DialogTitle>
-              </DialogHeader>
-              <div className="ct-dialog-body space-y-2 text-sm">
-                <p><strong>{t('appeals.colDriver')}:</strong> {selected.driver_name}</p>
-                <p><strong>{t('appeals.colViolation')}:</strong> {selected.violation_type}</p>
-                <p><strong>{t('appeals.reason')}:</strong> {selected.reason}</p>
-                {selected.officer_comments && <p><strong>{t('appeals.officerComments')}:</strong> {selected.officer_comments}</p>}
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+      <EntityViewDialog
+        open={Boolean(selected) && !reviewOpen}
+        onOpenChange={(open) => { if (!open) setSelected(null); }}
+        title={selected ? `${t('appeals.appealDetails')} — ${selected.driver_name}` : t('appeals.appealDetails')}
+        accent="violet"
+      >
+        {selected && (
+          <>
+            <EntityDetailField label={t('appeals.colDriver')} value={`${selected.driver_name} (${selected.driver_license || '—'})`} />
+            <EntityDetailField label={t('appeals.colViolation')} value={selected.violation_type || '—'} />
+            <EntityDetailField label={t('appeals.colSubmitted')} value={formatAppDate(locale, selected.submitted_at)} />
+            <EntityDetailField label={t('appeals.colStatus')} value={statusLabel(selected.status)} />
+            <EntityDetailField label={t('appeals.reason')} value={selected.reason} />
+            {selected.violation_location ? (
+              <EntityDetailField label={t('violations.locationLabel') !== 'violations.locationLabel' ? t('violations.locationLabel') : 'Location'} value={selected.violation_location} />
+            ) : null}
+            {selected.officer_comments ? (
+              <EntityDetailField label={t('appeals.officerComments')} value={selected.officer_comments} />
+            ) : null}
+          </>
+        )}
+      </EntityViewDialog>
     </div>
   );
 }

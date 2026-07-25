@@ -138,7 +138,8 @@ function patchSampleSignImages(signs: AIDetectionSampleSign[]): AIDetectionSampl
   });
 }
 
-const EMPTY_PAGE_STATS: AIDetectionPageStats = {
+/** Honest empty stats while waiting for /api/ai/stats/ (production-truth). */
+export const EMPTY_PAGE_STATS: AIDetectionPageStats = {
   model: {
     name: '',
     version: '',

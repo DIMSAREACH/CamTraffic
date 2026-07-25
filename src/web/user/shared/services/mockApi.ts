@@ -443,7 +443,7 @@ export const appealsAPI = {
       id: `appeal-${appeals.length + 1}`,
       violation_id: 'v-1',
       driver_id: '1',
-      driver_name: 'Demo Driver',
+      driver_name: 'Kosal Pich',
       driver_license: 'DL-001',
       reason: 'Mock appeal',
       status: 'pending',
@@ -764,6 +764,14 @@ export const aiAPI = {
   },
   async detectVideo(file: File) {
     return aiAPI.detect(file);
+  },
+  async getModelMetrics() {
+    return {
+      live_model: { path: 'mock', classes: 0, role: 'mock' },
+      thesis_eval_10_class: { map50: 0.9084, map50_95: 0.7956, classes: 10, note: 'mock' },
+      full_248_class: { map50: null, classes: 248, note: 'mock' },
+      ocr: { exact_match_rate: 0, note: 'mock' },
+    };
   },
 };
 
@@ -1115,7 +1123,7 @@ export const dashboardAPI = {
     return {
       drivers: [
         {
-          id: '1', full_name: 'Driver Demo', email: 'driver@example.com', vehicles: 2,
+          id: '1', full_name: 'Kosal Pich', email: 'kosal.pich@email.kh', vehicles: 2,
           total_fines: 5, pending_fines: 1, amount_owed: 250, paid_fines: 4,
         },
       ],

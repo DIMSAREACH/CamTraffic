@@ -182,10 +182,11 @@ async function detectWithRetry(
     try {
       const raw = await aiAPI.detect(file, {
         live_scan: liveScan && !saveLog,
-        live_fast: false,
+        live_fast: !saveLog,
         full_frame: street,
         sign_only: street ? false : !saveLog,
-        enable_ocr: street ? saveLog : undefined,
+        enable_ocr: saveLog,
+        save_log: saveLog,
         track_session: trackSession,
         debug_mode: debugMode,
         observed_action: pipelineOptions?.observedAction,
@@ -195,7 +196,16 @@ async function detectWithRetry(
           : (pipelineOptions?.demoViolation === true ? true : undefined),
         auto_create_violation: pipelineOptions?.autoCreateViolation ? true : undefined,
       });
-      return normalizeDetectionSign(raw) as WebcamDetectionResult;
+      const normalized = normalizeDetectionSign(raw) as WebcamDetectionResult;
+      // Prefer annotated frame for clear on-screen review (blob fallback stays last).
+      if (!normalized.uploaded_image) {
+        normalized.uploaded_image =
+          normalized.annotated_processed_image ||
+          normalized.processed_image ||
+          normalized.guide_frame_image ||
+          '';
+      }
+      return normalized;
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
       if (!isRetryableScanError(err) || attempt >= SCAN_RETRIES - 1) {
@@ -712,7 +722,13 @@ export function useWebcamDetection(pipelineOptions?: DetectPipelineOptions) {
         const confirmed = normalizeDetectionSign({
           ...streetFrame.result,
           ...saved,
-          uploaded_image: saved.uploaded_image || streetFrame.previewUrl,
+          uploaded_image:
+            saved.annotated_processed_image ||
+            saved.processed_image ||
+            saved.uploaded_image ||
+            streetFrame.previewUrl,
+          annotated_processed_image:
+            saved.annotated_processed_image || streetFrame.result.annotated_processed_image,
         }) as WebcamDetectionResult;
         rememberStablePreview(streetFrame.previewUrl);
         setStableResult(confirmed);
@@ -751,7 +767,13 @@ export function useWebcamDetection(pipelineOptions?: DetectPipelineOptions) {
         ...saved,
         confidence: burst.aggregated.confidence,
         display_confidence: burst.aggregated.display_confidence ?? burst.aggregated.confidence,
-        uploaded_image: saved.uploaded_image || bestFrame.previewUrl,
+        uploaded_image:
+          saved.annotated_processed_image ||
+          saved.processed_image ||
+          saved.uploaded_image ||
+          bestFrame.previewUrl,
+        annotated_processed_image:
+          saved.annotated_processed_image || burst.aggregated.annotated_processed_image,
       }) as WebcamDetectionResult;
 
       setScanCount((n) => n + burst.frames.length);

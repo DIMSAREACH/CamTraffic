@@ -1,5 +1,4 @@
 import catalog from '@shared/data/traffic_sign_catalog_10.json';
-import { resolveCatalogDemoImage } from '@shared/utils/signImage';
 import type { EvidenceArchiveItem } from '@shared/types';
 
 const EMBEDDED_SIGN_CODE = /\b([A-Z]\d{1,2}-\d{2,3})\b/i;
@@ -39,34 +38,11 @@ export function inferSignCodeFromEvidenceTitle(title: string): string | null {
 }
 
 /**
- * Prefer clean catalog demo art for sign detections (API uploads often have black matte).
- * Falls back to the stored evidence URL for photos and non-sign records.
+ * Production: always show the stored evidence image from the API.
+ * Demo-sign substitution is intentionally disabled (no sample art overlay).
  */
 export function resolveEvidenceDisplayImage(
   item: Pick<EvidenceArchiveItem, 'image_url' | 'title' | 'source_type'>,
 ): string | null {
-  const original = item.image_url ?? null;
-  const signCode = inferSignCodeFromEvidenceTitle(item.title);
-  if (!signCode) return original;
-
-  const demo = resolveCatalogDemoImage(signCode);
-  if (!demo) return original;
-
-  if (item.source_type === 'detection' && demo) return appendDisplayCacheBust(demo);
-
-  if (EMBEDDED_SIGN_CODE.test(item.title) || TITLE_MATCHERS.some(
-    (matcher) => matcher.signCode === signCode && matcher.test(item.title),
-  )) {
-    return appendDisplayCacheBust(demo);
-  }
-
-  return original;
-}
-
-const DEMO_SIGN_CACHE_VERSION = '3';
-
-function appendDisplayCacheBust(url: string): string {
-  if (!url.includes('/demo-signs/')) return url;
-  const sep = url.includes('?') ? '&' : '?';
-  return `${url}${sep}v=${DEMO_SIGN_CACHE_VERSION}`;
+  return item.image_url ?? null;
 }

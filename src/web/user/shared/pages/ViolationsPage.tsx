@@ -8,13 +8,14 @@ import {
 import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
 import { Label } from '@shared/components/ui/label';
+import { Textarea } from '@shared/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@shared/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@shared/components/ui/table';
 import { TableEmptyState } from '@shared/components/ui/TableEmptyState';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
-import { khrToUsd, usdToKhr } from '@shared/i18n/localeFormat';
+import { formatAppDate, khrToUsd, localeTag, usdToKhr } from '@shared/i18n/localeFormat';
 import { useLiveData } from '@shared/hooks/useLiveData';
 import { OBSERVED_ACTION_VALUES } from '@shared/constants/observedActions';
 import { finesAPI, violationsAPI } from '@shared/services/api';
@@ -49,10 +50,10 @@ const STATUS_STYLE: Record<string, {
     gradient: 'linear-gradient(135deg, #EF4444, #DC2626)',
   },
   rejected: {
-    icon: <CheckCircle size={11} />,
-    bg: 'rgba(16,185,129,0.1)',
-    color: '#059669',
-    gradient: 'linear-gradient(135deg, #10B981, #059669)',
+    icon: <XCircle size={11} />,
+    bg: 'rgba(100,116,139,0.12)',
+    color: '#475569',
+    gradient: 'linear-gradient(135deg, #64748B, #475569)',
   },
 };
 
@@ -60,7 +61,7 @@ const STAT_CARDS = [
   { key: 'all', labelKey: 'violations.statTotal', icon: FileText, variant: 'blue' },
   { key: 'pending_review', labelKey: 'violations.statPending', icon: Clock, variant: 'amber' },
   { key: 'confirmed', labelKey: 'violations.statConfirmed', icon: AlertTriangle, variant: 'rose' },
-  { key: 'rejected', labelKey: 'violations.statRejected', icon: CheckCircle, variant: 'emerald' },
+  { key: 'rejected', labelKey: 'violations.statRejected', icon: XCircle, variant: 'slate' },
 ] as const;
 
 function formatViolationTypeFallback(value: string) {
@@ -68,11 +69,11 @@ function formatViolationTypeFallback(value: string) {
 }
 
 function initials(name: string) {
-  return name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'DR';
+  return (name || '').split(' ').map((n) => n[0]).filter(Boolean).join('').slice(0, 2).toUpperCase() || 'DR';
 }
 
 export function ViolationsPage() {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const { user } = useAuth();
 
   const formatViolationType = (value: string) => {
@@ -90,6 +91,13 @@ export function ViolationsPage() {
   };
 
   const [violations, setViolations] = useState<TrafficViolation[]>([]);
+  const [apiCounts, setApiCounts] = useState<{
+    all: number;
+    pending_review: number;
+    confirmed: number;
+    rejected: number;
+    draft: number;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusTab>('all');
@@ -127,8 +135,28 @@ export function ViolationsPage() {
     if (!user) return;
     if (!silent) setLoading(true);
     try {
-      const data = await violationsAPI.getAll();
+      const [data, stats] = await Promise.all([
+        violationsAPI.getAll(),
+        violationsAPI.getStats().catch(() => null),
+      ]);
       setViolations(data);
+      if (stats && typeof stats === 'object') {
+        const s = stats as {
+          total_violations?: number;
+          pending_review?: number;
+          confirmed?: number;
+          rejected?: number;
+        };
+        setApiCounts({
+          all: s.total_violations ?? data.length,
+          pending_review: s.pending_review ?? 0,
+          confirmed: s.confirmed ?? 0,
+          rejected: s.rejected ?? 0,
+          draft: data.filter((v) => v.status === 'draft').length,
+        });
+      } else {
+        setApiCounts(null);
+      }
     } catch {
       if (!silent) toast.error(t('violations.toastLoadFail'));
     } finally {
@@ -155,30 +183,45 @@ export function ViolationsPage() {
     if (search.trim()) {
       const q = search.toLowerCase();
       rows = rows.filter((v) =>
-        v.driver_name.toLowerCase().includes(q)
-        || v.driver_license.toLowerCase().includes(q)
-        || v.location.toLowerCase().includes(q)
-        || v.violation_type.toLowerCase().includes(q)
-        || v.detected_sign_code.toLowerCase().includes(q)
-        || v.detected_class_key.toLowerCase().includes(q)
-        || v.observed_action.toLowerCase().includes(q),
+        (v.driver_name || '').toLowerCase().includes(q)
+        || (v.driver_license || '').toLowerCase().includes(q)
+        || (v.location || '').toLowerCase().includes(q)
+        || (v.violation_type || '').toLowerCase().includes(q)
+        || (v.detected_sign_code || '').toLowerCase().includes(q)
+        || (v.detected_class_key || '').toLowerCase().includes(q)
+        || (v.observed_action || '').toLowerCase().includes(q)
+        || (v.vehicle_plate || '').toLowerCase().includes(q),
       );
     }
     return rows;
   }, [violations, search, statusFilter]);
 
   const pagination = usePagination(filtered);
+  const { setPage } = pagination;
+  const isFilteredEmpty = violations.length > 0 && filtered.length === 0;
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter, setPage]);
 
   const counts = useMemo(() => ({
-    all: violations.length,
-    pending_review: violations.filter((v) => v.status === 'pending_review').length,
-    confirmed: violations.filter((v) => v.status === 'confirmed').length,
-    rejected: violations.filter((v) => v.status === 'rejected').length,
-    draft: violations.filter((v) => v.status === 'draft').length,
-  }), [violations]);
+    all: apiCounts?.all ?? violations.length,
+    pending_review: apiCounts?.pending_review ?? violations.filter((v) => v.status === 'pending_review').length,
+    confirmed: apiCounts?.confirmed ?? violations.filter((v) => v.status === 'confirmed').length,
+    rejected: apiCounts?.rejected ?? violations.filter((v) => v.status === 'rejected').length,
+    draft: apiCounts?.draft ?? violations.filter((v) => v.status === 'draft').length,
+  }), [apiCounts, violations]);
 
   const statusLabel = (status: string) => t(`violations.status.${status}`);
   const getStatusMeta = (status: string) => STATUS_STYLE[status] ?? STATUS_STYLE.draft;
+  const formatViolationDateTime = (value: string) =>
+    new Date(value).toLocaleString(localeTag(locale), {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
 
   const handleStatusUpdate = async (id: string, status: TrafficViolation['status']) => {
     try {
@@ -469,113 +512,128 @@ export function ViolationsPage() {
       {/* Table */}
       <div className="enforcement-page__panel enforcement-page__panel--violations">
         <div className="overflow-x-auto">
-          <Table className="enforcement-page__table mgmt-table__grid">
+          <Table className="enforcement-page__table mgmt-table__grid violations-table__grid">
+            <colgroup>
+              <col className="violations-table__col violations-table__col--driver" />
+              <col className="violations-table__col violations-table__col--violation" />
+              <col className="violations-table__col violations-table__col--sign" />
+              <col className="violations-table__col violations-table__col--action" />
+              <col className="violations-table__col violations-table__col--date" />
+              <col className="violations-table__col violations-table__col--status" />
+              <col className="violations-table__col violations-table__col--actions" />
+            </colgroup>
             <TableHeader>
               <TableRow className="enforcement-page__table-head">
-                {[
-                  t('violations.colDriver'),
-                  t('violations.colType'),
-                  t('violations.colSign'),
-                  t('violations.colAction'),
-                  t('violations.colLocation'),
-                  t('violations.colDate'),
-                  t('violations.colStatus'),
-                  t('violations.colActions'),
-                ].map((h) => (
-                  <TableHead key={h} className="enforcement-page__th text-left">{h}</TableHead>
-                ))}
+                <TableHead className="enforcement-page__th violations-table__th violations-table__th--driver text-left">{t('violations.colDriver')}</TableHead>
+                <TableHead className="enforcement-page__th violations-table__th violations-table__th--violation text-left">{t('violations.colType')}</TableHead>
+                <TableHead className="enforcement-page__th violations-table__th violations-table__th--sign text-left">{t('violations.colSign')}</TableHead>
+                <TableHead className="enforcement-page__th violations-table__th violations-table__th--action text-left">{t('violations.colAction')}</TableHead>
+                <TableHead className="enforcement-page__th violations-table__th violations-table__th--date text-left">{t('violations.colDate')}</TableHead>
+                <TableHead className="enforcement-page__th violations-table__th violations-table__th--status text-left">{t('violations.colStatus')}</TableHead>
+                <TableHead className="enforcement-page__th violations-table__th violations-table__th--actions text-left">{t('violations.colActions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 [...Array(5)].map((_, i) => (
                   <TableRow key={i}>
-                    {[...Array(8)].map((__, j) => (
+                    {[...Array(7)].map((__, j) => (
                       <TableCell key={j}>
                         <div className="enforcement-page__skeleton" />
                       </TableCell>
                     ))}
                   </TableRow>
                 ))
-              ) : filtered.length === 0 ? (
+              ) : pagination.pageItems.length === 0 ? (
                 <TableEmptyState
-                  colSpan={8}
+                  colSpan={7}
                   tone="amber"
                   icon={<AlertTriangle size={28} />}
-                  title={t('violations.empty')}
-                  subtitle={t('violations.emptyHint')}
+                  title={isFilteredEmpty ? t('violations.emptyFilter') : t('violations.empty')}
+                  subtitle={isFilteredEmpty ? t('violations.emptyFilterHint') : t('violations.emptyHint')}
+                  action={
+                    !isFilteredEmpty && canManage
+                      ? { label: t('violations.createViolation'), onClick: () => { resetCreateForm(); setCreateOpen(true); }, icon: <Plus size={15} /> }
+                      : undefined
+                  }
                 />
               ) : pagination.pageItems.map((row) => {
                 const meta = getStatusMeta(row.status);
+                const typeLabel = formatViolationType(row.violation_type);
                 return (
-                  <TableRow key={row.id} className="enforcement-page__table-row">
-                    <TableCell className="py-3.5">
-                      <div className="flex items-center gap-2.5">
-                        <div className="enforcement-page__avatar">{initials(row.driver_name)}</div>
-                        <div>
-                          <p className="enforcement-page__cell-primary">{row.driver_name}</p>
-                          <p className="enforcement-page__cell-mono">{row.driver_license}</p>
+                  <TableRow key={row.id} className="enforcement-page__table-row violations-table__row">
+                    <TableCell className="violations-table__td violations-table__td--driver">
+                      <div className="violations-table__driver">
+                        <div className="enforcement-page__avatar enforcement-page__avatar--driver violations-table__avatar">
+                          {initials(row.driver_name)}
+                        </div>
+                        <div className="violations-table__driver-copy min-w-0">
+                          <p className="violations-table__driver-name">{row.driver_name || '—'}</p>
+                          <p className="violations-table__driver-license">{row.driver_license || '—'}</p>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <p className="enforcement-page__cell-primary">{formatViolationType(row.violation_type)}</p>
+                    <TableCell className="violations-table__td violations-table__td--violation">
+                      <div className="violations-table__violation">
+                        <p className="violations-table__violation-title" title={typeLabel}>{typeLabel}</p>
+                        <p className="violations-table__violation-location" title={row.location || undefined}>
+                          <MapPin size={11} strokeWidth={2.25} aria-hidden />
+                          <span>{row.location || '—'}</span>
+                        </p>
+                      </div>
                     </TableCell>
-                    <TableCell>
-                      <span className="enforcement-page__code-pill">
+                    <TableCell className="violations-table__td violations-table__td--sign">
+                      <span className="violations-table__sign">
                         {row.detected_sign_code || row.detected_class_key || '—'}
                       </span>
                     </TableCell>
-                    <TableCell>
-                      <span className="enforcement-page__code-pill enforcement-page__code-pill--action">
+                    <TableCell className="violations-table__td violations-table__td--action">
+                      <span className="violations-table__action" title={formatObservedAction(row.observed_action)}>
                         {formatObservedAction(row.observed_action)}
                       </span>
                     </TableCell>
-                    <TableCell className="max-w-[180px]">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <MapPin size={12} className="enforcement-page__location-icon" />
-                        <span className="enforcement-page__cell-body truncate">{row.location || '—'}</span>
-                      </div>
+                    <TableCell className="violations-table__td violations-table__td--date">
+                      <time className="violations-table__date" dateTime={row.violation_date}>
+                        {formatAppDate(locale, row.violation_date, { year: 'numeric', month: 'short', day: 'numeric' })}
+                      </time>
                     </TableCell>
-                    <TableCell>
-                      <span className="enforcement-page__cell-secondary">
-                        {new Date(row.violation_date).toLocaleString()}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="enforcement-page__badge" style={{ background: meta.bg, color: meta.color }}>
+                    <TableCell className="violations-table__td violations-table__td--status">
+                      <span className="violations-table__status enforcement-page__badge" style={{ background: meta.bg, color: meta.color }}>
                         {meta.icon}
                         {statusLabel(row.status)}
                       </span>
                     </TableCell>
-                    <TableCell>
-                      <div className="enforcement-page__table-actions violations-page__actions">
+                    <TableCell className="violations-table__td violations-table__td--actions" onClick={(e) => e.stopPropagation()}>
+                      <div className="violations-table__actions" role="group" aria-label={t('violations.colActions')}>
                         <button
                           type="button"
-                          className="violations-page__action-btn violations-page__action-btn--view"
+                          className="violations-table__icon-btn violations-table__icon-btn--view"
                           onClick={() => setSelected(row)}
+                          title={t('violations.view')}
                           aria-label={t('violations.view')}
                         >
-                          <Eye size={13} />
+                          <Eye size={16} strokeWidth={2.35} aria-hidden />
                         </button>
                         {canManage ? (
                           <button
                             type="button"
-                            className="violations-page__action-btn violations-page__action-btn--edit"
+                            className="violations-table__icon-btn violations-table__icon-btn--edit"
                             onClick={() => openEdit(row)}
+                            title={t('common.edit')}
                             aria-label={t('common.edit')}
                           >
-                            <Pencil size={13} />
+                            <Pencil size={16} strokeWidth={2.35} aria-hidden />
                           </button>
                         ) : null}
                         {user?.role === 'admin' ? (
                           <button
                             type="button"
-                            className="violations-page__action-btn violations-page__action-btn--delete"
+                            className="violations-table__icon-btn violations-table__icon-btn--delete"
                             onClick={() => setDeleteViolation(row)}
+                            title={t('common.delete')}
                             aria-label={t('common.delete')}
                           >
-                            <Trash2 size={13} />
+                            <Trash2 size={16} strokeWidth={2.35} aria-hidden />
                           </button>
                         ) : null}
                       </div>
@@ -606,7 +664,7 @@ export function ViolationsPage() {
               { key: 'license', label: t('violations.licenseNo'), value: selected.driver_license, icon: Hash, tone: 'blue' as const },
               { key: 'action', label: t('violations.colAction'), value: formatObservedAction(selected.observed_action), icon: Shield, tone: 'violet' as const },
               { key: 'officer', label: t('violations.officer'), value: selected.officer_name || '—', icon: User, tone: 'amber' as const },
-              { key: 'date', label: t('violations.colDate'), value: new Date(selected.violation_date).toLocaleString(), icon: Clock, tone: 'teal' as const },
+              { key: 'date', label: t('violations.colDate'), value: formatViolationDateTime(selected.violation_date), icon: Clock, tone: 'teal' as const },
             ];
 
             return (
@@ -620,7 +678,7 @@ export function ViolationsPage() {
                       {formatViolationType(selected.violation_type)} — #{selected.id}
                     </h2>
                     <p className="violations-view-dialog__header-meta">
-                      {new Date(selected.violation_date).toLocaleString()}
+                      {formatViolationDateTime(selected.violation_date)}
                       <span aria-hidden> · </span>
                       {selected.location}
                     </p>
@@ -872,32 +930,39 @@ export function ViolationsPage() {
 
             <div className="ct-dialog-field">
               <Label className="enforcement-page__form-label">{t('violations.ruleLabel')} *</Label>
-              <select
-                value={createForm.rule_id}
-                onChange={(e) => setCreateForm((p) => ({ ...p, rule_id: e.target.value, observed_action: '' }))}
-                className="violations-create-dialog__select"
+              <Select
+                value={createForm.rule_id || undefined}
+                onValueChange={(v) => setCreateForm((p) => ({ ...p, rule_id: v, observed_action: '' }))}
               >
-                <option value="">{t('violations.selectRule')}</option>
-                {rules.map((rule) => (
-                  <option key={rule.id} value={rule.id}>
-                    {rule.sign_class_key} + {formatObservedAction(rule.prohibited_action)} — {rule.title}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder={t('violations.selectRule')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {rules.map((rule) => (
+                    <SelectItem key={rule.id} value={String(rule.id)}>
+                      {rule.sign_class_key} + {formatObservedAction(rule.prohibited_action)} — {rule.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="ct-dialog-field">
               <Label className="enforcement-page__form-label">{t('violations.overrideAction')}</Label>
-              <select
-                value={createForm.observed_action}
-                onChange={(e) => setCreateForm((p) => ({ ...p, observed_action: e.target.value }))}
-                className="violations-create-dialog__select"
+              <Select
+                value={createForm.observed_action || '__default__'}
+                onValueChange={(v) => setCreateForm((p) => ({ ...p, observed_action: v === '__default__' ? '' : v }))}
               >
-                <option value="">{t('violations.useRuleDefault')}</option>
-                {OBSERVED_ACTION_VALUES.map((action) => (
-                  <option key={action} value={action}>{formatObservedAction(action)}</option>
-                ))}
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder={t('violations.useRuleDefault')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__default__">{t('violations.useRuleDefault')}</SelectItem>
+                  {OBSERVED_ACTION_VALUES.map((action) => (
+                    <SelectItem key={action} value={action}>{formatObservedAction(action)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="ct-dialog-field-grid">
@@ -946,49 +1011,51 @@ export function ViolationsPage() {
 
       {/* Issue fine dialog */}
       <Dialog open={issueFineOpen} onOpenChange={setIssueFineOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent accent="rose" className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{t('violations.issueFineTitle')}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2.5">
+              <div className="enforcement-page__dialog-icon enforcement-page__dialog-icon--rose">
+                <DollarSign size={15} />
+              </div>
+              <span className="enforcement-page__dialog-title">{t('violations.issueFineTitle')}</span>
+            </DialogTitle>
           </DialogHeader>
           {fineTarget && (
-            <div className="space-y-4">
+            <div className="ct-dialog-form space-y-3">
               <p className="text-[13px] text-muted-foreground">
                 {formatViolationType(fineTarget.violation_type)} — {fineTarget.driver_name}
               </p>
-              <div>
+              <div className="ct-dialog-field">
                 <Label className="enforcement-page__form-label">{t('violations.fineAmount')} *</Label>
-                <input
+                <Input
                   type="number"
                   min="0"
                   step="100"
                   placeholder={t('fines.amountPlaceholder')}
                   value={fineForm.amount}
                   onChange={(e) => setFineForm((p) => ({ ...p, amount: e.target.value }))}
-                  className="enforcement-page__search w-full mt-1"
                 />
               </div>
-              <div>
+              <div className="ct-dialog-field">
                 <Label className="enforcement-page__form-label">{t('violations.fineReason')} *</Label>
-                <textarea
+                <Textarea
                   value={fineForm.reason}
                   onChange={(e) => setFineForm((p) => ({ ...p, reason: e.target.value }))}
-                  className="enforcement-page__search w-full mt-1 min-h-[72px]"
+                  rows={3}
                 />
               </div>
-              <div>
+              <div className="ct-dialog-field">
                 <Label className="enforcement-page__form-label">{t('violations.locationLabel')}</Label>
-                <input
+                <Input
                   value={fineForm.location}
                   onChange={(e) => setFineForm((p) => ({ ...p, location: e.target.value }))}
-                  className="enforcement-page__search w-full mt-1"
                 />
               </div>
-              <div>
+              <div className="ct-dialog-field">
                 <Label className="enforcement-page__form-label">{t('violations.vehiclePlate')}</Label>
-                <input
+                <Input
                   value={fineForm.vehicle_plate}
                   onChange={(e) => setFineForm((p) => ({ ...p, vehicle_plate: e.target.value }))}
-                  className="enforcement-page__search w-full mt-1"
                 />
               </div>
             </div>
@@ -997,8 +1064,8 @@ export function ViolationsPage() {
             <Button variant="outline" onClick={() => setIssueFineOpen(false)}>{t('common.cancel')}</Button>
             <Button
               disabled={issuingFine}
+              className="violations-create-dialog__submit"
               onClick={() => void handleIssueFine()}
-              style={{ background: 'linear-gradient(135deg, #F59E0B, #D97706)' }}
             >
               {issuingFine ? t('common.saving') : t('violations.issueFine')}
             </Button>

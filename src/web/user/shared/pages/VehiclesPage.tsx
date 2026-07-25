@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { usePagination } from '@shared/hooks/usePagination';
 import { TablePagination } from '@shared/components/ui/TablePagination';
-import { Car, Plus, Trash2, Search, Truck, Bike, Eye, Hash, Palette, Calendar, User, Bus, Pencil } from 'lucide-react';
+import { Car, Plus, Trash2, Search, Truck, Bike, Eye, Hash, Palette, Calendar, User, Bus, Pencil, Maximize2, X } from 'lucide-react';
 import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
 import { Label } from '@shared/components/ui/label';
@@ -80,6 +81,54 @@ function VehiclePhoto({ vehicle, className }: { vehicle: Vehicle; className?: st
   );
 }
 
+function VehicleFullImageLightbox({
+  src,
+  alt,
+  open,
+  onClose,
+  t,
+}: {
+  src: string;
+  alt: string;
+  open: boolean;
+  onClose: () => void;
+  t: (key: string) => string;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [open, onClose]);
+
+  if (!open || !src) return null;
+
+  return createPortal(
+    <div className="vehicles-photo-lightbox" role="dialog" aria-modal="true" aria-label={alt} onClick={onClose}>
+      <button
+        type="button"
+        className="vehicles-photo-lightbox__close"
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
+        aria-label={t('vehicles.close')}
+      >
+        <X size={22} />
+      </button>
+      <div className="vehicles-photo-lightbox__stage" onClick={(e) => e.stopPropagation()}>
+        <img src={src} alt={alt} className="vehicles-photo-lightbox__img" />
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 export function VehiclesPage() {
   const { t, locale } = useLanguage();
   const dateLocale = locale === 'km' ? 'km-KH' : 'en-US';
@@ -94,6 +143,9 @@ export function VehiclesPage() {
   const [editVehicle, setEditVehicle] = useState<Vehicle | null>(null);
   const [editing, setEditing] = useState(false);
   const [viewVehicle, setViewVehicle] = useState<Vehicle | null>(null);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [form, setForm] = useState({
     plate_number: '',
     vehicle_type: '',
@@ -103,6 +155,44 @@ export function VehiclesPage() {
   });
 
   const isDriver = user?.role === 'driver';
+
+  const resetForm = () => {
+    setForm({
+      plate_number: '',
+      vehicle_type: '',
+      model: '',
+      color: '',
+      year: new Date().getFullYear().toString(),
+    });
+    setPhotoFile(null);
+    setPhotoPreview(null);
+  };
+
+  const onPhotoPicked = (file: File | null) => {
+    if (photoPreview?.startsWith('blob:')) URL.revokeObjectURL(photoPreview);
+    setPhotoFile(file);
+    setPhotoPreview(file ? URL.createObjectURL(file) : null);
+  };
+
+  const buildVehiclePayload = () => {
+    if (photoFile) {
+      const fd = new FormData();
+      fd.append('plate_number', form.plate_number.trim());
+      fd.append('vehicle_type', form.vehicle_type);
+      fd.append('model', form.model.trim());
+      fd.append('color', form.color.trim());
+      fd.append('year', String(parseInt(form.year, 10) || new Date().getFullYear()));
+      fd.append('registration_photo', photoFile);
+      return fd;
+    }
+    return {
+      plate_number: form.plate_number.trim(),
+      vehicle_type: form.vehicle_type as Vehicle['vehicle_type'],
+      model: form.model.trim(),
+      color: form.color.trim(),
+      year: parseInt(form.year, 10),
+    };
+  };
   const typeLabel = (type: string) => t(`vehicles.types.${type === 'tuk-tuk' ? 'tukTuk' : type}`);
   const renderTypeLabel = (type: string, iconSize = 12) => {
     const TypeIcon = vehicleTypeIcon(type);
@@ -120,10 +210,12 @@ export function VehiclesPage() {
     try {
       const data = isDriver ? await vehiclesAPI.getByOwner(user.id) : await vehiclesAPI.getAll();
       setVehicles(data);
+    } catch {
+      if (!silent) toast.error(t('vehicles.toastLoadFail'));
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [isDriver, user]);
+  }, [isDriver, t, user]);
 
   useEffect(() => { loadVehicles(); }, [loadVehicles]);
   useLiveData(() => loadVehicles(true), 30_000, Boolean(user));
@@ -164,17 +256,10 @@ export function VehiclesPage() {
     }
     setAdding(true);
     try {
-      await vehiclesAPI.create({
-        owner_id: user.id,
-        plate_number: form.plate_number,
-        vehicle_type: form.vehicle_type as Vehicle['vehicle_type'],
-        model: form.model,
-        color: form.color,
-        year: parseInt(form.year, 10),
-      });
+      await vehiclesAPI.create(buildVehiclePayload());
       toast.success(t('vehicles.toastRegistered'));
       setAddOpen(false);
-      setForm({ plate_number: '', vehicle_type: '', model: '', color: '', year: new Date().getFullYear().toString() });
+      resetForm();
       loadVehicles();
     } catch {
       toast.error(t('vehicles.toastRegisterFail'));
@@ -203,6 +288,8 @@ export function VehiclesPage() {
       color: vehicle.color,
       year: String(vehicle.year),
     });
+    setPhotoFile(null);
+    setPhotoPreview(vehicle.registration_photo || null);
   };
 
   const handleEdit = async () => {
@@ -212,15 +299,10 @@ export function VehiclesPage() {
     }
     setEditing(true);
     try {
-      await vehiclesAPI.update(editVehicle.id, {
-        plate_number: form.plate_number,
-        vehicle_type: form.vehicle_type as Vehicle['vehicle_type'],
-        model: form.model,
-        color: form.color,
-        year: parseInt(form.year, 10),
-      });
+      await vehiclesAPI.update(editVehicle.id, buildVehiclePayload());
       toast.success(t('vehicles.toastUpdated'));
       setEditVehicle(null);
+      resetForm();
       loadVehicles();
     } catch {
       toast.error(t('vehicles.toastUpdateFail'));
@@ -381,6 +463,7 @@ export function VehiclesPage() {
                         type="button"
                         className="vehicles-page__action-btn vehicles-page__action-btn--view"
                         onClick={() => setViewVehicle(v)}
+                        title={t('vehicles.view')}
                         aria-label={t('vehicles.view')}
                       >
                         <Eye size={15} />
@@ -404,6 +487,16 @@ export function VehiclesPage() {
                         <Trash2 size={15} />
                       </button>
                     </div>
+                    {v.registration_photo ? (
+                      <button
+                        type="button"
+                        className="enforcement-page__vehicle-preview-hint"
+                        onClick={() => setLightboxSrc(getVehicleImageUrl(v))}
+                      >
+                        <Maximize2 size={14} aria-hidden />
+                        {t('vehicles.viewFullPhoto')}
+                      </button>
+                    ) : null}
                   </div>
                   <div className="enforcement-page__vehicle-card-body">
                     <span className="enforcement-page__code-pill">{v.plate_number}</span>
@@ -522,7 +615,7 @@ export function VehiclesPage() {
         </div>
       )}
 
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+      <Dialog open={addOpen} onOpenChange={(open) => { setAddOpen(open); if (!open) resetForm(); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2.5">
@@ -586,9 +679,26 @@ export function VehiclesPage() {
                 />
               </div>
             </div>
+            <div>
+              <Label className="enforcement-page__form-label">{t('vehicles.photoLabel')}</Label>
+              <Input
+                className="mt-1"
+                type="file"
+                accept="image/*"
+                onChange={(e) => onPhotoPicked(e.target.files?.[0] ?? null)}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">{t('vehicles.photoHint')}</p>
+              {photoPreview ? (
+                <img
+                  src={photoPreview}
+                  alt=""
+                  className="mt-2 h-28 w-full rounded-lg object-cover border border-border"
+                />
+              ) : null}
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAddOpen(false)}>{t('vehicles.cancel')}</Button>
+            <Button variant="outline" onClick={() => { setAddOpen(false); resetForm(); }}>{t('vehicles.cancel')}</Button>
             <button type="button" className="enforcement-page__btn-primary enforcement-page__btn-teal" onClick={handleAdd} disabled={adding}>
               {adding ? (
                 <>
@@ -605,7 +715,7 @@ export function VehiclesPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={editVehicle !== null} onOpenChange={(open) => !open && setEditVehicle(null)}>
+      <Dialog open={editVehicle !== null} onOpenChange={(open) => { if (!open) { setEditVehicle(null); resetForm(); } }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="enforcement-page__dialog-title">{t('vehicles.editTitle')}</DialogTitle>
@@ -640,22 +750,45 @@ export function VehiclesPage() {
                 <Input className="mt-1" type="number" value={form.year} onChange={(e) => setForm((f) => ({ ...f, year: e.target.value }))} />
               </div>
             </div>
+            <div>
+              <Label className="enforcement-page__form-label">{t('vehicles.photoLabel')}</Label>
+              <Input
+                className="mt-1"
+                type="file"
+                accept="image/*"
+                onChange={(e) => onPhotoPicked(e.target.files?.[0] ?? null)}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">{t('vehicles.photoHint')}</p>
+              {photoPreview ? (
+                <img
+                  src={photoPreview}
+                  alt=""
+                  className="mt-2 h-28 w-full rounded-lg object-cover border border-border"
+                />
+              ) : null}
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditVehicle(null)}>{t('vehicles.cancel')}</Button>
+            <Button variant="outline" onClick={() => { setEditVehicle(null); resetForm(); }}>{t('vehicles.cancel')}</Button>
             <Button onClick={() => void handleEdit()} disabled={editing}>{editing ? t('common.saving') : t('common.save')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={viewVehicle !== null} onOpenChange={(open) => !open && setViewVehicle(null)}>
-        <DialogContent accent="teal" className="vehicles-view-dialog max-w-lg p-0 gap-0 overflow-hidden">
+      <Dialog open={viewVehicle !== null} onOpenChange={(open) => { if (!open) { setViewVehicle(null); setLightboxSrc(null); } }}>
+        <DialogContent accent="teal" className="vehicles-view-dialog max-w-2xl sm:max-w-2xl p-0 gap-0 overflow-hidden">
           {viewVehicle ? (() => {
             const meta = getTypeMeta(viewVehicle.vehicle_type);
             const TypeIcon = vehicleTypeIcon(viewVehicle.vehicle_type);
+            const fullPhoto = getVehicleImageUrl(viewVehicle);
             return (
               <div className="vehicles-view-dialog__shell">
-                <div className="vehicles-view-dialog__hero">
+                <button
+                  type="button"
+                  className="vehicles-view-dialog__hero vehicles-view-dialog__hero--clickable"
+                  onClick={() => setLightboxSrc(fullPhoto)}
+                  aria-label={t('vehicles.viewFullPhoto')}
+                >
                   <VehiclePhoto vehicle={viewVehicle} className="vehicles-view-dialog__hero-photo" />
                   <div className="vehicles-view-dialog__hero-overlay" aria-hidden />
                   <span
@@ -665,7 +798,11 @@ export function VehiclesPage() {
                     <TypeIcon size={14} />
                     {typeLabel(viewVehicle.vehicle_type)}
                   </span>
-                </div>
+                  <span className="vehicles-view-dialog__hero-zoom">
+                    <Maximize2 size={15} aria-hidden />
+                    {t('vehicles.viewFullPhoto')}
+                  </span>
+                </button>
 
                 <div className="vehicles-view-dialog__header">
                   <div className="vehicles-view-dialog__header-icon">
@@ -769,6 +906,14 @@ export function VehiclesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <VehicleFullImageLightbox
+        src={lightboxSrc || ''}
+        alt={viewVehicle?.model || t('vehicles.photoLabel')}
+        open={!!lightboxSrc}
+        onClose={() => setLightboxSrc(null)}
+        t={t}
+      />
     </div>
   );
 }

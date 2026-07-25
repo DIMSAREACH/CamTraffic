@@ -137,3 +137,11 @@ class SMSLog(TimeStampedUUIDModel):
     
     def __str__(self):
         return f'{self.phone_number} - {self.status}'
+
+
+# Scheduling (templates / cron jobs) — imported for Django model discovery
+from .schedule_models import (  # noqa: E402
+    NotificationTemplate,
+    ScheduledNotification,
+    ScheduledReport,
+)

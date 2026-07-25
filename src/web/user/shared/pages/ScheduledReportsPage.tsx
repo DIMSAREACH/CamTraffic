@@ -15,7 +15,6 @@ import { USER_PORTAL_ROUTES } from '@shared/constants/userPortalPaths';
 import { usePagination } from '@shared/hooks/usePagination';
 import {
   REPORT_CATEGORIES,
-  SCHEDULED_REPORTS,
   type ReportCategory,
   type ReportFormat,
   type ScheduleFrequency,
@@ -32,7 +31,8 @@ function formatIcon(format: ReportFormat) {
 export function ScheduledReportsPage() {
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const [rows, setRows] = useState<ScheduledReport[]>(SCHEDULED_REPORTS);
+  // Production-truth: no hardcoded catalog rows (officer route redirects to /reports).
+  const [rows, setRows] = useState<ScheduledReport[]>([]);
   const [search, setSearch] = useState('');
   const [frequency, setFrequency] = useState<ScheduleFrequency | 'all'>('all');
   const [status, setStatus] = useState<'all' | 'active' | 'disabled'>('all');

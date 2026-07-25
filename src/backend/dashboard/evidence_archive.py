@@ -4,17 +4,17 @@ from __future__ import annotations
 from django.db.models import Q
 
 from ai_detection.models import AIDetectionLog
+from core.media_urls import api_media_url
 from fines.models import Fine
 from violations.models import TrafficViolation
 
 
 def _media_url(request, field) -> str | None:
-    if field and getattr(field, 'name', None):
-        try:
-            return request.build_absolute_uri(field.url)
-        except (ValueError, AttributeError):
-            return None
-    return None
+    """Prefer local /media/… (Vite proxy) over broken absolute R2 URLs."""
+    if not field or not getattr(field, 'name', None):
+        return None
+    url = api_media_url(request, field)
+    return url or None
 
 
 def _append_detection(records: list, log: AIDetectionLog, request) -> None:
@@ -102,9 +102,12 @@ def search_evidence_archive(
 
     # Admin + police share full operational evidence; drivers see own records only.
     if user.role == 'driver':
-        det_qs = det_qs.filter(user=user)
         viol_qs = viol_qs.filter(driver__user=user)
         fine_qs = fine_qs.filter(driver=user)
+        linked_log_ids = list(
+            viol_qs.exclude(ai_detection_log_id=None).values_list('ai_detection_log_id', flat=True)[:200]
+        )
+        det_qs = det_qs.filter(Q(user=user) | Q(id__in=linked_log_ids))
 
     if plate_q:
         det_qs = det_qs.filter(detected_plate__icontains=plate_q)

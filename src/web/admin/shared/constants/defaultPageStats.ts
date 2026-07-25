@@ -138,7 +138,8 @@ function patchSampleSignImages(signs: AIDetectionSampleSign[]): AIDetectionSampl
   });
 }
 
-const EMPTY_PAGE_STATS: AIDetectionPageStats = {
+/** Empty stats when live API fails and sample fallback is off. */
+export const EMPTY_PAGE_STATS: AIDetectionPageStats = {
   model: {
     name: '',
     version: '',

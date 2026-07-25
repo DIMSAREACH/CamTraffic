@@ -54,13 +54,18 @@ def resolve_driver(*, driver_id=None, plate_result: dict | None = None):
 
     if driver_id:
         try:
-            return Driver.objects.select_related('user').get(pk=int(driver_id))
+            return Driver.objects.select_related('user').get(pk=driver_id)
         except (Driver.DoesNotExist, TypeError, ValueError):
             return None
 
     matched = (plate_result or {}).get('matched_vehicle') or {}
     vehicle_pk = matched.get('id')
-    plate_text = (plate_result or {}).get('plate_text')
+    plate_text = (
+        (plate_result or {}).get('plate_text')
+        or (plate_result or {}).get('plate')
+        or matched.get('plate_number')
+        or ''
+    )
     if not vehicle_pk and not plate_text:
         return None
 
@@ -71,12 +76,21 @@ def resolve_driver(*, driver_id=None, plate_result: dict | None = None):
             .filter(pk=vehicle_pk)
             .first()
         )
-    elif plate_text:
+    if not vehicle and plate_text:
         vehicle = (
             Vehicle.objects.select_related('driver', 'driver__user', 'owner')
-            .filter(plate_number__iexact=plate_text)
+            .filter(plate_number__iexact=str(plate_text).strip())
             .first()
         )
+    if not vehicle and plate_text:
+        # Fuzzy: ignore spaces/dashes (2A 1234 ↔ 2A-1234)
+        compact = ''.join(ch for ch in str(plate_text).upper() if ch.isalnum())
+        if len(compact) >= 5:
+            for cand in Vehicle.objects.select_related('driver', 'driver__user', 'owner').exclude(plate_number='')[:800]:
+                vc = ''.join(ch for ch in (cand.plate_number or '').upper() if ch.isalnum())
+                if vc == compact:
+                    vehicle = cand
+                    break
 
     if not vehicle:
         return None
@@ -87,8 +101,11 @@ def resolve_driver(*, driver_id=None, plate_result: dict | None = None):
     if owner and owner.role == 'driver':
         driver, _ = Driver.objects.get_or_create(
             user=owner,
-            defaults={'license_no': owner.license_no or f'LIC-{owner.id:05d}'},
+            defaults={'license_no': owner.license_no or f'LIC-{owner.id}'},
         )
+        if not vehicle.driver_id:
+            vehicle.driver = driver
+            vehicle.save(update_fields=['driver'])
         return driver
     return None
 
@@ -100,9 +117,17 @@ def resolve_vehicle(*, plate_result: dict | None = None, vehicles: list[dict] | 
     if matched.get('id'):
         return Vehicle.objects.filter(pk=matched['id']).first()
 
-    plate_text = (plate_result or {}).get('plate_text')
+    plate_text = (plate_result or {}).get('plate_text') or (plate_result or {}).get('plate')
     if plate_text:
-        return Vehicle.objects.filter(plate_number__iexact=plate_text).first()
+        vehicle = Vehicle.objects.filter(plate_number__iexact=str(plate_text).strip()).first()
+        if vehicle:
+            return vehicle
+        compact = ''.join(ch for ch in str(plate_text).upper() if ch.isalnum())
+        if len(compact) >= 5:
+            for cand in Vehicle.objects.exclude(plate_number='')[:800]:
+                vc = ''.join(ch for ch in (cand.plate_number or '').upper() if ch.isalnum())
+                if vc == compact:
+                    return cand
 
     return None
 
@@ -186,10 +211,43 @@ def apply_pipeline_enforcement(
         except (TypeError, ValueError):
             camera = None
 
+    # Officer may correct / override OCR plate before creating the case (defense HITL).
+    plate_override = str(
+        _request_value(request, 'plate_text', '')
+        or _request_value(request, 'plate_number', '')
+        or _request_value(request, 'detected_plate', '')
+    ).strip()
+    if plate_override:
+        plate_result = dict(plate_result or {})
+        plate_result['plate_text'] = plate_override
+        plate_result['plate'] = plate_override
+        if not plate_result.get('matched_vehicle'):
+            try:
+                from vehicles.models import Vehicle
+
+                matched = (
+                    Vehicle.objects.select_related('driver', 'driver__user', 'owner')
+                    .filter(plate_number__iexact=plate_override)
+                    .first()
+                )
+                if matched:
+                    plate_result['matched_vehicle'] = {
+                        'id': str(matched.id),
+                        'plate_number': matched.plate_number,
+                    }
+            except Exception:
+                logger.exception('Failed plate override vehicle match for %s', plate_override)
+
     driver_id = _request_value(request, 'driver_id')
     driver = resolve_driver(driver_id=driver_id, plate_result=plate_result)
     if not driver:
-        detected_plate = (plate_result or {}).get('plate') or payload.get('detected_plate') or ''
+        detected_plate = (
+            (plate_result or {}).get('plate_text')
+            or (plate_result or {}).get('plate')
+            or payload.get('detected_plate')
+            or plate_override
+            or ''
+        )
         if detected_plate and not (plate_result or {}).get('matched_vehicle'):
             try:
                 from unknown_vehicles.services import queue_unknown_vehicle
@@ -198,7 +256,10 @@ def apply_pipeline_enforcement(
                     plate_detected=detected_plate,
                     camera=camera,
                     violation_type=evaluation.get('violation_type', ''),
-                    ai_confidence_score=(plate_result or {}).get('confidence'),
+                    ai_confidence_score=(
+                        (plate_result or {}).get('plate_confidence')
+                        or (plate_result or {}).get('confidence')
+                    ),
                 )
                 if unknown:
                     out['unknown_vehicle_id'] = str(unknown.id)
@@ -215,7 +276,7 @@ def apply_pipeline_enforcement(
         officer, _ = Officer.objects.get_or_create(
             user=request.user,
             defaults={
-                'badge_no': f'BADGE-{request.user.id:05d}',
+                'badge_no': f'BADGE-{request.user.id}',
                 'rank': 'Officer',
                 'department': 'Traffic Police',
             },

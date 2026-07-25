@@ -52,6 +52,7 @@ class TrafficViolation(TimeStampedUUIDModel):
     ]
 
     VIOLATION_TYPE_CHOICES = [
+        ('NO_ENTRY', 'No Entry'),
         ('ILLEGAL_LEFT_TURN', 'Illegal Left Turn'),
         ('ILLEGAL_RIGHT_TURN', 'Illegal Right Turn'),
         ('ILLEGAL_U_TURN', 'Illegal U-Turn'),

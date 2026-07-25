@@ -2,21 +2,17 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import {
   Brain, ArrowLeft, Activity, Target, Camera as CameraIcon, Zap,
-  Loader2, CheckCircle, Signpost, Car, Hash, Shield, BarChart3,
+  Loader2, CheckCircle, Signpost, Car, Shield, BarChart3,
 } from 'lucide-react';
 import { LiveWebcamPanel } from '@shared/components/ai/LiveWebcamPanel';
 import { ImageUploadPanel } from '@shared/components/ai/center/ImageUploadPanel';
-import { VideoUploadPanel } from '@shared/components/ai/center/VideoUploadPanel';
+import { RealtimeVideoDetectionStudio } from '@shared/components/ai/center/RealtimeVideoDetectionStudio';
 import { LiveCameraDetectionPanel } from '@shared/components/ai/center/LiveCameraDetectionPanel';
 import {
   EnterpriseDetectionInputWorkspace,
   type EnterpriseInputMode,
 } from '@shared/components/ai/center/EnterpriseDetectionInputWorkspace';
 import { EnterpriseDetectionResultsView } from '@shared/components/ai/center/EnterpriseDetectionResultsView';
-import {
-  EnterpriseVideoDetectionResultsView,
-  EnterpriseVideoProcessingPanel,
-} from '@shared/components/ai/center/EnterpriseVideoDetectionResultsView';
 import { RecentDetectionsTable } from '@shared/components/ai/center/RecentDetectionsTable';
 import type { CenterDetectionResult } from '@shared/components/ai/center/DetectionCenterResultsPanel';
 import { toDetectPipelineOptions, type DetectPipelineOptions } from '@shared/constants/observedActions';
@@ -25,7 +21,7 @@ import { useLanguage } from '@shared/context/LanguageContext';
 import { useAuth } from '@shared/context/AuthContext';
 import { aiAPI, camerasAPI } from '@shared/services/api';
 import {
-  DEFAULT_PAGE_STATS,
+  EMPTY_PAGE_STATS,
   mergePageStatsWithDefaults,
 } from '@shared/constants/defaultPageStats';
 import {
@@ -41,7 +37,6 @@ import { toast } from 'sonner';
 const PROCESSING_STEPS = [
   { icon: Signpost, labelKey: 'aiCenter.processSigns' },
   { icon: Car, labelKey: 'aiCenter.processVehicles' },
-  { icon: Hash, labelKey: 'aiCenter.processPlates' },
   { icon: Shield, labelKey: 'aiCenter.processViolations' },
 ] as const;
 
@@ -55,21 +50,21 @@ function isToday(iso: string): boolean {
 
 function EnterpriseProcessingPanel() {
   const { t } = useLanguage();
-  const [progress, setProgress] = useState(8);
+  const [progress, setProgress] = useState(12);
 
   useEffect(() => {
     const started = performance.now();
-    const durationMs = 7000;
+    // Match fast Detect (~0.5–1.5s). Cap at 94% until API clears overlay.
+    const durationMs = 450;
     let frame = 0;
 
     const tick = (now: number) => {
       const elapsed = now - started;
-      // Ease toward 96% while waiting for the API; never claim 100% until results arrive.
       const tNorm = Math.min(1, elapsed / durationMs);
-      const eased = 1 - (1 - tNorm) ** 2.2;
-      const next = Math.min(96, Math.round(8 + eased * 88));
+      const eased = 1 - (1 - tNorm) ** 2.4;
+      const next = Math.min(94, Math.round(12 + eased * 82));
       setProgress(next);
-      if (next < 96) {
+      if (next < 94) {
         frame = requestAnimationFrame(tick);
       }
     };
@@ -78,7 +73,7 @@ function EnterpriseProcessingPanel() {
     return () => cancelAnimationFrame(frame);
   }, []);
 
-  const stepDoneAt = [18, 38, 58, 78];
+  const stepDoneAt = [20, 48, 72];
 
   return (
     <div className="enterprise-ai-processing">
@@ -139,7 +134,7 @@ export function EnterpriseAIDetectionCenterPage() {
   const [result, setResult] = useState<CenterDetectionResult | null>(null);
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
   const [detecting, setDetecting] = useState(false);
-  const [pageStats, setPageStats] = useState<AIDetectionPageStats>(DEFAULT_PAGE_STATS);
+  const [pageStats, setPageStats] = useState<AIDetectionPageStats>(EMPTY_PAGE_STATS);
   const [recentLogs, setRecentLogs] = useState<AIDetectionLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(true);
   const [liveCameraCount, setLiveCameraCount] = useState(0);
@@ -182,6 +177,8 @@ export function EnterpriseAIDetectionCenterPage() {
     void refreshStats();
     void refreshLogs();
     void refreshCameras();
+    // Preload YOLO while user picks an image — Detect then finishes in <3s.
+    void aiAPI.warmup().catch(() => undefined);
   }, [refreshStats, refreshLogs, refreshCameras]);
 
   useEffect(() => {
@@ -230,26 +227,84 @@ export function EnterpriseAIDetectionCenterPage() {
   }, [isAdmin, refreshLogs, refreshStats, t]);
 
   const selectInputMode = (mode: EnterpriseInputMode) => {
+    if (mode === inputMode) return;
     setStoredUserDetectionInputMode(mode);
     setInputMode(mode);
+    setDetecting(false);
+    setResult(null);
+    setPreviewSrc((prev) => {
+      if (prev?.startsWith('blob:')) {
+        const doomed = prev;
+        window.setTimeout(() => URL.revokeObjectURL(doomed), 250);
+      }
+      return null;
+    });
+    if (mode === 'camera') void refreshCameras();
+    void refreshLogs();
+    void refreshStats();
   };
 
   const pipelineOptions: DetectPipelineOptions = toDetectPipelineOptions(demoAction);
 
   const handleResult = (res: CenterDetectionResult, preview: string) => {
     setResult(res);
-    setPreviewSrc(preview || res.uploaded_image || null);
-    void refreshLogs();
-    void refreshStats();
+    const next =
+      res.uploaded_image ||
+      res.annotated_processed_image ||
+      res.processed_image ||
+      (preview && !preview.startsWith('blob:') ? preview : '') ||
+      null;
+    setPreviewSrc((prev) => {
+      if (prev?.startsWith('blob:') && prev !== next) {
+        const doomed = prev;
+        window.setTimeout(() => URL.revokeObjectURL(doomed), 250);
+      }
+      return next;
+    });
+    window.setTimeout(() => {
+      void refreshLogs();
+      void refreshStats();
+    }, 0);
   };
 
-  const handleWebcamResult = (res: WebcamDetectionResult) => {
+  /** Video/Live studios own their result UI — only refresh history, stay on console. */
+  const handleStudioResult = (_res: CenterDetectionResult, preview: string) => {
+    if (preview && !preview.startsWith('blob:')) setPreviewSrc(preview);
+    window.setTimeout(() => {
+      void refreshLogs();
+      void refreshStats();
+    }, 0);
+  };
+
+  /** Webcam: keep live camera mounted for preview/loop; open full results only after Scan & Save. */
+  const handleWebcamResult = (res: WebcamDetectionResult, opts?: { quiet?: boolean }) => {
     if (!isManualScanResult(res)) return;
-    handleResult(res as CenterDetectionResult, res.uploaded_image || '');
+
+    const preview =
+      res.annotated_processed_image ||
+      res.processed_image ||
+      res.uploaded_image ||
+      res.guide_frame_image ||
+      '';
+
+    // Live loop lock or Scan Frame preview — stay on webcam workspace.
+    if (opts?.quiet || !res.log_id) {
+      void refreshStats();
+      return;
+    }
+
+    handleResult(res as CenterDetectionResult, preview);
+    toast.success(
+      t('aiDetection.webcam.savedToRecent') !== 'aiDetection.webcam.savedToRecent'
+        ? t('aiDetection.webcam.savedToRecent')
+        : 'Detection saved — see Recent Detection below',
+    );
   };
 
   const sourceLabel = t(`aiCenter.source.${inputMode}`);
-  const showResults = Boolean(result) && !detecting;
+  // Keep Video / Live Camera consoles mounted (they include their own detection panel).
+  const studioMode = inputMode === 'video' || inputMode === 'camera';
+  const showResults = Boolean(result) && !studioMode;
 
   const exportResult = () => {
     if (!result) return;
@@ -264,7 +319,10 @@ export function EnterpriseAIDetectionCenterPage() {
 
   const resetDetection = () => {
     setPreviewSrc((prev) => {
-      if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+      if (prev?.startsWith('blob:')) {
+        const doomed = prev;
+        window.setTimeout(() => URL.revokeObjectURL(doomed), 250);
+      }
       return null;
     });
     setResult(null);
@@ -286,23 +344,29 @@ export function EnterpriseAIDetectionCenterPage() {
     disabled: detecting,
   };
 
+  const studioPanelProps = {
+    ...panelProps,
+    onResult: handleStudioResult,
+  };
+
   const renderPreview = () => {
     switch (inputMode) {
       case 'image':
-        return <ImageUploadPanel {...panelProps} layout="enterprise" />;
+        return <ImageUploadPanel key="mode-image" {...panelProps} layout="enterprise" />;
       case 'video':
         return (
-          <VideoUploadPanel
-            {...panelProps}
+          <RealtimeVideoDetectionStudio
+            key="mode-video"
+            {...studioPanelProps}
             onPreviewChange={setPreviewSrc}
             onRegisterAbort={(abort) => { videoAbortRef.current = abort; }}
           />
         );
       case 'camera':
-        return <LiveCameraDetectionPanel {...panelProps} />;
+        return <LiveCameraDetectionPanel key="mode-camera" {...studioPanelProps} />;
       case 'webcam':
         return (
-          <div className="ai-center-webcam-wrap">
+          <div key="mode-webcam" className="ai-center-webcam-wrap">
             <LiveWebcamPanel
               onResult={handleWebcamResult}
               disabled={detecting}
@@ -349,7 +413,7 @@ export function EnterpriseAIDetectionCenterPage() {
         </div>
       </div>
 
-      {!showResults && !(detecting && inputMode === 'video') && (
+      {!showResults && !studioMode && !(detecting && inputMode === 'video') && (
         <div className="enforcement-page__stat-grid enforcement-page__stat-grid--four enterprise-ai-kpi-grid">
           {beforeKpi.map((card) => {
             const Icon = card.icon;
@@ -371,47 +435,37 @@ export function EnterpriseAIDetectionCenterPage() {
       )}
 
       {showResults && result ? (
-        result.video_analysis || inputMode === 'video' ? (
-          <EnterpriseVideoDetectionResultsView
-            result={result}
-            previewSrc={previewSrc}
-            sourceLabel={sourceLabel}
-            onNewDetection={resetDetection}
-            violationsBasePath="/officer"
-          />
-        ) : (
-          <EnterpriseDetectionResultsView
-            result={result}
-            previewSrc={previewSrc}
-            sourceLabel={sourceLabel}
-            accuracyAvg={pageStats.stats.accuracy_avg}
-            onExport={exportResult}
-            onNewDetection={resetDetection}
-            violationsBasePath="/officer"
-          />
-        )
+        <EnterpriseDetectionResultsView
+          result={result}
+          previewSrc={previewSrc}
+          sourceLabel={sourceLabel}
+          accuracyAvg={pageStats.stats.accuracy_avg}
+          onExport={exportResult}
+          onNewDetection={resetDetection}
+          violationsBasePath="/officer"
+        />
       ) : (
         <EnterpriseDetectionInputWorkspace
           inputMode={inputMode}
           onInputModeChange={selectInputMode}
-          detecting={detecting}
+          detecting={detecting && !studioMode}
           sourceControls={null}
           previewContent={renderPreview()}
           processingOverlay={
-            inputMode === 'video'
-              ? (
-                <EnterpriseVideoProcessingPanel
-                  previewSrc={previewSrc}
-                  onStop={() => {
-                    videoAbortRef.current?.();
-                    setDetecting(false);
-                  }}
-                />
-              )
-              : <EnterpriseProcessingPanel />
+            detecting && !studioMode
+              ? <EnterpriseProcessingPanel />
+              : null
           }
         />
       )}
+
+      <div className="enterprise-ai-history-block">
+        <div className="enterprise-ai-history-block__head">
+          <h2 className="enterprise-ai-history-block__title">{t('aiCenter.recentDetectionTitle')}</h2>
+          <p className="enterprise-ai-history-block__meta">
+            {t(`aiCenter.input.${inputMode}`)} · {filteredHistory.length.toLocaleString()}
+          </p>
+        </div>
 
       <div className="enterprise-ai-history-filters" role="search" aria-label={t('aiCenter.recentDetectionTitle')}>
         <label className="enterprise-ai-history-filters__field">
@@ -468,6 +522,7 @@ export function EnterpriseAIDetectionCenterPage() {
         onDelete={isAdmin ? handleDeleteLog : undefined}
         pageSize={10}
       />
+      </div>
     </div>
   );
 }

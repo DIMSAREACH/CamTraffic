@@ -147,10 +147,10 @@ export function OfficerDashboard() {
   };
 
   const statCards = [
-    { tone: 'blue', icon: FileText, value: String(stats.total_issued), label: t('dashboard.policeTotalIssued') },
-    { tone: 'amber', icon: TrendingUp, value: String(stats.today_issued), label: t('dashboard.policeTodayFines') },
-    { tone: 'rose', icon: Clock, value: String(stats.pending), label: t('dashboard.policePending') },
-    { tone: 'teal', icon: RielIcon, value: formatAppCurrency(locale, stats.revenue), label: t('dashboard.revenue') },
+    { tone: 'blue', icon: FileText, value: String(stats.total_issued), label: t('dashboard.policeTotalIssued'), path: OFFICER_PORTAL_ROUTES.fines },
+    { tone: 'amber', icon: TrendingUp, value: String(stats.today_issued), label: t('dashboard.policeTodayFines'), path: OFFICER_PORTAL_ROUTES.fines },
+    { tone: 'rose', icon: Clock, value: String(stats.pending), label: t('dashboard.policePending'), path: OFFICER_PORTAL_ROUTES.fines },
+    { tone: 'teal', icon: RielIcon, value: formatAppCurrency(locale, stats.revenue), label: t('dashboard.revenue'), path: OFFICER_PORTAL_ROUTES.fines },
   ];
 
   const quickActions = [
@@ -267,7 +267,13 @@ export function OfficerDashboard() {
         {statCards.map((card) => {
           const Icon = card.icon;
           return (
-            <div key={card.label} className={`enforcement-page__stat-card enforcement-page__stat-card--${card.tone}`}>
+            <button
+              key={card.label}
+              type="button"
+              onClick={() => navigate(card.path)}
+              className={`enforcement-page__stat-card enforcement-page__stat-card--${card.tone} enforcement-page__stat-card--link`}
+              aria-label={card.label}
+            >
               <div className={`enforcement-page__stat-icon enforcement-page__stat-icon--${card.tone}`}>
                 <Icon size={18} />
               </div>
@@ -277,7 +283,7 @@ export function OfficerDashboard() {
                   {card.label}
                 </p>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>

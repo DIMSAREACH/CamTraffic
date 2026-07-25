@@ -146,6 +146,7 @@ export const ADMIN_ENTERPRISE_MODULES: EnterpriseModule[] = [
       { labelKey: 'sidebar.subNav.reportsDashboard', path: `${ADMIN_BASE}/reports` },
       { labelKey: 'sidebar.subNav.reportCenter', path: `${ADMIN_BASE}/reports/center` },
       { labelKey: 'sidebar.subNav.reportAnalytics', path: `${ADMIN_BASE}/reports/analytics` },
+      { labelKey: 'sidebar.subNav.scheduledReports', path: `${ADMIN_BASE}/reports/scheduled` },
     ],
   },
   {
@@ -157,6 +158,8 @@ export const ADMIN_ENTERPRISE_MODULES: EnterpriseModule[] = [
       { labelKey: 'sidebar.subNav.notifDashboard', path: `${ADMIN_BASE}/notifications` },
       { labelKey: 'sidebar.subNav.notifList', path: `${ADMIN_BASE}/notifications/list` },
       { labelKey: 'sidebar.subNav.notifSend', path: `${ADMIN_BASE}/notifications/send` },
+      { labelKey: 'sidebar.subNav.notifScheduled', path: `${ADMIN_BASE}/notifications/scheduled` },
+      { labelKey: 'sidebar.subNav.notifTemplates', path: `${ADMIN_BASE}/notifications/templates` },
     ],
   },
   {

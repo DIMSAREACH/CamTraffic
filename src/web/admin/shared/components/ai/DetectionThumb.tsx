@@ -66,7 +66,7 @@ export function DetectionThumb({
   }, [log.id, candidateKey]);
 
   const onError = () => {
-    setIndex((i) => (i + 1 <= candidates.length ? i + 1 : i));
+    setIndex((i) => (i + 1 < candidates.length ? i + 1 : candidates.length));
   };
 
   if (src && index < candidates.length) {

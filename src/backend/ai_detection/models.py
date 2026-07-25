@@ -88,3 +88,8 @@ class VehicleTrackingLog(UUIDPrimaryKeyModel):
 
     def __str__(self):
         return f'Track #{self.track_id} ({self.vehicle_type})'
+
+
+# Realtime video / live streaming models (re-exported for migrations discovery)
+from .video_models import VideoDetection, VideoEvidence, VideoFrame  # noqa: E402,F401
+

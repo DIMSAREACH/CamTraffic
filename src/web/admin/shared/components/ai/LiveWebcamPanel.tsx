@@ -93,7 +93,16 @@ export function LiveWebcamPanel({ onResult, disabled = false, pipelineOptions }:
     (res) => res && isManualScanResult(res),
   ) ?? null;
 
-  const capturePreviewUrl = displayResult?.uploaded_image || '';
+  // Use raw capture for the in-viewfinder preview. Annotated bitmap + CSS overlay = double boxes.
+  const capturePreviewUrl =
+    displayResult?.guide_frame_image ||
+    displayResult?.uploaded_image ||
+    displayResult?.processed_image ||
+    '';
+  const annotatedPreviewUrl =
+    displayResult?.annotated_processed_image ||
+    displayResult?.processed_image ||
+    capturePreviewUrl;
 
   const lastDescription = displayResult
     ? (locale === 'en'
@@ -106,23 +115,32 @@ export function LiveWebcamPanel({ onResult, disabled = false, pipelineOptions }:
   const localizationDebug = displayResult?.pipeline_trace || displayResult?.localization_debug;
   const signCropPreview = displayResult?.sign_crop_image || '';
   const processedPreview = displayResult?.processed_image || displayResult?.annotated_processed_image || '';
-  const guideFramePreview = displayResult?.guide_frame_image || capturePreviewUrl;
+  const guideFramePreview =
+    displayResult?.guide_frame_image ||
+    displayResult?.uploaded_image ||
+    capturePreviewUrl;
+  const vehicleSummary = displayResult?.vehicles?.length
+    ? displayResult.vehicles
+      .slice(0, 4)
+      .map((v) => `${v.label || v.vehicle_type} ${Math.round(v.confidence)}%`)
+      .join(' · ')
+    : '';
   const isProvisional = Boolean(!stableResult && displayResult);
 
   useEffect(() => {
     const canvas = annotatedCanvasRef.current;
-    const imageUrl = capturePreviewUrl;
+    const imageUrl = guideFramePreview || annotatedPreviewUrl;
     const result = displayResult;
     if (!canvas || !imageUrl || !result) return;
     void drawAnnotatedDetectionFrame(
       canvas,
-      guideFramePreview,
+      guideFramePreview || annotatedPreviewUrl,
       result,
       locale === 'en' ? 'en' : 'km',
     ).catch(() => {
       /* preview optional */
     });
-  }, [guideFramePreview, displayResult, locale]);
+  }, [guideFramePreview, annotatedPreviewUrl, displayResult, locale]);
 
   useEffect(() => {
     if (!stableResult || !isManualScanResult(stableResult)) return;
@@ -162,7 +180,43 @@ export function LiveWebcamPanel({ onResult, disabled = false, pipelineOptions }:
       lastPreviewKeyRef.current = '';
       const preview = await runSingleScan({ saveLog: false });
       if (preview && isManualScanResult(preview)) {
-        onResult?.(preview, { quiet: false });
+        // Keep live camera mounted — preview only (does not write Recent Detection).
+        onResult?.(preview, { quiet: true });
+        toast.success(
+          t('aiDetection.webcam.previewReady') !== 'aiDetection.webcam.previewReady'
+            ? t('aiDetection.webcam.previewReady')
+            : 'Preview ready — use Scan & Save to store in Recent Detection',
+        );
+      } else if (preview) {
+        toast.message(
+          t('aiDetection.webcam.noClearDetection') !== 'aiDetection.webcam.noClearDetection'
+            ? t('aiDetection.webcam.noClearDetection')
+            : 'No clear detection yet — hold steady and try again',
+        );
+      }
+    })();
+  };
+
+  const handleScanOnce = () => {
+    void (async () => {
+      stopScanLoop();
+      lastPreviewKeyRef.current = '';
+      const confirmed = await runSingleScan({ saveLog: true });
+      if (confirmed && isManualScanResult(confirmed)) {
+        onResult?.(confirmed, { quiet: false });
+        if (confirmed.log_id) {
+          toast.success(
+            t('aiDetection.webcam.savedToRecent') !== 'aiDetection.webcam.savedToRecent'
+              ? t('aiDetection.webcam.savedToRecent')
+              : 'Saved to Recent Detection',
+          );
+        }
+      } else if (confirmed) {
+        toast.message(
+          t('aiDetection.webcam.noClearDetection') !== 'aiDetection.webcam.noClearDetection'
+            ? t('aiDetection.webcam.noClearDetection')
+            : 'No clear detection yet — hold steady and try again',
+        );
       }
     })();
   };
@@ -193,17 +247,6 @@ export function LiveWebcamPanel({ onResult, disabled = false, pipelineOptions }:
       stopStream();
       void startCamera(nextId);
     }
-  };
-
-  const handleScanOnce = () => {
-    void (async () => {
-      stopScanLoop();
-      lastPreviewKeyRef.current = '';
-      const confirmed = await runSingleScan({ saveLog: true });
-      if (confirmed && isManualScanResult(confirmed)) {
-        onResult?.(confirmed, { quiet: false });
-      }
-    })();
   };
 
   return (
@@ -417,7 +460,7 @@ export function LiveWebcamPanel({ onResult, disabled = false, pipelineOptions }:
           {displayResult ? (
             <>
               <div className="mt-2 flex items-start gap-3">
-                {capturePreviewUrl ? (
+                {guideFramePreview || annotatedPreviewUrl ? (
                   <div className="relative flex-shrink-0 w-[5.5rem] h-[5.5rem] rounded-lg overflow-hidden border border-violet-500/30 bg-black/50">
                     <canvas
                       ref={annotatedCanvasRef}
@@ -449,6 +492,22 @@ export function LiveWebcamPanel({ onResult, disabled = false, pipelineOptions }:
                     </dt>
                     <dd className="font-semibold text-foreground">{lastConfidence.toFixed(1)}%</dd>
                   </div>
+                  {displayResult.detected_plate ? (
+                    <div>
+                      <dt className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Plate
+                      </dt>
+                      <dd className="font-mono font-semibold text-foreground">{displayResult.detected_plate}</dd>
+                    </div>
+                  ) : null}
+                  {vehicleSummary ? (
+                    <div className="col-span-full">
+                      <dt className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Vehicles
+                      </dt>
+                      <dd className="text-foreground/90">{vehicleSummary}</dd>
+                    </div>
+                  ) : null}
                 </dl>
               </div>
               {lastDescription ? (
@@ -697,9 +756,19 @@ export function LiveWebcamPanel({ onResult, disabled = false, pipelineOptions }:
 
       {streaming && (
         <p className="text-[11px] text-muted-foreground text-center">
-          {t('aiDetection.webcam.focusHint')}
+          {detectMode === 'sign'
+            ? t('aiDetection.webcam.focusHint')
+            : (t('aiDetection.webcam.streetHint') !== 'aiDetection.webcam.streetHint'
+              ? t('aiDetection.webcam.streetHint')
+              : 'Street mode: point at traffic — Scan Frame previews, Scan & Save stores the result.')}
           <br />
-          {t('aiDetection.webcam.printedSignHint')}
+          {detectMode === 'sign' ? t('aiDetection.webcam.printedSignHint') : null}
+          {detectMode === 'sign' ? <br /> : null}
+          <span className="font-medium text-violet-600 dark:text-violet-300">
+            {t('aiDetection.webcam.workflowHint') !== 'aiDetection.webcam.workflowHint'
+              ? t('aiDetection.webcam.workflowHint')
+              : 'Workflow: Enable Camera → Sign or Street → Scan Frame (preview) → Scan & Save (Recent Detection).'}
+          </span>
           <br />
           {t('aiDetection.webcam.scanMeta', {
             count: scanCount,

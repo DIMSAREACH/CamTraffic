@@ -356,8 +356,8 @@ export interface TrendBadge {
 
 export type RoadStatus = 'active' | 'inactive' | 'maintenance';
 export type RoadType = 'highway' | 'urban' | 'rural' | 'intersection';
-export type CameraStatus = 'active' | 'inactive' | 'maintenance';
-export type CameraType = 'fixed' | 'ptz' | 'speed';
+export type CameraStatus = 'active' | 'inactive' | 'maintenance' | 'offline';
+export type CameraType = 'fixed' | 'ptz' | 'speed' | 'mobile';
 
 export interface Road {
   id: string;

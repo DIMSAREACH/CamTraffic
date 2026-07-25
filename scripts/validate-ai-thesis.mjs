@@ -48,9 +48,17 @@ if (signPct < 0.9) {
 run('Detection stack (API + frontend client)', 'node', ['scripts/validate-detection-stack.mjs'], root);
 run(
   'UAT matrix + detection alias tests',
-  'python',
-  ['manage.py', 'test', 'tests.test_uat_ai_detection_matrix', 'tests.test_detection_api_aliases', '--noinput'],
-  backend,
+  'node',
+  [
+    'scripts/backend-python.mjs',
+    'manage.py',
+    'test',
+    'tests.test_uat_ai_detection_matrix',
+    'tests.test_detection_api_aliases',
+    '--noinput',
+    '--keepdb',
+  ],
+  root,
 );
 
 // Phase 10 batch evidence (YOLO + optional pipeline sample — may take minutes on CPU)

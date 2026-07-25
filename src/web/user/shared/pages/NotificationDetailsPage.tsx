@@ -1,23 +1,88 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { ArrowLeft, Download, RefreshCw, Trash2, Bell } from 'lucide-react';
+import { ArrowLeft, Bell, CheckCircle2, Loader2 } from 'lucide-react';
 import { Button } from '@shared/components/ui/button';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { useAuth } from '@shared/context/AuthContext';
-import { getEnterpriseNotification } from '@shared/constants/notificationCatalog';
 import { getPortalRoutesForRole } from '@shared/constants/userPortalPaths';
+import { notificationsAPI } from '@shared/services/api';
+import type { Notification } from '@shared/types';
 import { toast } from 'sonner';
 
 export function NotificationDetailsPage() {
   const { notificationId = '' } = useParams();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [deleted, setDeleted] = useState(false);
-  const notif = useMemo(() => getEnterpriseNotification(notificationId), [notificationId]);
+  const [notif, setNotif] = useState<Notification | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [marking, setMarking] = useState(false);
   const routes = getPortalRoutesForRole(user?.role === 'police' ? 'police' : 'driver');
+  const dateLocale = locale === 'km' ? 'km-KH' : 'en-US';
 
-  if (!notif || deleted) {
+  const load = useCallback(async () => {
+    if (!user?.id || !notificationId) {
+      setNotif(null);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const rows = await notificationsAPI.getByUser(user.id);
+      const found = rows.find((n) => String(n.id) === String(notificationId)) || null;
+      setNotif(found);
+      if (found && !found.is_read) {
+        try {
+          await notificationsAPI.markRead(found.id);
+          setNotif({ ...found, is_read: true });
+        } catch {
+          /* list still usable if mark-read fails */
+        }
+      }
+    } catch {
+      setNotif(null);
+      toast.error(t('notifCenter.detailsNotFound'));
+    } finally {
+      setLoading(false);
+    }
+  }, [notificationId, t, user?.id]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const handleMarkRead = async () => {
+    if (!notif || notif.is_read) return;
+    setMarking(true);
+    try {
+      await notificationsAPI.markRead(notif.id);
+      setNotif({ ...notif, is_read: true });
+      toast.success(t('pages.notifications.markRead') !== 'pages.notifications.markRead'
+        ? t('pages.notifications.markRead')
+        : 'Marked as read');
+    } catch {
+      toast.error(t('pages.notifications.loadFailed') !== 'pages.notifications.loadFailed'
+        ? t('pages.notifications.loadFailed')
+        : 'Could not update notification');
+    } finally {
+      setMarking(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="enforcement-page enforcement-page--notifications notif-center">
+        <div className="enforcement-page__panel notif-center__panel p-8 text-center space-y-3">
+          <Loader2 className="mx-auto animate-spin text-muted-foreground" size={22} />
+          <p>{t('pages.notifications.loading') !== 'pages.notifications.loading'
+            ? t('pages.notifications.loading')
+            : 'Loading notification…'}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!notif) {
     return (
       <div className="enforcement-page enforcement-page--notifications notif-center">
         <div className="enforcement-page__panel notif-center__panel p-8 text-center space-y-4">
@@ -30,12 +95,7 @@ export function NotificationDetailsPage() {
     );
   }
 
-  const handleResend = () => toast.success(t('notifCenter.toastResent'));
-  const handleDownload = () => toast.message(t('notifCenter.toastDownload'));
-  const handleDelete = () => {
-    setDeleted(true);
-    toast.success(t('notifCenter.toastDeleted'));
-  };
+  const createdLabel = new Date(notif.created_at).toLocaleString(dateLocale);
 
   return (
     <div className="enforcement-page enforcement-page--notifications notif-center">
@@ -64,51 +124,42 @@ export function NotificationDetailsPage() {
             <dd>{notif.title}</dd>
           </div>
           <div>
-            <dt>{t('notifCenter.colRecipient')}</dt>
-            <dd>
-              {t(`notifCenter.role.${notif.recipientRole}`)}
-              {notif.recipientName ? ` : ${notif.recipientName}` : ''}
-            </dd>
-          </div>
-          <div>
-            <dt>{t('notifCenter.colChannel')}</dt>
-            <dd>{notif.channels.map((c) => t(`notifCenter.channel.${c}`)).join(' + ')}</dd>
-          </div>
-          <div>
             <dt>{t('notifCenter.colStatus')}</dt>
             <dd>
-              <span className={`notif-center__status notif-center__status--${notif.status}`}>
-                {t(`notifCenter.status.${notif.status}`)}
+              <span className={`notif-center__status notif-center__status--${notif.is_read ? 'read' : 'unread'}`}>
+                {notif.is_read
+                  ? (t('pages.notifications.read') !== 'pages.notifications.read' ? t('pages.notifications.read') : 'Read')
+                  : (t('pages.notifications.unread') !== 'pages.notifications.unread' ? t('pages.notifications.unread') : 'Unread')}
               </span>
             </dd>
           </div>
           <div>
-            <dt>{t('notifCenter.detailsDeliveryTime')}</dt>
-            <dd>{notif.sentAt.replace('T', ' ').slice(0, 16)}</dd>
+            <dt>{t('notifCenter.colChannel')}</dt>
+            <dd>{notif.type || 'system'}</dd>
           </div>
           <div>
-            <dt>{t('notifCenter.detailsReadTime')}</dt>
-            <dd>{notif.readAt ? notif.readAt.replace('T', ' ').slice(0, 16) : '—'}</dd>
+            <dt>{t('notifCenter.detailsDeliveryTime')}</dt>
+            <dd>{createdLabel}</dd>
           </div>
         </dl>
 
         <div className="notif-center__message-box">
           <p className="notif-center__message-label">{t('notifCenter.fieldMessage')}</p>
-          <p className="notif-center__message-body">“{notif.message}”</p>
+          <p className="notif-center__message-body">{notif.message}</p>
         </div>
 
         <div className="notif-center__details-actions">
-          <Button type="button" onClick={handleResend}>
-            <RefreshCw size={15} />
-            {t('notifCenter.actionResend')}
-          </Button>
-          <Button type="button" variant="outline" onClick={handleDownload}>
-            <Download size={15} />
-            {t('notifCenter.actionDownload')}
-          </Button>
-          <Button type="button" variant="outline" onClick={handleDelete}>
-            <Trash2 size={15} />
-            {t('notifCenter.actionDelete')}
+          {!notif.is_read ? (
+            <Button type="button" onClick={() => void handleMarkRead()} disabled={marking}>
+              {marking ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
+              {t('pages.notifications.markRead') !== 'pages.notifications.markRead'
+                ? t('pages.notifications.markRead')
+                : 'Mark as read'}
+            </Button>
+          ) : null}
+          <Button type="button" variant="outline" onClick={() => navigate(routes.notifications)}>
+            <ArrowLeft size={15} />
+            {t('notifCenter.backList')}
           </Button>
         </div>
       </section>

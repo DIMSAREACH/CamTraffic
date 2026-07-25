@@ -29,20 +29,16 @@ class AdminDashboardView(APIView):
 
 
 class PoliceDashboardView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsPoliceOrAdmin]
 
     def get(self, request):
-        if request.user.role not in ('police', 'admin'):
-            return success_response(get_driver_stats(request.user, request))
         return success_response(get_police_stats(request.user, request))
 
 
 class PoliceReportsView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsPoliceOrAdmin]
 
     def get(self, request):
-        if request.user.role not in ('police', 'admin'):
-            return success_response(get_driver_stats(request.user, request))
         return success_response(get_police_report_stats(request.user, request))
 
 
@@ -50,6 +46,9 @@ class DriverDashboardView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        if request.user.role not in ('driver', 'admin'):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('Citizen dashboard is for drivers only.')
         return success_response(get_driver_stats(request.user, request))
 
 
@@ -69,23 +68,15 @@ class AdminReportPDFView(APIView):
 
 
 class PoliceReportPDFView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsPoliceOrAdmin]
 
     def get(self, request):
-        if request.user.role not in ('police', 'admin'):
-            stats = get_driver_stats(request.user, request)
-            pdf = build_dashboard_report_pdf(
-                stats,
-                title='Driver Summary Report',
-                scope=f'Driver: {request.user.full_name}',
-            )
-        else:
-            stats = get_police_report_stats(request.user, request)
-            pdf = build_dashboard_report_pdf(
-                stats,
-                title='Police Analytics Report',
-                scope=f'Officer: {request.user.full_name}',
-            )
+        stats = get_police_report_stats(request.user, request)
+        pdf = build_dashboard_report_pdf(
+            stats,
+            title='Police Analytics Report',
+            scope=f'Officer: {request.user.full_name}',
+        )
         response = HttpResponse(pdf, content_type='application/pdf')
         response['Content-Disposition'] = 'attachment; filename="camtraffic-report.pdf"'
         return response
@@ -126,10 +117,14 @@ class EnforcementMonthlyExcelView(APIView):
 
 
 class EvidenceArchiveView(APIView):
-    """Unified search across detection, violation, and fine evidence images."""
-    permission_classes = [IsAuthenticated, IsPoliceOrAdmin]
+    """Unified search across detection, violation, and fine evidence images.
+    Police/admin: full archive. Drivers: own violations/fines/linked detections only.
+    """
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        if request.user.role not in ('admin', 'police', 'driver'):
+            return error_response('Forbidden', status_code=status.HTTP_403_FORBIDDEN)
         plate = (request.query_params.get('plate') or '').strip()
         source_type = (request.query_params.get('type') or 'all').strip().lower()
         if source_type not in ('all', 'detection', 'violation', 'fine'):

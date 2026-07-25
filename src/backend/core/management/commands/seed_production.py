@@ -251,6 +251,13 @@ class Command(BaseCommand):
                 role='police',
                 is_active=True,
                 email_verified=True,
+                phone=f'+8551{random.randint(10000000, 99999999)}',
+                address=random.choice([
+                    'Phnom Penh Traffic Police HQ, Monivong Blvd, Phnom Penh',
+                    'Traffic Police Unit, Toul Kork, Phnom Penh',
+                    'Traffic Police Unit, Chamkar Mon, Phnom Penh',
+                    'Traffic Police Unit, Mean Chey, Phnom Penh',
+                ]),
             )
             Officer.objects.get_or_create(
                 user=user,
@@ -335,14 +342,20 @@ class Command(BaseCommand):
         # --- Vehicles ---
         self.stdout.write(self.style.HTTP_INFO('\nSeeding Vehicles...'))
         vehicles_created = 0
-        provinces = ['1A', '2A', '3A', '4A', '5A', 'PP', 'SR', 'BT', 'SHV', 'KD']
+        plate_letters = [c for c in 'ABCDEFGHJKLMNPQRSTUVWXYZ']
+        type_cat = {'motorcycle': '1', 'car': '2', 'truck': '3', 'bus': '3', 'tuk-tuk': '4'}
         for driver in drivers:
             existing_n = Vehicle.objects.filter(owner=driver).count()
             for _ in range(max(0, random.randint(1, 2) - existing_n)):
                 v_type, models = random.choice(VEHICLE_MODELS)
-                plate = f'{random.choice(provinces)}-{random.randint(1000, 9999)}'
-                if Vehicle.objects.filter(plate_number=plate).exists():
-                    plate = f'{random.choice(provinces)}-{random.randint(10000, 99999)}'
+                cat = type_cat.get(v_type, '2')
+                for _try in range(30):
+                    plate = (
+                        f'{cat}{random.choice(plate_letters)}{random.choice(plate_letters)} '
+                        f'{random.randint(1000, 9999)}'
+                    )
+                    if not Vehicle.objects.filter(plate_number=plate).exists():
+                        break
                 _, created = Vehicle.objects.get_or_create(
                     plate_number=plate,
                     defaults={
@@ -356,6 +369,36 @@ class Command(BaseCommand):
                 )
                 if created:
                     vehicles_created += 1
+
+        # Canonical OCR demo plate used by ai/test_samples/*2A-1234*
+        demo_driver = next((d for d in drivers if getattr(d, 'email', '') == 'driver@camtraffic.demo'), None)
+        if demo_driver is None:
+            demo_driver = next((d for d in drivers if 'camtraffic.demo' in (getattr(d, 'email', '') or '')), None)
+        if demo_driver is not None:
+            profile, _ = Driver.objects.get_or_create(
+                user=demo_driver,
+                defaults={'license_no': getattr(demo_driver, 'license_no', None) or f'LIC-{demo_driver.id}'},
+            )
+            ocr_plate, ocr_created = Vehicle.objects.get_or_create(
+                plate_number='2A-1234',
+                defaults={
+                    'owner': demo_driver,
+                    'driver': profile,
+                    'vehicle_type': 'car',
+                    'model': 'Toyota Camry (OCR demo)',
+                    'color': 'White',
+                    'year': 2022,
+                    'status': 'active',
+                },
+            )
+            if ocr_created:
+                vehicles_created += 1
+            else:
+                ocr_plate.owner = demo_driver
+                ocr_plate.driver = profile
+                ocr_plate.save(update_fields=['owner', 'driver'])
+            self.stdout.write(f'  OCR demo plate 2A-1234 → {demo_driver.email}')
+
         self.stdout.write(self.style.SUCCESS(f'  Vehicles created: {vehicles_created} · total {Vehicle.objects.count()}'))
 
         vehicles = list(Vehicle.objects.select_related('owner').all())

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Evaluate plate Detection + production OCR (normalize, skip province noise).
+Evaluate plate Detection + production OCR (normalize, province-aware GT).
 
 Usage:
   cd ai && python training/yolo/eval_plate_ocr.py
@@ -17,6 +17,10 @@ BACKEND = ROOT.parent / 'src' / 'backend'
 SPLIT = ROOT / 'datasets' / 'splits' / 'cambodia_license_plates'
 WEIGHTS = ROOT / 'weights' / 'best_cambodia_plates.pt'
 GT_PATH = SPLIT / 'ocr_ground_truth.json'
+
+
+def _norm(text: str) -> str:
+    return (text or '').upper().replace(' ', '').replace('-', '').replace('.', '')
 
 
 def main() -> int:
@@ -37,6 +41,8 @@ def main() -> int:
 
     gt = json.loads(GT_PATH.read_text(encoding='utf-8'))
     exact = 0
+    province_ok = 0
+    province_total = 0
     detected = 0
     total = 0
     rows = []
@@ -54,16 +60,26 @@ def main() -> int:
             detected += 1
         result = recognize_plate(str(img_path), vehicles=None)
         pred = (result.get('plate_text') or '').upper()
-        exp_nodash = expected.replace('-', '').replace('.', '')
-        pred_nodash = pred.replace('-', '').replace('.', '')
-        # Strict: exact or dash-insensitive exact (no substring false positives)
-        ok = bool(pred) and (pred == expected or exp_nodash == pred_nodash)
+        ok = bool(pred) and (_norm(pred) == _norm(expected))
         if ok:
             exact += 1
+
+        exp_prov = (meta.get('province_en') or '').strip()
+        pred_prov = (result.get('plate_province_en') or '').strip()
+        prov_match = None
+        if exp_prov:
+            province_total += 1
+            prov_match = bool(pred_prov) and pred_prov.lower() == exp_prov.lower()
+            if prov_match:
+                province_ok += 1
+
         rows.append({
             'file': rel,
             'expected': expected,
             'predicted': pred,
+            'expected_province': exp_prov or None,
+            'predicted_province': pred_prov or None,
+            'province_match': prov_match,
             'ocr_conf': result.get('plate_confidence'),
             'engine': result.get('ocr_engine'),
             'detector': result.get('plate_detector'),
@@ -76,14 +92,29 @@ def main() -> int:
     print(f'Images evaluated: {total}')
     print(f'Plate detected:   {detected}/{total} ({100 * detected / max(total, 1):.1f}%)')
     print(f'OCR match:        {exact}/{total} ({100 * exact / max(total, 1):.1f}%)')
+    if province_total:
+        print(
+            f'Province match:   {province_ok}/{province_total} '
+            f'({100 * province_ok / max(province_total, 1):.1f}%)'
+        )
     print()
     for r in rows:
-        mark = '✅' if r['match'] else '❌'
-        print(f"{mark} {r['expected']:12s} → {(r['predicted'] or '(none)'):12s}  [{r.get('engine')}]")
+        mark = 'OK' if r['match'] else 'MISS'
+        prov = ''
+        if r.get('expected_province'):
+            pmark = 'OK' if r.get('province_match') else 'MISS'
+            prov = f" | prov[{pmark}] {r['expected_province']}→{r.get('predicted_province') or '(none)'}"
+        print(f"{mark} {r['expected']:12s} → {(r['predicted'] or '(none)'):12s}{prov}")
 
     out = SPLIT / 'ocr_eval_results.json'
     out.write_text(json.dumps({
-        'summary': {'total': total, 'detected': detected, 'ocr_match': exact},
+        'summary': {
+            'total': total,
+            'detected': detected,
+            'ocr_match': exact,
+            'province_total': province_total,
+            'province_match': province_ok,
+        },
         'rows': rows,
     }, indent=2), encoding='utf-8')
     print(f'\nSaved: {out}')

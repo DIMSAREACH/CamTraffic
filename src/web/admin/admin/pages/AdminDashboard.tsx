@@ -91,12 +91,19 @@ function activityKindLabel(
   return kind;
 }
 
-function StatCard({ title, value, sub, icon, gradient, glow, trend }: {
+function StatCard({ title, value, sub, icon, gradient, glow, trend, onClick }: {
   title: string; value: string | number; sub: string;
   icon: ReactNode; gradient: string; glow?: string; trend?: TrendBadge | null;
+  onClick?: () => void;
 }) {
   return (
-    <div className="admin-dash-kpi admin-dash-kpi--color" style={{ background: gradient, boxShadow: glow ? `0 12px 28px ${glow}` : undefined }}>
+    <button
+      type="button"
+      onClick={onClick}
+      className="admin-dash-kpi admin-dash-kpi--color admin-dash-kpi--link"
+      style={{ background: gradient, boxShadow: glow ? `0 12px 28px ${glow}` : undefined }}
+      aria-label={title}
+    >
       <div className="admin-dash-kpi__orb" aria-hidden />
       <div className="admin-dash-kpi__top">
         <div className="admin-dash-kpi__icon admin-dash-kpi__icon--on-color">
@@ -114,15 +121,22 @@ function StatCard({ title, value, sub, icon, gradient, glow, trend }: {
       </p>
       <p className="admin-dash-kpi__label admin-dash-kpi__label--on-color">{title}</p>
       <p className="admin-dash-kpi__sub admin-dash-kpi__sub--on-color">{sub}</p>
-    </div>
+    </button>
   );
 }
 
-function SecondaryCard({ label, value, sub, icon, accent, soft }: {
+function SecondaryCard({ label, value, sub, icon, accent, soft, onClick }: {
   label: string; value: string | number; sub?: string; icon: ReactNode; accent: string; soft: string;
+  onClick?: () => void;
 }) {
   return (
-    <div className="admin-dash-ops-card admin-dash-ops-card--color" style={{ borderTopColor: accent, background: `linear-gradient(180deg, ${soft} 0%, var(--ad-card) 55%)` }}>
+    <button
+      type="button"
+      onClick={onClick}
+      className="admin-dash-ops-card admin-dash-ops-card--color admin-dash-ops-card--link"
+      style={{ borderTopColor: accent, background: `linear-gradient(180deg, ${soft} 0%, var(--ad-card) 55%)` }}
+      aria-label={label}
+    >
       <div className="admin-dash-ops-card__icon" style={{ background: soft, color: accent, boxShadow: `0 6px 14px ${soft}` }}>
         {icon}
       </div>
@@ -133,7 +147,7 @@ function SecondaryCard({ label, value, sub, icon, accent, soft }: {
         <p className="admin-dash-ops-card__label">{label}</p>
         {sub ? <p className="admin-dash-ops-card__sub">{sub}</p> : null}
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -330,6 +344,7 @@ export function AdminDashboard() {
           gradient={C[6].grad}
           glow={C[6].soft}
           trend={stats.trends?.users}
+          onClick={() => navigate('/admin/users')}
         />
         <StatCard
           title={t('dashboard.totalFines')}
@@ -339,6 +354,7 @@ export function AdminDashboard() {
           gradient={C[1].grad}
           glow={C[1].soft}
           trend={stats.trends?.fines}
+          onClick={() => navigate('/admin/fines')}
         />
         <StatCard
           title={t('dashboard.aiDetections')}
@@ -348,6 +364,7 @@ export function AdminDashboard() {
           gradient={C[5].grad}
           glow={C[5].soft}
           trend={stats.trends?.detections}
+          onClick={() => navigate('/admin/ai-detection')}
         />
         <StatCard
           title={t('dashboard.revenue')}
@@ -357,15 +374,16 @@ export function AdminDashboard() {
           gradient={C[4].grad}
           glow={C[4].soft}
           trend={stats.trends?.revenue}
+          onClick={() => navigate('/admin/fines')}
         />
       </div>
 
       {/* Operations */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
-        <SecondaryCard label={t('dashboard.registeredVehicles')} value={stats.total_vehicles} icon={<Car size={16} />} accent={C[7].solid} soft={C[7].soft} />
-        <SecondaryCard label={t('dashboard.totalTrafficSigns')} value={stats.total_signs ?? 0} icon={<Shield size={16} />} accent={C[3].solid} soft={C[3].soft} />
-        <SecondaryCard label={t('dashboard.totalViolations')} value={stats.total_violations ?? 0} icon={<AlertTriangle size={16} />} accent={C[0].solid} soft={C[0].soft} />
-        <SecondaryCard label={t('dashboard.pendingViolations')} value={stats.pending_violations ?? 0} icon={<Clock size={16} />} accent={C[1].solid} soft={C[1].soft} />
+        <SecondaryCard label={t('dashboard.registeredVehicles')} value={stats.total_vehicles} icon={<Car size={16} />} accent={C[7].solid} soft={C[7].soft} onClick={() => navigate('/admin/vehicles')} />
+        <SecondaryCard label={t('dashboard.totalTrafficSigns')} value={stats.total_signs ?? 0} icon={<Shield size={16} />} accent={C[3].solid} soft={C[3].soft} onClick={() => navigate('/admin/signs')} />
+        <SecondaryCard label={t('dashboard.totalViolations')} value={stats.total_violations ?? 0} icon={<AlertTriangle size={16} />} accent={C[0].solid} soft={C[0].soft} onClick={() => navigate('/admin/violations')} />
+        <SecondaryCard label={t('dashboard.pendingViolations')} value={stats.pending_violations ?? 0} icon={<Clock size={16} />} accent={C[1].solid} soft={C[1].soft} onClick={() => navigate('/admin/violations')} />
         <SecondaryCard
           label={t('dashboard.liveCameras')}
           value={cameraSummary.total > 0 ? `${cameraSummary.active}/${cameraSummary.total}` : '—'}
@@ -373,6 +391,7 @@ export function AdminDashboard() {
           icon={<Camera size={16} />}
           accent={C[5].solid}
           soft={C[5].soft}
+          onClick={() => navigate('/admin/cameras')}
         />
       </div>
 

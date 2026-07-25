@@ -190,6 +190,13 @@ export const DRIVER_ENTERPRISE_MODULES: EnterpriseModule[] = [
     matchPrefixes: [C.appeals],
   },
   {
+    id: 'evidence',
+    labelKey: 'sidebar.subNav.evidenceViewer',
+    path: C.evidence,
+    roles: ['driver'],
+    matchPrefixes: [C.evidence],
+  },
+  {
     id: 'signs',
     labelKey: 'sidebar.modules.trafficSigns',
     path: C.signs,

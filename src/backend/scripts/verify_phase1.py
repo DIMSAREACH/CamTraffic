@@ -120,16 +120,13 @@ def main() -> int:
             str(code),
         )
 
-        code, body = req('GET', '/api/users/', token=admin)
-        payload = unwrap(body)
-        if isinstance(payload, dict) and 'results' in payload:
-            users = payload['results']
-        elif isinstance(payload, list):
-            users = payload
-        else:
-            users = []
-        demo_emails = {u.get('email') for u in users if isinstance(u, dict)}
-        check('seed:demo-users', 'admin@camtraffic.demo' in demo_emails, f'users={len(users)}')
+        # Demo accounts are proven by successful JWT logins above.
+        # Do not rely on paginated /api/users/ first-page membership (194+ users).
+        check(
+            'seed:demo-users',
+            bool(tokens.get('admin')) and bool(tokens.get('officer')) and bool(tokens.get('driver')),
+            'admin+officer+driver login tokens present',
+        )
 
     officer = tokens.get('officer')
     if officer:

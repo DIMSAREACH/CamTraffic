@@ -5,6 +5,7 @@ export const DETECTION_API = {
   video: '/detection/video/',
   webcam: '/detection/webcam/',
   live: '/detection/live/',
+  warmup: '/detection/warmup/',
   stats: '/ai/stats/',
   logs: '/ai/logs/',
   logsExport: '/ai/logs/export/',

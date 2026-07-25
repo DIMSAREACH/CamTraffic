@@ -112,7 +112,7 @@ services:
     container_name: camtraffic_stream_gateway
     restart: unless-stopped
     environment:
-      STREAM_MOCK_MODE: ${STREAM_MOCK_MODE:-true}
+      STREAM_MOCK_MODE: ${STREAM_MOCK_MODE:-false}
       REDIS_URL: redis://redis:6379/2
       AI_VISION_SERVICE_URL: http://ai-vision:8080
       STREAM_AUTO_DETECT: ${STREAM_AUTO_DETECT:-false}
@@ -152,7 +152,33 @@ services:
       backend:
         condition: service_started
 
-  # Thesis-aligned AI service (YOLOv8 + EasyOCR) — port 8090
+  # Master Build O8 — user portal (officer + driver), host :5173
+  frontend-user:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.frontend-user
+    container_name: camtraffic_frontend_user
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_USER_PORT:-5173}:80"
+    depends_on:
+      backend:
+        condition: service_started
+
+  # Master Build O8 — admin portal, host :5174
+  frontend-admin:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.frontend-admin
+    container_name: camtraffic_frontend_admin
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_ADMIN_PORT:-5174}:80"
+    depends_on:
+      backend:
+        condition: service_started
+
+  # Thesis-aligned AI service (YOLOv8 + EasyOCR) — port 8090 (optional; primary AI is Django-embedded)
   ai-service:
     build:
       context: .

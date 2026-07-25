@@ -13,11 +13,11 @@ export const MOCK_CREDENTIALS = [
 export const mockUsers: User[] = [
   {
     id: '1',
-    full_name: 'Admin System',
+    full_name: 'Sokha Meas',
     email: 'admin@traffic.kh',
     role: 'admin',
     phone: '+855 12 345 678',
-    address: 'Ministry of Interior, Phnom Penh',
+    address: 'Ministry of Public Works and Transport, Phnom Penh',
     created_at: '2024-01-01T08:00:00Z',
     is_active: true,
   },

@@ -9,7 +9,7 @@ import { useLanguage } from '@shared/context/LanguageContext';
 import { useLiveData } from '@shared/hooks/useLiveData';
 import { aiAPI, camerasAPI } from '@shared/services/api';
 import {
-  DEFAULT_PAGE_STATS,
+  EMPTY_PAGE_STATS,
   mergePageStatsWithDefaults,
 } from '@shared/constants/defaultPageStats';
 import type { AIDetectionLog, AIDetectionPageStats } from '@shared/types';
@@ -33,7 +33,7 @@ export function AIDetectionDashboardPage() {
   const [view, setView] = useState<ViewTab>(
     searchParams.get('tab') === 'history' ? 'history' : 'dashboard',
   );
-  const [pageStats, setPageStats] = useState<AIDetectionPageStats>(DEFAULT_PAGE_STATS);
+  const [pageStats, setPageStats] = useState<AIDetectionPageStats>(EMPTY_PAGE_STATS);
   const [recentLogs, setRecentLogs] = useState<AIDetectionLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(true);
   const [liveCameraCount, setLiveCameraCount] = useState(0);

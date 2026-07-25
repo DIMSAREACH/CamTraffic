@@ -27,7 +27,7 @@ export function LiveDetectionOverlay({
         return (
           <div
             key={item.id}
-            className="ai-live-overlay__box"
+            className={`ai-live-overlay__box ai-live-overlay__box--${item.kind}`}
             style={{
               left: `${item.bbox.x1 * 100}%`,
               top: `${item.bbox.y1 * 100}%`,
@@ -40,7 +40,12 @@ export function LiveDetectionOverlay({
               {item.label}
               {item.confidence > 0 ? ` ${Math.round(item.confidence)}%` : ''}
             </span>
-            <span className="ai-live-overlay__center" aria-hidden="true" />
+            {/* Geometric center of the detection box */}
+            <span className="ai-live-overlay__crosshair" aria-hidden="true">
+              <span className="ai-live-overlay__crosshair-h" />
+              <span className="ai-live-overlay__crosshair-v" />
+              <span className="ai-live-overlay__center" />
+            </span>
           </div>
         );
       })}

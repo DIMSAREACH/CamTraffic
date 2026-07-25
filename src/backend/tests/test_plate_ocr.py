@@ -6,6 +6,7 @@ from django.test import SimpleTestCase, override_settings
 
 from ai_detection.plate_ocr import (
     classify_plate_type,
+    enrich_plate_result,
     lookup_plate_province,
     normalize_plate_text,
     plate_ocr_enabled,
@@ -40,6 +41,33 @@ class PlateNormalizeTest(SimpleTestCase):
 
     def test_province_lookup_unknown(self):
         self.assertIsNone(lookup_plate_province('POL-001'))
+
+    def test_ocr_printed_province_beats_digit_prefix(self):
+        """2U-3108 + PHNOM PENH → Phnom Penh (12), keep visible serial 2U-3108."""
+        result = enrich_plate_result('2U-3108', {
+            'raw_reads': [
+                {'text': '2U-3108', 'raw_text': '2U-3108', 'confidence': 91.0},
+                {
+                    'text': 'PHNOM PENH',
+                    'raw_text': 'PHNOM PENH',
+                    'confidence': 80.0,
+                    'is_province_line': True,
+                },
+            ],
+        })
+        self.assertEqual(result['plate_province_en'], 'Phnom Penh')
+        self.assertEqual(result['plate_province_code'], '12')
+        self.assertEqual(result.get('plate_text', '2U-3108'), '2U-3108')
+        self.assertTrue(result.get('digit_province_mismatch'))
+        self.assertEqual(result.get('plate_text_canonical_candidate'), '12U-3108')
+
+    def test_garbled_phnom_penh_ocr_hint(self):
+        from ai_detection.plate_ocr import detect_province_from_ocr_text
+        for garbled in ('PRYOM PZN', 'PSORPIVE', 'PAOMPN', 'PKIOM PIN'):
+            hit = detect_province_from_ocr_text(garbled, '2U-3108')
+            self.assertIsNotNone(hit, garbled)
+            self.assertEqual(hit['code'], '12', garbled)
+            self.assertEqual(hit['name_en'], 'Phnom Penh', garbled)
 
 
 class PlateOCRServiceTest(SimpleTestCase):

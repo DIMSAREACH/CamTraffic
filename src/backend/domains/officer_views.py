@@ -41,6 +41,21 @@ class OfficerDetectionQueueView(APIView):
         return success_response({'results': data, 'count': len(data)})
 
 
+def _sync_detection_log_review(violation: TrafficViolation, review_status: str) -> None:
+    """Keep AIDetectionLog.review_status aligned with HITL approve/reject."""
+    log = getattr(violation, 'ai_detection_log', None)
+    if log is None and violation.ai_detection_log_id:
+        from ai_detection.models import AIDetectionLog
+
+        log = AIDetectionLog.objects.filter(pk=violation.ai_detection_log_id).first()
+    if not log:
+        return
+    if log.review_status == review_status:
+        return
+    log.review_status = review_status
+    log.save(update_fields=['review_status'])
+
+
 class OfficerApproveViolationView(APIView):
     """Approve pending violation — officer only (admins cannot approve)."""
 
@@ -49,11 +64,17 @@ class OfficerApproveViolationView(APIView):
     @transaction.atomic
     def post(self, request, pk):
         try:
-            violation = TrafficViolation.objects.select_for_update().select_related(
-                'driver__user', 'vehicle', 'fine',
-            ).get(pk=pk)
+            # Postgres: FOR UPDATE cannot lock nullable outer-join sides from select_related.
+            violation = TrafficViolation.objects.select_for_update(of=('self',)).get(pk=pk)
         except TrafficViolation.DoesNotExist:
             return error_response('Violation not found', status_code=status.HTTP_404_NOT_FOUND)
+        # Load relations after the row lock (nullable FKs are fine without FOR UPDATE).
+        violation = (
+            TrafficViolation.objects.select_related(
+                'driver__user', 'vehicle', 'fine', 'ai_detection_log',
+            )
+            .get(pk=violation.pk)
+        )
 
         if violation.status == 'confirmed':
             return error_response('Violation already approved', status_code=status.HTTP_400_BAD_REQUEST)
@@ -69,6 +90,7 @@ class OfficerApproveViolationView(APIView):
         if officer:
             violation.officer = officer
         violation.save()
+        _sync_detection_log_review(violation, 'approved')
 
         # Apply Cambodia demerit points to driver license record
         rule = ViolationRule.objects.filter(
@@ -88,6 +110,11 @@ class OfficerApproveViolationView(APIView):
         fine_data = None
         issue_fine = request.data.get('issue_fine', True)
         if issue_fine and getattr(violation, 'fine', None) is None:
+            if not violation.driver_id:
+                return error_response(
+                    'Cannot issue fine: violation has no linked driver. Edit plate / assign driver first.',
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                )
             amount = request.data.get('amount')
             if amount is None:
                 amount = rule.default_fine_amount if rule else 10
@@ -136,9 +163,13 @@ class OfficerRejectViolationView(APIView):
     @transaction.atomic
     def post(self, request, pk):
         try:
-            violation = TrafficViolation.objects.select_for_update().get(pk=pk)
+            violation = TrafficViolation.objects.select_for_update(of=('self',)).get(pk=pk)
         except TrafficViolation.DoesNotExist:
             return error_response('Violation not found', status_code=status.HTTP_404_NOT_FOUND)
+        violation = (
+            TrafficViolation.objects.select_related('ai_detection_log', 'driver__user', 'vehicle')
+            .get(pk=violation.pk)
+        )
 
         reason = (request.data.get('reason') or request.data.get('dismissal_reason') or '').strip()
         if not reason:
@@ -148,6 +179,7 @@ class OfficerRejectViolationView(APIView):
         violation.status = 'rejected'
         violation.dismissal_reason = reason
         violation.save(update_fields=['status', 'dismissal_reason', 'updated_at'])
+        _sync_detection_log_review(violation, 'rejected')
 
         log_audit(
             user=request.user,

@@ -388,7 +388,7 @@ class FinePDFExportView(APIView):
         user = request.user
         if user.role == 'driver' and fine.driver_id != user.id:
             return error_response('Permission denied', status_code=status.HTTP_403_FORBIDDEN)
-        if user.role == 'police' and fine.police_id != user.id:
+        if user.role not in ('driver', 'police', 'admin'):
             return error_response('Permission denied', status_code=status.HTTP_403_FORBIDDEN)
         from io import BytesIO
 
@@ -441,24 +441,38 @@ class FineVerifyPaymentView(APIView):
                 'Fine is not awaiting payment verification',
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
-        if not (fine.payment_reference or '').strip():
+
+        # Prefer driver-submitted proof, but still allow officers to clear stuck
+        # awaiting_verification rows (legacy/seed) that lack a reference.
+        has_proof = bool((fine.payment_reference or '').strip() or fine.payment_screenshot)
+        if fine.status != 'awaiting_verification' and not has_proof:
             return error_response(
                 'No payment reference on file — driver must submit proof first',
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
 
         approve = request.data.get('approve', True)
+        if isinstance(approve, str):
+            approve = approve.strip().lower() in ('1', 'true', 'yes', 'on')
         note = (request.data.get('officer_note') or '').strip()
         old = {'status': fine.status}
         if approve:
             fine.status = 'paid'
             fine.paid_at = timezone.now()
+            fine.payment_verified_at = timezone.now()
+            fine.payment_verified_by = request.user
+            if not (fine.payment_reference or '').strip():
+                fine.payment_reference = f'OFFICER-VERIFIED-{timezone.now().strftime("%Y%m%d%H%M%S")}'
+            if not (fine.payment_method or '').strip():
+                fine.payment_method = 'aba'
             if note:
                 fine.officer_note = note
             message = 'Payment verified and marked paid'
         else:
             fine.status = 'pending'
             fine.paid_at = None
+            fine.payment_verified_at = None
+            fine.payment_verified_by = None
             if note:
                 fine.officer_note = note
             message = 'Payment rejected — fine remains unpaid'

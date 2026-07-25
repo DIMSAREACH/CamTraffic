@@ -1,37 +1,53 @@
-import { useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
-import {
-  ArrowLeft, CheckCircle2, Download, FileSpreadsheet, FileText, Printer, Loader2,
-} from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router';
+import { ArrowLeft, Download, FileSpreadsheet, FileText, Loader2, Printer } from 'lucide-react';
 import { Button } from '@shared/components/ui/button';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { formatRevenue } from '@shared/i18n/localeFormat';
 import { dashboardAPI } from '@shared/services/api';
-import { getCatalogReport } from '@shared/constants/reportCatalog';
+import { EMPTY_DASHBOARD_STATS } from '@shared/constants/emptyDashboard';
+import type { DashboardStats } from '@shared/types';
 import { toast } from 'sonner';
+
+const REPORT_META: Record<string, { title: string; format: 'PDF' | 'Excel' }> = {
+  'enforcement-pdf': { title: 'Enforcement summary (PDF)', format: 'PDF' },
+  'enforcement-xlsx': { title: 'Enforcement workbook (Excel)', format: 'Excel' },
+};
 
 export function ReportDetailsPage() {
   const { reportId = '' } = useParams();
   const { t, locale } = useLanguage();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const report = useMemo(() => getCatalogReport(reportId), [reportId]);
+  const meta = REPORT_META[reportId] ?? {
+    title: reportId || 'Live enforcement report',
+    format: 'PDF' as const,
+  };
+  const [stats, setStats] = useState<DashboardStats>(() => ({ ...EMPTY_DASHBOARD_STATS }));
+  const [loading, setLoading] = useState(true);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [exportingExcel, setExportingExcel] = useState(false);
 
-  if (!report) {
-    return (
-      <div className="enforcement-page enforcement-page--reports dashboard-page--reports reports-page--enterprise">
-        <div className="enforcement-page__panel reports-page__panel p-8 text-center space-y-4">
-          <p>{t('reports.detailsNotFound')}</p>
-          <Button type="button" onClick={() => navigate('/admin/reports/center')}>
-            {t('reports.backToCenter')}
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  const load = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const s = user.role === 'admin'
+        ? await dashboardAPI.getAdminStats()
+        : await dashboardAPI.getPoliceReportStats();
+      setStats(s);
+    } catch {
+      setStats({ ...EMPTY_DASHBOARD_STATS });
+      toast.error(t('dashboard.loadErrorTitle'));
+    } finally {
+      setLoading(false);
+    }
+  }, [t, user]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const handleExportPdf = async () => {
     if (!user || exportingPdf) return;
@@ -42,7 +58,7 @@ export function ReportDetailsPage() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${report.id}.pdf`;
+      link.download = `${reportId || 'camtraffic-report'}.pdf`;
       link.click();
       URL.revokeObjectURL(url);
       toast.success(t('reports.exportSuccess'));
@@ -62,7 +78,7 @@ export function ReportDetailsPage() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${report.id}.xlsx`;
+      link.download = `${reportId || 'camtraffic-enforcement'}.xlsx`;
       link.click();
       URL.revokeObjectURL(url);
       toast.success(t('reports.exportExcelSuccess'));
@@ -73,104 +89,67 @@ export function ReportDetailsPage() {
     }
   };
 
+  const cards = [
+    { label: t('reports.kpiViolations'), value: (stats.total_violations ?? stats.total_fines ?? 0).toLocaleString() },
+    { label: t('reports.kpiAiDetection'), value: (stats.total_detections ?? 0).toLocaleString() },
+    { label: t('reports.kpiRevenue'), value: formatRevenue(locale, stats.fine_revenue ?? 0) },
+    { label: t('reports.kpiAccuracy'), value: `${Number(stats.detection_accuracy || 0).toFixed(2)}%` },
+  ];
+
   return (
     <div className="enforcement-page enforcement-page--reports dashboard-page--reports reports-page--enterprise">
       <div className="enforcement-page__hero">
         <div className="enforcement-page__hero-glow--primary" aria-hidden />
         <div className="enforcement-page__hero-inner reports-page__hero-inner">
           <div>
-            <div className="enforcement-page__eyebrow">
-              <span className="enforcement-page__eyebrow-icon"><FileText size={14} /></span>
-              {t('pages.reports.detailsEyebrow')}
-            </div>
-            <h1 className="enforcement-page__title">{t('pages.reports.detailsTitle')}</h1>
-            <p className="enforcement-page__subtitle">{report.name}</p>
+            <button type="button" className="notif-center__back-link mb-2" onClick={() => navigate('/admin/reports/center')}>
+              <ArrowLeft size={14} />
+              {t('reports.backToCenter')}
+            </button>
+            <h1 className="enforcement-page__title">{meta.title}</h1>
+            <p className="enforcement-page__subtitle">
+              Live dashboard KPIs from PostgreSQL — not catalog sample figures.
+            </p>
           </div>
-          <Link to="/admin/reports/center" className="reports-page__back-link">
-            <ArrowLeft size={14} />
-            {t('reports.backToCenter')}
-          </Link>
+          <div className="reports-page__hero-actions">
+            <Button type="button" variant="outline" onClick={() => void handleExportPdf()} disabled={exportingPdf}>
+              {exportingPdf ? <Loader2 size={15} className="animate-spin" /> : <FileText size={15} />}
+              PDF
+            </Button>
+            <Button type="button" variant="outline" onClick={() => void handleExportExcel()} disabled={exportingExcel}>
+              {exportingExcel ? <Loader2 size={15} className="animate-spin" /> : <FileSpreadsheet size={15} />}
+              Excel
+            </Button>
+            <Button type="button" variant="outline" onClick={() => window.print()}>
+              <Printer size={15} />
+              Print
+            </Button>
+          </div>
         </div>
       </div>
 
-      <div className="reports-page__details-grid">
-        <section className="enforcement-page__panel reports-page__panel reports-page__details-card">
-          <h2 className="reports-page__details-card-title">{t('reports.detailsInfoTitle')}</h2>
-          <dl className="reports-page__details-dl">
-            <div>
-              <dt>{t('reports.detailsReportName')}</dt>
-              <dd>{report.name}</dd>
+      <section className="enforcement-page__stat-grid enforcement-page__stat-grid--four">
+        {cards.map((c) => (
+          <article key={c.label} className="enforcement-page__stat-card">
+            <div className="enforcement-page__stat-copy">
+              <p className="enforcement-page__stat-value">{loading ? '…' : c.value}</p>
+              <p className="enforcement-page__stat-label">{c.label}</p>
             </div>
-            <div>
-              <dt>{t('reports.detailsGeneratedBy')}</dt>
-              <dd>{report.createdBy}</dd>
-            </div>
-            <div>
-              <dt>{t('reports.detailsGeneratedDate')}</dt>
-              <dd>{report.generatedAt}</dd>
-            </div>
-            <div>
-              <dt>{t('reports.detailsPeriod')}</dt>
-              <dd>{report.period}</dd>
-            </div>
-          </dl>
-        </section>
-
-        <section className="enforcement-page__panel reports-page__panel reports-page__details-card">
-          <h2 className="reports-page__details-card-title">{t('reports.detailsSummaryTitle')}</h2>
-          <div className="reports-page__details-kpis">
-            <div>
-              <p className="reports-page__details-kpi-value">{report.summary.violations.toLocaleString()}</p>
-              <p className="reports-page__details-kpi-label">{t('reports.kpiViolations')}</p>
-            </div>
-            <div>
-              <p className="reports-page__details-kpi-value">{report.summary.detections.toLocaleString()}</p>
-              <p className="reports-page__details-kpi-label">{t('reports.kpiAiDetection')}</p>
-            </div>
-            <div>
-              <p className="reports-page__details-kpi-value">
-                {report.summary.revenue > 0 ? formatRevenue(locale, report.summary.revenue) : '—'}
-              </p>
-              <p className="reports-page__details-kpi-label">{t('reports.kpiRevenue')}</p>
-            </div>
-            <div>
-              <p className="reports-page__details-kpi-value">
-                {report.summary.accuracy > 0 ? `${report.summary.accuracy.toFixed(2)}%` : '—'}
-              </p>
-              <p className="reports-page__details-kpi-label">{t('reports.kpiAccuracy')}</p>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      <section className="enforcement-page__panel reports-page__panel reports-page__details-card">
-        <h2 className="reports-page__details-card-title">{t('reports.detailsChartsTitle')}</h2>
-        <ul className="reports-page__attached-charts">
-          {report.charts.map((chart) => (
-            <li key={chart}>
-              <CheckCircle2 size={16} />
-              {chart}
-            </li>
-          ))}
-        </ul>
+          </article>
+        ))}
       </section>
 
-      <div className="reports-page__details-actions">
-        <Button type="button" onClick={() => void handleExportPdf()} disabled={exportingPdf}>
-          {exportingPdf ? <Loader2 size={15} className="reports-page__io-spinner" /> : <FileText size={15} />}
-          {t('pages.reports.exportPdf')}
-        </Button>
-        <Button type="button" variant="outline" onClick={() => void handleExportExcel()} disabled={exportingExcel}>
-          {exportingExcel ? <Loader2 size={15} className="reports-page__io-spinner" /> : <FileSpreadsheet size={15} />}
-          {t('pages.reports.exportExcel')}
-        </Button>
-        <Button type="button" variant="outline" onClick={() => window.print()}>
-          <Printer size={15} />
-          {t('reports.actionPrint')}
-        </Button>
-        <Button type="button" variant="outline" onClick={() => navigate('/admin/reports/scheduled')}>
+      <div className="enforcement-page__panel p-6 mt-4 space-y-2 text-sm">
+        <p><strong>Paid fines:</strong> {(stats.paid_fines ?? 0).toLocaleString()}</p>
+        <p><strong>Pending fines:</strong> {(stats.pending_fines ?? 0).toLocaleString()}</p>
+        <p><strong>Vehicles:</strong> {(stats.total_vehicles ?? 0).toLocaleString()}</p>
+        <p><strong>Drivers:</strong> {(stats.total_drivers ?? 0).toLocaleString()}</p>
+        <p className="text-muted-foreground pt-2">
+          Use Download to pull the current live PDF/Excel. Detail charts live under Reports → Analytics.
+        </p>
+        <Button type="button" variant="outline" onClick={() => navigate('/admin/reports/analytics')}>
           <Download size={15} />
-          {t('reports.actionSchedule')}
+          Open analytics
         </Button>
       </div>
     </div>

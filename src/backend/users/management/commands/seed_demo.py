@@ -19,11 +19,13 @@ DEMO_PASSWORD = 'CamTraffic@2026!'
 ACCOUNTS = [
     {
         'email': 'admin@camtraffic.demo',
-        'full_name': 'System Administrator',
+        'full_name': 'Sokha Meas',
         'role': 'admin',
         'is_staff': True,
         'is_superuser': True,
         'license_no': '',
+        'phone': '+855 12 200 001',
+        'address': 'Ministry of Public Works and Transport, Phnom Penh',
     },
     {
         'email': 'officer@camtraffic.demo',
@@ -34,6 +36,8 @@ ACCOUNTS = [
         'license_no': '',
         'badge_no': 'OFF-001',
         'rank': 'Traffic Officer',
+        'phone': '+855 12 111 222',
+        'address': 'Phnom Penh Traffic Police HQ, Monivong Blvd, Phnom Penh',
     },
     {
         'email': 'driver@camtraffic.demo',
@@ -43,6 +47,8 @@ ACCOUNTS = [
         'is_superuser': False,
         'license_no': 'DL-KH-2024-001234',
         'driver_license': 'DL-KH-2024-001234',
+        'phone': '+855 16 555 666',
+        'address': 'Sen Sok, Phnom Penh',
     },
     {
         'email': 'driver2@camtraffic.demo',
@@ -52,6 +58,8 @@ ACCOUNTS = [
         'is_superuser': False,
         'license_no': 'DL-KH-2024-002345',
         'driver_license': 'DL-KH-2024-002345',
+        'phone': '+855 77 777 888',
+        'address': 'Russei Keo, Phnom Penh',
     },
 ]
 
@@ -135,6 +143,8 @@ class Command(BaseCommand):
                     'is_active': True,
                     'email_verified': True,
                     'license_no': spec.get('license_no') or None,
+                    'phone': spec.get('phone') or '',
+                    'address': spec.get('address') or '',
                 },
             )
             if not created:
@@ -145,6 +155,10 @@ class Command(BaseCommand):
                 user.is_active = True
                 user.email_verified = True
                 user.license_no = spec.get('license_no') or None
+                if spec.get('phone'):
+                    user.phone = spec['phone']
+                if spec.get('address'):
+                    user.address = spec['address']
 
             if created or reset_passwords:
                 user.set_password(DEMO_PASSWORD)
@@ -225,7 +239,7 @@ class Command(BaseCommand):
         create_violation_record(
             driver=driver_profile,
             evaluation=evaluation,
-            location='Phnom Penh Demo Intersection',
+            location='Monivong Blvd & Street 214, Phnom Penh',
             officer=officer,
             vehicle=vehicle,
             status='pending_review',

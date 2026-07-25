@@ -6,7 +6,8 @@ import { Label } from '@shared/components/ui/label';
 import { Switch } from '@shared/components/ui/switch';
 import { useAuth } from '@shared/context/AuthContext';
 import { apiClient, unwrap } from '@shared/services/axiosClient';
-import { authAPI } from '@shared/services/api';
+import { authAPI, profileAPI } from '@shared/services/api';
+import type { UserPreferences } from '@shared/types';
 import { humanizeApiError } from '@shared/utils/apiErrors';
 import { toast } from 'sonner';
 
@@ -38,23 +39,37 @@ const DEFAULT_PREFS: Prefs = {
   appeal_notifications: true,
 };
 
+function prefsFromApi(p: UserPreferences | undefined | null): Prefs {
+  if (!p) return { ...DEFAULT_PREFS };
+  return {
+    push_enabled: p.notify_alerts !== false,
+    sms_enabled: p.notify_system === true || p.login_notifications === true,
+    fine_notifications: p.notify_fines !== false,
+    violation_notifications: p.notify_detections !== false,
+    payment_notifications: p.notify_alerts !== false,
+    appeal_notifications: p.notify_system === true,
+  };
+}
+
+function prefsToApi(prefs: Prefs): Partial<UserPreferences> {
+  return {
+    notify_fines: prefs.fine_notifications,
+    notify_detections: prefs.violation_notifications,
+    notify_alerts: prefs.push_enabled || prefs.payment_notifications,
+    notify_system: prefs.appeal_notifications || prefs.sms_enabled,
+    login_notifications: prefs.sms_enabled,
+  };
+}
+
 export default function NotificationSettingsPage() {
   const { user, updateUser } = useAuth();
   const [devices, setDevices] = useState<PushDevice[]>([]);
-  const [prefs, setPrefs] = useState<Prefs>(() => {
-    try {
-      const raw = localStorage.getItem('camtraffic_notification_prefs');
-      return raw ? { ...DEFAULT_PREFS, ...JSON.parse(raw) } : DEFAULT_PREFS;
-    } catch {
-      return DEFAULT_PREFS;
-    }
-  });
+  const [prefs, setPrefs] = useState<Prefs>({ ...DEFAULT_PREFS });
   const [phone, setPhone] = useState(user?.phone || '');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
   const loadDevices = useCallback(async () => {
-    setLoading(true);
     try {
       const data = await unwrap<{ devices: PushDevice[] }>(
         await apiClient.get('/notifications/push/devices/'),
@@ -62,6 +77,16 @@ export default function NotificationSettingsPage() {
       setDevices(data.devices || []);
     } catch {
       setDevices([]);
+    }
+  }, []);
+
+  const loadPrefs = useCallback(async () => {
+    setLoading(true);
+    try {
+      const overview = await profileAPI.getOverview();
+      setPrefs(prefsFromApi(overview.preferences));
+    } catch {
+      setPrefs({ ...DEFAULT_PREFS });
     } finally {
       setLoading(false);
     }
@@ -69,17 +94,26 @@ export default function NotificationSettingsPage() {
 
   useEffect(() => {
     void loadDevices();
-  }, [loadDevices]);
+    void loadPrefs();
+  }, [loadDevices, loadPrefs]);
 
   useEffect(() => {
     setPhone(user?.phone || '');
   }, [user?.phone]);
 
-  const savePrefs = (next: Partial<Prefs>) => {
+  const savePrefs = async (next: Partial<Prefs>) => {
     const merged = { ...prefs, ...next };
     setPrefs(merged);
-    localStorage.setItem('camtraffic_notification_prefs', JSON.stringify(merged));
-    toast.success('Preferences saved');
+    setBusy(true);
+    try {
+      await profileAPI.updatePreferences(prefsToApi(merged));
+      toast.success('Preferences saved');
+    } catch (err) {
+      toast.error(err instanceof Error ? humanizeApiError(err.message) : 'Could not save preferences');
+      void loadPrefs();
+    } finally {
+      setBusy(false);
+    }
   };
 
   const registerDevice = async () => {
@@ -156,7 +190,8 @@ export default function NotificationSettingsPage() {
           </div>
           <Switch
             checked={prefs.push_enabled}
-            onCheckedChange={(checked) => savePrefs({ push_enabled: checked })}
+            disabled={busy || loading}
+            onCheckedChange={(checked) => void savePrefs({ push_enabled: checked })}
           />
         </div>
 
@@ -178,11 +213,16 @@ export default function NotificationSettingsPage() {
                 <div className="flex items-center gap-2">
                   <Monitor className="h-4 w-4 text-slate-500" />
                   <div>
-                    <p className="text-sm font-medium">{d.device_name}</p>
-                    <p className="text-xs capitalize text-slate-500">{d.platform}</p>
+                    <p className="text-sm font-medium">{d.device_name || d.platform}</p>
+                    <p className="text-xs text-slate-500">{d.platform}</p>
                   </div>
                 </div>
-                <Button size="sm" variant="ghost" disabled={busy} onClick={() => void unregisterDevice(d.id)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => void unregisterDevice(d.id)}
+                >
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
@@ -195,18 +235,19 @@ export default function NotificationSettingsPage() {
         <div className="flex items-center justify-between">
           <div>
             <p className="font-medium">SMS alerts</p>
-            <p className="text-sm text-slate-500">Critical fine and payment messages</p>
+            <p className="text-sm text-slate-500">Text messages for important updates</p>
           </div>
           <Switch
             checked={prefs.sms_enabled}
-            onCheckedChange={(checked) => savePrefs({ sms_enabled: checked })}
+            disabled={busy || loading}
+            onCheckedChange={(checked) => void savePrefs({ sms_enabled: checked })}
           />
         </div>
-        <div>
-          <Label htmlFor="phone">Phone number</Label>
-          <div className="mt-2 flex gap-2">
+        <div className="space-y-2">
+          <Label htmlFor="notif-phone">Phone number</Label>
+          <div className="flex gap-2">
             <Input
-              id="phone"
+              id="notif-phone"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+855 XX XXX XXX"
@@ -216,20 +257,22 @@ export default function NotificationSettingsPage() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-3">
+      <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-4">
+        <p className="font-medium">Alert categories</p>
         {(
           [
-            ['fine_notifications', 'Fine notifications'],
-            ['violation_notifications', 'Violation alerts'],
+            ['fine_notifications', 'Fine notices'],
+            ['violation_notifications', 'Violation detections'],
             ['payment_notifications', 'Payment confirmations'],
             ['appeal_notifications', 'Appeal updates'],
           ] as const
         ).map(([key, label]) => (
-          <div key={key} className="flex items-center justify-between py-1">
-            <p className="text-sm font-medium">{label}</p>
+          <div key={key} className="flex items-center justify-between">
+            <p className="text-sm">{label}</p>
             <Switch
               checked={prefs[key]}
-              onCheckedChange={(checked) => savePrefs({ [key]: checked })}
+              disabled={busy || loading}
+              onCheckedChange={(checked) => void savePrefs({ [key]: checked })}
             />
           </div>
         ))}

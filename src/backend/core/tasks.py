@@ -39,3 +39,17 @@ def mark_overdue_fines_task():
 @shared_task(name='camtraffic.ping')
 def ping_task():
     return {'ok': True, 'ts': timezone.now().isoformat()}
+
+
+@shared_task(name='camtraffic.process_scheduled_notifications')
+def process_scheduled_notifications_task():
+    from notifications.channel_dispatch import process_due_scheduled_notifications
+
+    return process_due_scheduled_notifications()
+
+
+@shared_task(name='camtraffic.process_scheduled_reports')
+def process_scheduled_reports_task():
+    from notifications.channel_dispatch import process_due_scheduled_reports
+
+    return process_due_scheduled_reports()

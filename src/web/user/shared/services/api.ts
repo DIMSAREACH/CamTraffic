@@ -11,9 +11,9 @@ import type {
   RBACRole, RBACPermission, OfficerProfile, DriverProfile, PoliceStation, SystemBackupItem,
   ImportDataType, ImportValidateResult, ImportJobSummary, ImportJobDetail, ImportTypeInfo,
 } from '../types';
-import { getRefreshToken } from '@shared/utils/authStorage';
+import { getAccessToken, getRefreshToken } from '@shared/utils/authStorage';
 import { normalizeDetectionMedia } from '@shared/utils/profileImage';
-import { apiClient, unwrap, unwrapList } from './axiosClient';
+import { apiClient, fetchAllPages, unwrap, unwrapList } from './axiosClient';
 import { API_CATALOG, DETECTION_API } from './detectionEndpoints';
 import * as mockApi from './mockApi';
 import * as sample from './sampleDataFallback';
@@ -153,7 +153,7 @@ export const profileAPI = USE_MOCK ? mockApi.profileAPI : {
 // ── USERS ────────────────────────────────────────────────────────
 export const usersAPI = USE_MOCK ? mockApi.usersAPI : {
   async getAll(): Promise<User[]> {
-    const live = unwrapList<User>(await apiClient.get('/users/', { params: { page_size: 100 } }));
+    const live = await fetchAllPages<User>('/users/');
     return sample.withListFallback(live, sample.sampleUsers());
   },
   async getById(id: string): Promise<User> {
@@ -189,7 +189,7 @@ export const usersAPI = USE_MOCK ? mockApi.usersAPI : {
 // ── VEHICLES ─────────────────────────────────────────────────────
 export const vehiclesAPI = USE_MOCK ? mockApi.vehiclesAPI : {
   async getAll(): Promise<Vehicle[]> {
-    const live = unwrapList<Vehicle>(await apiClient.get(vehiclesListPath(), { params: { page_size: 100 } }));
+    const live = unwrapList<Vehicle>(await apiClient.get(vehiclesListPath(), { params: { page_size: 500 } }));
     return sample.withListFallback(live, sample.sampleVehicles());
   },
   async getByOwner(ownerId: string | number): Promise<Vehicle[]> {
@@ -197,10 +197,10 @@ export const vehiclesAPI = USE_MOCK ? mockApi.vehiclesAPI : {
     const owned = all.filter((v) => String(v.owner_id) === String(ownerId));
     return sample.withListFallback(owned, sample.sampleVehiclesForOwner(ownerId));
   },
-  async create(data: Partial<Vehicle>): Promise<Vehicle> {
+  async create(data: Partial<Vehicle> | FormData): Promise<Vehicle> {
     return unwrap<Vehicle>(await apiClient.post(vehiclesListPath(), data));
   },
-  async update(id: string | number, data: Partial<Vehicle>): Promise<Vehicle> {
+  async update(id: string | number, data: Partial<Vehicle> | FormData): Promise<Vehicle> {
     const base = vehiclesListPath().replace(/\/$/, '');
     return unwrap<Vehicle>(await apiClient.patch(`${base}/${id}/`, data));
   },
@@ -220,15 +220,19 @@ export const vehiclesAPI = USE_MOCK ? mockApi.vehiclesAPI : {
 // ── FINES ────────────────────────────────────────────────────────
 export const finesAPI = USE_MOCK ? mockApi.finesAPI : {
   async getAll(): Promise<Fine[]> {
-    const live = unwrapList<Fine>(await apiClient.get(finesListPath(), { params: { page_size: 100 } }));
+    const live = await fetchAllPages<Fine>(finesListPath());
     return sample.withListFallback(live, sample.sampleFines());
   },
   async getByDriver(driverId: string): Promise<Fine[]> {
-    const live = unwrapList<Fine>(await apiClient.get('/fines/', { params: { page_size: 100, driver: driverId } }));
+    // On citizen portal use domain fines list (already scoped to the logged-in driver).
+    if (apiDomainFromPath() === 'citizen') {
+      return this.getAll();
+    }
+    const live = await fetchAllPages<Fine>(finesListPath(), { driver: driverId });
     return sample.withListFallback(live, sample.sampleFinesForDriver(driverId));
   },
   async getByPolice(policeId: string): Promise<Fine[]> {
-    const live = unwrapList<Fine>(await apiClient.get('/fines/', { params: { page_size: 100, police: policeId } }));
+    const live = await fetchAllPages<Fine>(finesListPath(), { police: policeId });
     return sample.withListFallback(live, sample.sampleFinesForPolice(policeId));
   },
   async create(data: Partial<Fine> & { driver_id?: string; violation_id?: string }): Promise<Fine> {
@@ -270,8 +274,11 @@ export const finesAPI = USE_MOCK ? mockApi.finesAPI : {
     }>(await apiClient.get(path, { params: { license } }));
   },
   getPdfUrl(fineId: string): string {
-    const base = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
-    return `${base}/fines/${fineId}/pdf/`;
+    const apiBase = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+    const finesBase = apiDomainFromPath() === 'citizen'
+      ? CITIZEN_API.fines.replace(/\/$/, '')
+      : '/fines';
+    return `${apiBase}${finesBase}/${fineId}/receipt/pdf/`;
   },
   async submitPayment(fineId: string, formData: FormData): Promise<Fine> {
     const payBase = apiDomainFromPath() === 'citizen'
@@ -282,8 +289,8 @@ export const finesAPI = USE_MOCK ? mockApi.finesAPI : {
     }));
   },
   async verifyPayment(fineId: string, approve = true, officerNote?: string): Promise<Fine> {
-    const base = finesListPath().replace(/\/$/, '');
-    return unwrap<Fine>(await apiClient.post(`${base}/${fineId}/verify-payment/`, {
+    // Always use flat fines API — works for admin + officer (domain also mirrors this route).
+    return unwrap<Fine>(await apiClient.post(`/fines/${fineId}/verify-payment/`, {
       approve,
       officer_note: officerNote,
     }));
@@ -302,12 +309,14 @@ export const finesAPI = USE_MOCK ? mockApi.finesAPI : {
   },
   async createStripeCheckout(fineId: string): Promise<{ checkout_url: string; session_id: string }> {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    const finesPath = typeof window !== 'undefined' && window.location.pathname.startsWith('/citizen')
+    const onCitizen = apiDomainFromPath() === 'citizen';
+    const finesBase = onCitizen ? CITIZEN_API.fines.replace(/\/$/, '') : '/fines';
+    const finesPath = onCitizen
       ? '/citizen/fines'
       : typeof window !== 'undefined' && window.location.pathname.startsWith('/officer')
         ? '/officer/fines'
         : '/citizen/fines';
-    return unwrap(await apiClient.post(`/fines/${fineId}/checkout/stripe/`, {
+    return unwrap(await apiClient.post(`${finesBase}/${fineId}/checkout/stripe/`, {
       success_url: `${origin}${finesPath}?paid=1`,
       cancel_url: `${origin}${finesPath}?cancel=1`,
     }));
@@ -323,20 +332,29 @@ export const finesAPI = USE_MOCK ? mockApi.finesAPI : {
     qr_image_url: string;
     payment_reference: string;
   }> {
-    return unwrap(await apiClient.post(`/fines/${fineId}/checkout/khqr/`, {}));
+    const finesBase = apiDomainFromPath() === 'citizen'
+      ? CITIZEN_API.fines.replace(/\/$/, '')
+      : '/fines';
+    return unwrap(await apiClient.post(`${finesBase}/${fineId}/checkout/khqr/`, {}));
   },
   async getById(id: string): Promise<Fine> {
     const base = finesListPath().replace(/\/$/, '');
     return unwrap<Fine>(await apiClient.get(`${base}/${id}/`));
   },
   async downloadReceiptPdf(fineId: string, includeEvidence = false): Promise<Blob> {
-    const res = await apiClient.get(`/fines/${fineId}/receipt/pdf/`, {
+    const finesBase = apiDomainFromPath() === 'citizen'
+      ? CITIZEN_API.fines.replace(/\/$/, '')
+      : '/fines';
+    const res = await apiClient.get(`${finesBase}/${fineId}/receipt/pdf/`, {
       params: { include_evidence: includeEvidence },
       responseType: 'blob',
     });
     return res.data as Blob;
   },
   async getInstallmentQuote(fineId: string, numInstallments: number) {
+    const finesBase = apiDomainFromPath() === 'citizen'
+      ? CITIZEN_API.fines.replace(/\/$/, '')
+      : '/fines';
     return unwrap<{
       quote: {
         original_amount: number;
@@ -347,17 +365,23 @@ export const finesAPI = USE_MOCK ? mockApi.finesAPI : {
         setup_fee: number;
         total_amount: number;
       };
-    }>(await apiClient.post(`/fines/${fineId}/installments/quote/`, {
+    }>(await apiClient.post(`${finesBase}/${fineId}/installments/quote/`, {
       num_installments: numInstallments,
     }));
   },
   async createInstallmentPlan(fineId: string, numInstallments: number, paymentDayOfMonth = 1) {
-    return unwrap(await apiClient.post(`/fines/${fineId}/installments/create/`, {
+    const finesBase = apiDomainFromPath() === 'citizen'
+      ? CITIZEN_API.fines.replace(/\/$/, '')
+      : '/fines';
+    return unwrap(await apiClient.post(`${finesBase}/${fineId}/installments/create/`, {
       num_installments: numInstallments,
       payment_day_of_month: paymentDayOfMonth,
     }));
   },
   async getInstallmentPlan(fineId: string) {
+    const finesBase = apiDomainFromPath() === 'citizen'
+      ? CITIZEN_API.fines.replace(/\/$/, '')
+      : '/fines';
     return unwrap<{
       plan: {
         id: string;
@@ -381,21 +405,24 @@ export const finesAPI = USE_MOCK ? mockApi.finesAPI : {
         late_fee: number;
         days_overdue: number;
       }>;
-    }>(await apiClient.get(`/fines/${fineId}/installments/`));
+    }>(await apiClient.get(`${finesBase}/${fineId}/installments/`));
   },
   async payInstallment(paymentId: string, data: {
     amount: number;
     payment_method: string;
     payment_reference?: string;
   }) {
-    return unwrap(await apiClient.post(`/fines/installments/${paymentId}/pay/`, data));
+    const payPath = apiDomainFromPath() === 'citizen'
+      ? `${CITIZEN_API.fines.replace(/\/$/, '')}/installments/${paymentId}/pay/`
+      : `/fines/installments/${paymentId}/pay/`;
+    return unwrap(await apiClient.post(payPath, data));
   },
 };
 
 // ── APPEALS ──────────────────────────────────────────────────────
 export const appealsAPI = USE_MOCK ? mockApi.appealsAPI : {
   async getAll(): Promise<ViolationAppeal[]> {
-    return unwrapList<ViolationAppeal>(await apiClient.get(appealsListPath(), { params: { page_size: 100 } }));
+    return unwrapList<ViolationAppeal>(await apiClient.get(appealsListPath(), { params: { page_size: 500 } }));
   },
   async create(formData: FormData): Promise<ViolationAppeal> {
     return unwrap<ViolationAppeal>(await apiClient.post(appealsListPath(), formData, {
@@ -441,7 +468,7 @@ export const aiModelsAPI = USE_MOCK ? mockApi.aiModelsAPI : {
 // ── VIOLATIONS ───────────────────────────────────────────────────
 export const violationsAPI = USE_MOCK ? mockApi.violationsAPI : {
   async getAll(): Promise<TrafficViolation[]> {
-    const live = unwrapList<TrafficViolation>(await apiClient.get(violationsListPath(), { params: { page_size: 100 } }));
+    const live = await fetchAllPages<TrafficViolation>(violationsListPath());
     return sample.withListFallback(live, sample.SAMPLE_VIOLATIONS);
   },
   async getById(id: string): Promise<TrafficViolation> {
@@ -471,6 +498,9 @@ export const violationsAPI = USE_MOCK ? mockApi.violationsAPI : {
     return unwrap<TrafficViolation>(await apiClient.post(violationsListPath(), data));
   },
   async getMap(params?: { days?: number; status?: string; violation_type?: string }) {
+    const path = apiDomainFromPath() === 'citizen'
+      ? CITIZEN_API.violationsMap
+      : '/violations/map/';
     return unwrap<{
       violations: Array<{
         id: string;
@@ -489,9 +519,12 @@ export const violationsAPI = USE_MOCK ? mockApi.violationsAPI : {
       }>;
       total_count: number;
       bounds?: { north: number; south: number; east: number; west: number } | null;
-    }>(await apiClient.get('/violations/map/', { params }));
+    }>(await apiClient.get(path, { params }));
   },
   async getHeatmap(params?: { days?: number; intensity?: 'count' | 'severity' }) {
+    const path = apiDomainFromPath() === 'citizen'
+      ? CITIZEN_API.violationsHeatmap
+      : '/violations/heatmap/';
     return unwrap<{
       heatmap: Array<{
         lat: number;
@@ -507,11 +540,8 @@ export const violationsAPI = USE_MOCK ? mockApi.violationsAPI : {
         hotspot?: { lat: number; lng: number; count: number; avg_severity: number };
         period_days: number;
       };
-      legend?: {
-        type: string;
-        scale: Array<{ value: number; color: string; label: string }>;
-      };
-    }>(await apiClient.get('/violations/heatmap/', { params }));
+      legend?: Record<string, unknown>;
+    }>(await apiClient.get(path, { params }));
   },
   async update(id: string, data: Partial<Pick<TrafficViolation, 'status' | 'location' | 'description'>>): Promise<TrafficViolation> {
     const base = violationsListPath().replace(/\/$/, '');
@@ -536,7 +566,13 @@ export const violationsAPI = USE_MOCK ? mockApi.violationsAPI : {
     await apiClient.delete(`${base}/${id}/`);
   },
   async getStats() {
-    return unwrap(await apiClient.get('/violations/stats/'));
+    const d = apiDomainFromPath();
+    const path = d === 'officer'
+      ? OFFICER_API.violationsStats
+      : d === 'citizen'
+        ? CITIZEN_API.violationsStats
+        : '/violations/stats/';
+    return unwrap(await apiClient.get(path));
   },
   async getRules(): Promise<ViolationRule[]> {
     const live = unwrapList<ViolationRule>(await apiClient.get('/violations/rules/'));
@@ -743,6 +779,10 @@ export const aiAPI = USE_MOCK ? mockApi.aiAPI : {
   async deleteLog(logId: string | number): Promise<void> {
     await apiClient.delete(`/ai/logs/${logId}/`);
   },
+  /** Preload YOLO so Detect returns in <3s. Safe to call repeatedly. */
+  async warmup(): Promise<{ warm: boolean; elapsed_sec?: number }> {
+    return unwrap(await apiClient.get(DETECTION_API.warmup, { timeout: 120000 }));
+  },
   async detectVideo(file: File, options?: {
     observed_action?: string;
     demo_violation?: boolean;
@@ -751,6 +791,7 @@ export const aiAPI = USE_MOCK ? mockApi.aiAPI : {
     max_frames?: number;
     enable_ocr?: boolean;
     enable_tracking?: boolean;
+    live_fast?: boolean;
     signal?: AbortSignal;
   }) {
     const form = new FormData();
@@ -762,6 +803,7 @@ export const aiAPI = USE_MOCK ? mockApi.aiAPI : {
     if (options?.max_frames != null) form.append('max_frames', String(options.max_frames));
     if (options?.enable_ocr != null) form.append('enable_ocr', options.enable_ocr ? 'true' : 'false');
     if (options?.enable_tracking != null) form.append('enable_tracking', options.enable_tracking ? 'true' : 'false');
+    if (options?.live_fast != null) form.append('live_fast', options.live_fast ? 'true' : 'false');
     return normalizeDetectionMedia(unwrap(await apiClient.post(DETECTION_API.video, form, {
       headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 600000,
@@ -795,6 +837,23 @@ export const aiAPI = USE_MOCK ? mockApi.aiAPI : {
     }
     return blob;
   },
+  async getModelMetrics(): Promise<{
+    live_model?: { path?: string; classes?: number; role?: string };
+    thesis_eval_10_class?: {
+      map50?: number | null;
+      map50_95?: number | null;
+      precision?: number | null;
+      recall?: number | null;
+      note?: string;
+      weights?: string;
+      classes?: number;
+    };
+    full_248_class?: { map50?: number | null; note?: string; classes?: number };
+    ocr?: { exact_match_rate?: number; note?: string; engine?: string };
+    b2_named_26_class?: { map50?: number | null; classes?: number };
+  }> {
+    return unwrap(await apiClient.get('/ai/model-metrics/'));
+  },
 };
 
 export const catalogAPI = USE_MOCK ? mockApi.catalogAPI : {
@@ -811,17 +870,25 @@ export const catalogAPI = USE_MOCK ? mockApi.catalogAPI : {
 // ── NOTIFICATIONS ────────────────────────────────────────────────
 export const notificationsAPI = USE_MOCK ? mockApi.notificationsAPI : {
   async getByUser(_userId: string | number): Promise<Notification[]> {
-    const live = unwrapList<Notification>(await apiClient.get(notificationsListPath(), { params: { page_size: 100 } }));
-    return sample.withListFallback(live, sample.sampleNotificationsForUser(_userId));
+    if (!getAccessToken()) return [];
+    try {
+      const live = unwrapList<Notification>(await apiClient.get(notificationsListPath(), { params: { page_size: 500 } }));
+      return sample.withListFallback(live, sample.sampleNotificationsForUser(_userId));
+    } catch {
+      return [];
+    }
   },
-  async markRead(id: number): Promise<void> {
-    await apiClient.post(`/notifications/${id}/read/`);
+  async markRead(id: string | number): Promise<void> {
+    const base = notificationsListPath().replace(/\/$/, '');
+    await apiClient.post(`${base}/${id}/read/`);
   },
-  async markAllRead(_userId: number): Promise<void> {
-    await apiClient.post('/notifications/read/');
+  async markAllRead(_userId?: string | number): Promise<void> {
+    const base = notificationsListPath().replace(/\/$/, '');
+    await apiClient.post(`${base}/read/`);
   },
   async clearRead(): Promise<{ deleted: number }> {
-    return unwrap(await apiClient.delete('/notifications/clear-read/'));
+    const base = notificationsListPath().replace(/\/$/, '');
+    return unwrap(await apiClient.delete(`${base}/clear-read/`));
   },
 };
 
@@ -847,7 +914,8 @@ export const roadsAPI = USE_MOCK ? mockApi.roadsAPI : {
 
 export const camerasAPI = USE_MOCK ? mockApi.camerasAPI : {
   async getAll(): Promise<Camera[]> {
-    const live = unwrapList<Camera>(await apiClient.get('/cameras/', { params: { page_size: 200 } }));
+    const path = apiDomainFromPath() === 'officer' ? OFFICER_API.cameras : '/cameras/';
+    const live = unwrapList<Camera>(await apiClient.get(path, { params: { page_size: 200 } }));
     return sample.withListFallback(live, sample.sampleCameras());
   },
   async getById(id: string | number): Promise<Camera> {
@@ -925,13 +993,9 @@ export const dashboardAPI = USE_MOCK ? mockApi.dashboardAPI : {
     return blob;
   },
   async searchEvidence(params?: { plate?: string; type?: string; limit?: number }) {
-    const live = unwrap<{ count: number; results: EvidenceArchiveItem[] }>(
+    return unwrap<{ count: number; results: EvidenceArchiveItem[] }>(
       await apiClient.get(OFFICER_API.evidence, { params }),
     );
-    if (live.results?.length) return live;
-    const results = sample.getSampleEvidenceArchive();
-    if (!results.length) return live;
-    return { count: results.length, results };
   },
   async listSystemBackups(): Promise<{ backups: Array<Record<string, unknown>> }> {
     return unwrap(await apiClient.get('/dashboard/admin/backups/'));

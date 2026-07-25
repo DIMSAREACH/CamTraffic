@@ -1,17 +1,22 @@
 import { Link } from 'react-router';
 import { CreditCard, FileText } from 'lucide-react';
 import { useLanguage } from '@shared/context/LanguageContext';
-import { USER_PORTAL_ROUTES } from '@shared/constants/portalRoutes';
 import { cn } from '@shared/components/ui/utils';
 
 export type FinesTabId = 'manage' | 'payments';
+
+/** Admin portal fine tabs — must use /admin paths (not /dashboard). */
+const ADMIN_FINES_TABS = {
+  manage: '/admin/fines',
+  payments: '/admin/fines',
+} as const;
 
 export function FinesTabs({ active }: { active: FinesTabId }) {
   const { t } = useLanguage();
 
   const tabs: { id: FinesTabId; labelKey: string; path: string; icon: typeof FileText }[] = [
-    { id: 'manage', labelKey: 'fines.tabManage', path: USER_PORTAL_ROUTES.fines, icon: FileText },
-    { id: 'payments', labelKey: 'fines.tabPayments', path: USER_PORTAL_ROUTES.finesPayments, icon: CreditCard },
+    { id: 'manage', labelKey: 'fines.tabManage', path: ADMIN_FINES_TABS.manage, icon: FileText },
+    { id: 'payments', labelKey: 'fines.tabPayments', path: ADMIN_FINES_TABS.payments, icon: CreditCard },
   ];
 
   return (

@@ -1142,7 +1142,7 @@ export const translations = {
     },
     role: {
       admin: 'Administrator',
-      adminFull: 'System Administrator',
+      adminFull: 'Sokha Meas',
       adminDesc: 'Full system access and user management',
       police: 'Traffic Police',
       policeOfficer: 'Traffic Police Officer',
@@ -1451,11 +1451,13 @@ export const translations = {
         status: {
           active: 'Active',
           inactive: 'Inactive',
+          offline: 'Offline',
           maintenance: 'Maintenance',
         },
         type: {
           fixed: 'Fixed',
           ptz: 'PTZ',
+          mobile: 'Mobile',
           speed: 'Speed',
         },
         addCamera: 'Add camera',
@@ -3325,6 +3327,10 @@ export const translations = {
       colSubmitted: 'Submitted',
       colStatus: 'Status',
       colActions: 'Actions',
+      statTotal: 'Total Appeals',
+      statPending: 'Pending Review',
+      statUpheld: 'Upheld',
+      statDismissed: 'Dismissed',
       reason: 'Reason',
       evidenceOptional: 'Evidence (optional)',
       selectViolation: 'Select violation',
@@ -5028,11 +5034,13 @@ export const translations = {
         status: {
           active: 'សកម្ម',
           inactive: 'អផ្លាស់',
+          offline: 'អូហ្វឡាញ',
           maintenance: 'ថែទាំ',
         },
         type: {
           fixed: 'ថេរ',
           ptz: 'PTZ',
+          mobile: 'ចល័ត',
           speed: 'ល្បឿន',
         },
         addCamera: 'បន្ថែមកាមេរ៉ា',

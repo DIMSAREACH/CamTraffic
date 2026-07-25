@@ -32,7 +32,11 @@ ALLOWED_UPLOAD_EXTENSIONS = {
 }
 
 
-def prepare_detection_image(source_path: str) -> tuple[str, str | None, list[str]]:
+def prepare_detection_image(
+    source_path: str,
+    *,
+    max_edge: int | None = None,
+) -> tuple[str, str | None, list[str]]:
     """
     Return (path_for_ai, jpeg_path_or_none, cleanup_paths).
     Converts uncommon formats (AVIF, HEIC, etc.) to JPEG when needed.
@@ -40,6 +44,7 @@ def prepare_detection_image(source_path: str) -> tuple[str, str | None, list[str
     path = Path(source_path)
     ext = path.suffix.lower()
     cleanup: list[str] = []
+    edge_limit = int(max_edge) if max_edge else _upload_max_edge()
 
     try:
         from PIL import Image
@@ -47,7 +52,7 @@ def prepare_detection_image(source_path: str) -> tuple[str, str | None, list[str
         with Image.open(path) as probe:
             if getattr(probe, 'n_frames', 1) > 1:
                 probe.seek(0)
-            needs_downscale = max(probe.size) > _upload_max_edge()
+            needs_downscale = max(probe.size) > edge_limit
 
         if ext in ('.jpg', '.jpeg') and not needs_downscale:
             return str(path), None, cleanup
@@ -59,11 +64,19 @@ def prepare_detection_image(source_path: str) -> tuple[str, str | None, list[str
             img = img.convert('RGB')
         elif img.mode == 'L':
             img = img.convert('RGB')
-        img = _downscale_for_inference(img)
+        # Inline downscale with optional edge override.
+        w, h = img.size
+        longest = max(w, h)
+        if longest > edge_limit:
+            scale = edge_limit / longest
+            img = img.resize(
+                (max(1, round(w * scale)), max(1, round(h * scale))),
+                Image.Resampling.LANCZOS,
+            )
 
         tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.jpg')
         tmp.close()
-        img.save(tmp.name, 'JPEG', quality=90)
+        img.save(tmp.name, 'JPEG', quality=85 if edge_limit <= 720 else 90)
         cleanup.append(tmp.name)
         return tmp.name, tmp.name, cleanup
     except Exception:

@@ -64,7 +64,7 @@ describe('portalRoutes (multi-domain)', () => {
 
   it('uses enterprise module counts for sidebar', () => {
     expect(getEnterpriseModulesForRole('police').length).toBe(12);
-    expect(getEnterpriseModulesForRole('driver').length).toBe(12);
+    expect(getEnterpriseModulesForRole('driver').length).toBe(13);
     const driverNav = getNavItemsForRole('driver');
     expect(driverNav.some((n) => n.path === OFFICER_PORTAL_ROUTES.aiDetection)).toBe(false);
     const policeNav = getNavItemsForRole('police');

@@ -17,7 +17,7 @@ import { resolveAdminEnterpriseModule } from '@shared/constants/enterpriseModule
 import { cn } from '@shared/components/ui/utils';
 
 export function AdminLayout() {
-  const { user, isLoading } = useAuth();
+  const { user, token, isLoading } = useAuth();
   const { locale, t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
@@ -42,18 +42,27 @@ export function AdminLayout() {
   }, [user, isLoading, navigate]);
 
   useEffect(() => {
-    if (!user) return;
-    notificationsAPI.getByUser(user.id)
-      .then((ns) => setUnreadCount(ns.filter((n) => !n.is_read).length))
-      .catch(() => { /* ignore poll errors (e.g. 429) */ });
-  }, [user]);
+    if (!user || !token) return;
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      notificationsAPI.getByUser(user.id)
+        .then((ns) => {
+          if (!cancelled) setUnreadCount(ns.filter((n) => !n.is_read).length);
+        })
+        .catch(() => { /* ignore poll errors (e.g. 503 during HMR) */ });
+    }, 150);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [user, token]);
 
   useLiveData(() => {
-    if (!user) return;
+    if (!user || !token) return;
     return notificationsAPI.getByUser(user.id)
       .then((ns) => setUnreadCount(ns.filter((n) => !n.is_read).length))
       .catch(() => undefined);
-  }, 60_000, Boolean(user));
+  }, 60_000, Boolean(user && token));
 
   useEffect(() => {
     closeMobile();

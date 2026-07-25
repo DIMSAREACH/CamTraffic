@@ -9,15 +9,16 @@ from domains.officer_views import (
     OfficerIssueFineView,
     OfficerRejectViolationView,
 )
-from fines.views import DriverLookupView, FineDetailView, FineListCreateView
+from fines.views import DriverLookupView, FineDetailView, FineListCreateView, FineVerifyPaymentView
 from infrastructure.views import CameraListCreateView, CameraLiveStatusView
-from violations.views import ViolationDetailView, ViolationListCreateView
+from violations.views import ViolationDetailView, ViolationListCreateView, ViolationStatsView
 
 urlpatterns = [
     path('', DomainCatalogView.as_view(), {'domain': 'officer'}, name='domain-officer-catalog'),
     path('dashboard/', PoliceDashboardView.as_view(), name='domain-officer-dashboard'),
     path('detection-queue/', OfficerDetectionQueueView.as_view(), name='domain-officer-detection-queue'),
     path('violations/', ViolationListCreateView.as_view(), name='domain-officer-violations'),
+    path('violations/stats/', ViolationStatsView.as_view(), name='domain-officer-violation-stats'),
     path('violations/<uuid:pk>/', ViolationDetailView.as_view(), name='domain-officer-violation-detail'),
     path('violations/<uuid:pk>/approve/', OfficerApproveViolationView.as_view(), name='domain-officer-approve'),
     path('violations/<uuid:pk>/reject/', OfficerRejectViolationView.as_view(), name='domain-officer-reject'),
@@ -26,6 +27,7 @@ urlpatterns = [
     path('fines/issue/', OfficerIssueFineView.as_view(), name='domain-officer-fines-issue'),
     path('fines/lookup/', DriverLookupView.as_view(), name='domain-officer-fines-lookup'),
     path('fines/<uuid:pk>/', FineDetailView.as_view(), name='domain-officer-fine-detail'),
+    path('fines/<uuid:pk>/verify-payment/', FineVerifyPaymentView.as_view(), name='domain-officer-fine-verify-payment'),
     path('live-cameras/', CameraLiveStatusView.as_view(), name='domain-officer-live-cameras'),
     path('cameras/', CameraListCreateView.as_view(), name='domain-officer-cameras'),
     path('reports/', PoliceReportsView.as_view(), name='domain-officer-reports'),

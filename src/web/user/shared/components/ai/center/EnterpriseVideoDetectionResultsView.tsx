@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Film, Hash, Printer, Save, FileSpreadsheet, FileText, Car, Target, Activity,
-  Download, Shield, Signpost, Search, Eye, Square, Play, Pause, Plus, Cpu,
+  Film, Hash, Printer, Save, FileSpreadsheet, FileText, Car, Target,
+  Download, Shield, Signpost, Search, Eye, Square, Play, Pause, Plus, Cpu, Activity,
 } from 'lucide-react';
 import type { CenterDetectionResult } from '@shared/components/ai/center/DetectionCenterResultsPanel';
 import { AnnotatedDetectionImage } from '@shared/components/ai/center/AnnotatedDetectionImage';
@@ -21,6 +21,7 @@ import {
   printDetectionReport,
 } from '@shared/utils/detectionExport';
 import { buildDetectionOverlay } from '@shared/utils/detectionOverlay';
+import { captureMediaFrame } from '@shared/utils/captureMediaFrame';
 import { resolvePipelineVehicle } from '@shared/utils/pipelineVehicle';
 import { getProfileImageUrl } from '@shared/utils/profileImage';
 import { cn } from '@shared/components/ui/utils';
@@ -66,44 +67,26 @@ function L(t: (k: string) => string, key: string, fallback: string) {
   return v !== key ? v : fallback;
 }
 
-async function captureVideoFrame(video: HTMLVideoElement): Promise<File | null> {
-  if (!video.videoWidth || !video.videoHeight) return null;
-  const canvas = document.createElement('canvas');
-  const maxW = 960;
-  const scale = Math.min(1, maxW / video.videoWidth);
-  canvas.width = Math.max(1, Math.round(video.videoWidth * scale));
-  canvas.height = Math.max(1, Math.round(video.videoHeight * scale));
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return null;
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-  const blob = await new Promise<Blob | null>((resolve) => {
-    canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.85);
-  });
-  if (!blob) return null;
-  return new File([blob], `video-preview-frame-${Date.now()}.jpg`, { type: 'image/jpeg' });
-}
+type TimedOverlay = { t: number; result: CenterDetectionResult };
 
-/** Live processing layout: video player + AI Processing sidebar */
+/** Live processing: play full video + auto-annotate current frame with aligned boxes. */
 export function EnterpriseVideoProcessingPanel({
   previewSrc,
   onStop,
 }: EnterpriseVideoProcessingPanelProps) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const speechLocale = locale === 'en' ? 'en' : 'km';
   const videoRef = useRef<HTMLVideoElement>(null);
   const scanBusy = useRef(false);
+  const timedRef = useRef<TimedOverlay[]>([]);
   const [progress, setProgress] = useState(8);
   const [elapsed, setElapsed] = useState(0);
   const [paused, setPaused] = useState(false);
-  const [overlayResult, setOverlayResult] = useState<CenterDetectionResult | null>(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [liveResult, setLiveResult] = useState<CenterDetectionResult | null>(null);
   const [objectHits, setObjectHits] = useState(0);
+  const [timedVersion, setTimedVersion] = useState(0);
   const started = useRef(performance.now());
-  const pausedAt = useRef(0);
-
-  const overlayItems = useMemo(
-    () => buildDetectionOverlay(overlayResult, 'en'),
-    [overlayResult],
-  );
-  const mediaFit = useContainFitRect(videoRef, overlayItems.length > 0);
 
   useEffect(() => {
     if (paused) return undefined;
@@ -112,7 +95,7 @@ export function EnterpriseVideoProcessingPanel({
     const tick = (now: number) => {
       const secs = (now - started.current) / 1000;
       setElapsed(secs);
-      const tNorm = Math.min(1, secs / 90);
+      const tNorm = Math.min(1, secs / 6);
       const eased = 1 - (1 - tNorm) ** 1.8;
       setProgress(Math.min(94, Math.round(8 + eased * 86)));
       frame = requestAnimationFrame(tick);
@@ -121,6 +104,7 @@ export function EnterpriseVideoProcessingPanel({
     return () => cancelAnimationFrame(frame);
   }, [paused]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Auto-annotate the playing video frame (same pixels → correct bbox alignment).
   useEffect(() => {
     if (!previewSrc || paused) return undefined;
     let cancelled = false;
@@ -130,52 +114,77 @@ export function EnterpriseVideoProcessingPanel({
       const video = videoRef.current;
       if (!video || video.readyState < 2) return;
       scanBusy.current = true;
+      const tSec = video.currentTime;
       try {
-        const file = await captureVideoFrame(video);
+        const file = await captureMediaFrame(video, {
+          maxEdge: 640,
+          filenamePrefix: 'video-preview-frame',
+        });
         if (!file || cancelled) return;
         const raw = await aiAPI.detect(file, {
           live_scan: true,
+          live_fast: true,
           full_frame: true,
+          enable_ocr: false,
           save_log: false,
           auto_create_violation: false,
           demo_violation: false,
         }) as CenterDetectionResult;
         if (cancelled) return;
-        setOverlayResult(raw);
+        setLiveResult(raw);
+        timedRef.current = [...timedRef.current, { t: tSec, result: raw }].slice(-24);
+        setTimedVersion((v) => v + 1);
         const vehicles = raw.vehicles?.length ?? raw.vehicle_count ?? 0;
         const hasSign = Boolean(raw.sign_bbox) || toPct(raw.display_confidence ?? raw.confidence) > 0;
         const plates = raw.detected_plate ? 1 : 0;
         setObjectHits(vehicles + (hasSign ? 1 : 0) + plates);
       } catch {
-        /* keep last overlay; full video job continues */
+        /* keep last overlay; main detect-video continues */
       } finally {
         scanBusy.current = false;
       }
     };
 
     void scan();
-    const id = window.setInterval(() => { void scan(); }, 2800);
+    const id = window.setInterval(() => { void scan(); }, 1600);
     return () => {
       cancelled = true;
       window.clearInterval(id);
     };
   }, [previewSrc, paused]);
 
-  const remaining = Math.max(0, Math.round((90 * (100 - progress)) / Math.max(progress, 1) * 0.35));
-  const fps = progress > 10 ? Math.round(18 + (progress / 100) * 8) : 0;
-  const framesDone = Math.round((progress / 100) * 120);
+  const activeTimed = useMemo(() => {
+    const list = timedRef.current;
+    if (!list.length) return liveResult;
+    let best = list[0];
+    let bestDist = Math.abs(best.t - currentTime);
+    for (const item of list) {
+      const d = Math.abs(item.t - currentTime);
+      if (d < bestDist) {
+        bestDist = d;
+        best = item;
+      }
+    }
+    // Prefer a fresh live result if within 0.9s of now, else nearest timed sample.
+    if (bestDist > 0.9 && liveResult) return liveResult;
+    return best.result;
+  }, [currentTime, liveResult, timedVersion]);
+
+  const overlayItems = useMemo(
+    () => buildDetectionOverlay(activeTimed, speechLocale),
+    [activeTimed, speechLocale],
+  );
+  const mediaFit = useContainFitRect(videoRef, true);
+
+  const remaining = Math.max(0, Math.round((6 * (100 - progress)) / Math.max(progress, 1) * 0.35));
 
   const togglePause = () => {
     setPaused((p) => {
       const next = !p;
       const el = videoRef.current;
       if (el) {
-        if (next) {
-          pausedAt.current = el.currentTime;
-          el.pause();
-        } else {
-          void el.play();
-        }
+        if (next) el.pause();
+        else void el.play();
       }
       return next;
     });
@@ -208,6 +217,7 @@ export function EnterpriseVideoProcessingPanel({
                   autoPlay
                   playsInline
                   loop
+                  onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
                 />
                 {overlayItems.length > 0 && mediaFit && mediaFit.width > 0 ? (
                   <div
@@ -237,12 +247,12 @@ export function EnterpriseVideoProcessingPanel({
             <div className="ai-video-console__overlays ai-video-console__overlays--processing" aria-live="polite">
               {overlayItems.length > 0 ? (
                 <span className="is-pulse">
-                  {objectHits} {L(t, 'aiCenter.objects', 'objects')} · {L(t, 'aiCenter.video.livePreview', 'Live preview')}
+                  {objectHits} {L(t, 'aiCenter.objects', 'objects')} · {L(t, 'aiCenter.video.livePreview', 'Live annotation')}
                 </span>
               ) : (
                 <>
                   <span className="is-pulse">{L(t, 'aiCenter.video.detectingObjects', 'Detecting objects…')}</span>
-                  <span>{L(t, 'aiCenter.video.boxesSoon', 'Boxes appear as frames are scanned')}</span>
+                  <span>{L(t, 'aiCenter.video.boxesSoon', 'Bounding boxes appear on the playing video')}</span>
                 </>
               )}
             </div>
@@ -262,16 +272,14 @@ export function EnterpriseVideoProcessingPanel({
           </div>
           <dl className="ai-video-console__kv">
             <div><dt>{L(t, 'aiCenter.video.aiModel', 'Model')}</dt><dd>YOLOv11</dd></div>
-            <div><dt>OCR</dt><dd className="is-run">{L(t, 'aiCenter.video.running', 'Running')}</dd></div>
+            <div><dt>OCR</dt><dd className="is-skip">{L(t, 'aiCenter.video.fastMode', 'Fast mode')}</dd></div>
             <div><dt>{L(t, 'aiCenter.video.rules', 'Rules')}</dt><dd className="is-run">{L(t, 'aiCenter.video.running', 'Running')}</dd></div>
-            <div><dt>{L(t, 'aiCenter.video.fps', 'FPS')}</dt><dd>{fps || '—'}</dd></div>
-            <div><dt>{L(t, 'aiCenter.video.frames', 'Frames')}</dt><dd>{framesDone} / 120</dd></div>
-            <div><dt>{L(t, 'aiCenter.video.elapsed', 'Elapsed')}</dt><dd>{formatClock(elapsed)}</dd></div>
-            <div><dt>{L(t, 'aiCenter.video.remaining', 'Remaining')}</dt><dd>{formatClock(remaining)}</dd></div>
             <div>
               <dt>{L(t, 'aiCenter.objects', 'Objects')}</dt>
               <dd className={objectHits > 0 ? 'is-done' : 'is-run'}>{objectHits || '—'}</dd>
             </div>
+            <div><dt>{L(t, 'aiCenter.video.elapsed', 'Elapsed')}</dt><dd>{formatClock(elapsed)}</dd></div>
+            <div><dt>{L(t, 'aiCenter.video.remaining', 'Remaining')}</dt><dd>{formatClock(remaining)}</dd></div>
           </dl>
           <div className="ai-video-console__side-actions">
             <button type="button" className="ai-video-btn" onClick={togglePause}>
@@ -303,6 +311,7 @@ export function EnterpriseVideoDetectionResultsView({
   const [search, setSearch] = useState('');
   const [savingViolation, setSavingViolation] = useState(false);
   const [mediaFailed, setMediaFailed] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
 
   const analysis = result.video_analysis;
   const annotatedUrl = getProfileImageUrl(result.annotated_preview_video) || '';
@@ -313,6 +322,8 @@ export function EnterpriseVideoDetectionResultsView({
   const bestStillRaw = cleanStillRaw || annotatedStillRaw;
   const bestStill = getProfileImageUrl(bestStillRaw) || bestStillRaw;
   const useCssOverlay = Boolean(cleanStillRaw) || !annotatedStillRaw;
+  // Full uploaded video is the primary Detection Preview (not a short annotated stitch).
+  const fullVideoUrl = originalUrl || annotatedUrl;
   const playUrl = annotatedUrl || '';
   const frames = analysis?.frame_summaries ?? [];
   const framesAnalyzed = (analysis?.frames_analyzed ?? frames.length) || 1;
@@ -332,11 +343,45 @@ export function EnterpriseVideoDetectionResultsView({
   const ocrDone = analysis?.settings?.enable_ocr ?? uiSettings?.ocr ?? true;
   const ocrAcc = toPct(result.plate_confidence) || (plateText ? avgConf : 0);
 
-  const overlayItems = useMemo(
-    () => (useCssOverlay ? buildDetectionOverlay(result, speechLocale) : []),
-    [result, speechLocale, useCssOverlay],
-  );
-  const resultVideoFit = useContainFitRect(videoRef, overlayItems.length > 0 && !bestStill);
+  const activeFrame = useMemo(() => {
+    if (!frames.length) return null;
+    let best = frames[0];
+    let bestDist = Number.POSITIVE_INFINITY;
+    for (const f of frames) {
+      const d = Math.abs(Number(f.timestamp_sec ?? 0) - currentTime);
+      if (d < bestDist) {
+        bestDist = d;
+        best = f;
+      }
+    }
+    // Hide stale boxes when playback is far from any sampled detection.
+    const span = frames.length >= 2
+      ? Math.abs(Number(frames[frames.length - 1].timestamp_sec) - Number(frames[0].timestamp_sec)) / (frames.length - 1)
+      : 1.2;
+    const hold = Math.max(0.85, span * 0.6);
+    if (bestDist > hold) return null;
+    return best;
+  }, [frames, currentTime]);
+
+  const overlayItems = useMemo(() => {
+    if (activeFrame) {
+      return buildDetectionOverlay({
+        sign_name_en: activeFrame.sign_name_en,
+        sign_bbox: activeFrame.sign_bbox,
+        confidence: activeFrame.confidence,
+        vehicles: activeFrame.vehicles,
+        detected_plate: activeFrame.detected_plate || plateText,
+        plate_bbox: activeFrame.plate_bbox,
+        plate_boxes: activeFrame.plate_boxes,
+      }, speechLocale);
+    }
+    // When paused near best frame with no nearby sample, fall back to full result.
+    if (!frames.length && useCssOverlay) {
+      return buildDetectionOverlay(result, speechLocale);
+    }
+    return [];
+  }, [activeFrame, plateText, result, speechLocale, useCssOverlay, frames.length]);
+  const resultVideoFit = useContainFitRect(videoRef, true);
 
   const stats = useMemo(() => {
     const byType: Record<string, number> = {};
@@ -527,7 +572,7 @@ export function EnterpriseVideoDetectionResultsView({
   };
 
   const handleDownloadVideo = () => {
-    const url = annotatedUrl || originalUrl;
+    const url = originalUrl || annotatedUrl;
     if (!url) {
       toast.error(t('aiCenter.downloadUnavailable'));
       return;
@@ -668,25 +713,22 @@ export function EnterpriseVideoDetectionResultsView({
             </span>
           </header>
           <div className="ai-video-console__player ai-video-results__player">
-            {bestStill ? (
-              <div className="ai-video-results__still-wrap">
-                <AnnotatedDetectionImage
-                  src={bestStill}
-                  alt={L(t, 'aiCenter.video.detectionPreview', 'Detection Preview')}
-                  result={result}
-                  showOverlay={useCssOverlay}
-                  hero
-                  className="ai-video-results__annotated-still"
-                />
-              </div>
-            ) : playUrl && !mediaFailed ? (
+            {fullVideoUrl && !mediaFailed ? (
               <div className="ai-video-results__video-wrap">
                 <video
                   ref={videoRef}
-                  src={playUrl}
+                  src={fullVideoUrl}
                   className="ai-video-console__video"
                   controls
                   playsInline
+                  autoPlay
+                  muted
+                  onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+                  onLoadedMetadata={() => {
+                    if (bestTs > 0 && videoRef.current) {
+                      try { videoRef.current.currentTime = bestTs; } catch { /* ignore */ }
+                    }
+                  }}
                   onError={() => setMediaFailed(true)}
                 />
                 {overlayItems.length > 0 && resultVideoFit && resultVideoFit.width > 0 ? (
@@ -708,21 +750,38 @@ export function EnterpriseVideoDetectionResultsView({
                   </div>
                 ) : null}
               </div>
-            ) : originalUrl ? (
-              <video
-                ref={videoRef}
-                src={originalUrl}
-                className="ai-video-console__video"
-                controls
-                playsInline
-              />
+            ) : bestStill ? (
+              <div className="ai-video-results__still-wrap">
+                <AnnotatedDetectionImage
+                  src={bestStill}
+                  alt={L(t, 'aiCenter.video.detectionPreview', 'Detection Preview')}
+                  result={result}
+                  showOverlay={useCssOverlay}
+                  hero
+                  className="ai-video-results__annotated-still"
+                />
+              </div>
             ) : (
               <div className="ai-video-console__player-empty">
                 <Film size={32} />
                 <p>{t('aiCenter.noImage')}</p>
               </div>
             )}
-            {playUrl && bestStill ? (
+            {bestStill && fullVideoUrl ? (
+              <div className="ai-video-results__annotated-video">
+                <p className="ai-video-results__annotated-video-label">
+                  {L(t, 'aiCenter.video.bestFrameStill', 'Best detection frame')}
+                </p>
+                <AnnotatedDetectionImage
+                  src={bestStill}
+                  alt={L(t, 'aiCenter.video.detectionPreview', 'Detection Preview')}
+                  result={result}
+                  showOverlay={useCssOverlay}
+                  className="ai-video-results__annotated-still"
+                />
+              </div>
+            ) : null}
+            {playUrl && playUrl !== fullVideoUrl ? (
               <div className="ai-video-results__annotated-video">
                 <p className="ai-video-results__annotated-video-label">
                   {L(t, 'aiCenter.video.annotatedClip', 'Annotated clip')}
@@ -732,8 +791,7 @@ export function EnterpriseVideoDetectionResultsView({
                   className="ai-video-console__video ai-video-console__video--secondary"
                   controls
                   playsInline
-                  poster={bestStill}
-                  onError={() => setMediaFailed(true)}
+                  poster={bestStill || undefined}
                 />
               </div>
             ) : null}

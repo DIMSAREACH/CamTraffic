@@ -52,7 +52,7 @@ export function CitizenPaymentHistoryPage() {
     if (!user || user.role !== 'driver') return;
     if (!silent) setLoading(true);
     try {
-      const data = await finesAPI.getByDriver(user.id);
+      const data = await finesAPI.getAll();
       setFines(
         data
           .filter((f) => f.status === 'paid')
@@ -62,6 +62,9 @@ export function CitizenPaymentHistoryPage() {
             return bTime - aTime;
           }),
       );
+    } catch {
+      // Backend may be briefly unavailable during Django autoreload — keep prior rows.
+      if (!silent) setFines([]);
     } finally {
       if (!silent) setLoading(false);
     }

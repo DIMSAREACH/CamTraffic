@@ -179,6 +179,14 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'camtraffic.ping',
         'schedule': 3600.0,
     },
+    'process-scheduled-notifications': {
+        'task': 'camtraffic.process_scheduled_notifications',
+        'schedule': 60.0,  # every minute
+    },
+    'process-scheduled-reports': {
+        'task': 'camtraffic.process_scheduled_reports',
+        'schedule': 300.0,  # every 5 minutes
+    },
 }
 
 # Local dev without Redis: run tasks inline (no broker connection retries).
@@ -336,8 +344,8 @@ AI_LIVE_YOLO_FLOOR = float(os.getenv('AI_LIVE_YOLO_FLOOR', '10'))
 AI_LIVE_YOLO_INFER_CONF = float(os.getenv('AI_LIVE_YOLO_INFER_CONF', '0.50'))
 AI_LIVE_YOLO_TRUST = float(os.getenv('AI_LIVE_YOLO_TRUST', '50'))
 AI_LIVE_YOLO_CATALOG_MIN = float(os.getenv('AI_LIVE_YOLO_CATALOG_MIN', '45'))
-AI_LIVE_IMGSZ = int(os.getenv('AI_LIVE_IMGSZ', '640'))
-AI_LIVE_TRY_ENHANCE = os.getenv('AI_LIVE_TRY_ENHANCE', 'True').lower() == 'true'
+AI_LIVE_IMGSZ = int(os.getenv('AI_LIVE_IMGSZ', '416'))
+AI_LIVE_TRY_ENHANCE = os.getenv('AI_LIVE_TRY_ENHANCE', 'False').lower() == 'true'
 AI_CATALOG_VISUAL_MATCH_ENABLED = os.getenv('AI_CATALOG_VISUAL_MATCH_ENABLED', 'True').lower() == 'true'
 AI_CATALOG_VISUAL_MIN_SCORE = float(os.getenv('AI_CATALOG_VISUAL_MIN_SCORE', '0.58'))
 AI_CATALOG_VISUAL_LIVE_MIN_SCORE = float(os.getenv('AI_CATALOG_VISUAL_LIVE_MIN_SCORE', '0.62'))
@@ -346,18 +354,20 @@ AI_LIVE_SIGN_COLOR_MIN = float(os.getenv('AI_LIVE_SIGN_COLOR_MIN', '0.05'))
 AI_LIVE_SIGN_BLOB_MIN = float(os.getenv('AI_LIVE_SIGN_BLOB_MIN', '0.025'))
 AI_LIVE_SKIN_MAX = float(os.getenv('AI_LIVE_SKIN_MAX', '0.38'))
 AI_LIVE_EDGE_MIN = float(os.getenv('AI_LIVE_EDGE_MIN', '0.008'))
-AI_IMGSZ = int(os.getenv('AI_IMGSZ', '640'))
+AI_IMGSZ = int(os.getenv('AI_IMGSZ', '416'))
+# Interactive Detect: smaller imgsz + skip OCR/multi-crop unless client opts into full quality.
+AI_DETECT_FAST_DEFAULT = os.getenv('AI_DETECT_FAST_DEFAULT', 'True').lower() == 'true'
 AI_UPLOAD_YOLO_FLOOR = float(os.getenv('AI_UPLOAD_YOLO_FLOOR', '35'))
 AI_HYBRID_CONFIDENCE_THRESHOLD = float(os.getenv('AI_HYBRID_CONFIDENCE_THRESHOLD', '70'))
 AI_GEMINI_UPLOAD_FALLBACK = os.getenv('AI_GEMINI_UPLOAD_FALLBACK', 'False').lower() == 'true'
 AI_GEMINI_LIVE_FALLBACK = os.getenv('AI_GEMINI_LIVE_FALLBACK', 'False').lower() == 'true'
 AI_GEMINI_LIVE_MIN_INTERVAL = float(os.getenv('AI_GEMINI_LIVE_MIN_INTERVAL', '0.8'))
-AI_UPLOAD_MAX_EDGE = int(os.getenv('AI_UPLOAD_MAX_EDGE', '1280'))
+AI_UPLOAD_MAX_EDGE = int(os.getenv('AI_UPLOAD_MAX_EDGE', '960'))
 AI_WARMUP_MODELS = os.getenv('AI_WARMUP_MODELS', 'True').lower() == 'true'
 
 # Vehicle detection (YOLOv8 COCO pretrained — separate from sign model)
 AI_VEHICLE_ENABLED = os.getenv('AI_VEHICLE_ENABLED', 'True').lower() == 'true'
-AI_VEHICLE_MODEL = os.getenv('AI_VEHICLE_MODEL', 'yolov8n.pt')
+AI_VEHICLE_MODEL = os.getenv('AI_VEHICLE_MODEL', 'best_cambodia_vehicles.pt')
 AI_VEHICLE_CONFIDENCE_THRESHOLD = float(os.getenv('AI_VEHICLE_CONFIDENCE_THRESHOLD', '0.35'))
 AI_VEHICLE_TRACKING_ENABLED = os.getenv('AI_VEHICLE_TRACKING_ENABLED', 'True').lower() == 'true'
 AI_VEHICLE_TRACK_SESSION_TTL = int(os.getenv('AI_VEHICLE_TRACK_SESSION_TTL', '300'))
@@ -394,6 +404,13 @@ OCR_SERVICE_URL = os.getenv('OCR_SERVICE_URL', '').strip()
 
 # Enterprise v2 — optional RTSP stream gateway (see services/stream-gateway/)
 STREAM_GATEWAY_URL = os.getenv('STREAM_GATEWAY_URL', '').strip()
+# When True, stream-gateway returns synthetic frames (dev only). Production: False.
+STREAM_MOCK_MODE = os.getenv('STREAM_MOCK_MODE', 'False').lower() == 'true'
+# Bundled /demo-cameras assets — must stay False in production.
+DEMO_CAMERA_FRAMES_ENABLED = os.getenv('DEMO_CAMERA_FRAMES_ENABLED', 'False').lower() == 'true'
+CAMERA_HEALTH_CHECK_INTERVAL = int(os.getenv('CAMERA_HEALTH_CHECK_INTERVAL', '300'))
+CAMERA_PING_TIMEOUT = int(os.getenv('CAMERA_PING_TIMEOUT', '10'))
+CAMERA_RTSP_TIMEOUT = int(os.getenv('CAMERA_RTSP_TIMEOUT', '5'))
 
 # Gemini Vision — optional backup only (AI_DETECTION_MODE=hybrid + flags below)
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
@@ -474,11 +491,25 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', 30))
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', '') or EMAIL_HOST_USER or 'noreply@camtraffic.kh'
 
+# Push (FCM / Web Push) + SMS (Twilio) — optional; in-app always works
+FCM_SERVER_KEY = os.getenv('FCM_SERVER_KEY', '')
+FCM_PROJECT_ID = os.getenv('FCM_PROJECT_ID', '')
+VAPID_PUBLIC_KEY = os.getenv('VAPID_PUBLIC_KEY', '')
+VAPID_PRIVATE_KEY = os.getenv('VAPID_PRIVATE_KEY', '')
+VAPID_ADMIN_EMAIL = os.getenv('VAPID_ADMIN_EMAIL', '')
+ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', 'admin@camtraffic.gov.kh')
+TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID', '')
+TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN', '')
+TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER', '') or os.getenv('TWILIO_FROM_NUMBER', '')
+
 # ── Live payments (Stripe + KHQR / manual proof) ───────────────────────────────
 # PAYMENT_MODE: manual | stripe | khqr | live | auto
 PAYMENT_MODE = os.getenv('PAYMENT_MODE', 'manual')
 PAYMENT_CURRENCY = os.getenv('PAYMENT_CURRENCY', 'usd')
 PAYMENT_MANUAL_PROOF_ENABLED = os.getenv('PAYMENT_MANUAL_PROOF_ENABLED', 'True').lower() == 'true'
+PAYMENT_AUTO_SETTLEMENT = os.getenv('PAYMENT_AUTO_SETTLEMENT', 'True').lower() == 'true'
+PAYMENT_RECONCILIATION_ENABLED = os.getenv('PAYMENT_RECONCILIATION_ENABLED', 'True').lower() == 'true'
+ENABLE_TEST_WEBHOOKS = os.getenv('ENABLE_TEST_WEBHOOKS', 'False').lower() == 'true'
 STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
 STRIPE_SUCCESS_URL = os.getenv(
@@ -490,10 +521,18 @@ STRIPE_CANCEL_URL = os.getenv(
     'http://localhost:5173/citizen/fines?cancel=1',
 )
 KHQR_MERCHANT_NAME = os.getenv('KHQR_MERCHANT_NAME', '')
-KHQR_MERCHANT_ACCOUNT = os.getenv('KHQR_MERCHANT_ACCOUNT', '')
+KHQR_MERCHANT_ACCOUNT = os.getenv('KHQR_MERCHANT_ACCOUNT', '') or os.getenv('KHQR_MERCHANT_ACCOUNT_USD', '')
 KHQR_MERCHANT_ACCOUNT_KHR = os.getenv('KHQR_MERCHANT_ACCOUNT_KHR', '')
 # Static ABA KHQR PNG served by user/admin SPA (public/payments/aba-khqr.png)
 KHQR_QR_IMAGE_URL = os.getenv('KHQR_QR_IMAGE_URL', '/payments/aba-khqr.png')
+# ABA PayWay API — automated KHQR settlement webhooks
+ABA_PAYWAY_API_KEY = os.getenv('ABA_PAYWAY_API_KEY', '')
+ABA_PAYWAY_MERCHANT_ID = os.getenv('ABA_PAYWAY_MERCHANT_ID', '')
+ABA_PAYWAY_WEBHOOK_SECRET = os.getenv('ABA_PAYWAY_WEBHOOK_SECRET', '')
+ABA_PAYWAY_ENVIRONMENT = os.getenv('ABA_PAYWAY_ENVIRONMENT', 'sandbox')
+# Demo seed guards (production settings force False)
+ALLOW_DEMO_SEED = os.getenv('ALLOW_DEMO_SEED', 'False').lower() == 'true'
+CAMTRAFFIC_SEED_DEMO = os.getenv('CAMTRAFFIC_SEED_DEMO', 'False').lower() == 'true'
 
 LOGGING = build_logging_config(
     BASE_DIR,

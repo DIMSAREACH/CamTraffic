@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ImageIcon, Upload, Loader2, Scan } from 'lucide-react';
 import { AiCenterDetectButton } from '@shared/components/ai/center/AiCenterDetectButton';
 import { DemoObservedActionSelect } from '@shared/components/ai/DemoObservedActionSelect';
@@ -35,15 +35,31 @@ export function ImageUploadPanel({
 }: ImageUploadPanelProps) {
   const { t } = useLanguage();
   const inputRef = useRef<HTMLInputElement>(null);
+  const readerRef = useRef<FileReader | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [detecting, setDetecting] = useState(false);
 
+  useEffect(() => () => {
+    readerRef.current?.abort();
+    readerRef.current = null;
+  }, []);
+
   const handleFile = (f: File | null) => {
-    if (preview) URL.revokeObjectURL(preview);
+    readerRef.current?.abort();
+    readerRef.current = null;
     setFile(f);
-    setPreview(f ? URL.createObjectURL(f) : null);
+    setPreview(null);
+    if (!f) return;
+    // data: URLs need no revoke — avoids blob: ERR_FILE_NOT_FOUND on unmount/detect.
+    const reader = new FileReader();
+    readerRef.current = reader;
+    reader.onload = () => {
+      if (readerRef.current !== reader) return;
+      setPreview(typeof reader.result === 'string' ? reader.result : null);
+    };
+    reader.readAsDataURL(f);
   };
 
   const runDetection = async () => {
@@ -58,9 +74,22 @@ export function ImageUploadPanel({
     setDetecting(true);
     onDetectingChange(true);
     try {
+      // Warm models first so Detect stays under ~3s (skips ~30s cold load).
+      await aiAPI.warmup().catch(() => undefined);
       const jpeg = await convertImageToJpeg(file);
-      const result = await aiAPI.detect(jpeg, buildDemoViolationOptions(demoObservedAction));
-      onResult(result as CenterDetectionResult, preview || '');
+      const result = await aiAPI.detect(jpeg, {
+        ...buildDemoViolationOptions(demoObservedAction),
+        // Fast path + OCR so OCR Result shows plate number and province.
+        full_frame: true,
+        live_fast: true,
+        enable_ocr: true,
+      });
+      onResult(result as CenterDetectionResult, (
+        (result as CenterDetectionResult).uploaded_image
+        || (result as CenterDetectionResult).annotated_processed_image
+        || (result as CenterDetectionResult).processed_image
+        || ''
+      ));
       toast.success(t('aiCenter.detectSuccess'));
       const evalResult = (result as CenterDetectionResult).violation_evaluation;
       if (evalResult?.is_violation) {

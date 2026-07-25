@@ -2,15 +2,17 @@
 
 Converted from Roboflow **License Plate.v3-license-plate_v1.yolov8**
 
-- Original: 42 classes (one per unique plate text) + mostly polygon labels
-- Production: **1 class** `license_plate` + YOLO bbox (+ OCR ground truth)
+- Detection: **1 class** `license_plate` (YOLO bbox)
+- OCR GT: visible plate serial text + **printed province/city** (authoritative)
 
-| Split | Images | Boxes |
-|-------|--------|-------|
-| train | 31 | 31 |
-| valid | 9 | 9 |
-| test | 4 | 4 |
+Province is taken from the Roboflow class suffix (`_PHNOMPENH`, `_BATTAMBANG`, …),
+not from the leading digit of the serial (those often disagree on real Cambodia plates).
 
-Polygons converted: 40 | BBoxes kept: 4
+| File | Purpose |
+|------|---------|
+| `ocr_ground_truth.json` | Per-image plate + province GT |
+| `class_to_plate.json` | Class id → plate serial |
+| `class_to_plate_meta.json` | Full plate + province metadata |
 
-OCR GT: `ocr_ground_truth.json` (plate text from class names, e.g. `1AF-1714`)
+Classes: 42 | Images with GT: 44 |
+Province annotated: 42 | Digit≠printed province: 40
