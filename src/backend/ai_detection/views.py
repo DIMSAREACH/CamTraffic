@@ -141,6 +141,20 @@ def _debug_image_data_url(path: str, max_side: int = 280) -> str:
     return 'data:image/jpeg;base64,' + base64.b64encode(buf.tobytes()).decode('ascii')
 
 
+class DetectionReadyView(APIView):
+    """Public health check: are AI models loaded? (no auth required)"""
+    permission_classes = []
+
+    def get(self, request):
+        from .warmup import models_are_warm
+
+        ready = models_are_warm()
+        return success_response(
+            {'ready': ready},
+            message='AI models ready' if ready else 'AI models loading...'
+        )
+
+
 class WarmupModelsView(APIView):
     """Preload YOLO models so Detect returns in <3s. Call when opening AI Detection."""
     permission_classes = [IsAuthenticated, IsPoliceOrAdmin]

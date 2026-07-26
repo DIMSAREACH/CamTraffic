@@ -10,6 +10,7 @@ from .views import (
     DetectionLogReviewView,
     DetectionPageStatsView,
     DetectionWebcamView,
+    DetectionReadyView,
     KhmerTTSView,
     ProcessFrameView,
     WarmupModelsView,
@@ -23,6 +24,8 @@ from .ocr_training_views import (
 from .metrics_views import PublishedModelMetricsView
 
 urlpatterns = [
+    # Health check (no auth required)
+    path('ready/', DetectionReadyView.as_view(), name='ai-ready'),
     # Legacy / operational routes
     path('detect/', DetectSignView.as_view(), name='ai-detect'),
     path('detect-video/', DetectVideoView.as_view(), name='ai-detect-video'),

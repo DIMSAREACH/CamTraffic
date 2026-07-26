@@ -1,5 +1,5 @@
 """
-Django management command to batch process all images/videos in database.
+Django management command to batch process all images in database.
 Detects vehicles, plates, and signs for all unprocessed or incomplete records.
 
 Usage:
@@ -8,17 +8,18 @@ Usage:
 Options:
     --reprocess: Reprocess all records even if already detected
     --limit N: Process only N records
-    --source TYPE: Process only specific source (upload, camera, webcam)
 """
 import logging
+import tempfile
+import urllib.request
 from pathlib import Path
 
 from django.core.management.base import BaseCommand
 from django.db.models import Q
+from django.conf import settings
 
 from ai_detection.models import AIDetectionLog
 from ai_detection.pipeline import run_detection_pipeline
-from ai_detection.services import process_video_file
 
 logger = logging.getLogger(__name__)
 
@@ -38,25 +39,10 @@ class Command(BaseCommand):
             default=None,
             help='Limit number of records to process',
         )
-        parser.add_argument(
-            '--source',
-            type=str,
-            default=None,
-            choices=['upload', 'camera', 'webcam', 'video'],
-            help='Process only specific source type',
-        )
-        parser.add_argument(
-            '--confidence',
-            type=float,
-            default=0.35,
-            help='Minimum confidence threshold',
-        )
 
     def handle(self, *args, **options):
         reprocess = options['reprocess']
         limit = options['limit']
-        source = options['source']
-        confidence = options['confidence']
 
         self.stdout.write(self.style.SUCCESS('🚀 Starting batch detection processing...'))
         
@@ -72,11 +58,10 @@ class Command(BaseCommand):
                 Q(detected_vehicles__isnull=True)
             )
         
-        if source:
-            query &= Q(source=source)
-        
-        # Get detection logs
-        logs = AIDetectionLog.objects.filter(query).order_by('-created_at')
+        # Get detection logs with uploaded images
+        logs = AIDetectionLog.objects.filter(query).filter(
+            uploaded_image__isnull=False
+        ).exclude(uploaded_image='').order_by('-created_at')
         
         if limit:
             logs = logs[:limit]
@@ -95,93 +80,96 @@ class Command(BaseCommand):
         skipped = 0
         
         for idx, log in enumerate(logs, 1):
+            temp_file = None
             try:
                 self.stdout.write(f'\n[{idx}/{total}] Processing {log.id}...')
                 
-                # Get file path
-                if log.uploaded_video:
-                    file_path = log.uploaded_video.path
-                    self.stdout.write(f'  📹 Video: {Path(file_path).name}')
-                    
-                    # Process video
-                    result = process_video_file(
-                        str(file_path),
-                        output_dir=None,
-                        skip_frames=5,  # Process every 5th frame for speed
-                    )
-                    
-                    if result:
-                        processed += 1
-                        self.stdout.write(self.style.SUCCESS(f'  ✓ Video processed: {result.get("frames_processed", 0)} frames'))
-                    else:
-                        errors += 1
-                        self.stdout.write(self.style.ERROR('  ✗ Video processing failed'))
-                
-                elif log.uploaded_image:
+                # Get file - download from S3 if needed
+                try:
                     file_path = log.uploaded_image.path
-                    self.stdout.write(f'  🖼️  Image: {Path(file_path).name}')
-                    
-                    # Run detection pipeline
-                    result = run_detection_pipeline(
-                        str(file_path),
-                        original_filename=Path(file_path).name,
-                        live_fast=False,
-                        enable_ocr=True,
-                        enable_plate=True,
-                    )
-                    
-                    if result:
-                        # Update log with results
-                        vehicles = result.get('vehicles', [])
-                        signs = result.get('signs', [])
-                        plate = result.get('plate_result', {})
+                except (NotImplementedError, AttributeError):
+                    # File is on S3 - download it
+                    try:
+                        file_url = log.uploaded_image.url
                         
-                        log.vehicle_count = len(vehicles)
-                        log.sign_count = len(signs)
-                        log.detected_vehicles = vehicles
-                        log.detected_signs = signs
+                        self.stdout.write(f'  📥 Downloading: {Path(log.uploaded_image.name).name}')
                         
-                        if plate and plate.get('plate_text'):
-                            log.plate_detected = plate['plate_text']
-                            log.plate_confidence = plate.get('plate_confidence', 0)
-                        
-                        # Save vehicle/plate evidence if available
-                        if result.get('vehicle_snapshot_path'):
-                            from django.core.files import File
-                            with open(result['vehicle_snapshot_path'], 'rb') as f:
-                                log.vehicle_snapshot.save(
-                                    f'vehicle_{log.id}.jpg',
-                                    File(f),
-                                    save=False
-                                )
-                        
-                        if result.get('plate_snapshot_path'):
-                            from django.core.files import File
-                            with open(result['plate_snapshot_path'], 'rb') as f:
-                                log.plate_snapshot.save(
-                                    f'plate_{log.id}.jpg',
-                                    File(f),
-                                    save=False
-                                )
-                        
-                        log.save()
-                        
-                        processed += 1
-                        self.stdout.write(self.style.SUCCESS(
-                            f'  ✓ Detected: {len(vehicles)} vehicles, {len(signs)} signs, plate: {plate.get("plate_text", "none")}'
-                        ))
-                    else:
-                        errors += 1
-                        self.stdout.write(self.style.ERROR('  ✗ Detection failed'))
+                        # Download to temp file
+                        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.jpg')
+                        req = urllib.request.Request(file_url, headers={'User-Agent': 'CamTraffic/1.0'})
+                        with urllib.request.urlopen(req, timeout=30) as response:
+                            temp_file.write(response.read())
+                        temp_file.close()
+                        file_path = temp_file.name
+                    except Exception as e:
+                        self.stdout.write(self.style.WARNING(f'  ⊘ Download failed: {e}'))
+                        skipped += 1
+                        continue
                 
+                self.stdout.write(f'  🖼️  Image: {Path(log.uploaded_image.name).name}')
+                
+                # Run detection pipeline
+                result = run_detection_pipeline(
+                    file_path,
+                    original_filename=Path(log.uploaded_image.name).name,
+                    live_fast=False,
+                    enable_ocr=True,
+                    enable_plate=True,
+                )
+                
+                if result:
+                    # Update log with results
+                    vehicles = result.get('vehicles', [])
+                    plate = result.get('plate_result', {})
+                    
+                    log.vehicle_count = len(vehicles)
+                    log.detected_vehicles = vehicles
+                    
+                    if plate and plate.get('plate_text'):
+                        log.detected_plate = plate['plate_text']
+                        log.plate_confidence = plate.get('plate_confidence', 0)
+                    
+                    # Save vehicle/plate evidence if available
+                    if result.get('vehicle_snapshot_path'):
+                        from django.core.files import File
+                        with open(result['vehicle_snapshot_path'], 'rb') as f:
+                            log.vehicle_snapshot.save(
+                                f'vehicle_{log.id}.jpg',
+                                File(f),
+                                save=False
+                            )
+                    
+                    if result.get('plate_snapshot_path'):
+                        from django.core.files import File
+                        with open(result['plate_snapshot_path'], 'rb') as f:
+                            log.plate_snapshot.save(
+                                f'plate_{log.id}.jpg',
+                                File(f),
+                                save=False
+                            )
+                    
+                    log.save()
+                    
+                    processed += 1
+                    self.stdout.write(self.style.SUCCESS(
+                        f'  ✓ Detected: {len(vehicles)} vehicles, plate: {plate.get("plate_text", "none")}'
+                    ))
                 else:
-                    skipped += 1
-                    self.stdout.write(self.style.WARNING('  ⊘ No image/video file'))
+                    errors += 1
+                    self.stdout.write(self.style.ERROR('  ✗ Detection failed'))
             
             except Exception as exc:
                 errors += 1
                 self.stdout.write(self.style.ERROR(f'  ✗ Error: {exc}'))
                 logger.exception('Batch detection error for log %s', log.id)
+            
+            finally:
+                # Cleanup temp file
+                if temp_file:
+                    try:
+                        Path(temp_file.name).unlink(missing_ok=True)
+                    except:
+                        pass
         
         # Summary
         self.stdout.write('\n' + '=' * 60)

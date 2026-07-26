@@ -82,7 +82,7 @@ class Command(BaseCommand):
                 self.stdout.write(f'  🔗 URL: {frame_url[:50]}...')
                 
                 # Capture frame
-                frame_path, filename = capture_frame_from_url(frame_url, camera.code)
+                frame_path, filename = capture_frame_from_url(frame_url)
                 
                 if not frame_path or not Path(frame_path).exists():
                     self.stdout.write(self.style.ERROR('  ✗ Frame capture failed'))
@@ -95,7 +95,6 @@ class Command(BaseCommand):
                 result = run_detection_pipeline(
                     frame_path,
                     original_filename=filename,
-                    camera_id=str(camera.id),
                     live_fast=True,
                     enable_ocr=True,
                     enable_plate=True,
