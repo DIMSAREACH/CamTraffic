@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Film, Hash, Printer, Save, FileSpreadsheet, FileText, Car, Target,
-  Download, Shield, Signpost, Search, Eye, Square, Play, Pause, Plus, Cpu,
+  Download, Shield, Signpost, Search, Eye, Square, Play, Pause, Plus, Cpu, Activity,
 } from 'lucide-react';
 import type { CenterDetectionResult } from '@shared/components/ai/center/DetectionCenterResultsPanel';
 import { AnnotatedDetectionImage } from '@shared/components/ai/center/AnnotatedDetectionImage';
