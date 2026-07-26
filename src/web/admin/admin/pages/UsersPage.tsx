@@ -110,6 +110,7 @@ export function UsersPage() {
   const isProtectedAdmin = (u: User) => u.role === 'admin' && !isSuperAdmin;
   const cannotDeleteUser = (u: User) => isSelf(u) || isProtectedAdmin(u);
   const cannotToggleUser = (u: User) => isSelf(u) || isProtectedAdmin(u);
+  const cannotEditUser = (u: User) => isProtectedAdmin(u);
 
   const loadUsers = async () => {
     setLoading(true);
@@ -132,10 +133,10 @@ export function UsersPage() {
     if (search.trim()) {
       const q = search.toLowerCase();
       rows = rows.filter((u) =>
-        u.full_name.toLowerCase().includes(q)
-        || u.email.toLowerCase().includes(q)
+        (u.full_name ?? '').toLowerCase().includes(q)
+        || (u.email ?? '').toLowerCase().includes(q)
         || (u.license_no || '').toLowerCase().includes(q)
-        || u.phone.includes(q),
+        || (u.phone ?? '').toLowerCase().includes(q),
       );
     }
     return rows;
@@ -150,14 +151,27 @@ export function UsersPage() {
 
   const pagination = usePagination(filtered);
 
+  useEffect(() => {
+    pagination.setPage(1);
+  }, [search, roleFilter]); // eslint-disable-line react-hooks/exhaustive-deps -- reset page on filter only
+
   const roleLabel = (role: UserRole) => t(ROLE_META[role].labelKey);
 
   const openAdd = () => { setEditUser(null); setForm(emptyForm); setModalOpen(true); };
   const openEdit = (u: User) => {
+    if (cannotEditUser(u)) {
+      toast.error('Only a super administrator can edit other administrator accounts.');
+      return;
+    }
     setEditUser(u);
     setForm({
-      full_name: u.full_name, email: u.email, password: '', role: u.role,
-      phone: u.phone, address: u.address, license_no: u.license_no || '',
+      full_name: u.full_name ?? '',
+      email: u.email ?? '',
+      password: '',
+      role: u.role,
+      phone: u.phone ?? '',
+      address: u.address ?? '',
+      license_no: u.license_no || '',
     });
     setModalOpen(true);
   };
@@ -176,8 +190,12 @@ export function UsersPage() {
     try {
       if (editUser) {
         await usersAPI.update(editUser.id, {
-          full_name: form.full_name, email: form.email, role: form.role,
-          phone: form.phone, address: form.address, license_no: form.license_no || undefined,
+          full_name: form.full_name,
+          email: form.email,
+          role: form.role,
+          phone: form.phone,
+          address: form.address,
+          license_no: form.license_no.trim(),
         });
         toast.success('User updated');
       } else {
@@ -423,8 +441,11 @@ export function UsersPage() {
                           type="button"
                           className="users-page__action-btn users-page__action-btn--edit"
                           onClick={() => openEdit(u)}
+                          disabled={cannotEditUser(u)}
                           aria-label={t('common.edit')}
-                          title={t('common.edit')}
+                          title={cannotEditUser(u)
+                            ? 'Only a super administrator can edit other administrator accounts'
+                            : t('common.edit')}
                         >
                           <Pencil size={16} strokeWidth={2.35} />
                         </button>
@@ -525,16 +546,24 @@ export function UsersPage() {
             )}
             <div className="ct-dialog-field">
               <Label className="enforcement-page__form-label">{t('users.role')}</Label>
-              <Select value={form.role} onValueChange={(v) => setForm((f) => ({ ...f, role: v as UserRole }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {isSuperAdmin && (
-                    <SelectItem value="admin"><span className="flex items-center gap-2"><Shield size={14} /> {t('users.roleAdmin')}</span></SelectItem>
-                  )}
-                  <SelectItem value="police"><span className="flex items-center gap-2"><BadgeCheck size={14} /> {t('users.rolePolice')}</span></SelectItem>
-                  <SelectItem value="driver"><span className="flex items-center gap-2"><Car size={14} /> {t('users.roleDriver')}</span></SelectItem>
-                </SelectContent>
-              </Select>
+              {editUser?.role === 'admin' && !isSuperAdmin ? (
+                <Input value={roleLabel('admin')} disabled readOnly />
+              ) : (
+                <Select
+                  value={form.role}
+                  onValueChange={(v) => setForm((f) => ({ ...f, role: v as UserRole }))}
+                  disabled={Boolean(editUser && editUser.role === 'admin' && !isSuperAdmin)}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(isSuperAdmin || form.role === 'admin') && (
+                      <SelectItem value="admin"><span className="flex items-center gap-2"><Shield size={14} /> {t('users.roleAdmin')}</span></SelectItem>
+                    )}
+                    <SelectItem value="police"><span className="flex items-center gap-2"><BadgeCheck size={14} /> {t('users.rolePolice')}</span></SelectItem>
+                    <SelectItem value="driver"><span className="flex items-center gap-2"><Car size={14} /> {t('users.roleDriver')}</span></SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <div className="ct-dialog-field-grid">
               <div className="ct-dialog-field">

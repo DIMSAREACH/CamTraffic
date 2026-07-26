@@ -178,18 +178,23 @@ class AIDetectionLogSerializer(serializers.ModelSerializer):
         if sign_image:
             return api_media_url(request, sign_image)
 
-        if field:
-            return api_media_url(request, field)
+        # Orphaned upload path (missing on disk + R2) — empty avoids Vite/Django 404 spam.
         return ''
 
     def get_vehicle_snapshot(self, obj):
         if not obj.vehicle_snapshot:
+            return ''
+        name = getattr(obj.vehicle_snapshot, 'name', '') or ''
+        if name and not _local_media_exists(name):
             return ''
         request = self.context.get('request')
         return api_media_url(request, obj.vehicle_snapshot)
 
     def get_plate_snapshot(self, obj):
         if not obj.plate_snapshot:
+            return ''
+        name = getattr(obj.plate_snapshot, 'name', '') or ''
+        if name and not _local_media_exists(name):
             return ''
         request = self.context.get('request')
         return api_media_url(request, obj.plate_snapshot)

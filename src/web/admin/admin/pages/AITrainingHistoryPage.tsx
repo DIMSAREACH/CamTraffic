@@ -10,7 +10,6 @@ import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { aiModelsAPI } from '@shared/services/api';
 import { AIMlopsHero } from '@shared/components/admin/AIMlopsHero';
-import type { AIModelVersion } from '@shared/types';
 import {
   enrichAIModels,
   formatPct,
@@ -18,45 +17,6 @@ import {
   modelStatusLabel,
   type EnrichedAIModel,
 } from '@shared/utils/aiModelUi';
-
-const DEMO_MODELS: AIModelVersion[] = [
-  {
-    id: 'demo-v1',
-    version: 'v1.0',
-    model_file: 'runs/camtraffic-v1/weights/best.pt',
-    description: 'YOLOv11 Cambodian Traffic',
-    accuracy: 98.7,
-    is_active: true,
-    uploaded_at: new Date().toISOString(),
-  },
-  {
-    id: 'demo-v09',
-    version: 'v0.9',
-    model_file: 'runs/camtraffic-v09/weights/best.pt',
-    description: 'YOLOv11 Cambodian Traffic',
-    accuracy: 97.5,
-    is_active: false,
-    uploaded_at: new Date(Date.now() - 86400000 * 12).toISOString(),
-  },
-  {
-    id: 'demo-v08',
-    version: 'v0.8',
-    model_file: 'runs/combined/weights/best.pt',
-    description: 'YOLOv11 Combined Detection',
-    accuracy: 96.2,
-    is_active: false,
-    uploaded_at: new Date(Date.now() - 86400000 * 28).toISOString(),
-  },
-  {
-    id: 'demo-d10',
-    version: 'dataset10-n',
-    model_file: 'best.pt',
-    description: 'YOLOv11 Dataset-10 Nano',
-    accuracy: 99.1,
-    is_active: false,
-    uploaded_at: new Date(Date.now() - 86400000 * 45).toISOString(),
-  },
-];
 
 export function AITrainingHistoryPage() {
   const { t } = useLanguage();

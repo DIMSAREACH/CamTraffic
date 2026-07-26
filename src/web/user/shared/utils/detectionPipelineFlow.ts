@@ -166,12 +166,14 @@ export async function animatePipelineToComplete(
   isCancelled: () => boolean,
 ): Promise<void> {
   const targets = PIPELINE_PROGRESS_TARGETS.filter((t) => t > fromProgress);
-  const tickMs = 70;
+  const tickMs = 40;
   let current = fromProgress;
+  // Keep finish animation snappy even if callers pass a large dwell.
+  const dwell = Math.min(280, Math.max(80, stepMs));
 
   for (const target of targets) {
     if (isCancelled()) return;
-    const frames = Math.max(1, Math.ceil(stepMs / tickMs));
+    const frames = Math.max(1, Math.ceil(dwell / tickMs));
     for (let i = 1; i <= frames; i++) {
       if (isCancelled()) return;
       const p = current + ((target - current) * i) / frames;
@@ -179,7 +181,7 @@ export async function animatePipelineToComplete(
       await sleep(tickMs);
     }
     current = target;
-    await sleep(Math.round(stepMs * 0.65));
+    await sleep(Math.round(dwell * 0.25));
   }
 }
 

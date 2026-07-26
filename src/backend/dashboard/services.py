@@ -161,6 +161,20 @@ def get_admin_stats(request=None):
         stats['top_locations'] = []
         stats['recent_activity'] = []
 
+    try:
+        stats['vehicle_type_distribution'] = [
+            {
+                'name': (row['vehicle_type'] or 'unknown').replace('-', ' ').title(),
+                'value': row['count'],
+            }
+            for row in Vehicle.objects.values('vehicle_type')
+            .annotate(count=Count('id'))
+            .order_by('-count')
+            if row['count']
+        ]
+    except Exception:
+        stats['vehicle_type_distribution'] = []
+
     return stats
 
 

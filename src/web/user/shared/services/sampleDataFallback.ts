@@ -1,8 +1,9 @@
 /**
  * Demo sample data when the live API returns empty lists or zero dashboard stats.
- * Only active when VITE_USE_SAMPLE_FALLBACK=true in development (see shared/config/dataMode.ts).
+ * Only active when VITE_USE_SAMPLE_FALLBACK=true in development (never on /citizen).
+ * See shared/config/dataMode.ts — allowSampleFallback().
  */
-import { USE_SAMPLE_FALLBACK } from '@shared/config/dataMode';
+import { allowSampleFallback } from '@shared/config/dataMode';
 import catalog from '@shared/data/traffic_sign_catalog_10.json';
 import { mergePageStatsWithDefaults } from '@shared/constants/defaultPageStats';
 import type {
@@ -56,13 +57,13 @@ const CATALOG_CATEGORY: Record<string, SignCategory> = {
 };
 
 export function withListFallback<T>(live: T[], sample: T[]): T[] {
-  if (!USE_SAMPLE_FALLBACK) return live;
+  if (!allowSampleFallback()) return live;
   return live.length > 0 ? live : sample;
 }
 
 /** Cohesive demo dataset for registered drivers (UUID ids) and empty API responses. */
-export const DEMO_DRIVER_LABEL = 'Demo Driver';
-export const DEMO_DRIVER_LICENSE = 'DRV-DEMO-001';
+export const DEMO_DRIVER_LABEL = 'Kosal Pich';
+export const DEMO_DRIVER_LICENSE = 'DL-KH-2024-001234';
 
 export const DEMO_DRIVER_FINES: Fine[] = [
   { id: '1001', driver_id: '4', driver_name: DEMO_DRIVER_LABEL, driver_license: DEMO_DRIVER_LICENSE, police_id: 2, police_name: 'Dara Chan', amount: 100, reason: 'Speeding (80km/h in 60km/h zone)', status: 'pending', location: 'Russian Blvd, Phnom Penh', vehicle_plate: '2AK 7788', created_at: '2026-06-15T14:20:00Z' },
@@ -343,7 +344,7 @@ export const SAMPLE_VIOLATION_RULES: ViolationRule[] = [
 ];
 
 export function getSampleEvidenceArchive(): EvidenceArchiveItem[] {
-  if (!USE_SAMPLE_FALLBACK) return [];
+  if (!allowSampleFallback()) return [];
   return [
     {
       id: 'sample-det-1',
@@ -522,13 +523,13 @@ function hasChartSeries<T extends { count?: number }>(rows: T[] | undefined): bo
 }
 
 export function getSampleAdminDashboard(): DashboardStats {
-  if (!USE_SAMPLE_FALLBACK) return { ...EMPTY_DASHBOARD_STATS };
+  if (!allowSampleFallback()) return { ...EMPTY_DASHBOARD_STATS };
   return { ...mockDashboardStats };
 }
 
 /** Fill demo dashboard when enforcement data is missing; patch empty chart series otherwise. */
 export function mergeDashboardStats(live: DashboardStats): DashboardStats {
-  if (!USE_SAMPLE_FALLBACK) return live;
+  if (!allowSampleFallback()) return live;
   const sample = getSampleAdminDashboard();
 
   if (!hasEnforcementData(live)) {
@@ -588,12 +589,12 @@ export type PoliceDashboardStats = {
 };
 
 export function getSampleDriverStats(driverId: string | number = 4): DriverDashboardStats {
-  if (!USE_SAMPLE_FALLBACK) return { ...EMPTY_DRIVER_STATS };
+  if (!allowSampleFallback()) return { ...EMPTY_DRIVER_STATS };
   return sampleDriverStats(driverId);
 }
 
 export function getSamplePoliceStats(policeId: string | number = 2): PoliceDashboardStats {
-  if (!USE_SAMPLE_FALLBACK) return { ...EMPTY_POLICE_STATS };
+  if (!allowSampleFallback()) return { ...EMPTY_POLICE_STATS };
   return samplePoliceStats(policeId);
 }
 
@@ -624,7 +625,7 @@ function samplePoliceStats(policeId: string | number): PoliceDashboardStats {
 }
 
 export function mergeDriverStats(live: DriverDashboardStats, driverId: string | number): DriverDashboardStats {
-  if (!USE_SAMPLE_FALLBACK) return live;
+  if (!allowSampleFallback()) return live;
   const sample = sampleDriverStats(driverId);
   const empty = live.total_fines === 0
     && live.vehicles === 0
@@ -643,7 +644,7 @@ export function mergeDriverStats(live: DriverDashboardStats, driverId: string | 
 }
 
 export function mergePoliceStats(live: PoliceDashboardStats, policeId: string | number): PoliceDashboardStats {
-  if (!USE_SAMPLE_FALLBACK) return live;
+  if (!allowSampleFallback()) return live;
   const empty = live.total_issued === 0 && !live.recent?.length;
   if (empty) return samplePoliceStats(policeId);
   const sample = samplePoliceStats(policeId);
@@ -682,7 +683,7 @@ export function sampleNotificationsForUser(userId: string | number): Notificatio
 }
 
 export function mergeProfileOverview(live: ProfileOverview): ProfileOverview {
-  if (!USE_SAMPLE_FALLBACK) return live;
+  if (!allowSampleFallback()) return live;
   if (live.activity.length > 0) return live;
   const now = new Date().toISOString();
   return {

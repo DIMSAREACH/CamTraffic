@@ -90,6 +90,13 @@ export function ViolationsPage() {
   };
 
   const [violations, setViolations] = useState<TrafficViolation[]>([]);
+  const [apiCounts, setApiCounts] = useState<{
+    all: number;
+    pending_review: number;
+    confirmed: number;
+    rejected: number;
+    draft: number;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusTab>('all');
@@ -127,8 +134,28 @@ export function ViolationsPage() {
     if (!user) return;
     if (!silent) setLoading(true);
     try {
-      const data = await violationsAPI.getAll();
+      const [data, stats] = await Promise.all([
+        violationsAPI.getAll(),
+        violationsAPI.getStats().catch(() => null),
+      ]);
       setViolations(data);
+      if (stats && typeof stats === 'object') {
+        const s = stats as {
+          total_violations?: number;
+          pending_review?: number;
+          confirmed?: number;
+          rejected?: number;
+        };
+        setApiCounts({
+          all: s.total_violations ?? data.length,
+          pending_review: s.pending_review ?? 0,
+          confirmed: s.confirmed ?? 0,
+          rejected: s.rejected ?? 0,
+          draft: data.filter((v) => v.status === 'draft').length,
+        });
+      } else {
+        setApiCounts(null);
+      }
     } catch {
       if (!silent) toast.error(t('violations.toastLoadFail'));
     } finally {
@@ -170,12 +197,12 @@ export function ViolationsPage() {
   const pagination = usePagination(filtered);
 
   const counts = useMemo(() => ({
-    all: violations.length,
-    pending_review: violations.filter((v) => v.status === 'pending_review').length,
-    confirmed: violations.filter((v) => v.status === 'confirmed').length,
-    rejected: violations.filter((v) => v.status === 'rejected').length,
-    draft: violations.filter((v) => v.status === 'draft').length,
-  }), [violations]);
+    all: apiCounts?.all ?? violations.length,
+    pending_review: apiCounts?.pending_review ?? violations.filter((v) => v.status === 'pending_review').length,
+    confirmed: apiCounts?.confirmed ?? violations.filter((v) => v.status === 'confirmed').length,
+    rejected: apiCounts?.rejected ?? violations.filter((v) => v.status === 'rejected').length,
+    draft: apiCounts?.draft ?? violations.filter((v) => v.status === 'draft').length,
+  }), [apiCounts, violations]);
 
   const statusLabel = (status: string) => t(`violations.status.${status}`);
   const getStatusMeta = (status: string) => STATUS_STYLE[status] ?? STATUS_STYLE.draft;

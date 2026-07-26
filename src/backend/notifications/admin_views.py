@@ -11,21 +11,13 @@ from core.responses import error_response, success_response
 
 from .models import Notification
 from .serializers import NotificationSerializer
-from .services import dispatch_notification
+from .channel_dispatch import broadcast_to_role, channel_status
 
 User = get_user_model()
 
-ROLE_MAP = {
-    'driver': 'driver',
-    'officer': 'police',
-    'police': 'police',
-    'admin': 'admin',
-    'all': None,
-}
-
 
 class AdminNotificationBroadcastView(APIView):
-    """POST /api/notifications/admin/broadcast/ — create in-app notifications for a role group."""
+    """POST /api/notifications/admin/broadcast/ — multi-channel when providers configured."""
 
     permission_classes = [IsAuthenticated, IsAdmin]
 
@@ -45,39 +37,19 @@ class AdminNotificationBroadcastView(APIView):
         if notif_type not in dict(Notification.TYPE_CHOICES):
             notif_type = 'system'
 
-        role = ROLE_MAP.get(recipient, None if recipient == 'all' else recipient)
-        qs = User.objects.filter(is_active=True)
-        if role:
-            qs = qs.filter(role=role)
-
-        users = list(qs[:2000])
-        if not users:
+        out = broadcast_to_role(
+            title=title,
+            message=message,
+            notification_type=notif_type,
+            recipient=recipient,
+            channels=channels,
+        )
+        if out.get('created', 0) == 0 and not out.get('channel_status', {}).get('system'):
             return error_response('No active users match recipient filter', status_code=404)
 
-        # In-app channel is always written; other channels are best-effort (push/SMS if configured)
-        created = 0
-        for user in users:
-            if dispatch_notification(user, title, message, notif_type, async_dispatch=False):
-                created += 1
-
-        push_attempted = 'push' in channels
-        sms_attempted = 'sms' in channels
-        email_attempted = 'email' in channels
-
         return success_response(
-            {
-                'created': created,
-                'recipient': recipient,
-                'channels': channels,
-                'push_attempted': push_attempted,
-                'sms_attempted': sms_attempted,
-                'email_attempted': email_attempted,
-                'note': (
-                    'In-app notifications created. '
-                    'Push/SMS/email require configured providers (FCM/Twilio/SMTP).'
-                ),
-            },
-            message=f'Sent {created} in-app notification(s)',
+            out,
+            message=f"Sent {out.get('created', 0)} in-app notification(s)",
         )
 
 

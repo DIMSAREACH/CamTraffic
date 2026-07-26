@@ -58,8 +58,16 @@ export function ImageUploadPanel({
     setDetecting(true);
     onDetectingChange(true);
     try {
+      // Warm models first so Detect stays under ~3s (skips ~30s cold load).
+      await aiAPI.warmup().catch(() => undefined);
       const jpeg = await convertImageToJpeg(file);
-      const result = await aiAPI.detect(jpeg, buildDemoViolationOptions(demoObservedAction));
+      const result = await aiAPI.detect(jpeg, {
+        ...buildDemoViolationOptions(demoObservedAction),
+        // Fast path + OCR so OCR Result shows plate number and province.
+        full_frame: true,
+        live_fast: true,
+        enable_ocr: true,
+      });
       onResult(result as CenterDetectionResult, preview || '');
       toast.success(t('aiCenter.detectSuccess'));
       const evalResult = (result as CenterDetectionResult).violation_evaluation;

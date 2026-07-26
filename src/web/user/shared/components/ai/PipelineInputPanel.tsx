@@ -8,6 +8,7 @@ import { useLanguage } from '@shared/context/LanguageContext';
 import type { DetectPipelineOptions } from '@shared/constants/observedActions';
 import type { WebcamDetectionResult } from '@shared/hooks/useWebcamDetection';
 import { DEFAULT_PAGE_STATS, resolveSampleSignImage } from '@shared/constants/defaultPageStats';
+import { USE_SAMPLE_FALLBACK } from '@shared/config/dataMode';
 import { signDisplayNames } from '@shared/utils/signDisplayNames';
 import type { AIDetectionPageStats, AIDetectionSampleSign } from '@shared/types';
 
@@ -70,7 +71,7 @@ export function PipelineInputPanel({
   const { t } = useLanguage();
   const demoSigns = (pageStats?.sample_signs?.length
     ? pageStats.sample_signs
-    : DEFAULT_PAGE_STATS.sample_signs).slice(0, 10);
+    : (USE_SAMPLE_FALLBACK ? DEFAULT_PAGE_STATS.sample_signs : [])).slice(0, 10);
   const showDemoSkeleton = loadingStats && demoSigns.length === 0;
 
   return (

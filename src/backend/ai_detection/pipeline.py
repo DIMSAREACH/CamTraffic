@@ -5,16 +5,20 @@ from __future__ import annotations
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 from django.conf import settings
 
 from .plate_ocr import plate_ocr_enabled, recognize_plate
 from .result_compose import VEHICLE_LABELS_KM, compose_detection_payload
 from .services import _is_live_capture_filename, detect_traffic_sign
-from .vehicle_detection import detect_vehicles, vehicle_detection_enabled
+from .vehicle_detection import detect_vehicles, refine_vehicles_with_plate, vehicle_detection_enabled
 from .vehicle_tracking import track_vehicles, vehicle_tracking_enabled
 
 logger = logging.getLogger(__name__)
+
+# Performance optimization: cache for frequently accessed settings
+_SETTINGS_CACHE = {}
 
 PIPELINE_STEP_IDS = (
     'upload',
@@ -330,6 +334,7 @@ def run_detection_pipeline(
     live_fast: bool = False,
     unified_prep: bool = False,
     enable_ocr: bool = True,
+    enable_plate: bool = True,
 ) -> dict:
     """
     Execute pipeline in order: vehicle → plate region → OCR → sign (parallel metadata).
@@ -382,7 +387,14 @@ def run_detection_pipeline(
         if live_capture and track_session and vehicle_tracking_enabled():
             return track_vehicles(detect_path, track_session)
         if vehicle_detection_enabled():
-            return detect_vehicles(detect_path)
+            from django.conf import settings as dj_settings
+
+            vehicle_imgsz = None
+            fast_mode = False
+            if live_fast:
+                vehicle_imgsz = int(getattr(dj_settings, 'AI_LIVE_IMGSZ', 320))
+                fast_mode = True
+            return detect_vehicles(detect_path, imgsz=vehicle_imgsz, fast_mode=fast_mode)
         return []
 
     if sign_only:
@@ -396,10 +408,17 @@ def run_detection_pipeline(
             vehicle_future = pool.submit(_run_vehicle_detection)
             sign_result = sign_future.result()
             vehicles = vehicle_future.result()
-        if enable_ocr and plate_ocr_enabled():
-            plate_result = recognize_plate(detect_path, vehicles)
-        else:
-            plate_result = _plate_boxes_without_ocr(detect_path, vehicles)
+        if enable_plate:
+            if enable_ocr and plate_ocr_enabled():
+                plate_result = recognize_plate(detect_path, vehicles)
+            else:
+                plate_result = _plate_boxes_without_ocr(detect_path, vehicles)
+            plate_bbox = plate_result.get('plate_bbox')
+            if not plate_bbox:
+                boxes = plate_result.get('plate_boxes') or []
+                if boxes and boxes[0].get('bbox'):
+                    plate_bbox = boxes[0]['bbox']
+            vehicles = refine_vehicles_with_plate(vehicles, plate_bbox)
     sign_result['processing_time'] = round(time.perf_counter() - started, 3)
 
     payload = compose_detection_payload(sign_result, vehicles, plate_result)

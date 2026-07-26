@@ -12,6 +12,16 @@ from .models import TrafficViolation, ViolationRule
 DEFAULT_RULES: list[dict] = [
     # Amounts stored in USD; UI displays KHR (×4100). Values approximate Cambodia Land Traffic Law schedule for thesis.
     {
+        'sign_class_key': 'NO_ENTRY',
+        'prohibited_action': 'ENTER',
+        'violation_type': 'NO_ENTRY',
+        'title': 'No Entry Violation',
+        'description': 'Vehicle entered a road where No Entry is posted (Cambodia traffic law).',
+        'default_fine_amount': Decimal('15.00'),  # ≈ 61,500 KHR
+        'demerit_points': 3,
+        'legal_reference': 'Land Traffic Law — prohibited entry',
+    },
+    {
         'sign_class_key': 'NO_LEFT_TURN',
         'prohibited_action': 'LEFT_TURN',
         'violation_type': 'ILLEGAL_LEFT_TURN',

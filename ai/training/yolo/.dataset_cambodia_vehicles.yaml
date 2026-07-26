@@ -1,0 +1,11 @@
+path: D:/Year4/Project Thesis/Expert System/Project/CamTraffic/ai/datasets/splits/cambodia_traffic_vehicles
+train: train/images
+val: valid/images
+test: test/images
+nc: 5
+names:
+  0: Bus
+  1: Car
+  2: Moto
+  3: Truck
+  4: Tuk Tuk

@@ -160,21 +160,44 @@ def draw_detection_overlays_on_image(
             return None
         return x1, y1, x2, y2
 
+    def _expand_sign_face(x1: int, y1: int, x2: int, y2: int) -> tuple[int, int, int, int]:
+        """Grow text-tight sign boxes into a near-square face around the center."""
+        bw, bh = max(1, x2 - x1), max(1, y2 - y1)
+        cx, cy = (x1 + x2) / 2.0, (y1 + y2) / 2.0
+        ratio = bw / bh
+        side = float(max(bw, bh))
+        if 0.72 <= ratio <= 1.35 and (bw * bh) >= (0.02 * w * h):
+            side *= 1.12
+        else:
+            side = min(max(bw, bh) * 1.65, max(bw, bh) * 2.4, 0.92 * min(w, h))
+        half = side / 2.0
+        nx1 = int(max(0, cx - half))
+        ny1 = int(max(0, cy - half))
+        nx2 = int(min(w, cx + half))
+        ny2 = int(min(h, cy + half))
+        return nx1, ny1, nx2, ny2
+
     for item in usable:
         kind = str(item.get('kind') or '').lower()
         coords = _ok_bbox(item.get('bbox') or {}, kind=kind)
         if not coords:
             continue
         x1, y1, x2, y2 = coords
+        if kind in ('sign', ''):
+            # Empty kind used by draw_yolo_bbox_on_image (sign path).
+            x1, y1, x2, y2 = _expand_sign_face(x1, y1, x2, y2)
         color = item.get('color') or (0, 165, 255)
         thickness = max(2, min(4 if kind == 'plate' else 3, w // 200))
         cv2.rectangle(img, (x1, y1), (x2, y2), color, thickness)
-        # Geometric center of the bbox (small filled dot).
+        # Geometric center of the (expanded) bbox — crosshair + filled target.
         cx = (x1 + x2) // 2
         cy = (y1 + y2) // 2
-        radius = max(3, min(7, min(x2 - x1, y2 - y1) // 18))
+        arm = max(8, min(28, min(x2 - x1, y2 - y1) // 5))
+        cv2.line(img, (cx - arm, cy), (cx + arm, cy), color, max(1, thickness - 1), cv2.LINE_AA)
+        cv2.line(img, (cx, cy - arm), (cx, cy + arm), color, max(1, thickness - 1), cv2.LINE_AA)
+        radius = max(4, min(9, min(x2 - x1, y2 - y1) // 16))
         cv2.circle(img, (cx, cy), radius, color, -1, cv2.LINE_AA)
-        cv2.circle(img, (cx, cy), radius, (255, 255, 255), 1, cv2.LINE_AA)
+        cv2.circle(img, (cx, cy), radius, (255, 255, 255), 2, cv2.LINE_AA)
         label = str(item.get('label') or '').strip()
         conf = float(item.get('confidence') or 0)
         if label:

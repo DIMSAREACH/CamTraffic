@@ -13,7 +13,7 @@ ALLOWED_VIDEO_EXTENSIONS = {'.mp4', '.webm', '.mov', '.avi', '.mkv', '.m4v'}
 # Keep in sync with frontend VideoUploadPanel MAX_VIDEO_MB (default 500).
 MAX_VIDEO_UPLOAD_MB = max(1, int(os.getenv('AI_VIDEO_MAX_MB', '500')))
 MAX_VIDEO_UPLOAD_BYTES = MAX_VIDEO_UPLOAD_MB * 1024 * 1024
-DEFAULT_VIDEO_MAX_FRAMES = max(2, min(24, int(os.getenv('AI_VIDEO_MAX_FRAMES', '12'))))
+DEFAULT_VIDEO_MAX_FRAMES = max(2, min(24, int(os.getenv('AI_VIDEO_MAX_FRAMES', '3'))))
 
 
 def extract_video_frames(video_path: str, max_frames: int = 12) -> list[tuple[str, float]]:

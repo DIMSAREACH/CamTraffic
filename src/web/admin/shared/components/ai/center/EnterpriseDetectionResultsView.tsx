@@ -45,6 +45,20 @@ function plateProvince(result: CenterDetectionResult, locale: string): string | 
   return result.plate_province_en || result.plate_province_km || null;
 }
 
+/** Prefer primary OCR plate; fall back to best raw EasyOCR read. */
+function resolveDetectedPlate(result: CenterDetectionResult): string {
+  const primary = String(result.detected_plate || '').trim();
+  if (primary) return primary;
+  const details = (result as CenterDetectionResult & {
+    plate_ocr_details?: Array<{ text?: string; confidence?: number; is_province_line?: boolean }>;
+  }).plate_ocr_details;
+  if (!Array.isArray(details) || !details.length) return '';
+  const ranked = [...details]
+    .filter((r) => r?.text && !r.is_province_line)
+    .sort((a, b) => Number(b.confidence ?? 0) - Number(a.confidence ?? 0));
+  return String(ranked[0]?.text || '').trim();
+}
+
 function statusLabel(status: DetectionObjectRow['status'], t: (k: string) => string) {
   if (status === 'ocr_success') return t('aiCenter.statusOk');
   if (status === 'detected') return t('aiCenter.statusOk');
@@ -116,26 +130,27 @@ export function EnterpriseDetectionResultsView({
 
   const signCount = objects.filter((o) => o.kind === 'sign').length;
   const vehicleCount = objects.filter((o) => o.kind === 'vehicle').length || (result.vehicles?.length ?? 0);
-  const plateCount = objects.filter((o) => o.kind === 'plate').length || (result.detected_plate ? 1 : 0);
+  const detectedPlate = resolveDetectedPlate(result);
+  const plateCount = objects.filter((o) => o.kind === 'plate').length || (detectedPlate ? 1 : 0);
   const pipelineVehicle = resolvePipelineVehicle(result, speechLocale);
   const province = plateProvince(result, locale);
   const hasViolation = Boolean(result.violation_evaluation?.is_violation);
   const violationRecord = result.violation;
 
-  // AI Confidence must reflect THIS scan — not historical page averages (zeros dilute those).
+  // AI Confidence must reflect THIS scan — prefer the strongest detection score.
   const scanConfidence = toPercentConfidence(result.display_confidence ?? result.confidence);
   const objectsConfidence = useMemo(() => {
     const scored = objects
       .map((o) => toPercentConfidence(o.confidence))
       .filter((c) => c > 0);
     if (!scored.length) return 0;
-    return scored.reduce((sum, c) => sum + c, 0) / scored.length;
+    return Math.max(...scored);
   }, [objects]);
-  const accuracy = scanConfidence > 0
-    ? scanConfidence
-    : objectsConfidence > 0
-      ? objectsConfidence
-      : toPercentConfidence(accuracyAvg);
+  const accuracy = Math.max(
+    scanConfidence,
+    objectsConfidence,
+    scanConfidence <= 0 && objectsConfidence <= 0 ? toPercentConfidence(accuracyAvg) : 0,
+  );
 
   const downloadImage = () => {
     if (!displaySrc) return;
@@ -199,13 +214,24 @@ export function EnterpriseDetectionResultsView({
     const classKey = String(result.class_key || result.sign_code || '').trim();
     const observedAction = String(result.violation_evaluation?.observed_action || '').trim();
     if (!classKey || !observedAction) {
-      toast.error(t('aiCenter.violationSaveFailed') || 'Unable to save violation: missing sign or action');
+      toast.error(
+        !observedAction
+          ? 'Select an Observed Action (e.g. ENTER for No Entry) before creating a violation'
+          : (t('aiCenter.violationSaveFailed') || 'Unable to save violation: missing sign or action'),
+      );
       return;
     }
 
-    // Validate required fields before sending
-    if (classKey.trim().length === 0 || observedAction.trim().length === 0) {
-      toast.error('Cannot create violation with empty class key or observed action');
+    const matchedDriver = Boolean(
+      result.matched_vehicle?.driver_id
+      || result.matched_vehicle?.id
+      || result.matched_vehicle_id,
+    );
+    const plate = detectedPlate || String(result.detected_plate || '').trim();
+    if (!matchedDriver && !plate) {
+      toast.error(
+        'No plate matched. Use car_with_plate_2A-1234.jpg (registered to demo driver), or open Unknown Vehicles / Violations queue.',
+      );
       return;
     }
 
@@ -216,7 +242,7 @@ export function EnterpriseDetectionResultsView({
         observed_action: observedAction.trim(),
         sign_code: result.sign_code || undefined,
         ai_detection_log_id: result.log_id != null ? String(result.log_id) : undefined,
-        plate_number: result.detected_plate || undefined,
+        plate_number: plate || undefined,
       });
       toast.success(t('aiCenter.violationSaved').replace('{id}', String(violation.id)));
       navigate(`${violationsBasePath}/violations`);
@@ -227,6 +253,12 @@ export function EnterpriseDetectionResultsView({
           t('aiCenter.violationNeedsDriver') !== 'aiCenter.violationNeedsDriver'
             ? t('aiCenter.violationNeedsDriver')
             : 'Match a registered plate (or open Unknown Vehicles) before creating a violation',
+        );
+      } else if (/no violation rule matched/i.test(message)) {
+        toast.error(
+          t('aiCenter.noViolationRule') !== 'aiCenter.noViolationRule'
+            ? t('aiCenter.noViolationRule')
+            : 'No violation rule matches this sign and observed action',
         );
       } else {
         toast.error(
@@ -243,7 +275,7 @@ export function EnterpriseDetectionResultsView({
     setDrawerOpen(true);
   };
 
-  const plateOcrSuccess = result.detected_plate && (result.plate_confidence ?? 0) > 0;
+  const plateOcrSuccess = Boolean(detectedPlate) && (result.plate_confidence ?? 0) > 0;
   const ocrConfidence = Number(result.plate_confidence ?? 0);
   const detectionTime = new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
   const gpsLocation = province || t('aiCenter.defaultLocation');
@@ -352,8 +384,8 @@ export function EnterpriseDetectionResultsView({
                 <div className="enterprise-ai-summary-tile__icon"><Hash size={16} /></div>
                 <div className="enterprise-ai-summary-tile__copy">
                   <span className="enterprise-ai-summary-tile__label">{t('aiCenter.summaryPlates')}</span>
-                  <strong className={cn('enterprise-ai-summary-tile__value', result.detected_plate && 'is-mono')}>
-                    {result.detected_plate || '—'}
+                  <strong className={cn('enterprise-ai-summary-tile__value', detectedPlate && 'is-mono')}>
+                    {detectedPlate || '—'}
                   </strong>
                 </div>
               </div>
@@ -404,7 +436,7 @@ export function EnterpriseDetectionResultsView({
         <dl className="enterprise-ai-ocr-grid">
           <div>
             <dt>{t('aiCenter.plateNumber')}</dt>
-            <dd>{result.detected_plate || '—'}</dd>
+            <dd>{detectedPlate || '—'}</dd>
           </div>
           <div>
             <dt>{t('aiCenter.plateProvince')}</dt>
@@ -573,7 +605,7 @@ export function EnterpriseDetectionResultsView({
         onOpenChange={setDrawerOpen}
         imageSrc={displaySrc}
         cameraLabel={sourceLabel}
-        plateNumber={result.detected_plate}
+        plateNumber={detectedPlate || result.detected_plate}
         vehicleType={pipelineVehicle?.label || result.pipeline_vehicle?.vehicle_label_en}
         gpsLocation={gpsLocation}
       />

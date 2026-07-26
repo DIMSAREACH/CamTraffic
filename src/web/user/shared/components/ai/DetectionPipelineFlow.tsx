@@ -33,7 +33,7 @@ export const PIPELINE_ANIM = {
   /** Stagger when revealing all steps after completion */
   completeStagger: 0.05,
   /** Dwell per step while finishing pipeline after API returns */
-  stepFinishDwell: 1600,
+  stepFinishDwell: 220,
 } as const;
 
 export interface StepMeta {

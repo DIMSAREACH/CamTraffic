@@ -8,6 +8,10 @@ VEHICLE_LABELS_KM = {
 }
 
 
+def _top_vehicle(vehicles: list[dict]) -> dict:
+    return max(vehicles, key=lambda v: float(v.get('confidence') or 0))
+
+
 def _is_unknown_sign(sign_result: dict) -> bool:
     if sign_result.get('detection_mode') == 'no_sign':
         return True
@@ -31,16 +35,26 @@ def _apply_plate_fields(payload: dict, plate_result: dict | None) -> None:
         payload['plate_bbox'] = plate_result['plate_bbox']
     if plate_result.get('plate_boxes'):
         payload['plate_boxes'] = plate_result['plate_boxes']
+    if plate_result.get('plate_ocr_details') is None and plate_result.get('raw_reads'):
+        payload['plate_ocr_details'] = plate_result['raw_reads']
     if not plate_result.get('plate_text'):
         return
+    # History / partial payloads may lack province — re-derive from text + OCR reads.
+    if not plate_result.get('plate_province_en'):
+        from .plate_ocr import enrich_plate_result
+        enrich_plate_result(plate_result['plate_text'], plate_result)
     payload['detected_plate'] = plate_result['plate_text']
     payload['plate_confidence'] = float(plate_result.get('plate_confidence') or 0)
     payload['plate_type'] = plate_result.get('plate_type') or 'unknown'
-    payload['plate_ocr_details'] = plate_result.get('raw_reads') or []
+    payload['plate_ocr_details'] = plate_result.get('raw_reads') or plate_result.get('plate_ocr_details') or []
     if plate_result.get('plate_province_en'):
         payload['plate_province_code'] = plate_result.get('plate_province_code', '')
         payload['plate_province_en'] = plate_result['plate_province_en']
         payload['plate_province_km'] = plate_result.get('plate_province_km', '')
+        if plate_result.get('plate_province_source'):
+            payload['plate_province_source'] = plate_result['plate_province_source']
+        if plate_result.get('digit_province_mismatch'):
+            payload['digit_province_mismatch'] = True
     if plate_result.get('matched_vehicle'):
         payload['matched_vehicle'] = plate_result['matched_vehicle']
 
@@ -126,6 +140,36 @@ def compose_detection_payload(
     if sign_result.get('sign_present') is not None:
         payload['sign_present'] = bool(sign_result.get('sign_present'))
     if sign_result.get('detection_mode') == 'no_sign':
+        # Street photos often have vehicles but no catalog sign — surface the best vehicle match.
+        if vehicles:
+            top = _top_vehicle(vehicles)
+            vtype = top.get('vehicle_type', '')
+            label_en = top.get('label', 'Vehicle')
+            label_km = VEHICLE_LABELS_KM.get(vtype, label_en)
+            conf = float(top.get('confidence') or 0)
+            payload['detection_mode'] = 'vehicle'
+            payload['display_title'] = label_km
+            payload['display_title_en'] = label_en
+            payload['display_title_km'] = label_km
+            payload['display_confidence'] = conf
+            payload['description'] = (
+                f'មិនមានស្លាកចរាចរណ៍ក្នុងរូបនេះ។ រកឃើញ{label_km} '
+                f'({conf:.1f}% ភាពជឿជាក់)។'
+            )
+            payload['description_en'] = (
+                f'No traffic sign in this image. Detected {label_en} '
+                f'({conf:.1f}% confidence).'
+            )
+            payload['guidance'] = 'ទំព័រនេះរកឃើញស្លាកចរាចរណ៍ — សូមផ្ទុករូបផ្លាកដើម្បីស្គាល់ស្លាក។'
+            payload['guidance_en'] = (
+                'This page detects traffic signs — upload a sign photo for sign recognition.'
+            )
+            _apply_plate_fields(payload, plate_result)
+            _append_plate_description(payload, plate_result)
+            return payload
+        if plate_result and plate_result.get('plate_text'):
+            _compose_plate_mode(payload, plate_result)
+            return payload
         payload['detection_mode'] = 'no_sign'
         payload['display_title'] = sign_result.get('sign_name_km') or 'មិនមានស្លាក'
         payload['display_title_en'] = sign_result.get('sign_name_en') or 'No sign detected'
@@ -146,7 +190,7 @@ def compose_detection_payload(
             payload[key] = sign_result[key]
 
     if _is_unknown_sign(sign_result) and vehicles:
-        top = vehicles[0]
+        top = _top_vehicle(vehicles)
         vtype = top.get('vehicle_type', '')
         label_en = top.get('label', 'Vehicle')
         label_km = VEHICLE_LABELS_KM.get(vtype, label_en)

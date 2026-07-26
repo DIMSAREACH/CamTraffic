@@ -13,3 +13,8 @@ class YoloClassMappingTests(SimpleTestCase):
 
     def test_unknown_id_returns_none(self):
         self.assertIsNone(class_key_for_yolo_id(99))
+
+    def test_skips_map_for_non_thesis_models(self):
+        # 26-class best_b2_named: index 7 is KEEP_RIGHT, not speed-limit-50
+        self.assertIsNone(class_key_for_yolo_id(7, model_class_count=26))
+        self.assertEqual(class_key_for_yolo_id(7, model_class_count=10), 'P_SPEED_LIMIT_50_KM_H')

@@ -1,5 +1,6 @@
 import logging
 import os
+import threading
 
 from django.apps import AppConfig
 
@@ -11,8 +12,8 @@ class AiDetectionConfig(AppConfig):
     name = 'ai_detection'
 
     def ready(self):
-        # Preload YOLO + OCR + catalog index so the first detection/stats request is fast.
-        # Works with StatReloader (RUN_MAIN=true) and --noreload (no RUN_MAIN).
+        # Preload YOLO in a background thread so runserver accepts HTTP
+        # immediately (avoids ~40s "backend down" / Vite 503 on every reload).
         import sys
         cmd = sys.argv[1] if len(sys.argv) > 1 else ''
         _skip_cmds = {
@@ -32,31 +33,22 @@ class AiDetectionConfig(AppConfig):
 
             if not getattr(settings, 'AI_WARMUP_MODELS', True):
                 return
-            from .services import _get_sign_model
-            from .vehicle_detection import _get_vehicle_model, vehicle_detection_enabled
 
-            if _get_sign_model() is not None:
-                logger.info('AI sign model preloaded')
-            if vehicle_detection_enabled():
-                _get_vehicle_model()
-                logger.info('Vehicle model preloaded')
+            def _warm():
+                try:
+                    from .warmup import ensure_models_warm
 
-            from .plate_detection import plate_detect_enabled, _get_model as _get_plate_model
+                    result = ensure_models_warm(include_ocr=False)
+                    if result.get('warm'):
+                        logger.info(
+                            'AI detection models warmed (%.2fs)',
+                            float(result.get('elapsed_sec') or 0),
+                        )
+                    else:
+                        logger.warning('AI model warmup incomplete: %s', result.get('error'))
+                except Exception:
+                    logger.warning('AI model warmup skipped', exc_info=True)
 
-            if plate_detect_enabled():
-                _get_plate_model()
-                logger.info('Plate detector preloaded')
-
-            from .plate_ocr import plate_ocr_enabled, _get_reader
-
-            if plate_ocr_enabled():
-                _get_reader()
-                logger.info('EasyOCR reader preloaded')
-
-            if getattr(settings, 'AI_CATALOG_VISUAL_MATCH_ENABLED', True):
-                from .catalog_visual_match import warmup_catalog_visual_index
-
-                size = warmup_catalog_visual_index()
-                logger.info('Catalog visual index preloaded (%s refs)', size)
+            threading.Thread(target=_warm, name='ai-warmup', daemon=True).start()
         except Exception:
             logger.warning('AI model warmup skipped', exc_info=True)

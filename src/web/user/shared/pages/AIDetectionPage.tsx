@@ -13,6 +13,7 @@ import { DetectionThumb } from '@shared/components/ai/DetectionThumb';
 import { LiveWebcamPanel } from '@shared/components/ai/LiveWebcamPanel';
 import { DemoObservedActionSelect } from '@shared/components/ai/DemoObservedActionSelect';
 import type { DetectPipelineOptions } from '@shared/constants/observedActions';
+import { toDetectPipelineOptions } from '@shared/constants/observedActions';
 import {
   getStoredUserDetectionInputMode,
   setStoredUserDetectionInputMode,
@@ -34,7 +35,6 @@ import { aiAPI } from '@shared/services/api';
 import { convertImageToJpeg } from '@shared/utils/convertImageToJpeg';
 import { DetectionDisplayImage } from '@shared/components/ai/DetectionDisplayImage';
 import { PipelineInputPanel } from '@shared/components/ai/PipelineInputPanel';
-import { PIPELINE_ANIM } from '@shared/components/ai/DetectionPipelineFlow';
 import { DetectionPanelHeader, DetectionPanelBody } from '@shared/components/ai/DetectionPanelHeader';
 import { DETECTION_HEADER_GRADIENTS, DETECTION_HEADER_ICON_ACCENTS } from '@shared/components/ai/detectionHeaderGradients';
 import { PipelineStepProcessingPanel } from '@shared/components/ai/PipelineStepProcessingPanel';
@@ -43,9 +43,7 @@ import { stepProgressWithinActive } from '@shared/utils/detectionPipelineFlow';
 import type { FlowStepView } from '@shared/utils/detectionPipelineFlow';
 import {
   buildLoadingFlowSteps,
-  animatePipelineToComplete,
   resolveFlowStepsFromResult,
-  progressFromPipeline,
 } from '@shared/utils/detectionPipelineFlow';
 import type { DetectionFlowSource } from '@shared/utils/detectionPipelineFlow';
 import { detectionHero, heroSpeechText, heroTitleSpeech, logDisplay, logDisplayColor, isUsefulDetectionResult, normalizeDetectionSign } from '@shared/utils/detectionDisplay';
@@ -53,10 +51,12 @@ import { resolvePipelineVehicle } from '@shared/utils/pipelineVehicle';
 import { getProfileImageUrl, normalizeDetectionMedia } from '@shared/utils/profileImage';
 import { toast } from 'sonner';
 import {
+  EMPTY_PAGE_STATS,
   DEFAULT_PAGE_STATS,
   mergePageStatsWithDefaults,
   resolveSampleSignImage,
 } from '@shared/constants/defaultPageStats';
+import { USE_SAMPLE_FALLBACK } from '@shared/config/dataMode';
 import type { AIDetectionLog, AIDetectionPageStats, AIDetectionSampleSign, TrafficViolation } from '@shared/types';
 
 interface DetectionResult {
@@ -1161,7 +1161,7 @@ export function AIDetectionPage() {
   const [dragging, setDragging]   = useState(false);
   const [recentLogs, setRecentLogs]   = useState<AIDetectionLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(true);
-  const [pageStats, setPageStats] = useState<AIDetectionPageStats>(DEFAULT_PAGE_STATS);
+  const [pageStats, setPageStats] = useState<AIDetectionPageStats>(EMPTY_PAGE_STATS);
   const [loadingStats, setLoadingStats] = useState(true);
   const [statsError, setStatsError] = useState<string | null>(null);
   const [pipelineLive, setPipelineLive] = useState<DetectionFlowSource | null>(null);
@@ -1184,8 +1184,8 @@ export function AIDetectionPage() {
     stopProgressAnimation();
     setProgress(0);
     progressIvRef.current = setInterval(() => {
-      setProgress((p) => (p >= 16 ? 16 : p + 0.4 + Math.random() * 0.8));
-    }, 550);
+      setProgress((p) => (p >= 88 ? 88 : p + 4 + Math.random() * 6));
+    }, 120);
   }, [stopProgressAnimation]);
 
   useEffect(() => () => stopProgressAnimation(), [stopProgressAnimation]);
@@ -1228,7 +1228,7 @@ export function AIDetectionPage() {
       if (isAuthApiError(msg)) {
         setStatsError(null);
       } else if (statsResult.status === 'rejected') {
-        setPageStats(DEFAULT_PAGE_STATS);
+        setPageStats(USE_SAMPLE_FALLBACK ? DEFAULT_PAGE_STATS : EMPTY_PAGE_STATS);
         if (isBackendConnectivityError(msg)) {
           setStatsError(msg);
           toast.error(t('aiDetection.toast.statsUnavailable') || 'Cannot load AI stats — is the backend running on port 8000?');
@@ -1296,10 +1296,10 @@ export function AIDetectionPage() {
     };
   }, [inputMode]);
 
-  const detectPipelineOptions = useCallback((): DetectPipelineOptions => ({
-    observedAction: demoObservedAction || undefined,
-    demoViolation: !demoObservedAction,
-  }), [demoObservedAction]);
+  const detectPipelineOptions = useCallback(
+    (): DetectPipelineOptions => toDetectPipelineOptions(demoObservedAction),
+    [demoObservedAction],
+  );
 
   const runDetection = useCallback(async (targetFile?: File, catalogSignCode?: string) => {
     const f = targetFile ?? file;
@@ -1327,6 +1327,8 @@ export function AIDetectionPage() {
       const pipelineOpts = detectPipelineOptions();
       const res = await aiAPI.detect(uploadFile, {
         sign_only: false,
+        live_fast: true,
+        enable_ocr: false,
         catalog_sign_code: catalogSignCode,
         observed_action: pipelineOpts.observedAction,
         demo_violation: pipelineOpts.demoViolation ? true : undefined,
@@ -1335,21 +1337,10 @@ export function AIDetectionPage() {
 
       const normalized = normalizeDetectionMedia(res);
       setPipelineLive(normalized);
-      const jump = progressFromPipeline(normalized.pipeline);
-      setProgress((p) => Math.max(p, jump));
-      progressRef.current = Math.max(progressRef.current, jump);
-
       stopProgressAnimation();
-      await animatePipelineToComplete(
-        setProgress,
-        progressRef.current,
-        PIPELINE_ANIM.stepFinishDwell,
-        () => runId !== detectRunRef.current,
-      );
-      if (runId !== detectRunRef.current) return;
-
-      setDetecting(false);
+      // Show results immediately — no fake step-dwell after the API returns.
       setProgress(100);
+      setDetecting(false);
       setResult(normalizeDetectionSign(normalized));
       setPipelineLive(null);
 

@@ -1,9 +1,10 @@
-"""Capture a single frame from a camera HTTP snapshot, RTSP stream, or local demo path."""
+"""Capture a single frame from a camera HTTP snapshot, RTSP stream, or local demo path/video."""
 from __future__ import annotations
 
 import logging
 import shutil
 import tempfile
+import time
 import urllib.request
 from pathlib import Path
 
@@ -11,6 +12,8 @@ from django.conf import settings
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
+
+_VIDEO_SUFFIXES = {'.webm', '.mp4', '.avi', '.mov', '.mkv', '.m4v'}
 
 
 def _repo_root() -> Path:
@@ -73,6 +76,125 @@ def _absolute_http_url(url: str) -> str:
     return raw
 
 
+def _is_video_path(path: Path | str) -> bool:
+    return Path(str(path)).suffix.lower() in _VIDEO_SUFFIXES
+
+
+def _sample_frame_from_video(source: str | Path, dest_jpeg: str) -> bool:
+    """
+    Grab one JPEG frame from a local/remote video.
+    Rotates through the timeline so live detection sees different moments.
+    """
+    import cv2
+
+    cap = cv2.VideoCapture(str(source))
+    if not cap.isOpened():
+        logger.warning('Video open failed: %s', source)
+        return False
+
+    try:
+        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
+        fps = float(cap.get(cv2.CAP_PROP_FPS) or 0) or 25.0
+        if frame_count > 1:
+            # Advance ~1s of wall clock per second of video so successive captures move
+            idx = int(time.time() * max(1.0, fps * 0.35)) % frame_count
+            cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
+
+        ok, frame = cap.read()
+        if (not ok or frame is None) and frame_count > 1:
+            # Seek failed on some codecs — fall back to first readable frame
+            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            ok, frame = cap.read()
+        if not ok or frame is None:
+            return False
+        return bool(cv2.imwrite(dest_jpeg, frame))
+    finally:
+        cap.release()
+
+
+def capture_frame_from_url(
+    url: str,
+    *,
+    camera_id: str | None = None,
+    filename_hint: str = 'live-stream',
+) -> tuple[str | None, str | None]:
+    """
+    Grab one JPEG from HTTP(S) snapshot, RTSP/RTSPS, local media path, or video file/URL.
+    Returns (temp_jpeg_path, filename) or (None, None).
+    """
+    raw = (url or '').strip()
+    if not raw:
+        return None, None
+
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.jpg')
+    tmp_path = tmp.name
+    tmp.close()
+    safe_hint = ''.join(ch if ch.isalnum() or ch in '-_' else '-' for ch in filename_hint)[:48] or 'live'
+    fname = f'webcam-street-{safe_hint}.jpg'
+
+    from .stream_remote_client import capture_snapshot_via_gateway, stream_gateway_enabled
+
+    if stream_gateway_enabled() and raw.lower().startswith(('rtsp://', 'rtsps://', 'http://', 'https://')):
+        jpeg = capture_snapshot_via_gateway(str(camera_id or 'adhoc'), rtsp_url=raw)
+        if jpeg:
+            Path(tmp_path).write_bytes(jpeg)
+            return tmp_path, fname
+
+    try:
+        local = resolve_local_frame_path(raw)
+        if local is not None:
+            if _is_video_path(local):
+                if not _sample_frame_from_video(local, tmp_path):
+                    Path(tmp_path).unlink(missing_ok=True)
+                    return None, None
+            else:
+                shutil.copyfile(local, tmp_path)
+            return tmp_path, fname
+
+        fetch_url = _absolute_http_url(raw)
+        if fetch_url.lower().startswith(('rtsp://', 'rtsps://')):
+            import cv2
+
+            cap = cv2.VideoCapture(fetch_url)
+            if not cap.isOpened():
+                logger.warning('RTSP open failed for url=%s', fetch_url[:120])
+                Path(tmp_path).unlink(missing_ok=True)
+                return None, None
+            ok, frame = cap.read()
+            cap.release()
+            if not ok or frame is None:
+                Path(tmp_path).unlink(missing_ok=True)
+                return None, None
+            cv2.imwrite(tmp_path, frame)
+            return tmp_path, fname
+
+        if Path(fetch_url.split('?', 1)[0]).suffix.lower() in _VIDEO_SUFFIXES:
+            if not _sample_frame_from_video(fetch_url, tmp_path):
+                Path(tmp_path).unlink(missing_ok=True)
+                return None, None
+            return tmp_path, fname
+
+        if fetch_url.lower().startswith(('http://', 'https://')):
+            # Private LAN CCTV often offline in local/thesis setups — fail fast.
+            timeout = 3 if '192.168.' in fetch_url or '10.' in fetch_url else 15
+            req = urllib.request.Request(fetch_url, headers={'User-Agent': 'CamTraffic/1.0'})
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                data = resp.read()
+            if not data:
+                Path(tmp_path).unlink(missing_ok=True)
+                return None, None
+            Path(tmp_path).write_bytes(data)
+            return tmp_path, fname
+
+        logger.warning('Unsupported stream url: %s', raw[:160])
+        Path(tmp_path).unlink(missing_ok=True)
+        return None, None
+    except Exception:
+        logger.exception('Frame capture failed for url=%s', raw[:160])
+        Path(tmp_path).unlink(missing_ok=True)
+        return None, None
+
+
 def capture_camera_frame(camera_id) -> tuple[str | None, str | None]:
     """
     Grab one frame for camera_id. Returns (temp_jpeg_path, filename) or (None, None).
@@ -92,62 +214,14 @@ def capture_camera_frame(camera_id) -> tuple[str | None, str | None]:
     if not url:
         return None, None
 
-    tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.jpg')
-    tmp_path = tmp.name
-    tmp.close()
-    # Prefix so DetectSignView treats this as live street capture (full_frame / live_scan)
-    fname = f'webcam-street-camera-{camera.code or camera.id}.jpg'
-
-    from .stream_remote_client import capture_snapshot_via_gateway, stream_gateway_enabled
-
-    if stream_gateway_enabled() and url.lower().startswith(('rtsp://', 'rtsps://', 'http://', 'https://')):
-        jpeg = capture_snapshot_via_gateway(str(camera_id), rtsp_url=url)
-        if jpeg:
-            Path(tmp_path).write_bytes(jpeg)
-            camera.last_ping = timezone.now()
-            camera.save(update_fields=['last_ping'])
-            return tmp_path, fname
-
-    try:
-        local = resolve_local_frame_path(url)
-        if local is not None:
-            shutil.copyfile(local, tmp_path)
-            camera.last_ping = timezone.now()
-            camera.save(update_fields=['last_ping'])
-            return tmp_path, fname
-
-        fetch_url = _absolute_http_url(url)
-        if fetch_url.lower().startswith(('rtsp://', 'rtsps://')):
-            import cv2
-
-            cap = cv2.VideoCapture(fetch_url)
-            if not cap.isOpened():
-                logger.warning('RTSP open failed for camera %s', camera_id)
-                Path(tmp_path).unlink(missing_ok=True)
-                return None, None
-            ok, frame = cap.read()
-            cap.release()
-            if not ok or frame is None:
-                Path(tmp_path).unlink(missing_ok=True)
-                return None, None
-            cv2.imwrite(tmp_path, frame)
-        elif fetch_url.lower().startswith(('http://', 'https://')):
-            req = urllib.request.Request(fetch_url, headers={'User-Agent': 'CamTraffic/1.0'})
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                data = resp.read()
-            if not data:
-                Path(tmp_path).unlink(missing_ok=True)
-                return None, None
-            Path(tmp_path).write_bytes(data)
-        else:
-            logger.warning('Unsupported frame_source_url for camera %s: %s', camera_id, url)
-            Path(tmp_path).unlink(missing_ok=True)
-            return None, None
-
-        camera.last_ping = timezone.now()
-        camera.save(update_fields=['last_ping'])
-        return tmp_path, fname
-    except Exception:
-        logger.exception('Frame capture failed for camera %s', camera_id)
-        Path(tmp_path).unlink(missing_ok=True)
+    path, fname = capture_frame_from_url(
+        url,
+        camera_id=str(camera.id),
+        filename_hint=f'camera-{camera.code or camera.id}',
+    )
+    if not path:
         return None, None
+
+    camera.last_ping = timezone.now()
+    camera.save(update_fields=['last_ping'])
+    return path, fname

@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from core.permissions import IsDriver
+from core.permissions import IsDriver, IsPoliceOrAdmin
 from fines.models import Fine
 from fines.pdf_receipt import generate_fine_receipt_pdf
 
@@ -19,14 +19,16 @@ class DownloadFineReceiptView(APIView):
     GET /api/fines/<fine_id>/receipt/pdf/
     Query params:
         - include_evidence: boolean (default: false)
+
+    Drivers: own fines only. Officers/admins: any fine (enforcement copy).
     """
-    permission_classes = [IsAuthenticated, IsDriver]
+    permission_classes = [IsAuthenticated, IsDriver | IsPoliceOrAdmin]
     
     def get(self, request, fine_id):
         # Get fine
         try:
             fine = Fine.objects.select_related(
-                'driver', 'police', 'vehicle', 'violation', 'violation__camera'
+                'driver', 'police', 'violation', 'violation__camera', 'violation__vehicle',
             ).get(id=fine_id)
         except Fine.DoesNotExist:
             return Response(
@@ -34,8 +36,8 @@ class DownloadFineReceiptView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
         
-        # Check ownership
-        if fine.driver_id != request.user.id:
+        role = getattr(request.user, 'role', None)
+        if role == 'driver' and fine.driver_id != request.user.id:
             return Response(
                 {'error': 'You do not have permission to access this receipt'},
                 status=status.HTTP_403_FORBIDDEN
@@ -76,7 +78,7 @@ class DownloadMultipleFineReceiptsView(APIView):
     POST /api/fines/receipts/pdf/
     Body: { "fine_ids": ["uuid1", "uuid2", ...] }
     """
-    permission_classes = [IsAuthenticated, IsDriver]
+    permission_classes = [IsAuthenticated, IsDriver | IsPoliceOrAdmin]
     
     def post(self, request):
         fine_ids = request.data.get('fine_ids', [])
@@ -94,12 +96,15 @@ class DownloadMultipleFineReceiptsView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Get fines
-        fines = Fine.objects.filter(
-            id__in=fine_ids,
-            driver_id=request.user.id
-        ).select_related('driver', 'police', 'vehicle', 'violation', 'violation__camera')
-        
+        # Get fines — drivers: own only; officers/admins: any requested ids
+        role = getattr(request.user, 'role', None)
+        qs = Fine.objects.filter(id__in=fine_ids).select_related(
+            'driver', 'police', 'violation', 'violation__camera', 'violation__vehicle',
+        )
+        if role == 'driver':
+            qs = qs.filter(driver_id=request.user.id)
+        fines = qs
+
         if not fines.exists():
             return Response(
                 {'error': 'No accessible fines found'},

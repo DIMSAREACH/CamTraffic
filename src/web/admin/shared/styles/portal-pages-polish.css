@@ -1,4 +1,4 @@
-﻿/* ═══════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════
    Portal colorful polish — vibrant heroes, KPI cards & panels
    Restores dashboard-grade color across all management pages
 ═══════════════════════════════════════════════════════════════ */
@@ -42,12 +42,12 @@ html.dark .enforcement-page__hero {
   background: radial-gradient(circle, rgba(16, 185, 129, 0.22) 0%, transparent 70%) !important;
 }
 
-/* Default eyebrow — brand blue (enforcement pages override below) */
-.enforcement-page__eyebrow {
+/* Hero eyebrow — light text for dark hero backgrounds only */
+.enforcement-page__hero .enforcement-page__eyebrow {
   color: rgba(147, 197, 253, 0.95);
 }
 
-.enforcement-page__eyebrow-icon {
+.enforcement-page__hero .enforcement-page__eyebrow-icon {
   background: rgba(37, 99, 235, 0.22);
   color: #93c5fd;
   border: 1px solid rgba(147, 197, 253, 0.18);
@@ -155,12 +155,6 @@ html.dark .enforcement-page__stat-card .enforcement-page__stat-label {
     0 12px 28px rgba(37, 99, 235, 0.1) !important;
 }
 
-html.dark .enforcement-page__stat-card:hover {
-  box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.2),
-    0 12px 28px rgba(0, 0, 0, 0.32) !important;
-}
-
 .enforcement-page__stat-card--active {
   box-shadow:
     0 0 0 1px rgba(37, 99, 235, 0.14),
@@ -205,46 +199,38 @@ html.dark .enforcement-page__stat-card:hover {
 }
 
 .enforcement-page--vehicles,
-.enforcement-page--unknown,
-.enforcement-page--signs {
+.enforcement-page--unknown {
   --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #064e3b 48%, #1e1b4b 100%);
 }
 
 .enforcement-page--vehicles .enforcement-page__eyebrow,
-.enforcement-page--unknown .enforcement-page__eyebrow,
-.enforcement-page--signs .enforcement-page__eyebrow {
+.enforcement-page--unknown .enforcement-page__eyebrow {
   color: rgba(110, 231, 183, 0.95);
 }
 
 .enforcement-page--vehicles .enforcement-page__eyebrow-icon,
-.enforcement-page--unknown .enforcement-page__eyebrow-icon,
-.enforcement-page--signs .enforcement-page__eyebrow-icon {
+.enforcement-page--unknown .enforcement-page__eyebrow-icon {
   background: rgba(16, 185, 129, 0.22);
   color: #6ee7b7;
   border-color: rgba(110, 231, 183, 0.2);
 }
 
 .enforcement-page--users,
+.enforcement-page--roles,
 .enforcement-page--drivers,
 .enforcement-page--officers {
   --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #2e1065 48%, #1e1b4b 100%);
 }
 
-.enforcement-page--roles {
-  --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #1e3a8a 42%, #312e81 100%);
-}
-
 .enforcement-page--users .enforcement-page__eyebrow,
+.enforcement-page--roles .enforcement-page__eyebrow,
 .enforcement-page--drivers .enforcement-page__eyebrow,
 .enforcement-page--officers .enforcement-page__eyebrow {
   color: rgba(196, 181, 253, 0.98);
 }
 
-.enforcement-page--roles .enforcement-page__eyebrow {
-  color: rgba(191, 219, 254, 0.98);
-}
-
 .enforcement-page--users .enforcement-page__eyebrow-icon,
+.enforcement-page--roles .enforcement-page__eyebrow-icon,
 .enforcement-page--drivers .enforcement-page__eyebrow-icon,
 .enforcement-page--officers .enforcement-page__eyebrow-icon {
   background: rgba(139, 92, 246, 0.24);
@@ -252,34 +238,34 @@ html.dark .enforcement-page__stat-card:hover {
   border-color: rgba(196, 181, 253, 0.2);
 }
 
-.enforcement-page--roles .enforcement-page__eyebrow-icon {
-  background: rgba(37, 99, 235, 0.28);
-  color: #93c5fd;
-  border-color: rgba(147, 197, 253, 0.28);
-}
-
 .enforcement-page--reports {
   --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #0c4a6e 42%, #134e4a 100%);
 }
 
 .enforcement-page--ai-dashboard,
-.enforcement-page--ai-mlops,
-.enforcement-page--ai-center,
-.enforcement-page--ai-logs {
+.enforcement-page--ai-models,
+.enforcement-page--ai-logs,
+.enforcement-page--ai-training,
+.enforcement-page--ai-settings,
+.enforcement-page--datasets {
   --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #312e81 48%, #0c4a6e 100%);
 }
 
 .enforcement-page--ai-dashboard .enforcement-page__eyebrow,
-.enforcement-page--ai-mlops .enforcement-page__eyebrow,
-.enforcement-page--ai-center .enforcement-page__eyebrow,
-.enforcement-page--ai-logs .enforcement-page__eyebrow {
+.enforcement-page--ai-models .enforcement-page__eyebrow,
+.enforcement-page--ai-logs .enforcement-page__eyebrow,
+.enforcement-page--ai-training .enforcement-page__eyebrow,
+.enforcement-page--ai-settings .enforcement-page__eyebrow,
+.enforcement-page--datasets .enforcement-page__eyebrow {
   color: rgba(165, 180, 252, 0.98);
 }
 
 .enforcement-page--ai-dashboard .enforcement-page__eyebrow-icon,
-.enforcement-page--ai-mlops .enforcement-page__eyebrow-icon,
-.enforcement-page--ai-center .enforcement-page__eyebrow-icon,
-.enforcement-page--ai-logs .enforcement-page__eyebrow-icon {
+.enforcement-page--ai-models .enforcement-page__eyebrow-icon,
+.enforcement-page--ai-logs .enforcement-page__eyebrow-icon,
+.enforcement-page--ai-training .enforcement-page__eyebrow-icon,
+.enforcement-page--ai-settings .enforcement-page__eyebrow-icon,
+.enforcement-page--datasets .enforcement-page__eyebrow-icon {
   background: rgba(99, 102, 241, 0.24);
   color: #a5b4fc;
   border-color: rgba(165, 180, 252, 0.2);
@@ -322,17 +308,65 @@ html.dark .enforcement-page__stat-card:hover {
 }
 
 .enforcement-page--settings {
-  --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #1e293b 42%, #1e3a8a 100%);
+  --enforcement-hero-bg: linear-gradient(135deg, #0b1220 0%, #1e1b4b 42%, #4c1d95 100%);
 }
 
 .enforcement-page--settings .enforcement-page__eyebrow {
-  color: rgba(191, 219, 254, 0.98);
+  color: rgba(196, 181, 253, 0.98);
 }
 
 .enforcement-page--settings .enforcement-page__eyebrow-icon {
-  background: rgba(37, 99, 235, 0.24);
-  color: #93c5fd;
-  border-color: rgba(147, 197, 253, 0.22);
+  background: rgba(139, 92, 246, 0.24);
+  color: #ddd6fe;
+  border-color: rgba(196, 181, 253, 0.22);
+}
+
+/* Officer & driver dashboards — clean enforcement-page layout */
+.enforcement-page--police-dashboard,
+.enforcement-page--driver-dashboard {
+  --police-accent: #2563eb;
+  --police-accent-soft: rgba(37, 99, 235, 0.12);
+  --driver-accent: #0d9488;
+  --driver-accent-soft: rgba(13, 148, 136, 0.12);
+}
+
+.enforcement-page--police-dashboard .enforcement-page__hero-inner,
+.enforcement-page--driver-dashboard .enforcement-page__hero-inner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.enforcement-page--police-dashboard .police-dashboard-hero__subtitle,
+.enforcement-page--driver-dashboard .driver-dashboard-hero__subtitle {
+  color: rgba(226, 232, 240, 0.82);
+  max-width: 36rem;
+}
+
+.enforcement-page--police-dashboard .enforcement-page__stat-grid,
+.enforcement-page--driver-dashboard .enforcement-page__stat-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 1024px) {
+  .enforcement-page--police-dashboard .enforcement-page__stat-grid,
+  .enforcement-page--driver-dashboard .enforcement-page__stat-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.enforcement-page--police-dashboard .police-dashboard-quick-grid,
+.enforcement-page--driver-dashboard .driver-dashboard-quick-grid {
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+@media (min-width: 640px) {
+  .enforcement-page--police-dashboard .police-dashboard-quick-grid,
+  .enforcement-page--driver-dashboard .driver-dashboard-quick-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* ── App shell — richer page background ──────────────────────── */
@@ -354,4 +388,191 @@ html.dark .enforcement-page__stat-card:hover {
 .app-dashboard .admin-dashboard-chart,
 .app-dashboard .dashboard-chart-card {
   box-shadow: 0 4px 20px rgba(15, 23, 42, 0.07);
+}
+
+/* ── Appeal Management table (aligned with Fine/Violations) ──── */
+.enforcement-page--appeals .appeals-table__grid [data-slot='table'] {
+  table-layout: fixed;
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.enforcement-page--appeals .appeals-table__col--driver { width: 20%; }
+.enforcement-page--appeals .appeals-table__col--violation { width: 20%; }
+.enforcement-page--appeals .appeals-table__col--reason { width: 24%; }
+.enforcement-page--appeals .appeals-table__col--date { width: 12%; }
+.enforcement-page--appeals .appeals-table__col--status { width: 12%; }
+.enforcement-page--appeals .appeals-table__col--actions { width: 12%; }
+
+.enforcement-page--appeals .appeals-table__grid .enforcement-page__table-head {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.16) 0%, rgba(99, 102, 241, 0.1) 100%);
+  border-bottom: 2px solid rgba(124, 58, 237, 0.14);
+}
+
+.enforcement-page--appeals .appeals-table__th {
+  padding: 0.9375rem 1rem !important;
+  font-family: var(--dashboard-font-body);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  vertical-align: middle;
+  text-align: left !important;
+  color: #5b21b6 !important;
+  border-right: 1px solid rgba(124, 58, 237, 0.08);
+}
+
+.enforcement-page--appeals .appeals-table__th:last-child { border-right: none; }
+
+html.dark .enforcement-page--appeals .appeals-table__th {
+  color: #ddd6fe !important;
+}
+
+.enforcement-page--appeals .appeals-table__grid [data-slot='table-head']:first-child,
+.enforcement-page--appeals .appeals-table__grid [data-slot='table-cell']:first-child,
+.enforcement-page--appeals .appeals-table__th--driver,
+.enforcement-page--appeals .appeals-table__td--driver {
+  padding-left: 2rem !important;
+}
+
+.enforcement-page--appeals .appeals-table__grid [data-slot='table-cell']:last-child {
+  padding-right: 2rem !important;
+}
+
+.enforcement-page--appeals .appeals-table__row:hover {
+  background: rgba(124, 58, 237, 0.04);
+}
+
+.enforcement-page--appeals .appeals-table__row:not(:last-child) [data-slot='table-cell'] {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.enforcement-page--appeals .appeals-table__td {
+  padding: 0.9375rem 1rem !important;
+  vertical-align: middle;
+  text-align: left !important;
+}
+
+.enforcement-page--appeals .appeals-table__driver {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-width: 0;
+}
+
+.enforcement-page--appeals .appeals-table__avatar {
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  font-size: 0.6875rem;
+}
+
+.enforcement-page--appeals .appeals-table__driver-name {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.enforcement-page--appeals .appeals-table__driver-license {
+  margin: 0.125rem 0 0;
+  font-family: var(--dashboard-font-mono, ui-monospace, monospace);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+html.dark .enforcement-page--appeals .appeals-table__driver-name { color: #f1f5f9; }
+html.dark .enforcement-page--appeals .appeals-table__driver-license { color: #94a3b8; }
+
+.enforcement-page--appeals .appeals-table__violation {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3125rem;
+  min-width: 0;
+}
+
+.enforcement-page--appeals .appeals-table__violation-title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #0f172a;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.enforcement-page--appeals .appeals-table__violation-location {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.3125rem;
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.enforcement-page--appeals .appeals-table__violation-location svg {
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+  color: #8b5cf6;
+}
+
+html.dark .enforcement-page--appeals .appeals-table__violation-title { color: #f1f5f9; }
+
+.enforcement-page--appeals .appeals-table__reason {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: #334155;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+html.dark .enforcement-page--appeals .appeals-table__reason { color: #cbd5e1; }
+
+.enforcement-page--appeals .appeals-table__date {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #475569;
+  white-space: nowrap;
+}
+
+html.dark .enforcement-page--appeals .appeals-table__date { color: #94a3b8; }
+
+.enforcement-page--appeals .appeals-table__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.3125rem 0.625rem !important;
+  font-size: 0.6875rem !important;
+  font-weight: 700 !important;
+  white-space: nowrap;
+}
+
+.enforcement-page--appeals .appeals-table__actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.375rem;
+}
+
+.enforcement-page--appeals .appeals-table__td--actions {
+  white-space: nowrap;
+  width: 8rem;
+  min-width: 8rem;
 }

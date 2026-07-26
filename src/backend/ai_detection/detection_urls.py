@@ -7,6 +7,7 @@ from .views import (
     DetectionHubView,
     DetectionWebcamView,
     ProcessFrameView,
+    WarmupModelsView,
 )
 
 urlpatterns = [
@@ -15,4 +16,5 @@ urlpatterns = [
     path('video/', DetectVideoView.as_view(), name='detection-video'),
     path('webcam/', DetectionWebcamView.as_view(), name='detection-webcam'),
     path('live/', ProcessFrameView.as_view(), name='detection-live'),
+    path('warmup/', WarmupModelsView.as_view(), name='detection-warmup'),
 ]

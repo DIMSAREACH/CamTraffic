@@ -1,0 +1,14 @@
+{
+  "ok": true,
+  "source": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\samples\\phnom_penh_video_detect\\stock-footage-phnom-penh-cambodia-th-january-bus\\frame_00_t0.0s_annotated.jpg",
+  "vehicles": 3,
+  "vehicle_labels": [
+    "Car",
+    "Car",
+    "Car"
+  ],
+  "plate_boxes": 0,
+  "plate_bbox": null,
+  "detection_mode": "no_sign",
+  "annotated": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\samples\\webcam_street_verify\\webcam_street_annotated.jpg"
+}

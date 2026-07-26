@@ -83,7 +83,7 @@ export function NavbarNotificationsDropdown({
     if (open) void refresh();
   }, [open, refresh]);
 
-  const markRead = async (id: number) => {
+  const markRead = async (id: string | number) => {
     try {
       await notificationsAPI.markRead(id);
       setItems((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));

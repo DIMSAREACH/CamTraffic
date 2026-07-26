@@ -85,25 +85,34 @@ def _detect_model_mode(model) -> str:
 
 def _get_vehicle_model():
     global _VEHICLE_MODEL, _VEHICLE_MODEL_MODE
+    import threading
+
+    if not hasattr(_get_vehicle_model, '_lock'):
+        _get_vehicle_model._lock = threading.Lock()  # type: ignore[attr-defined]
+
     if _VEHICLE_MODEL is not None:
         return _VEHICLE_MODEL
-    from ultralytics import YOLO
 
-    path = _resolve_vehicle_model_path()
-    if not path.is_file():
-        logger.warning(
-            'Vehicle YOLO weights not found at %s — skipping vehicle detection (no auto-download in production)',
-            path,
-        )
-        return None
-    try:
-        _VEHICLE_MODEL = YOLO(str(path))
-        _VEHICLE_MODEL_MODE = _detect_model_mode(_VEHICLE_MODEL)
-        logger.info('Vehicle YOLO loaded: %s (mode=%s)', path, _VEHICLE_MODEL_MODE)
-    except Exception:
-        logger.exception('Failed to load vehicle YOLO: %s', path)
-        return None
-    return _VEHICLE_MODEL
+    with _get_vehicle_model._lock:  # type: ignore[attr-defined]
+        if _VEHICLE_MODEL is not None:
+            return _VEHICLE_MODEL
+        from ultralytics import YOLO
+
+        path = _resolve_vehicle_model_path()
+        if not path.is_file():
+            logger.warning(
+                'Vehicle YOLO weights not found at %s — skipping vehicle detection (no auto-download in production)',
+                path,
+            )
+            return None
+        try:
+            _VEHICLE_MODEL = YOLO(str(path))
+            _VEHICLE_MODEL_MODE = _detect_model_mode(_VEHICLE_MODEL)
+            logger.info('Vehicle YOLO loaded: %s (mode=%s)', path, _VEHICLE_MODEL_MODE)
+        except Exception:
+            logger.exception('Failed to load vehicle YOLO: %s', path)
+            return None
+        return _VEHICLE_MODEL
 
 
 def _class_map() -> dict[int, str]:
@@ -124,6 +133,128 @@ def _normalize_bbox(xyxy, img_w: float, img_h: float) -> dict[str, float]:
     }
 
 
+def _bbox_area(bbox: dict) -> float:
+    return max(0.0, float(bbox.get('x2', 0) - bbox.get('x1', 0))) * max(
+        0.0, float(bbox.get('y2', 0) - bbox.get('y1', 0)),
+    )
+
+
+def _bbox_contains(outer: dict, inner: dict, pad: float = 0.02) -> bool:
+    return (
+        float(outer.get('x1', 0)) - pad <= float(inner.get('x1', 0))
+        and float(outer.get('y1', 0)) - pad <= float(inner.get('y1', 0))
+        and float(outer.get('x2', 1)) + pad >= float(inner.get('x2', 1))
+        and float(outer.get('y2', 1)) + pad >= float(inner.get('y2', 1))
+    )
+
+
+def _is_degenerate_vehicle_box(bbox: dict) -> bool:
+    """Reject thin edge/taillight fragments that are not a real vehicle face."""
+    w = float(bbox.get('x2', 0) - bbox.get('x1', 0))
+    h = float(bbox.get('y2', 0) - bbox.get('y1', 0))
+    area = w * h
+    if area < 0.04:
+        return True
+    if w < 0.12 or h < 0.15:
+        return True
+    ratio = w / h if h else 99
+    # Tall thin strip on the side of the frame (classic false taillight box).
+    if ratio < 0.45 and area < 0.18:
+        return True
+    return False
+
+
+def vehicle_box_from_plate(plate_bbox: dict) -> dict:
+    """
+    When YOLO only catches a taillight but plate OCR has a solid plate box,
+    synthesize a rear-vehicle box around the plate (close-up car photos).
+    """
+    px1 = float(plate_bbox['x1'])
+    py1 = float(plate_bbox['y1'])
+    px2 = float(plate_bbox['x2'])
+    py2 = float(plate_bbox['y2'])
+    pw = max(px2 - px1, 0.02)
+    ph = max(py2 - py1, 0.01)
+    # Plate sits on lower rear — expand sideways + upward to cover car body.
+    x1 = max(0.0, px1 - pw * 1.8)
+    x2 = min(1.0, px2 + pw * 1.8)
+    y2 = min(1.0, py2 + ph * 2.2)
+    y1 = max(0.0, py1 - ph * 8.5)
+    # Ensure a reasonable car-sized box
+    if (x2 - x1) < 0.35:
+        cx = (x1 + x2) / 2
+        x1 = max(0.0, cx - 0.28)
+        x2 = min(1.0, cx + 0.28)
+    if (y2 - y1) < 0.35:
+        y1 = max(0.0, y2 - 0.55)
+    return {
+        'x1': round(x1, 4),
+        'y1': round(y1, 4),
+        'x2': round(x2, 4),
+        'y2': round(y2, 4),
+    }
+
+
+def refine_vehicles_with_plate(
+    vehicles: list[dict],
+    plate_bbox: dict | None = None,
+) -> list[dict]:
+    """
+    Prefer large vehicle boxes; drop taillight fragments; if plate is known and
+    no vehicle covers it, invent a rear-car box from the plate.
+    """
+    usable = []
+    for v in vehicles or []:
+        bbox = v.get('bbox')
+        if not isinstance(bbox, dict):
+            continue
+        item = dict(v)
+        item['_area'] = _bbox_area(bbox)
+        item['_degenerate'] = _is_degenerate_vehicle_box(bbox)
+        usable.append(item)
+
+    # Prefer non-degenerate, then larger area, then confidence
+    usable.sort(
+        key=lambda d: (
+            0 if d['_degenerate'] else 1,
+            d['_area'],
+            float(d.get('confidence') or 0),
+        ),
+        reverse=True,
+    )
+
+    refined: list[dict] = []
+    for item in usable:
+        if item['_degenerate'] and refined:
+            continue
+        if item['_degenerate'] and plate_bbox and not _bbox_contains(item['bbox'], plate_bbox, pad=0.08):
+            continue
+        clean = {k: v for k, v in item.items() if not k.startswith('_')}
+        refined.append(clean)
+        if len(refined) >= 8:
+            break
+
+    if plate_bbox and isinstance(plate_bbox, dict):
+        covered = any(_bbox_contains(v['bbox'], plate_bbox, pad=0.06) for v in refined if v.get('bbox'))
+        if not covered:
+            synth = {
+                'vehicle_type': (refined[0]['vehicle_type'] if refined else 'car'),
+                'label': (refined[0]['label'] if refined else 'Car'),
+                'confidence': max(float(refined[0]['confidence']) if refined else 0.0, 55.0),
+                'bbox': vehicle_box_from_plate(plate_bbox),
+                'source': 'plate_expanded',
+            }
+            # Replace tiny wrong box with synthesized rear view
+            if refined and refined[0].get('source') != 'plate_expanded' and _is_degenerate_vehicle_box(refined[0].get('bbox') or {}):
+                refined[0] = synth
+            elif not refined:
+                refined = [synth]
+            else:
+                refined.insert(0, synth)
+
+    return refined
+
+
 def _build_detection(cls_idx: int, conf: float, xyxy, img_w: float, img_h: float) -> dict | None:
     vehicle_type = _class_map().get(int(cls_idx))
     if not vehicle_type:
@@ -136,10 +267,15 @@ def _build_detection(cls_idx: int, conf: float, xyxy, img_w: float, img_h: float
     }
 
 
-def detect_vehicles(image_path: str) -> list[dict]:
+def detect_vehicles(image_path: str, *, imgsz: int | None = None, fast_mode: bool = False) -> list[dict]:
     """
     Detect Cambodia road vehicles (Bus, Car, Moto, Truck, Tuk Tuk) or COCO fallback.
     Returns a list sorted by confidence (highest first).
+    
+    Args:
+        image_path: Path to image file
+        imgsz: YOLO image size (None = auto)
+        fast_mode: Enable fast inference optimizations
     """
     if not vehicle_detection_enabled():
         return []
@@ -153,13 +289,17 @@ def detect_vehicles(image_path: str) -> list[dict]:
         model = _get_vehicle_model()
         if model is None:
             return []
-        threshold = _confidence_threshold()
+        threshold = _confidence_threshold() if not fast_mode else 0.4
         class_ids = list(_class_map().keys())
         predict_kwargs = {
             'source': str(path),
             'conf': threshold,
+            'max_det': 50 if fast_mode else 100,
+            'agnostic_nms': fast_mode,
             'verbose': False,
         }
+        if imgsz:
+            predict_kwargs['imgsz'] = int(imgsz)
         # Cambodia custom model: all classes are vehicles — do not filter COCO IDs
         if _VEHICLE_MODEL_MODE != 'cambodia':
             predict_kwargs['classes'] = class_ids
@@ -183,7 +323,7 @@ def detect_vehicles(image_path: str) -> list[dict]:
             if item:
                 detections.append(item)
 
-        detections.sort(key=lambda d: d['confidence'], reverse=True)
+        detections.sort(key=lambda d: (_bbox_area(d['bbox']), d['confidence']), reverse=True)
         return detections
     except Exception:
         logger.exception('Vehicle detection failed for %s', image_path)

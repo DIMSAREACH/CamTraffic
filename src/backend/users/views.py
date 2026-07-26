@@ -90,7 +90,24 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
         instance = self.get_object()
         if request.user.role != 'admin' and instance.id != request.user.id:
             return error_response('Permission denied', status_code=status.HTTP_403_FORBIDDEN)
-        serializer = UserUpdateSerializer(instance, data=request.data, partial=partial)
+        if request.user.role == 'admin' and instance.id != request.user.id:
+            from users.profile_services import assert_admin_may_manage_account
+
+            try:
+                assert_admin_may_manage_account(request.user, instance, action='update')
+            except (PermissionError, ValueError) as exc:
+                code = (
+                    status.HTTP_403_FORBIDDEN
+                    if isinstance(exc, PermissionError)
+                    else status.HTTP_400_BAD_REQUEST
+                )
+                return error_response(str(exc), status_code=code)
+        serializer = UserUpdateSerializer(
+            instance,
+            data=request.data,
+            partial=partial,
+            context={'request': request},
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return success_response(UserSerializer(instance).data, message='Profile updated')

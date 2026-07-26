@@ -41,10 +41,10 @@ export function VideoUploadPanel({
   const [detecting, setDetecting] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [confidence, setConfidence] = useState(0.35);
-  const [enableOcr, setEnableOcr] = useState(true);
-  const [enableTracking, setEnableTracking] = useState(true);
+  const [enableOcr, setEnableOcr] = useState(false);
+  const [enableTracking, setEnableTracking] = useState(false);
   const [enableViolation, setEnableViolation] = useState(true);
-  const [maxFrames, setMaxFrames] = useState(12);
+  const [maxFrames, setMaxFrames] = useState(3);
 
   // Parent keeps using the blob after this panel unmounts during processing.
   const handleFile = (f: File | null) => {
@@ -81,6 +81,7 @@ export function VideoUploadPanel({
         max_frames: maxFrames,
         enable_ocr: enableOcr,
         enable_tracking: enableTracking,
+        live_fast: true,
         signal: controller.signal,
       });
       if (controller.signal.aborted) return;

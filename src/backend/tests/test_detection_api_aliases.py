@@ -103,3 +103,30 @@ class DetectionApiAliasTests(APITestCase):
         res = self.client.post('/api/detection/live/', {'image': img}, format='multipart')
         self.assertEqual(res.status_code, 200)
         self.assertTrue(res.json().get('success'))
+
+    def test_master_build_ai_image_video_webcam_aliases(self):
+        img = _tiny_jpeg()
+        r_image = self.client.post('/api/ai/image/', {'image': img}, format='multipart')
+        self.assertEqual(r_image.status_code, 200)
+        self.assertTrue(r_image.json().get('success'))
+
+        img2 = _tiny_jpeg()
+        r_webcam = self.client.post('/api/ai/webcam/', {'image': img2}, format='multipart')
+        self.assertEqual(r_webcam.status_code, 200)
+
+        img3 = _tiny_jpeg()
+        r_live = self.client.post('/api/ai/live-camera/', {'image': img3}, format='multipart')
+        self.assertEqual(r_live.status_code, 200)
+
+        r_hist = self.client.get('/api/ai/history/')
+        self.assertEqual(r_hist.status_code, 200)
+
+        r_stats = self.client.get('/api/ai/statistics/')
+        self.assertEqual(r_stats.status_code, 200)
+
+        r_models = self.client.get('/api/ai/models/')
+        self.assertEqual(r_models.status_code, 200)
+        self.assertIn('results', r_models.json().get('data', {}))
+
+        catalog = self.client.get('/api/catalog/').json()['data']
+        self.assertIn('master_build', catalog['detection'])

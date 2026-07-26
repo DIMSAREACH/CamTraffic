@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { camerasAPI, roadsAPI } from '@shared/services/api';
-import { demoCameraFramePath, isDemoCameraFrame, resolveCameraFrameUrl } from '@shared/constants/cameraFrameDemo';
+import { demoCameraFramePath, isCameraVideoUrl, isDemoCameraFrame, resolveCameraFrameUrl } from '@shared/constants/cameraFrameDemo';
 import { toast } from 'sonner';
 import { LiveCameraDashboardPanel } from '@shared/components/admin/LiveCameraDashboardPanel';
 import type { Camera, CameraStatus, CameraType, Road } from '@shared/types';
@@ -42,11 +42,18 @@ const STATUS_META: Record<CameraStatus, { labelKey: string; color: string; bg: s
     bg: 'rgba(245,158,11,0.12)',
     border: 'rgba(245,158,11,0.28)',
   },
+  offline: {
+    labelKey: 'offline',
+    color: '#DC2626',
+    bg: 'rgba(239,68,68,0.12)',
+    border: 'rgba(239,68,68,0.28)',
+  },
 };
 
 const TYPE_ICON: Record<CameraType, typeof Video> = {
   fixed: Video,
   ptz: Cctv,
+  mobile: Radio,
   speed: CircleDot,
 };
 
@@ -94,8 +101,17 @@ function cameraToForm(camera: Camera): CameraFormState {
 const TYPE_STYLE: Record<CameraType, { bg: string; color: string; border: string }> = {
   fixed: { bg: 'rgba(37, 99, 235, 0.1)', color: '#1D4ED8', border: 'rgba(37, 99, 235, 0.28)' },
   ptz: { bg: 'rgba(124, 58, 237, 0.1)', color: '#6D28D9', border: 'rgba(124, 58, 237, 0.28)' },
+  mobile: { bg: 'rgba(14, 165, 233, 0.12)', color: '#0284C7', border: 'rgba(14, 165, 233, 0.32)' },
   speed: { bg: 'rgba(245, 158, 11, 0.12)', color: '#B45309', border: 'rgba(245, 158, 11, 0.32)' },
 };
+
+function statusMeta(status: string | undefined) {
+  return STATUS_META[(status as CameraStatus) || 'inactive'] ?? STATUS_META.inactive;
+}
+
+function typeStyle(cameraType: string | undefined) {
+  return TYPE_STYLE[(cameraType as CameraType) || 'fixed'] ?? TYPE_STYLE.fixed;
+}
 
 function formatRoadLabel(road: Road) {
   return road.city ? `${road.name} — ${road.city}` : road.name;
@@ -237,15 +253,15 @@ function CameraFormDialog({
                     <SelectTrigger
                       className="cameras-form-dialog__select cameras-form-dialog__select--tone"
                       style={{
-                        backgroundColor: TYPE_STYLE[form.camera_type].bg,
-                        color: TYPE_STYLE[form.camera_type].color,
-                        borderColor: TYPE_STYLE[form.camera_type].border,
+                        backgroundColor: typeStyle(form.camera_type).bg,
+                        color: typeStyle(form.camera_type).color,
+                        borderColor: typeStyle(form.camera_type).border,
                       }}
                     >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="cameras-form-dialog__select-menu">
-                      {(['fixed', 'ptz', 'speed'] as const).map((type) => (
+                      {(['fixed', 'ptz', 'mobile', 'speed'] as const).map((type) => (
                         <SelectItem key={type} value={type} className="cameras-form-dialog__select-item">
                           {t(`pages.cameras.type.${type}`)}
                         </SelectItem>
@@ -263,15 +279,15 @@ function CameraFormDialog({
                     <SelectTrigger
                       className="cameras-form-dialog__select cameras-form-dialog__select--tone"
                       style={{
-                        backgroundColor: STATUS_META[form.status].bg,
-                        color: STATUS_META[form.status].color,
-                        borderColor: STATUS_META[form.status].border,
+                        backgroundColor: statusMeta(form.status).bg,
+                        color: statusMeta(form.status).color,
+                        borderColor: statusMeta(form.status).border,
                       }}
                     >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="cameras-form-dialog__select-menu">
-                      {(['active', 'inactive', 'maintenance'] as const).map((status) => (
+                      {(['active', 'inactive', 'offline', 'maintenance'] as const).map((status) => (
                         <SelectItem key={status} value={status} className="cameras-form-dialog__select-item">
                           {t(`pages.cameras.status.${status}`)}
                         </SelectItem>
@@ -361,7 +377,7 @@ function StatusPill({
   t: (key: string, vars?: Record<string, string | number>) => string;
   size?: 'sm' | 'md';
 }) {
-  const meta = STATUS_META[status];
+  const meta = statusMeta(status);
   return (
     <span
       className={cn('cameras-status-pill', size === 'md' && 'cameras-status-pill--md')}
@@ -407,11 +423,16 @@ function CameraFeedPreview({
 
   const src = useMemo(() => {
     if (!camera) return '';
-    if (camera.status === 'inactive') return '';
+    if (camera.status === 'inactive' || camera.status === 'offline') return '';
     const base = fallbackSrc || resolveCameraFrameUrl(camera.frame_source_url, camera);
     if (!base) return '';
+    if (isCameraVideoUrl(camera.frame_source_url) || isCameraVideoUrl(base)) return base;
     return frameUrl(base, refreshTick);
   }, [camera, refreshTick, fallbackSrc]);
+
+  const isVideoFeed = Boolean(
+    camera && (isCameraVideoUrl(camera.frame_source_url) || isCameraVideoUrl(src)),
+  );
 
   useEffect(() => {
     setFallbackSrc(null);
@@ -421,7 +442,7 @@ function CameraFeedPreview({
       setLastUpdated(null);
       return;
     }
-    if (camera.status === 'inactive') {
+    if (camera.status === 'inactive' || camera.status === 'offline') {
       setFeedState('offline');
       return;
     }
@@ -430,7 +451,17 @@ function CameraFeedPreview({
       return;
     }
     setFeedState('loading');
-  }, [camera, refreshTick]);
+    // Only re-init when the camera itself changes — not on snapshot poll ticks.
+  }, [camera?.id, camera?.status, camera?.frame_source_url]);
+
+  // Still-image feeds: bump loading when refreshTick changes so the new JPEG can settle.
+  useEffect(() => {
+    if (!camera) return;
+    if (camera.status === 'inactive' || camera.status === 'offline') return;
+    if (isCameraVideoUrl(camera.frame_source_url)) return;
+    if (!resolveCameraFrameUrl(camera.frame_source_url, camera)) return;
+    setFeedState('loading');
+  }, [refreshTick, camera?.id, camera?.status, camera?.frame_source_url]);
 
   const handleLoad = () => {
     setFeedState('ready');
@@ -442,14 +473,22 @@ function CameraFeedPreview({
       setFeedState('error');
       return;
     }
-    const demo = demoCameraFramePath(camera);
-    if (demo && !fallbackSrc) {
-      const demoUrl = resolveCameraFrameUrl(demo, camera);
-      const current = resolveCameraFrameUrl(camera.frame_source_url, camera);
-      if (demoUrl && demoUrl !== current) {
-        setFallbackSrc(demoUrl);
-        setFeedState('loading');
-        return;
+    // Demo frame fallback only when explicitly allowed (never pretend live CCTV).
+    if (import.meta.env.DEV === true && import.meta.env.VITE_ALLOW_DEMO_ASSETS === 'true') {
+      const publicByCode: Record<string, string> = {
+        'CAM-PP-001': '/demo-cameras/pp-chaktomuk-traffic.webm',
+        'CAM-PP-002': '/demo-cameras/pp-riverside-traffic.webm',
+      };
+      const code = (camera.code || '').trim().toUpperCase();
+      const publicPath = publicByCode[code] || demoCameraFramePath(camera);
+      if (publicPath && !fallbackSrc) {
+        const demoUrl = resolveCameraFrameUrl(publicPath, camera);
+        const current = resolveCameraFrameUrl(camera.frame_source_url, camera);
+        if (demoUrl && demoUrl !== current) {
+          setFallbackSrc(demoUrl);
+          setFeedState('loading');
+          return;
+        }
       }
     }
     setFeedState('error');
@@ -640,14 +679,31 @@ function CameraFeedPreview({
                 <p>{t('pages.cameras.feedLoading')}</p>
               </div>
             )}
-            <img
-              key={src}
-              src={src}
-              alt={camera.name}
-              className="cameras-feed-image cameras-feed-image--live"
-              onLoad={handleLoad}
-              onError={handleError}
-            />
+            {isVideoFeed ? (
+              <video
+                key={src}
+                src={src}
+                className="cameras-feed-image cameras-feed-image--live"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="auto"
+                onLoadedData={handleLoad}
+                onCanPlay={handleLoad}
+                onPlaying={handleLoad}
+                onError={handleError}
+              />
+            ) : (
+              <img
+                key={src}
+                src={src}
+                alt={camera.name}
+                className="cameras-feed-image cameras-feed-image--live"
+                onLoad={handleLoad}
+                onError={handleError}
+              />
+            )}
           </>
         )}
 
@@ -877,8 +933,10 @@ export function CamerasPage() {
   }, [search, cameras]);
 
   useEffect(() => {
-    if (!autoRefresh || !selected || selected.status === 'inactive') return;
+    if (!autoRefresh || !selected || selected.status === 'inactive' || selected.status === 'offline') return;
     if (!resolveCameraFrameUrl(selected.frame_source_url, selected)) return;
+    // Looping video streams do not need snapshot polling — polling was resetting the loader forever.
+    if (isCameraVideoUrl(selected.frame_source_url)) return;
     const id = window.setInterval(() => setRefreshTick((n) => n + 1), POLL_INTERVAL_MS);
     return () => window.clearInterval(id);
   }, [autoRefresh, selected]);
@@ -1047,7 +1105,7 @@ export function CamerasPage() {
             )}
             {!loading && filtered.map((cam) => {
               const isSelected = cam.id === selectedId;
-              const meta = STATUS_META[cam.status];
+              const meta = statusMeta(cam.status);
               const TypeIcon = TYPE_ICON[cam.camera_type] ?? Video;
               return (
                 <button

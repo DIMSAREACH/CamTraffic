@@ -52,31 +52,22 @@ function toNumber(value: unknown, fallback: number | null = null): number | null
   return Number.isFinite(n) ? n : fallback;
 }
 
-/** Demo lifecycle extras when API only returns core model fields. */
-export function enrichAIModel(model: AIModelVersion, index = 0): EnrichedAIModel {
-  const seed = Math.abs(hashString(model.id || model.version)) + index;
-  const accuracy = toNumber(model.accuracy, 95 + (seed % 40) / 10) ?? 95;
-  const precision = Math.min(99.9, accuracy + ((seed % 5) - 2) / 10);
-  const recall = Math.min(99.9, accuracy + ((seed % 7) - 3) / 10);
-  const map50 = Math.min(99.9, accuracy + 0.4 + (seed % 3) / 10);
-  const f1 = Math.min(99.9, (precision + recall) / 2);
-
+/**
+ * Production enrichment: only real API fields.
+ * Do not fabricate precision/recall/mAP/F1/dataset/hyperparams.
+ */
+export function enrichAIModel(model: AIModelVersion, _index = 0): EnrichedAIModel {
+  const accuracy = toNumber(model.accuracy, null);
   return {
     ...model,
     accuracy,
     name: shortModelName(model),
-    dataset: seed % 3 === 0 ? 'Cambodian Traffic Dataset' : seed % 3 === 1 ? 'Cambodia Signs v2' : 'Combined Detection',
-    status: model.is_active ? 'active' : seed % 5 === 0 ? 'archive' : 'draft',
-    epochs: 50 + (seed % 6) * 25,
-    batch_size: [8, 16, 32][seed % 3],
-    image_size: [640, 640, 1280][seed % 3],
-    learning_rate: [0.001, 0.0005, 0.01][seed % 3],
-    optimizer: seed % 2 === 0 ? 'AdamW' : 'SGD',
-    precision: Number(precision.toFixed(2)),
-    recall: Number(recall.toFixed(2)),
-    map50: Number(map50.toFixed(2)),
-    f1: Number(f1.toFixed(2)),
-    gpu: ['RTX 4090', 'RTX 3080', 'A100'][seed % 3],
+    dataset: model.description?.trim() || '—',
+    status: model.is_active ? 'active' : 'draft',
+    precision: null,
+    recall: null,
+    map50: accuracy,
+    f1: null,
   };
 }
 
@@ -84,37 +75,21 @@ export function enrichAIModels(models: AIModelVersion[]): EnrichedAIModel[] {
   return models.map((m, i) => enrichAIModel(m, i));
 }
 
-/** Synthetic accuracy trend points for dashboard charts. */
+/** Accuracy trend from real model rows only (no synthetic filler points). */
 export function buildAccuracyTrend(models: EnrichedAIModel[]): { label: string; value: number }[] {
-  if (models.length === 0) {
-    return [
-      { label: 'v0.6', value: 92.1 },
-      { label: 'v0.7', value: 94.4 },
-      { label: 'v0.8', value: 96.2 },
-      { label: 'v0.9', value: 97.5 },
-      { label: 'v1.0', value: 98.7 },
-    ];
-  }
+  if (models.length === 0) return [];
   return [...models]
     .sort((a, b) => new Date(a.uploaded_at).getTime() - new Date(b.uploaded_at).getTime())
     .slice(-6)
     .map((m) => ({
       label: m.version.length > 10 ? m.version.slice(0, 10) : m.version,
       value: Number((toNumber(m.accuracy, 0) ?? 0).toFixed(1)),
-    }));
+    }))
+    .filter((p) => p.value > 0);
 }
 
 export function formatPct(value: number | string | null | undefined, digits = 2): string {
   const n = toNumber(value, null);
   if (n == null) return '—';
   return `${n.toFixed(digits)}%`;
-}
-
-function hashString(input: string): number {
-  let h = 0;
-  for (let i = 0; i < input.length; i += 1) {
-    h = (h << 5) - h + input.charCodeAt(i);
-    h |= 0;
-  }
-  return h;
 }

@@ -22,7 +22,11 @@ class VehicleCreateSerializer(serializers.ModelSerializer):
         fields = ('plate_number', 'vehicle_type', 'model', 'color', 'year')
 
     def create(self, validated_data):
-        validated_data['owner'] = self.context['request'].user
+        user = self.context['request'].user
+        validated_data['owner'] = user
+        driver = getattr(user, 'driver_profile', None)
+        if driver is not None:
+            validated_data['driver'] = driver
         return super().create(validated_data)
 
 

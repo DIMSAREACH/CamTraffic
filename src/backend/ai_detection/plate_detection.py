@@ -53,20 +53,29 @@ def _resolve_model_path() -> Path:
 
 def _get_model():
     global _PLATE_MODEL
+    import threading
+
+    if not hasattr(_get_model, '_lock'):
+        _get_model._lock = threading.Lock()  # type: ignore[attr-defined]
+
     if _PLATE_MODEL is not None:
         return _PLATE_MODEL
-    path = _resolve_model_path()
-    if not path.is_file():
-        logger.info('Plate detector weights not found at %s — OCR will use vehicle/heuristic crops', path)
-        return None
-    try:
-        from ultralytics import YOLO
-        _PLATE_MODEL = YOLO(str(path))
-        logger.info('Plate detector loaded: %s', path)
-    except Exception:
-        logger.exception('Failed to load plate detector: %s', path)
-        return None
-    return _PLATE_MODEL
+
+    with _get_model._lock:  # type: ignore[attr-defined]
+        if _PLATE_MODEL is not None:
+            return _PLATE_MODEL
+        path = _resolve_model_path()
+        if not path.is_file():
+            logger.info('Plate detector weights not found at %s — OCR will use vehicle/heuristic crops', path)
+            return None
+        try:
+            from ultralytics import YOLO
+            _PLATE_MODEL = YOLO(str(path))
+            logger.info('Plate detector loaded: %s', path)
+        except Exception:
+            logger.exception('Failed to load plate detector: %s', path)
+            return None
+        return _PLATE_MODEL
 
 
 def detect_plate_boxes(image_path: str | Path) -> list[dict]:
@@ -266,11 +275,11 @@ def crop_plates_from_image(image: np.ndarray, detections: list[dict], pad: float
             y2 = int(float(bb.get('y2', 1)) * h)
         bw, bh = max(x2 - x1, 1), max(y2 - y1, 1)
         px, py = int(bw * pad), int(bh * pad)
-        # Bias padding downward so we keep serial digits, less province header
+        # Bias padding downward so the printed city/province line stays in the crop.
         x1 = max(0, x1 - px)
-        y1 = max(0, y1 - int(py * 0.35))
+        y1 = max(0, y1 - int(py * 0.5))
         x2 = min(w, x2 + px)
-        y2 = min(h, y2 + py)
+        y2 = min(h, y2 + int(py * 2.2) + int(bh * 0.28))
         crop = image[y1:y2, x1:x2]
         if crop.size == 0 or crop.shape[0] < 10 or crop.shape[1] < 20:
             continue

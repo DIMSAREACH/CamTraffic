@@ -9,7 +9,7 @@ from domains.officer_views import (
     OfficerIssueFineView,
     OfficerRejectViolationView,
 )
-from fines.views import DriverLookupView, FineDetailView, FineListCreateView
+from fines.views import DriverLookupView, FineDetailView, FineListCreateView, FineVerifyPaymentView
 from infrastructure.views import CameraListCreateView, CameraLiveStatusView
 from violations.views import ViolationDetailView, ViolationListCreateView
 
@@ -26,6 +26,7 @@ urlpatterns = [
     path('fines/issue/', OfficerIssueFineView.as_view(), name='domain-officer-fines-issue'),
     path('fines/lookup/', DriverLookupView.as_view(), name='domain-officer-fines-lookup'),
     path('fines/<uuid:pk>/', FineDetailView.as_view(), name='domain-officer-fine-detail'),
+    path('fines/<uuid:pk>/verify-payment/', FineVerifyPaymentView.as_view(), name='domain-officer-fine-verify-payment'),
     path('live-cameras/', CameraLiveStatusView.as_view(), name='domain-officer-live-cameras'),
     path('cameras/', CameraListCreateView.as_view(), name='domain-officer-cameras'),
     path('reports/', PoliceReportsView.as_view(), name='domain-officer-reports'),

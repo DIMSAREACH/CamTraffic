@@ -388,7 +388,7 @@ class FinePDFExportView(APIView):
         user = request.user
         if user.role == 'driver' and fine.driver_id != user.id:
             return error_response('Permission denied', status_code=status.HTTP_403_FORBIDDEN)
-        if user.role == 'police' and fine.police_id != user.id:
+        if user.role not in ('driver', 'police', 'admin'):
             return error_response('Permission denied', status_code=status.HTTP_403_FORBIDDEN)
         from io import BytesIO
 

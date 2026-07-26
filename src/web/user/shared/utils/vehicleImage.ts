@@ -7,45 +7,25 @@ type VehicleImageInput = {
   registration_photo?: string | null;
 };
 
-const VEHICLE_STOCK: Record<string, readonly string[]> = {
-  car: [
-    'https://images.unsplash.com/photo-1494976688708-9ea4e3459915?auto=format&fit=crop&w=640&q=80',
-    'https://images.unsplash.com/photo-1583121274602-3e2820c50d8c?auto=format&fit=crop&w=640&q=80',
-    'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=640&q=80',
-  ],
-  motorcycle: [
-    'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=640&q=80',
-    'https://images.unsplash.com/photo-1449426468159-d96dbf50f19f?auto=format&fit=crop&w=640&q=80',
-  ],
-  truck: [
-    'https://images.unsplash.com/photo-1601584111747-47ecc7a7f123?auto=format&fit=crop&w=640&q=80',
-    'https://images.unsplash.com/photo-1519003729244-7d7c72490f0e?auto=format&fit=crop&w=640&q=80',
-  ],
-  bus: [
-    'https://images.unsplash.com/photo-1570125909232-eb263c3f8216?auto=format&fit=crop&w=640&q=80',
-    'https://images.unsplash.com/photo-1544620301-c513d4c4c4b0?auto=format&fit=crop&w=640&q=80',
-  ],
-  'tuk-tuk': [
-    'https://images.unsplash.com/photo-1593618998160-c09764eb9961?auto=format&fit=crop&w=640&q=80',
-  ],
-};
+/** Neutral local SVG — no external stock / Unsplash sample imagery. */
+const VEHICLE_PLACEHOLDER =
+  'data:image/svg+xml,' +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400" role="img" aria-label="Vehicle">
+      <rect width="640" height="400" fill="#e8eef5"/>
+      <rect x="120" y="160" width="400" height="120" rx="28" fill="#94a3b8"/>
+      <circle cx="200" cy="290" r="36" fill="#64748b"/>
+      <circle cx="440" cy="290" r="36" fill="#64748b"/>
+      <rect x="200" y="120" width="180" height="50" rx="12" fill="#cbd5e1"/>
+    </svg>`,
+  );
 
-const DEFAULT_STOCK = VEHICLE_STOCK.car;
-
-function seedToIndex(seed: string | number, length: number): number {
-  if (typeof seed === 'number' && Number.isFinite(seed)) return Math.abs(seed) % length;
-  let hash = 0;
-  for (const ch of String(seed)) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
-  return hash % length;
+/** Placeholder when no registration photo is uploaded (production-truth — no stock photos). */
+export function getVehicleStockImage(_vehicleType?: string, _seed: string | number = 0): string {
+  return VEHICLE_PLACEHOLDER;
 }
 
-/** Stock photo for a vehicle type (used when no registration photo is uploaded). */
-export function getVehicleStockImage(vehicleType: string, seed: string | number = 0): string {
-  const pool = VEHICLE_STOCK[vehicleType] ?? DEFAULT_STOCK;
-  return pool[seedToIndex(seed, pool.length)];
-}
-
-/** Primary image URL: registration photo from API, else type stock image. */
+/** Primary image URL: registration photo from API, else neutral placeholder. */
 export function getVehicleImageUrl(vehicle: VehicleImageInput): string {
   const uploaded = getProfileImageUrl(vehicle.registration_photo);
   if (uploaded) return uploaded;

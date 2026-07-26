@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { camerasAPI, roadsAPI } from '@shared/services/api';
-import { demoCameraFramePath, isDemoCameraFrame, resolveCameraFrameUrl } from '@shared/constants/cameraFrameDemo';
+import { demoCameraFramePath, isCameraVideoUrl, isDemoCameraFrame, resolveCameraFrameUrl } from '@shared/constants/cameraFrameDemo';
 import { toast } from 'sonner';
 import { LiveCameraDashboardPanel } from '@shared/components/admin/LiveCameraDashboardPanel';
 import type { Camera, CameraStatus, CameraType, Road } from '@shared/types';
@@ -679,8 +679,13 @@ function CameraFeedPreview({
     if (camera.status === 'inactive') return '';
     const base = fallbackSrc || resolveCameraFrameUrl(camera.frame_source_url, camera);
     if (!base) return '';
+    if (isCameraVideoUrl(camera.frame_source_url) || isCameraVideoUrl(base)) return base;
     return frameUrl(base, refreshTick);
   }, [camera, refreshTick, fallbackSrc]);
+
+  const isVideoFeed = Boolean(
+    camera && (isCameraVideoUrl(camera.frame_source_url) || isCameraVideoUrl(src)),
+  );
 
   useEffect(() => {
     setFallbackSrc(null);
@@ -699,7 +704,17 @@ function CameraFeedPreview({
       return;
     }
     setFeedState('loading');
-  }, [camera, refreshTick]);
+    // Only re-init when the camera itself changes — not on snapshot poll ticks.
+  }, [camera?.id, camera?.status, camera?.frame_source_url]);
+
+  // Still-image feeds: bump loading when refreshTick changes so the new JPEG can settle.
+  useEffect(() => {
+    if (!camera) return;
+    if (camera.status === 'inactive') return;
+    if (isCameraVideoUrl(camera.frame_source_url)) return;
+    if (!resolveCameraFrameUrl(camera.frame_source_url, camera)) return;
+    setFeedState('loading');
+  }, [refreshTick, camera?.id, camera?.status, camera?.frame_source_url]);
 
   const handleLoad = () => {
     setFeedState('ready');
@@ -711,14 +726,21 @@ function CameraFeedPreview({
       setFeedState('error');
       return;
     }
-    const demo = demoCameraFramePath(camera);
-    if (demo && !fallbackSrc) {
-      const demoUrl = resolveCameraFrameUrl(demo, camera);
-      const current = resolveCameraFrameUrl(camera.frame_source_url, camera);
-      if (demoUrl && demoUrl !== current) {
-        setFallbackSrc(demoUrl);
-        setFeedState('loading');
-        return;
+    if (import.meta.env.DEV === true && import.meta.env.VITE_ALLOW_DEMO_ASSETS === 'true') {
+      const publicByCode: Record<string, string> = {
+        'CAM-PP-001': '/demo-cameras/pp-chaktomuk-traffic.webm',
+        'CAM-PP-002': '/demo-cameras/pp-riverside-traffic.webm',
+      };
+      const code = (camera.code || '').trim().toUpperCase();
+      const publicPath = publicByCode[code] || demoCameraFramePath(camera);
+      if (publicPath && !fallbackSrc) {
+        const demoUrl = resolveCameraFrameUrl(publicPath, camera);
+        const current = resolveCameraFrameUrl(camera.frame_source_url, camera);
+        if (demoUrl && demoUrl !== current) {
+          setFallbackSrc(demoUrl);
+          setFeedState('loading');
+          return;
+        }
       }
     }
     setFeedState('error');
@@ -909,14 +931,31 @@ function CameraFeedPreview({
                 <p>{t('pages.cameras.feedLoading')}</p>
               </div>
             )}
-            <img
-              key={src}
-              src={src}
-              alt={camera.name}
-              className="cameras-feed-image cameras-feed-image--live"
-              onLoad={handleLoad}
-              onError={handleError}
-            />
+            {isVideoFeed ? (
+              <video
+                key={src}
+                src={src}
+                className="cameras-feed-image cameras-feed-image--live"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="auto"
+                onLoadedData={handleLoad}
+                onCanPlay={handleLoad}
+                onPlaying={handleLoad}
+                onError={handleError}
+              />
+            ) : (
+              <img
+                key={src}
+                src={src}
+                alt={camera.name}
+                className="cameras-feed-image cameras-feed-image--live"
+                onLoad={handleLoad}
+                onError={handleError}
+              />
+            )}
           </>
         )}
 
@@ -1148,6 +1187,8 @@ export function CamerasPage() {
   useEffect(() => {
     if (!autoRefresh || !selected || selected.status === 'inactive') return;
     if (!resolveCameraFrameUrl(selected.frame_source_url, selected)) return;
+    // Video loops in the browser — polling only applies to still JPEG snapshots.
+    if (isCameraVideoUrl(selected.frame_source_url)) return;
     const id = window.setInterval(() => setRefreshTick((n) => n + 1), POLL_INTERVAL_MS);
     return () => window.clearInterval(id);
   }, [autoRefresh, selected]);

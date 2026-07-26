@@ -60,6 +60,8 @@ export const CITIZEN_API = {
   profile: '/citizen/profile/',
   vehicles: '/citizen/vehicles/',
   violations: '/citizen/violations/',
+  violationsMap: '/citizen/violations/map/',
+  violationsHeatmap: '/citizen/violations/heatmap/',
   fines: '/citizen/fines/',
   paymentConfig: '/citizen/fines/payment-config/',
   appeals: '/citizen/appeals/',

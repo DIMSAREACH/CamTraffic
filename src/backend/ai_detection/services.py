@@ -1488,24 +1488,32 @@ def _mock_detect(image_path, hint_source: str | None = None):
 def _get_sign_model():
     global _SIGN_MODEL, _SIGN_MODEL_PATH
     from ultralytics import YOLO
+    import threading
+
+    if not hasattr(_get_sign_model, '_lock'):
+        _get_sign_model._lock = threading.Lock()  # type: ignore[attr-defined]
 
     model_path = Path(settings.AI_MODEL_PATH)
     resolved = str(model_path.resolve()) if model_path.is_file() else ''
     if _SIGN_MODEL is not None and _SIGN_MODEL_PATH == resolved:
         return _SIGN_MODEL
-    _SIGN_MODEL = None
-    _SIGN_MODEL_PATH = None
-    if not model_path.is_file():
-        return None
-    try:
-        _SIGN_MODEL = YOLO(resolved)
-    except Exception:
-        logger.exception('Failed to load sign YOLO weights: %s', model_path)
-        return None
-    _SIGN_MODEL_PATH = resolved
-    names = _SIGN_MODEL.names or {}
-    logger.info('Loaded sign YOLO: %s classes from %s', len(names), model_path)
-    return _SIGN_MODEL
+
+    with _get_sign_model._lock:  # type: ignore[attr-defined]
+        if _SIGN_MODEL is not None and _SIGN_MODEL_PATH == resolved:
+            return _SIGN_MODEL
+        _SIGN_MODEL = None
+        _SIGN_MODEL_PATH = None
+        if not model_path.is_file():
+            return None
+        try:
+            _SIGN_MODEL = YOLO(resolved)
+        except Exception:
+            logger.exception('Failed to load sign YOLO weights: %s', model_path)
+            return None
+        _SIGN_MODEL_PATH = resolved
+        names = _SIGN_MODEL.names or {}
+        logger.info('Loaded sign YOLO: %s classes from %s', len(names), model_path)
+        return _SIGN_MODEL
 
 
 def _sign_model_class_count() -> int:
@@ -1576,8 +1584,10 @@ def _yolo_infer_once(
         return None
     from .yolo_class_mapping import class_key_for_yolo_id
 
-    mapped_key = class_key_for_yolo_id(int(cls_idx))
     names = results[0].names or {}
+    # 10-class thesis index map only — 26-class best_b2_named must use model.names
+    # (index 7 is KEEP_RIGHT there, not speed-limit-50).
+    mapped_key = class_key_for_yolo_id(int(cls_idx), model_class_count=len(names))
     if mapped_key:
         key = _canonical_class_key(mapped_key)
     else:
@@ -1634,7 +1644,7 @@ def _yolo_raw_detect(image_path, hint_source: str | None = None, *, live_fast: b
                 infer_path,
                 threshold,
                 allow_low_conf=not live_strict,
-                fast_live=live_capture and live_fast,
+                fast_live=bool(live_fast),
                 live_strict=live_strict,
             ),
         )
@@ -1657,6 +1667,10 @@ def _yolo_raw_detect(image_path, hint_source: str | None = None, *, live_fast: b
                     return result
             elif _upload_yolo_acceptable(conf) or _upload_yolo_catalog_acceptable(result):
                 return result
+
+        # Fast Detect: one YOLO pass only (skip enhance + multi-crop retries).
+        if live_fast:
+            return result
 
         if live_capture:
             if not live_fast and getattr(settings, 'AI_LIVE_TRY_ENHANCE', True):
@@ -1965,17 +1979,32 @@ def _run_hybrid_detection(
         yolo_result['detection_engine'] = 'yolo'
         return _upload_return( yolo_result, 'yolo')
 
-    catalog_result = _sanitize_u_turn_mislabel(
-        image_path,
-        _sanitize_stop_false_positive(
-            image_path, _try_catalog_visual_match(image_path, live_capture=False),
-        ),
-    )
+    # Fast image/live path: skip 247-ref catalog histogram scan (very slow on car photos).
+    catalog_result = None
+    if not live_fast:
+        catalog_result = _sanitize_u_turn_mislabel(
+            image_path,
+            _sanitize_stop_false_positive(
+                image_path, _try_catalog_visual_match(image_path, live_capture=False),
+            ),
+        )
     if catalog_result and float(catalog_result.get('catalog_match_score') or 0) >= _match_min_correlation():
         cat_margin = float(catalog_result.get('catalog_match_margin') or 0)
         if cat_margin >= 0.08 or _prohibitory_red_ring_hint(image_path):
             catalog_result['detection_engine'] = 'catalog_match'
             return _upload_return( catalog_result, 'catalog_match')
+
+    if live_fast:
+        # Prefer a quick no-sign return over shape/catalog heavy paths.
+        # Never promote weak/crop false positives as signed matches on fast path.
+        if yolo_result and (
+            _upload_yolo_trusted(yolo_conf) or _upload_yolo_catalog_acceptable(yolo_raw)
+        ):
+            yolo_result = _sanitize_u_turn_mislabel(image_path, yolo_result)
+            yolo_result['detection_engine'] = 'yolo'
+            return _upload_return(yolo_result, 'yolo')
+        from .live_sign_presence import live_no_sign_result
+        return _upload_return(live_no_sign_result(), 'opencv')
 
     if _shape_hints_enabled(upload=True, unified_prep=unified_prep):
         if _no_u_turn_shape_hint(image_path):
@@ -2001,10 +2030,14 @@ def _run_hybrid_detection(
             result['detection_engine'] = 'visual'
             return _upload_return( result, 'visual')
 
-    if yolo_result:
+    # Last-resort YOLO: only when confidence clears upload floors (avoids weak
+    # center-crop mislabels on busy street photos).
+    if yolo_result and (
+        _upload_yolo_trusted(yolo_conf) or _upload_yolo_catalog_acceptable(yolo_raw)
+    ):
         yolo_result = _sanitize_u_turn_mislabel(image_path, yolo_result)
         yolo_result['detection_engine'] = 'yolo'
-        return _upload_return( yolo_result, 'yolo')
+        return _upload_return(yolo_result, 'yolo')
 
     if _gemini_fallback_allowed(live=False) and gemini_available():
         gemini_result = detect_sign_with_gemini(image_path)

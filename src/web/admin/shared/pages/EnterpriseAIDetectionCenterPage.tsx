@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import {
   Brain, ArrowLeft, Activity, Target, Camera as CameraIcon, Zap,
-  Loader2, CheckCircle, Signpost, Car, Hash, Shield, BarChart3,
+  Loader2, CheckCircle, Signpost, Car, Shield, BarChart3,
 } from 'lucide-react';
 import { LiveWebcamPanel } from '@shared/components/ai/LiveWebcamPanel';
 import { ImageUploadPanel } from '@shared/components/ai/center/ImageUploadPanel';
@@ -27,8 +27,10 @@ import { useAuth } from '@shared/context/AuthContext';
 import { aiAPI, camerasAPI } from '@shared/services/api';
 import {
   DEFAULT_PAGE_STATS,
+  EMPTY_PAGE_STATS,
   mergePageStatsWithDefaults,
 } from '@shared/constants/defaultPageStats';
+import { USE_SAMPLE_FALLBACK } from '@shared/config/dataMode';
 import {
   getStoredAdminDetectionInputMode,
   setStoredAdminDetectionInputMode,
@@ -41,7 +43,6 @@ import { toast } from 'sonner';
 const PROCESSING_STEPS = [
   { icon: Signpost, labelKey: 'aiCenter.processSigns' },
   { icon: Car, labelKey: 'aiCenter.processVehicles' },
-  { icon: Hash, labelKey: 'aiCenter.processPlates' },
   { icon: Shield, labelKey: 'aiCenter.processViolations' },
 ] as const;
 
@@ -55,21 +56,21 @@ function isToday(iso: string): boolean {
 
 function EnterpriseProcessingPanel() {
   const { t } = useLanguage();
-  const [progress, setProgress] = useState(8);
+  const [progress, setProgress] = useState(12);
 
   useEffect(() => {
     const started = performance.now();
-    const durationMs = 7000;
+    // Match fast Detect (~0.5–1.5s). Cap at 94% until API clears overlay.
+    const durationMs = 450;
     let frame = 0;
 
     const tick = (now: number) => {
       const elapsed = now - started;
-      // Ease toward 96% while waiting for the API; never claim 100% until results arrive.
       const tNorm = Math.min(1, elapsed / durationMs);
-      const eased = 1 - (1 - tNorm) ** 2.2;
-      const next = Math.min(96, Math.round(8 + eased * 88));
+      const eased = 1 - (1 - tNorm) ** 2.4;
+      const next = Math.min(94, Math.round(12 + eased * 82));
       setProgress(next);
-      if (next < 96) {
+      if (next < 94) {
         frame = requestAnimationFrame(tick);
       }
     };
@@ -78,7 +79,7 @@ function EnterpriseProcessingPanel() {
     return () => cancelAnimationFrame(frame);
   }, []);
 
-  const stepDoneAt = [18, 38, 58, 78];
+  const stepDoneAt = [20, 48, 72];
 
   return (
     <div className="enterprise-ai-processing">
@@ -139,7 +140,9 @@ export function EnterpriseAIDetectionCenterPage() {
   const [result, setResult] = useState<CenterDetectionResult | null>(null);
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
   const [detecting, setDetecting] = useState(false);
-  const [pageStats, setPageStats] = useState<AIDetectionPageStats>(DEFAULT_PAGE_STATS);
+  const [pageStats, setPageStats] = useState<AIDetectionPageStats>(
+    USE_SAMPLE_FALLBACK ? DEFAULT_PAGE_STATS : EMPTY_PAGE_STATS,
+  );
   const [recentLogs, setRecentLogs] = useState<AIDetectionLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(true);
   const [liveCameraCount, setLiveCameraCount] = useState(0);
@@ -153,7 +156,9 @@ export function EnterpriseAIDetectionCenterPage() {
     try {
       const data = await aiAPI.getPageStats();
       setPageStats(mergePageStatsWithDefaults(data));
-    } catch { /* keep defaults */ }
+    } catch {
+      setPageStats(USE_SAMPLE_FALLBACK ? DEFAULT_PAGE_STATS : EMPTY_PAGE_STATS);
+    }
   }, []);
 
   const refreshLogs = useCallback(async () => {
@@ -182,6 +187,8 @@ export function EnterpriseAIDetectionCenterPage() {
     void refreshStats();
     void refreshLogs();
     void refreshCameras();
+    // Preload YOLO while user picks an image — Detect then finishes in <3s.
+    void aiAPI.warmup().catch(() => undefined);
   }, [refreshStats, refreshLogs, refreshCameras]);
 
   useEffect(() => {
@@ -238,18 +245,48 @@ export function EnterpriseAIDetectionCenterPage() {
 
   const handleResult = (res: CenterDetectionResult, preview: string) => {
     setResult(res);
-    setPreviewSrc(preview || res.uploaded_image || null);
-    void refreshLogs();
-    void refreshStats();
+    setPreviewSrc(
+      preview ||
+      res.annotated_processed_image ||
+      res.processed_image ||
+      res.uploaded_image ||
+      null,
+    );
+    // Defer history refresh so the result UI paints immediately.
+    window.setTimeout(() => {
+      void refreshLogs();
+      void refreshStats();
+    }, 0);
   };
 
-  const handleWebcamResult = (res: WebcamDetectionResult) => {
+  /** Webcam: keep live camera mounted for preview/loop; open full results only after Scan & Save. */
+  const handleWebcamResult = (res: WebcamDetectionResult, opts?: { quiet?: boolean }) => {
     if (!isManualScanResult(res)) return;
-    handleResult(res as CenterDetectionResult, res.uploaded_image || '');
+
+    const preview =
+      res.annotated_processed_image ||
+      res.processed_image ||
+      res.uploaded_image ||
+      res.guide_frame_image ||
+      '';
+
+    // Live loop lock or Scan Frame preview — stay on webcam workspace.
+    if (opts?.quiet || !res.log_id) {
+      void refreshStats();
+      return;
+    }
+
+    handleResult(res as CenterDetectionResult, preview);
+    toast.success(
+      t('aiDetection.webcam.savedToRecent') !== 'aiDetection.webcam.savedToRecent'
+        ? t('aiDetection.webcam.savedToRecent')
+        : 'Detection saved — see Recent Detection below',
+    );
   };
 
   const sourceLabel = t(`aiCenter.source.${inputMode}`);
-  const showResults = Boolean(result) && !detecting;
+  // Keep results visible as soon as API returns — do not blank the view while re-detecting.
+  const showResults = Boolean(result);
 
   const exportResult = () => {
     if (!result) return;

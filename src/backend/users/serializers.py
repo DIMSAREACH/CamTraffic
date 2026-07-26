@@ -90,24 +90,71 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
 
 class UserUpdateSerializer(serializers.ModelSerializer):
+    """Self-service profile fields + admin email/role when actor is admin."""
+
+    email = serializers.EmailField(required=False)
+    role = serializers.ChoiceField(choices=User.ROLE_CHOICES, required=False)
+
     class Meta:
         model = User
-        fields = ('full_name', 'phone', 'address', 'license_no', 'profile_image')
+        fields = ('full_name', 'phone', 'address', 'license_no', 'profile_image', 'email', 'role')
+        extra_kwargs = {
+            'email': {'validators': []},
+            'license_no': {'allow_blank': True, 'required': False},
+        }
+
+    def _actor(self):
+        request = self.context.get('request')
+        return getattr(request, 'user', None) if request else None
+
+    def validate_email(self, value):
+        email = (value or '').strip().lower()
+        user = self.instance
+        qs = User.objects.filter(email__iexact=email)
+        if user:
+            qs = qs.exclude(pk=user.pk)
+        if qs.exists():
+            raise serializers.ValidationError(
+                'An account with this email already exists.',
+            )
+        return email
 
     def validate_license_no(self, value):
-        user = self.instance
-        license_no = (value or '').strip()
-        if user and user.role == 'driver' and license_no:
-            try:
-                validate_unique_license_no(license_no, exclude_user_id=user.id)
-            except ProfileValidationError as exc:
-                raise serializers.ValidationError(exc.message) from exc
-        return value
+        return (value or '').strip()
+
+    def validate(self, attrs):
+        actor = self._actor()
+        is_admin = bool(actor and getattr(actor, 'role', None) == 'admin')
+
+        if 'email' in attrs and not is_admin:
+            raise serializers.ValidationError({
+                'email': 'Only administrators can change account email.',
+            })
+        if 'role' in attrs and not is_admin:
+            raise serializers.ValidationError({
+                'role': 'Only administrators can change account role.',
+            })
+
+        new_role = attrs.get('role')
+        if new_role == 'admin' and not (actor and getattr(actor, 'is_superuser', False)):
+            raise serializers.ValidationError({
+                'role': 'Only a super administrator can assign the administrator role.',
+            })
+
+        if 'license_no' in attrs:
+            lic = attrs.get('license_no') or ''
+            effective_role = attrs.get('role') or (self.instance.role if self.instance else 'driver')
+            if self.instance and effective_role == 'driver' and lic:
+                try:
+                    validate_unique_license_no(lic, exclude_user_id=self.instance.id)
+                except ProfileValidationError as exc:
+                    raise serializers.ValidationError({'license_no': exc.message}) from exc
+
+        return attrs
 
     def update(self, instance, validated_data):
+        role_changed = 'role' in validated_data and validated_data['role'] != instance.role
         user = super().update(instance, validated_data)
-        if user.role == 'driver' and 'license_no' in validated_data:
-            from .profile_services import provision_user_account
-
-            provision_user_account(user, license_no=user.license_no)
+        if role_changed or (user.role == 'driver' and 'license_no' in validated_data):
+            provision_user_account(user, license_no=user.license_no or None)
         return user

@@ -8,8 +8,12 @@ TEMPLATES: dict[str, dict] = {
     'users': {
         'headers': ['Name', 'Email', 'Phone', 'Role', 'Password', 'License No', 'Badge No'],
         'sample': [
-            ['John Doe', 'john@example.com', '012345678', 'Driver', '', 'LIC-1001', ''],
-            ['Jane Smith', 'jane@example.com', '098765432', 'Police', '', '', 'BADGE-2001'],
+            ['Sokha Meas', 'sokha.meas@gmail.com', '+855 12 345 678', 'Admin', '', '', ''],
+            ['Dara Chan', 'dara.chan@gmail.com', '+855 12 111 222', 'Police', '', '', 'OFF-PP-001'],
+            ['Kosal Pich', 'kosal.pich@gmail.com', '+855 16 555 666', 'Driver', '', 'DL-KH-2024-001234', ''],
+            ['Vanna Sok', 'vanna.sok@gmail.com', '+855 77 777 888', 'Driver', '', 'DL-KH-2024-002345', ''],
+            ['Srey Neang', 'srey.neang@gmail.com', '+855 17 333 444', 'Police', '', '', 'OFF-PP-002'],
+            ['Pisey Mao', 'pisey.mao@gmail.com', '+855 89 999 000', 'Driver', '', 'DL-KH-2024-003456', ''],
         ],
         'columns': [
             {'key': 'Name', 'required': False, 'note': 'Full name (derived from email if blank)'},

@@ -52,7 +52,7 @@ export function CitizenPaymentHistoryPage() {
     if (!user || user.role !== 'driver') return;
     if (!silent) setLoading(true);
     try {
-      const data = await finesAPI.getByDriver(user.id);
+      const data = await finesAPI.getAll();
       setFines(
         data
           .filter((f) => f.status === 'paid')

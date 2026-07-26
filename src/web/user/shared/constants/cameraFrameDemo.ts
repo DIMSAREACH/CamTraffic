@@ -1,16 +1,23 @@
 import type { Camera } from '@shared/types';
 
+const VIDEO_URL_RE = /\.(webm|mp4|mov|avi|mkv|m4v)(\?|#|$)/i;
+
+/** True when the frame URL is a playable video stream (not a still snapshot). */
+export function isCameraVideoUrl(url?: string | null): boolean {
+  return VIDEO_URL_RE.test((url || '').trim());
+}
+
 /** Bundled CCTV snapshots in /public/demo-cameras — DEV + VITE_ALLOW_DEMO_ASSETS only. */
 const DEMO_FRAMES_BY_CODE: Record<string, string> = {
-  'CAM-PP-001': '/demo-cameras/monivong-intersection.jpg',
-  'LAN-PP-001': '/demo-cameras/monivong-intersection.jpg',
-  'CAM-PP-002': '/demo-cameras/monivong-ptz.jpg',
+  'CAM-PP-001': '/demo-cameras/pp-chaktomuk-traffic.webm',
+  'LAN-PP-001': '/demo-cameras/pp-chaktomuk-traffic.webm',
+  'CAM-PP-002': '/demo-cameras/pp-riverside-traffic.webm',
   'CAM-KD-001': '/demo-cameras/nr6-highway.jpg',
 };
 
 const DEMO_FRAMES_BY_ID: Record<string, string> = {
-  '1': '/demo-cameras/monivong-intersection.jpg',
-  '2': '/demo-cameras/monivong-ptz.jpg',
+  '1': '/demo-cameras/pp-chaktomuk-traffic.webm',
+  '2': '/demo-cameras/pp-riverside-traffic.webm',
   '3': '/demo-cameras/nr6-highway.jpg',
 };
 
@@ -56,8 +63,13 @@ export function resolveCameraFrameUrl(
   if (ALLOW_DEMO_ASSETS && !raw && demo) {
     return resolvePublicPath(demo);
   }
-  if (raw.startsWith('/demo-cameras/')) {
-    return ALLOW_DEMO_ASSETS ? resolvePublicPath(raw) : '';
+  // Bundled thesis streams under /public/demo-cameras or /media/demo-cameras —
+  // only when explicitly allowed; otherwise blank so UI shows no live source.
+  if (raw.includes('/demo-cameras/') || raw.includes('demo-cameras/')) {
+    if (ALLOW_DEMO_ASSETS) {
+      return resolvePublicPath(raw.startsWith('/') ? raw : `/${raw}`);
+    }
+    return '';
   }
   if (raw.startsWith('http') || raw.startsWith('blob:') || raw.startsWith('data:')) {
     return raw;
@@ -70,10 +82,11 @@ export function isDemoCameraFrame(
   frameUrl?: string | null,
   camera?: Pick<Camera, 'id' | 'code'>,
 ): boolean {
-  if (!ALLOW_DEMO_ASSETS) return false;
   const raw = frameUrl?.trim() || '';
   const resolved = resolveCameraFrameUrl(frameUrl, camera);
   if (raw.includes('/demo-cameras/') || resolved.includes('/demo-cameras/')) return true;
+  if (raw.includes('/media/demo-cameras/') || resolved.includes('/media/demo-cameras/')) return true;
+  if (!ALLOW_DEMO_ASSETS) return false;
   if (shouldReplaceFrameUrl(raw) && camera && demoCameraFramePath(camera)) return true;
   if (!raw && camera && demoCameraFramePath(camera)) return true;
   return false;

@@ -67,6 +67,8 @@ Mapping: `src/backend/ai_detection/yolo_class_mapping.py`
 
 **Do not claim** mAP@50 = 0.908 for the 248-class `best.pt` unless that model is re-evaluated.
 
+**API (portals / defense):** `GET /api/ai/model-metrics/` returns published JSON from `ai/metrics/published_metrics.json` (auto-built from `results.csv` when missing). Report Analytics and AI pages should read this — never invent mAP for 248-class.
+
 Source: `docs/final-year-project/AI-ACCURACY-EVALUATION.md`
 
 ---

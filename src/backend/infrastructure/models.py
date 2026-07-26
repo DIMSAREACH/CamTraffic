@@ -19,14 +19,29 @@ class Road(TimeStampedUUIDModel):
     ]
 
     name = models.CharField(max_length=200)
+    road_code = models.CharField(max_length=50, blank=True, default='')
     road_type = models.CharField(max_length=30, choices=ROAD_TYPES, default='urban')
     length_km = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
     speed_limit = models.PositiveIntegerField(default=60)
-    city = models.CharField(max_length=100, blank=True)
-    region = models.CharField(max_length=100, blank=True)
+    lanes = models.PositiveSmallIntegerField(null=True, blank=True)
+    direction = models.CharField(max_length=50, blank=True, default='')
+    description = models.TextField(blank=True, default='')
+    city = models.CharField(max_length=100, blank=True, default='')
+    region = models.CharField(max_length=100, blank=True, default='')
+    province = models.CharField(max_length=100, blank=True, default='')
+    district = models.CharField(max_length=100, blank=True, default='')
+    commune = models.CharField(max_length=100, blank=True, default='')
+    village = models.CharField(max_length=100, blank=True, default='')
+    country = models.CharField(max_length=100, blank=True, default='Cambodia')
     latitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
     longitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    start_latitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    start_longitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    end_latitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
+    end_longitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='active')
+    is_deleted = models.BooleanField(default=False)
+    deleted_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         db_table = 'roads'
@@ -97,7 +112,7 @@ class Camera(TimeStampedUUIDModel):
         max_length=500,
         blank=True,
         default='',
-        help_text='Preferred snapshot/stream URL (HTTP JPEG, RTSP, or /demo-cameras/…)',
+        help_text='Preferred snapshot/stream URL (HTTP JPEG, RTSP, or /media/cctv/…)',
     )
     # Extended CCTV metadata (already present on production Postgres)
     rtsp_url = models.CharField(max_length=500, blank=True, default='')

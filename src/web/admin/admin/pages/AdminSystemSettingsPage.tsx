@@ -200,9 +200,10 @@ type SystemStatus = {
   storage_pct: number;
 };
 
+/** Neutral placeholders only — never imply hardware/org until /settings/ loads. */
 const DEFAULT_GENERAL: GeneralConfig = {
-  system_name: 'AI Traffic Sign Detection System',
-  organization: 'Ministry of Public Works & Transport',
+  system_name: '',
+  organization: '',
   timezone: 'Asia/Phnom_Penh',
   date_format: 'DD/MM/YYYY',
   currency: 'USD',
@@ -210,88 +211,88 @@ const DEFAULT_GENERAL: GeneralConfig = {
 };
 
 const DEFAULT_AI: AiConfig = {
-  default_model: 'YOLOv11 Cambodia',
-  confidence_threshold: '0.85',
-  ocr_engine: 'PaddleOCR',
+  default_model: '',
+  confidence_threshold: '',
+  ocr_engine: '',
   detection_mode: 'realtime',
-  gpu: 'RTX 4090',
-  auto_retrain: true,
+  gpu: '',
+  auto_retrain: false,
   vehicle_enabled: true,
   plate_ocr_enabled: true,
-  auto_violation: true,
+  auto_violation: false,
 };
 
 const DEFAULT_CAMERA: CameraConfig = {
-  camera_name: 'Camera 01',
-  location: 'National Road 6',
-  ip_address: '192.168.1.100',
-  resolution: '1920 x 1080',
-  default_fps: '30',
-  reconnect_interval_sec: '30',
-  recording_enabled: true,
+  camera_name: '',
+  location: '',
+  ip_address: '',
+  resolution: '',
+  default_fps: '',
+  reconnect_interval_sec: '',
+  recording_enabled: false,
   ai_detection_enabled: true,
   live_preview_enabled: true,
 };
 
 const DEFAULT_TRAFFIC: TrafficConfig = {
-  enforcement_zone_default: 'National roads',
+  enforcement_zone_default: '',
   speed_unit: 'km/h',
   auto_flag_violations: true,
-  grace_period_seconds: '3',
+  grace_period_seconds: '',
 };
 
 const DEFAULT_VEHICLE: VehicleConfig = {
-  plate_format: 'Cambodia (2+4)',
+  plate_format: '',
   require_owner_link: true,
   unknown_vehicle_alert: true,
-  retention_days: '365',
+  retention_days: '',
 };
 
 const DEFAULT_EMAIL: EmailConfig = {
-  smtp_server: 'smtp.gmail.com',
-  smtp_port: '587',
-  email: 'admin@system.com',
+  smtp_server: '',
+  smtp_port: '',
+  email: '',
   password: '',
   encryption: 'TLS',
   provider: 'smtp',
-  from_email: 'admin@system.com',
+  from_email: '',
 };
 
 const DEFAULT_SMS: SmsConfig = {
-  provider: 'Twilio',
+  provider: '',
   api_key: '',
-  sender_name: 'Traffic Police',
-  enabled: true,
+  sender_name: '',
+  enabled: false,
 };
 
 const DEFAULT_NOTIFICATIONS: NotificationConfig = {
-  email_enabled: true,
-  sms_enabled: true,
-  push_enabled: true,
+  email_enabled: false,
+  sms_enabled: false,
+  push_enabled: false,
   system_enabled: true,
   violation_alert: true,
   payment_reminder: true,
 };
 
 const DEFAULT_SECURITY: SecurityConfig = {
-  min_password_length: '12',
-  require_uppercase: true,
-  require_number: true,
-  require_symbol: true,
+  min_password_length: '8',
+  require_uppercase: false,
+  require_number: false,
+  require_symbol: false,
   session_timeout_minutes: '30',
-  two_factor_enabled: true,
+  two_factor_enabled: false,
   jwt_access_minutes: '60',
   login_rate_limit: '10',
-  require_email_verification: true,
-  session_rotation: true,
+  require_email_verification: false,
+  session_rotation: false,
 };
 
 const DEFAULT_API: ApiConfig = {
   rest_api_enabled: true,
-  google_maps_status: 'Connected',
-  cloud_storage: 'AWS S3',
-  email_service: 'SMTP',
-  sms_provider: 'Twilio',
+  google_maps_status: 'Not configured',
+  cloud_storage: 'Not configured',
+  email_service: 'Not configured',
+  sms_provider: 'Not configured',
 };
 
 function ConfigPanel({
@@ -1666,7 +1667,7 @@ export function AdminSystemSettingsPage() {
               },
               {
                 label: tr('systemSettings.systemInfoGpu', 'GPU'),
-                value: aiConfig.gpu || 'RTX 4090',
+                value: aiConfig.gpu || tr('systemSettings.notConfigured', 'Not configured'),
                 icon: Activity,
                 tone: 'violet',
               },

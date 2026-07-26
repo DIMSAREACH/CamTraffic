@@ -92,12 +92,16 @@ export function loadAuthSession(portal: AuthPortal = getAuthPortal()): {
       try {
         const user = JSON.parse(legacyUser) as User;
         if (roleMatchesPortal(user.role, portal)) {
-          localStorage.setItem(k.remember, '1');
-          return readFromStorage(localStorage, portal) ?? {
-            token: legacyToken,
-            refresh: localStorage.getItem(LEGACY.refresh),
+          const refresh = localStorage.getItem(LEGACY.refresh) ?? '';
+          // Persist into portal-prefixed keys so axios getAccessToken() finds them.
+          persistRememberPreference(true, user.email || '', portal);
+          writeToStorage(localStorage, {
+            access: legacyToken,
+            refresh,
             user,
-          };
+          }, portal);
+          clearLegacyAuthStorage();
+          return { token: legacyToken, refresh: refresh || null, user };
         }
       } catch {
         clearLegacyAuthStorage();
@@ -165,6 +169,10 @@ export function getRefreshToken(portal: AuthPortal = getAuthPortal()): string | 
 
 export function setAccessToken(token: string, portal: AuthPortal = getAuthPortal()): void {
   getSessionStorage(portal).setItem(storageKeys(portal).token, token);
+}
+
+export function setRefreshToken(token: string, portal: AuthPortal = getAuthPortal()): void {
+  getSessionStorage(portal).setItem(storageKeys(portal).refresh, token);
 }
 
 export function clearAuthSession(portal: AuthPortal = getAuthPortal()): void {

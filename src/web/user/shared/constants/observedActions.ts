@@ -1,4 +1,6 @@
-/** Driver actions used by the violation rule engine (demo / testing). */
+import { ALLOW_DEMO_VIOLATION } from '@shared/config/dataMode';
+
+/** Driver actions used by the violation rule engine. */
 export const OBSERVED_ACTION_VALUES = [
   'LEFT_TURN',
   'RIGHT_TURN',
@@ -12,17 +14,17 @@ export const OBSERVED_ACTION_VALUES = [
 export type ObservedActionValue = (typeof OBSERVED_ACTION_VALUES)[number];
 
 export interface DetectPipelineOptions {
-  /** Empty = infer from sign rule (demo mode). */
+  /** Explicit observed driver action for rule matching. */
   observedAction?: string;
-  /** When true and no explicit action, backend matches the sign’s prohibited action. */
+  /** When true and no explicit action, backend infers the sign’s prohibited action (dev-only). */
   demoViolation?: boolean;
   autoCreateViolation?: boolean;
 }
 
 /**
- * Map Demo Driver Action UI → detect API fields.
- * - Auto (empty): demo_violation=true so backend infers the sign rule
- * - Explicit action: send observed_action (and optionally auto-create)
+ * Map Driver Action UI → detect API fields.
+ * Production-truth (VITE_ALLOW_DEMO_VIOLATION=false): only send explicit observed_action.
+ * Dev demo mode: Auto (empty) may set demo_violation=true for rule inference.
  */
 export function buildDemoViolationOptions(
   demoObservedAction: string,
@@ -42,7 +44,7 @@ export function buildDemoViolationOptions(
   const autoCreate = opts?.autoCreate ?? Boolean(explicit);
   return {
     observed_action: explicit || undefined,
-    demo_violation: !explicit,
+    demo_violation: ALLOW_DEMO_VIOLATION && !explicit ? true : undefined,
     auto_create_violation: autoCreate || undefined,
   };
 }
@@ -51,8 +53,7 @@ export function toDetectPipelineOptions(demoObservedAction: string): DetectPipel
   const explicit = (demoObservedAction || '').trim();
   return {
     observedAction: explicit || undefined,
-    // Auto (empty) must enable demo matching — inverted from “has explicit action”
-    demoViolation: !explicit,
+    demoViolation: ALLOW_DEMO_VIOLATION && !explicit,
     autoCreateViolation: Boolean(explicit),
   };
 }

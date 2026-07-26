@@ -5,7 +5,16 @@ from core.models import UUIDPrimaryKeyModel
 
 
 class AIDetectionLog(UUIDPrimaryKeyModel):
-    """AI detection session log (implementation extension)."""
+    """
+    AI detection session log.
+
+    Master Build Prompt mapping (denormalized — no separate Detected* tables):
+      DetectedVehicle      → detected_vehicles (JSON) + vehicle_count
+      DetectedTrafficSign  → detected_sign, confidence, description, guidance
+      DetectedPlate        → detected_plate, plate_confidence, plate_ocr_details
+      DetectionHistory     → queryset of this model (/api/ai/history/)
+      DetectionStatistics  → computed via /api/ai/statistics/
+    """
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,

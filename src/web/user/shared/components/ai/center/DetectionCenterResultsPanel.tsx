@@ -71,6 +71,8 @@ export type CenterDetectionResult = WebcamDetectionResult & {
       sign_name_en?: string;
       sign_bbox?: { x1: number; y1: number; x2: number; y2: number };
       detected_plate?: string;
+      plate_bbox?: { x1: number; y1: number; x2: number; y2: number };
+      plate_boxes?: Array<{ bbox?: { x1: number; y1: number; x2: number; y2: number }; confidence?: number }>;
       vehicle_count?: number;
       above_threshold?: boolean;
       vehicles?: Array<{
@@ -184,7 +186,7 @@ function DetectionLoadingPanel({ hint }: { hint: string }) {
   useEffect(() => {
     const id = window.setInterval(() => {
       setActiveStep((prev) => (prev + 1) % stepCount);
-    }, 1500);
+    }, 380);
     return () => window.clearInterval(id);
   }, [stepCount]);
 
@@ -779,6 +781,9 @@ export function DetectionCenterResultsPanel({
               {hasPlateHit ? (
                 <>
                   <p className="ai-center-detect-card__plate">{result.detected_plate}</p>
+                  <p className="ai-center-detect-card__hint text-xs text-amber-700 mt-1">
+                    {t('aiCenter.ocrConfirmRequired', 'OCR assist only — officer must confirm plate before issuing a fine.')}
+                  </p>
                   {ocrReads.length > 0 && (
                     <ul className="ai-center-detect-card__list">
                       {ocrReads.map((read, i) => (

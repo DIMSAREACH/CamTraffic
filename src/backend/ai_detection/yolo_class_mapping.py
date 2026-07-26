@@ -3,6 +3,9 @@ Explicit YOLO class index → catalog class_key map for the 10-class thesis mode
 
 Must stay in sync with the 10-class thesis weights (ai/weights/best_v2.pt)
 and the first 10 names in ai/dataset_10 (see docs/AI-MODEL-STORY.md).
+
+Do NOT apply this map to other weight files (e.g. best_b2_named.pt with 26
+named classes) — index 7 is KEEP_RIGHT there, not P_SPEED_LIMIT_50_KM_H.
 """
 from __future__ import annotations
 
@@ -20,10 +23,24 @@ YOLO_CLASS_MAPPING: dict[int, str] = {
     9: 'I_ONE_WAY_TRAFFIC',
 }
 
+_THESIS_CLASS_COUNT = len(YOLO_CLASS_MAPPING)
+
 
 def get_yolo_class_mapping() -> dict[int, str]:
     return dict(YOLO_CLASS_MAPPING)
 
 
-def class_key_for_yolo_id(class_id: int) -> str | None:
+def class_key_for_yolo_id(
+    class_id: int,
+    *,
+    model_class_count: int | None = None,
+) -> str | None:
+    """
+    Map a YOLO class index to a catalog key.
+
+    Only valid for the 10-class thesis model. When the loaded model has a
+    different class count, return None so callers use ``model.names`` instead.
+    """
+    if model_class_count is not None and int(model_class_count) != _THESIS_CLASS_COUNT:
+        return None
     return YOLO_CLASS_MAPPING.get(int(class_id))

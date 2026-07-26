@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
   ArrowLeft, Bell, Loader2, Mail, MessageSquare, Send,
@@ -32,9 +32,17 @@ export function SendNotificationPage() {
   const [message, setMessage] = useState('');
   const [recipient, setRecipient] = useState<NotifRecipientRole>('driver');
   const [channels, setChannels] = useState<NotifChannel[]>(['system']);
+  const [channelOk, setChannelOk] = useState<Record<string, boolean>>({ system: true });
   const [busy, setBusy] = useState(false);
 
+  useEffect(() => {
+    void notificationsAPI.channelStatus()
+      .then((s) => setChannelOk({ system: true, ...s }))
+      .catch(() => setChannelOk({ system: true }));
+  }, []);
+
   const toggleChannel = (ch: NotifChannel) => {
+    if (ch === 'system') return;
     setChannels((prev) => (
       prev.includes(ch) ? prev.filter((c) => c !== ch) : [...prev, ch]
     ));
@@ -48,14 +56,6 @@ export function SendNotificationPage() {
     if (!message.trim()) {
       toast.error(t('notifCenter.validationMessage'));
       return false;
-    }
-    if (channels.length === 0) {
-      toast.error(t('notifCenter.validationChannel'));
-      return false;
-    }
-    if (!channels.includes('system')) {
-      toast.message('In-app (system) channel is required for production delivery to the database.');
-      setChannels((prev) => (prev.includes('system') ? prev : ['system', ...prev]));
     }
     return true;
   };
@@ -71,11 +71,10 @@ export function SendNotificationPage() {
         recipient,
         channels: channels.includes('system') ? channels : ['system', ...channels],
       });
-      toast.success(
-        t('notifCenter.toastSent') !== 'notifCenter.toastSent'
-          ? `${t('notifCenter.toastSent')} (${res.created})`
-          : `Sent ${res.created} in-app notification(s)`,
-      );
+      toast.success(`Sent ${res.created} in-app` +
+        (res.email_sent ? `, email ${res.email_sent}` : '') +
+        (res.push_sent ? `, push ${res.push_sent}` : '') +
+        (res.sms_sent ? `, sms ${res.sms_sent}` : ''));
       if (res.note) toast.message(res.note);
       navigate('/admin/notifications/list');
     } catch (err) {
@@ -101,15 +100,11 @@ export function SendNotificationPage() {
           <div>
             <div className="enforcement-page__eyebrow">
               <span className="enforcement-page__eyebrow-icon"><Bell size={14} /></span>
-              {t('pages.notifications.sendEyebrow') !== 'pages.notifications.sendEyebrow'
-                ? t('pages.notifications.sendEyebrow')
-                : 'Live API'}
+              Multi-channel broadcast
             </div>
-            <h1 className="enforcement-page__title">{t('pages.notifications.sendTitle') !== 'pages.notifications.sendTitle'
-              ? t('pages.notifications.sendTitle')
-              : 'Send notification'}</h1>
+            <h1 className="enforcement-page__title">Send notification</h1>
             <p className="enforcement-page__subtitle">
-              Broadcast creates real in-app rows in PostgreSQL via POST /api/notifications/admin/broadcast/
+              In-app always. Email/push/SMS send when SMTP/FCM/Twilio are configured.
             </p>
           </div>
           <button type="button" className="notif-center__back-link" onClick={() => navigate('/admin/notifications/list')}>
@@ -122,11 +117,11 @@ export function SendNotificationPage() {
       <div className="notif-compose-page__grid">
         <section className="enforcement-page__panel space-y-4 p-6">
           <label className="block space-y-1">
-            <span className="text-sm font-medium">{t('notifCenter.fieldTitle') !== 'notifCenter.fieldTitle' ? t('notifCenter.fieldTitle') : 'Title'}</span>
+            <span className="text-sm font-medium">Title</span>
             <input className="w-full border rounded-md px-3 py-2" value={title} onChange={(e) => setTitle(e.target.value)} disabled={busy} />
           </label>
           <label className="block space-y-1">
-            <span className="text-sm font-medium">{t('notifCenter.fieldMessage') !== 'notifCenter.fieldMessage' ? t('notifCenter.fieldMessage') : 'Message'}</span>
+            <span className="text-sm font-medium">Message</span>
             <textarea className="w-full border rounded-md px-3 py-2 min-h-[120px]" value={message} onChange={(e) => setMessage(e.target.value)} disabled={busy} />
           </label>
 
@@ -142,7 +137,7 @@ export function SendNotificationPage() {
                   disabled={busy}
                 >
                   <Icon size={14} />
-                  {t(`notifCenter.role.${id}`) !== `notifCenter.role.${id}` ? t(`notifCenter.role.${id}`) : id}
+                  {id}
                 </button>
               ))}
             </div>
@@ -151,35 +146,35 @@ export function SendNotificationPage() {
           <div>
             <p className="text-sm font-medium mb-2">Channels</p>
             <div className="flex flex-wrap gap-2">
-              {CHANNELS.map(({ id, icon: Icon }) => (
-                <button
-                  key={id}
-                  type="button"
-                  className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm ${channels.includes(id) ? 'border-teal-600 bg-teal-50' : ''}`}
-                  onClick={() => toggleChannel(id)}
-                  disabled={busy}
-                >
-                  <Icon size={14} />
-                  {t(`notifCenter.channel.${id}`) !== `notifCenter.channel.${id}` ? t(`notifCenter.channel.${id}`) : id}
-                </button>
-              ))}
+              {CHANNELS.map(({ id, icon: Icon }) => {
+                const ready = channelOk[id] !== false;
+                const selected = channels.includes(id);
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm ${selected ? 'border-teal-600 bg-teal-50' : ''} ${!ready && id !== 'system' ? 'opacity-60' : ''}`}
+                    onClick={() => toggleChannel(id)}
+                    disabled={busy || id === 'system'}
+                    title={!ready && id !== 'system' ? 'Provider not configured — will attempt and report' : undefined}
+                  >
+                    <Icon size={14} />
+                    {id}{!ready && id !== 'system' ? ' (off)' : ''}
+                  </button>
+                );
+              })}
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              Production: in-app is persisted. Email/push/SMS need SMTP/FCM/Twilio configured.
-            </p>
           </div>
 
-          <div className="flex gap-2 pt-2">
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 rounded-md bg-teal-700 text-white px-4 py-2 disabled:opacity-60"
-              onClick={() => void handleSend()}
-              disabled={busy}
-            >
-              {busy ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-              {busy ? 'Sending…' : (t('notifCenter.actionSend') !== 'notifCenter.actionSend' ? t('notifCenter.actionSend') : 'Send now')}
-            </button>
-          </div>
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 rounded-md bg-teal-700 text-white px-4 py-2 disabled:opacity-60"
+            onClick={() => void handleSend()}
+            disabled={busy}
+          >
+            {busy ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+            {busy ? 'Sending…' : 'Send now'}
+          </button>
         </section>
 
         <aside className="enforcement-page__panel p-6 space-y-2">

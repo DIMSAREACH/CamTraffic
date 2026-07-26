@@ -151,8 +151,8 @@ export function FineManagement() {
   const [editForm, setEditForm] = useState({ reason: '', amount: '', location: '', vehicle_plate: '' });
   const [savingEdit, setSavingEdit] = useState(false);
 
-  const canIssue = user?.role === 'admin' || user?.role === 'police';
-  const canManage = canIssue;
+  const canIssue = user?.role === 'police';
+  const canManage = user?.role === 'admin' || user?.role === 'police';
   const isDriver = user?.role === 'driver';
   const isAdmin = user?.role === 'admin';
 
@@ -164,8 +164,7 @@ export function FineManagement() {
     if (!silent) setLoading(true);
     try {
       let data: Fine[];
-      if (user.role === 'admin') data = await finesAPI.getAll();
-      else if (user.role === 'police') data = await finesAPI.getByPolice(user.id);
+      if (user.role === 'admin' || user.role === 'police') data = await finesAPI.getAll();
       else data = await finesAPI.getByDriver(user.id);
       setFines(data.map((f) => {
         const n = typeof f.amount === 'number' ? f.amount : Number(f.amount);

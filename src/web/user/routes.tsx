@@ -11,10 +11,8 @@ import { DashboardPage } from '@user/pages/dashboard/DashboardPage';
 import { AIDetectionDashboardPage } from '@shared/pages/AIDetectionDashboardPage';
 import { EnterpriseAIDetectionCenterPage } from '@shared/pages/EnterpriseAIDetectionCenterPage';
 import { ReportsPage } from '@shared/pages/ReportsPage';
-import { ReportCenterPage } from '@shared/pages/ReportCenterPage';
 import { ReportAnalyticsPage } from '@shared/pages/ReportAnalyticsPage';
 import { ReportDetailsPage } from '@shared/pages/ReportDetailsPage';
-import { ScheduledReportsPage } from '@shared/pages/ScheduledReportsPage';
 import { AILogsPage } from '@shared/pages/AILogsPage';
 import { FineManagement } from '@shared/pages/FineManagement';
 import { ViolationsPage } from '@shared/pages/ViolationsPage';
@@ -86,56 +84,62 @@ function GuardedEvidencePage() {
   );
 }
 
-/** Shared child routes under /officer and /citizen (role-gated by layout). */
-const sharedDomainChildren = [
+/** Shared account + enforcement outcome routes (officer + citizen). */
+const sharedAccountChildren = [
   { index: true, Component: DashboardPage },
-  { path: 'ai-detection', Component: GuardedAiDetectionDashboardPage },
-  { path: 'ai-detection/new', Component: GuardedEnterpriseAiDetectionPage },
-  { path: 'cameras', Component: GuardedCamerasPage },
-  { path: 'ai-logs', Component: GuardedAiLogsPage },
-  { path: 'evidence', Component: GuardedEvidencePage },
   { path: 'fines', Component: FineManagement },
   { path: 'fines/:fineId', Component: FineDetailPage },
   { path: 'settings', Component: UserSettingsPage },
   { path: 'settings/notifications', Component: NotificationSettingsPage },
   { path: 'violations', Component: ViolationsPage },
-  { path: 'violations/map', Component: ViolationMapPage },
-  { path: 'violations/heatmap', Component: CitizenViolationHeatmapPage },
   { path: 'signs', Component: TrafficSignsPage },
-  { path: 'reports', Component: ReportsPage },
-  { path: 'reports/analytics', Component: ReportAnalyticsPage },
-  { path: 'reports/details/:reportId', Component: ReportDetailsPage },
   { path: 'profile', Component: ProfilePage },
   { path: 'notifications', Component: NotificationsPage },
   { path: 'notifications/details/:notificationId', Component: NotificationDetailsPage },
 ];
 
-/** Officer-only routes: review appeals, queue, cameras ops — no citizen create/mock catalog pages. */
+/** Officer operational routes — AI, cameras, reports, queue. */
 const officerChildren = [
-  ...sharedDomainChildren,
+  ...sharedAccountChildren,
+  { path: 'ai-detection', Component: GuardedAiDetectionDashboardPage },
+  { path: 'ai-detection/new', Component: GuardedEnterpriseAiDetectionPage },
   { path: 'ai-detection/source', loader: () => redirect(`${OFFICER_PORTAL_BASE}/ai-detection/new`) },
+  { path: 'cameras', Component: GuardedCamerasPage },
+  { path: 'ai-logs', Component: GuardedAiLogsPage },
+  { path: 'evidence', Component: GuardedEvidencePage },
+  { path: 'reports', Component: ReportsPage },
+  { path: 'reports/analytics', Component: ReportAnalyticsPage },
+  { path: 'reports/details/:reportId', Component: ReportDetailsPage },
   { path: 'appeals', Component: AppealsPage },
   { path: 'detection-queue', Component: OfficerDetectionQueuePage },
   { path: 'unknown-vehicles', Component: UnknownVehiclesPage },
   { path: 'driver-search', Component: OfficerDriverSearchPage },
-  /** Real PDF/Excel hub — avoid mock ReportCenter/Scheduled catalog under officer. */
   { path: 'reports/center', loader: () => redirect(`${OFFICER_PORTAL_BASE}/reports`) },
   { path: 'reports/scheduled', loader: () => redirect(`${OFFICER_PORTAL_BASE}/reports`) },
+  /** Driver-only map/heatmap APIs — keep officers on operational list views. */
+  { path: 'violations/map', loader: () => redirect(`${OFFICER_PORTAL_BASE}/violations`) },
+  { path: 'violations/heatmap', loader: () => redirect(`${OFFICER_PORTAL_BASE}/violations`) },
 ];
 
-/** Citizen-only routes: create appeals, payments, vehicles, support. */
+/** Citizen-only: personal fines/vehicles/appeals — no operational AI or fabricated reports. */
 const citizenChildren = [
-  ...sharedDomainChildren,
-  { path: 'ai-detection/source', loader: () => redirect(`${CITIZEN_PORTAL_BASE}/ai-detection/new`) },
+  ...sharedAccountChildren,
+  { path: 'violations/map', Component: ViolationMapPage },
+  { path: 'violations/heatmap', Component: CitizenViolationHeatmapPage },
   { path: 'fines/payments', Component: CitizenPaymentHistoryPage },
   { path: 'fines/:fineId/installments', Component: InstallmentPlanPage },
   { path: 'fines/:fineId/payment', Component: FineManagement },
   { path: 'vehicles', Component: VehiclesPage },
   { path: 'appeals', Component: AppealsPage },
-  { path: 'reports/center', Component: ReportCenterPage },
-  { path: 'reports/scheduled', Component: ScheduledReportsPage },
   { path: 'traffic-rules', Component: CitizenTrafficRulesPage },
   { path: 'support', Component: CitizenSupportPage },
+  /** Block legacy / mistyped operational paths → home. */
+  { path: 'ai-detection/*', loader: () => redirect(CITIZEN_PORTAL_BASE) },
+  { path: 'cameras', loader: () => redirect(CITIZEN_PORTAL_BASE) },
+  { path: 'ai-logs', loader: () => redirect(CITIZEN_PORTAL_BASE) },
+  { path: 'evidence', loader: () => redirect(CITIZEN_PORTAL_BASE) },
+  { path: 'reports/*', loader: () => redirect(CITIZEN_PORTAL_BASE) },
+  { path: 'reports', loader: () => redirect(CITIZEN_PORTAL_BASE) },
 ];
 
 /** Redirect /dashboard/* → /officer/* or /citizen/* using stored role when available. */

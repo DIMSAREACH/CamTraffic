@@ -179,6 +179,14 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'camtraffic.ping',
         'schedule': 3600.0,
     },
+    'process-scheduled-notifications': {
+        'task': 'camtraffic.process_scheduled_notifications',
+        'schedule': 60.0,  # every minute
+    },
+    'process-scheduled-reports': {
+        'task': 'camtraffic.process_scheduled_reports',
+        'schedule': 300.0,  # every 5 minutes
+    },
 }
 
 # Local dev without Redis: run tasks inline (no broker connection retries).
@@ -336,8 +344,8 @@ AI_LIVE_YOLO_FLOOR = float(os.getenv('AI_LIVE_YOLO_FLOOR', '10'))
 AI_LIVE_YOLO_INFER_CONF = float(os.getenv('AI_LIVE_YOLO_INFER_CONF', '0.50'))
 AI_LIVE_YOLO_TRUST = float(os.getenv('AI_LIVE_YOLO_TRUST', '50'))
 AI_LIVE_YOLO_CATALOG_MIN = float(os.getenv('AI_LIVE_YOLO_CATALOG_MIN', '45'))
-AI_LIVE_IMGSZ = int(os.getenv('AI_LIVE_IMGSZ', '640'))
-AI_LIVE_TRY_ENHANCE = os.getenv('AI_LIVE_TRY_ENHANCE', 'True').lower() == 'true'
+AI_LIVE_IMGSZ = int(os.getenv('AI_LIVE_IMGSZ', '416'))
+AI_LIVE_TRY_ENHANCE = os.getenv('AI_LIVE_TRY_ENHANCE', 'False').lower() == 'true'
 AI_CATALOG_VISUAL_MATCH_ENABLED = os.getenv('AI_CATALOG_VISUAL_MATCH_ENABLED', 'True').lower() == 'true'
 AI_CATALOG_VISUAL_MIN_SCORE = float(os.getenv('AI_CATALOG_VISUAL_MIN_SCORE', '0.58'))
 AI_CATALOG_VISUAL_LIVE_MIN_SCORE = float(os.getenv('AI_CATALOG_VISUAL_LIVE_MIN_SCORE', '0.62'))
@@ -346,13 +354,15 @@ AI_LIVE_SIGN_COLOR_MIN = float(os.getenv('AI_LIVE_SIGN_COLOR_MIN', '0.05'))
 AI_LIVE_SIGN_BLOB_MIN = float(os.getenv('AI_LIVE_SIGN_BLOB_MIN', '0.025'))
 AI_LIVE_SKIN_MAX = float(os.getenv('AI_LIVE_SKIN_MAX', '0.38'))
 AI_LIVE_EDGE_MIN = float(os.getenv('AI_LIVE_EDGE_MIN', '0.008'))
-AI_IMGSZ = int(os.getenv('AI_IMGSZ', '640'))
+AI_IMGSZ = int(os.getenv('AI_IMGSZ', '416'))
+# Interactive Detect: smaller imgsz + skip OCR/multi-crop unless client opts into full quality.
+AI_DETECT_FAST_DEFAULT = os.getenv('AI_DETECT_FAST_DEFAULT', 'True').lower() == 'true'
 AI_UPLOAD_YOLO_FLOOR = float(os.getenv('AI_UPLOAD_YOLO_FLOOR', '35'))
 AI_HYBRID_CONFIDENCE_THRESHOLD = float(os.getenv('AI_HYBRID_CONFIDENCE_THRESHOLD', '70'))
 AI_GEMINI_UPLOAD_FALLBACK = os.getenv('AI_GEMINI_UPLOAD_FALLBACK', 'False').lower() == 'true'
 AI_GEMINI_LIVE_FALLBACK = os.getenv('AI_GEMINI_LIVE_FALLBACK', 'False').lower() == 'true'
 AI_GEMINI_LIVE_MIN_INTERVAL = float(os.getenv('AI_GEMINI_LIVE_MIN_INTERVAL', '0.8'))
-AI_UPLOAD_MAX_EDGE = int(os.getenv('AI_UPLOAD_MAX_EDGE', '1280'))
+AI_UPLOAD_MAX_EDGE = int(os.getenv('AI_UPLOAD_MAX_EDGE', '960'))
 AI_WARMUP_MODELS = os.getenv('AI_WARMUP_MODELS', 'True').lower() == 'true'
 
 # Vehicle detection (YOLOv8 COCO pretrained — separate from sign model)
@@ -473,6 +483,15 @@ EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', 30))
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', '') or EMAIL_HOST_USER or 'noreply@camtraffic.kh'
+
+# Push (FCM / Web Push) + SMS (Twilio) — optional; in-app always works
+FCM_SERVER_KEY = os.getenv('FCM_SERVER_KEY', '')
+VAPID_PUBLIC_KEY = os.getenv('VAPID_PUBLIC_KEY', '')
+VAPID_PRIVATE_KEY = os.getenv('VAPID_PRIVATE_KEY', '')
+ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', 'admin@camtraffic.gov.kh')
+TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID', '')
+TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN', '')
+TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER', '')
 
 # ── Live payments (Stripe + KHQR / manual proof) ───────────────────────────────
 # PAYMENT_MODE: manual | stripe | khqr | live | auto
