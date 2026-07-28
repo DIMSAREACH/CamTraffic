@@ -1,0 +1,92 @@
+{
+  "source": "stock-footage-phnom-penh-cambodia-th-january-busy-traffic-on-chaktomuk-walk-street-in-phnom-penh.webm",
+  "video_key": "chaktomuk",
+  "frame_index": 269,
+  "frame_file": "frame_0269_t10.76s.jpg",
+  "timestamp_sec": 10.76,
+  "image_size": {
+    "width": 898,
+    "height": 506
+  },
+  "tracking": true,
+  "annotations": [
+    {
+      "kind": "sign",
+      "class_key": "NO_U_TURN",
+      "class_id": 7,
+      "label_en": "No U Turn",
+      "confidence": 66.6,
+      "track_id": 1200,
+      "bbox_norm": {
+        "x1": 0.5708855390548706,
+        "y1": 0.2837235629558563,
+        "x2": 0.6064659953117371,
+        "y2": 0.3522163927555084
+      },
+      "bbox_px": {
+        "x1": 513,
+        "y1": 144,
+        "x2": 545,
+        "y2": 178
+      },
+      "bbox_yolo": {
+        "x_center": 0.588676,
+        "y_center": 0.31797,
+        "width": 0.03558,
+        "height": 0.068493
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "car",
+      "class_id": 1,
+      "label_en": "Car",
+      "confidence": 86.0,
+      "track_id": 155,
+      "bbox_norm": {
+        "x1": 0.4294,
+        "y1": 0.4071,
+        "x2": 0.6542,
+        "y2": 0.6402
+      },
+      "bbox_px": {
+        "x1": 386,
+        "y1": 206,
+        "x2": 587,
+        "y2": 324
+      },
+      "bbox_yolo": {
+        "x_center": 0.5418,
+        "y_center": 0.52365,
+        "width": 0.2248,
+        "height": 0.2331
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "car",
+      "class_id": 1,
+      "label_en": "Car",
+      "confidence": 81.2,
+      "track_id": 153,
+      "bbox_norm": {
+        "x1": 0.2533,
+        "y1": 0.437,
+        "x2": 0.3379,
+        "y2": 0.545
+      },
+      "bbox_px": {
+        "x1": 227,
+        "y1": 221,
+        "x2": 303,
+        "y2": 276
+      },
+      "bbox_yolo": {
+        "x_center": 0.2956,
+        "y_center": 0.491,
+        "width": 0.0846,
+        "height": 0.108
+      }
+    }
+  ]
+}

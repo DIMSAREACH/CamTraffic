@@ -19,8 +19,11 @@ describe('portal helpers', () => {
   });
 
   it('detects user portal routes', () => {
+    expect(isUserPortalPath('/officer')).toBe(true);
+    expect(isUserPortalPath('/officer/fines')).toBe(true);
+    expect(isUserPortalPath('/citizen')).toBe(true);
+    expect(isUserPortalPath('/citizen/fines')).toBe(true);
     expect(isUserPortalPath('/dashboard')).toBe(true);
-    expect(isUserPortalPath('/dashboard/fines')).toBe(true);
     expect(isUserPortalPath('/admin/users')).toBe(false);
   });
 });

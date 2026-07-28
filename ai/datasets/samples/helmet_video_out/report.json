@@ -1,0 +1,283 @@
+{
+  "video": "d:\\Year4\\Project Thesis\\Expert System\\Reference(PDF Download)\\Dim Sareach\\Image Dataset\\Image\\stock-footage-phnom-penh-cambodia-feb-street-traffic-on-feb-in-phnom-penh-cambodia-phnom.webm",
+  "weights": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\weights\\best_cambodia_helmet.pt",
+  "fps": 25.0,
+  "total_frames": 232,
+  "sampled": 16,
+  "no_helmet_hits": 4,
+  "helmet_hits": 0,
+  "head_hits": 11,
+  "frames": [
+    {
+      "file": "frame_00_t0.0s.jpg",
+      "frame_index": 0,
+      "t_sec": 0.0,
+      "detections": [
+        {
+          "class": "no_helmet",
+          "confidence": 0.605,
+          "bbox": [
+            86,
+            146,
+            113,
+            181
+          ]
+        }
+      ],
+      "no_helmet": 1
+    },
+    {
+      "file": "frame_01_t0.56s.jpg",
+      "frame_index": 14,
+      "t_sec": 0.56,
+      "detections": [],
+      "no_helmet": 0
+    },
+    {
+      "file": "frame_02_t1.12s.jpg",
+      "frame_index": 28,
+      "t_sec": 1.12,
+      "detections": [],
+      "no_helmet": 0
+    },
+    {
+      "file": "frame_03_t1.68s.jpg",
+      "frame_index": 42,
+      "t_sec": 1.68,
+      "detections": [
+        {
+          "class": "head",
+          "confidence": 0.358,
+          "bbox": [
+            90,
+            100,
+            120,
+            193
+          ]
+        },
+        {
+          "class": "no_helmet",
+          "confidence": 0.286,
+          "bbox": [
+            527,
+            95,
+            547,
+            121
+          ]
+        }
+      ],
+      "no_helmet": 1
+    },
+    {
+      "file": "frame_04_t2.24s.jpg",
+      "frame_index": 56,
+      "t_sec": 2.24,
+      "detections": [
+        {
+          "class": "head",
+          "confidence": 0.374,
+          "bbox": [
+            546,
+            90,
+            560,
+            117
+          ]
+        },
+        {
+          "class": "head",
+          "confidence": 0.297,
+          "bbox": [
+            0,
+            204,
+            17,
+            282
+          ]
+        }
+      ],
+      "no_helmet": 0
+    },
+    {
+      "file": "frame_05_t2.8s.jpg",
+      "frame_index": 70,
+      "t_sec": 2.8,
+      "detections": [
+        {
+          "class": "head",
+          "confidence": 0.36,
+          "bbox": [
+            78,
+            305,
+            104,
+            334
+          ]
+        },
+        {
+          "class": "head",
+          "confidence": 0.302,
+          "bbox": [
+            135,
+            116,
+            147,
+            174
+          ]
+        }
+      ],
+      "no_helmet": 0
+    },
+    {
+      "file": "frame_06_t3.36s.jpg",
+      "frame_index": 84,
+      "t_sec": 3.36,
+      "detections": [
+        {
+          "class": "head",
+          "confidence": 0.5,
+          "bbox": [
+            337,
+            33,
+            353,
+            73
+          ]
+        },
+        {
+          "class": "head",
+          "confidence": 0.299,
+          "bbox": [
+            142,
+            137,
+            157,
+            191
+          ]
+        }
+      ],
+      "no_helmet": 0
+    },
+    {
+      "file": "frame_07_t3.92s.jpg",
+      "frame_index": 98,
+      "t_sec": 3.92,
+      "detections": [],
+      "no_helmet": 0
+    },
+    {
+      "file": "frame_08_t4.48s.jpg",
+      "frame_index": 112,
+      "t_sec": 4.48,
+      "detections": [],
+      "no_helmet": 0
+    },
+    {
+      "file": "frame_09_t5.04s.jpg",
+      "frame_index": 126,
+      "t_sec": 5.04,
+      "detections": [
+        {
+          "class": "head",
+          "confidence": 0.481,
+          "bbox": [
+            563,
+            49,
+            594,
+            129
+          ]
+        }
+      ],
+      "no_helmet": 0
+    },
+    {
+      "file": "frame_10_t5.6s.jpg",
+      "frame_index": 140,
+      "t_sec": 5.6,
+      "detections": [],
+      "no_helmet": 0
+    },
+    {
+      "file": "frame_11_t6.16s.jpg",
+      "frame_index": 154,
+      "t_sec": 6.16,
+      "detections": [],
+      "no_helmet": 0
+    },
+    {
+      "file": "frame_12_t6.72s.jpg",
+      "frame_index": 168,
+      "t_sec": 6.72,
+      "detections": [
+        {
+          "class": "head",
+          "confidence": 0.565,
+          "bbox": [
+            161,
+            283,
+            184,
+            335
+          ]
+        },
+        {
+          "class": "no_helmet",
+          "confidence": 0.482,
+          "bbox": [
+            173,
+            132,
+            184,
+            158
+          ]
+        }
+      ],
+      "no_helmet": 1
+    },
+    {
+      "file": "frame_13_t7.28s.jpg",
+      "frame_index": 182,
+      "t_sec": 7.28,
+      "detections": [
+        {
+          "class": "no_helmet",
+          "confidence": 0.343,
+          "bbox": [
+            67,
+            305,
+            82,
+            335
+          ]
+        }
+      ],
+      "no_helmet": 1
+    },
+    {
+      "file": "frame_14_t7.84s.jpg",
+      "frame_index": 196,
+      "t_sec": 7.84,
+      "detections": [],
+      "no_helmet": 0
+    },
+    {
+      "file": "frame_15_t8.4s.jpg",
+      "frame_index": 210,
+      "t_sec": 8.4,
+      "detections": [
+        {
+          "class": "head",
+          "confidence": 0.392,
+          "bbox": [
+            0,
+            195,
+            24,
+            312
+          ]
+        },
+        {
+          "class": "head",
+          "confidence": 0.343,
+          "bbox": [
+            124,
+            64,
+            169,
+            119
+          ]
+        }
+      ],
+      "no_helmet": 0
+    }
+  ]
+}

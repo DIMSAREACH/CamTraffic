@@ -1,0 +1,92 @@
+{
+  "source": "stock-footage-phnom-penh-cambodia-th-january-busy-traffic-on-chaktomuk-walk-street-in-phnom-penh.webm",
+  "video_key": "chaktomuk",
+  "frame_index": 132,
+  "frame_file": "frame_0132_t5.28s.jpg",
+  "timestamp_sec": 5.28,
+  "image_size": {
+    "width": 898,
+    "height": 506
+  },
+  "tracking": true,
+  "annotations": [
+    {
+      "kind": "sign",
+      "class_key": "SPEED_LIMIT_40",
+      "class_id": 8,
+      "label_en": "Speed Limit 40",
+      "confidence": 41.5,
+      "track_id": 1201,
+      "bbox_norm": {
+        "x1": 0.5602790713310242,
+        "y1": 0.2777451276779175,
+        "x2": 0.5956296920776367,
+        "y2": 0.34272825717926025
+      },
+      "bbox_px": {
+        "x1": 503,
+        "y1": 141,
+        "x2": 535,
+        "y2": 173
+      },
+      "bbox_yolo": {
+        "x_center": 0.577954,
+        "y_center": 0.310237,
+        "width": 0.035351,
+        "height": 0.064983
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "car",
+      "class_id": 1,
+      "label_en": "Car",
+      "confidence": 91.5,
+      "track_id": 75,
+      "bbox_norm": {
+        "x1": 0.8594,
+        "y1": 0.4789,
+        "x2": 0.9996,
+        "y2": 0.7869
+      },
+      "bbox_px": {
+        "x1": 772,
+        "y1": 242,
+        "x2": 898,
+        "y2": 398
+      },
+      "bbox_yolo": {
+        "x_center": 0.9295,
+        "y_center": 0.6329,
+        "width": 0.1402,
+        "height": 0.308
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "motorcycle",
+      "class_id": 2,
+      "label_en": "Motorcycle",
+      "confidence": 70.0,
+      "track_id": 74,
+      "bbox_norm": {
+        "x1": 0.2845,
+        "y1": 0.4766,
+        "x2": 0.3633,
+        "y2": 0.708
+      },
+      "bbox_px": {
+        "x1": 255,
+        "y1": 241,
+        "x2": 326,
+        "y2": 358
+      },
+      "bbox_yolo": {
+        "x_center": 0.3239,
+        "y_center": 0.5923,
+        "width": 0.0788,
+        "height": 0.2314
+      }
+    }
+  ]
+}

@@ -6,7 +6,12 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-for (const rel of ['frontend-admin/node_modules/.vite', 'frontend-user/node_modules/.vite']) {
+for (const rel of [
+  'src/web/admin/node_modules/.vite',
+  'src/web/user/node_modules/.vite',
+  'frontend-admin/node_modules/.vite',
+  'frontend-user/node_modules/.vite',
+]) {
   const target = path.join(root, rel);
   if (fs.existsSync(target)) {
     fs.rmSync(target, { recursive: true, force: true });

@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { POLICE_QUICK_ROUTES } from '@user/navigation/policeNav';
+import { OFFICER_QUICK_ROUTES, POLICE_QUICK_ROUTES } from '@officer/navigation/officerNav';
 
-describe('policeNav', () => {
-  it('maps officer quick links to enforcement routes', () => {
-    expect(POLICE_QUICK_ROUTES.reports).toBe('/dashboard/reports');
-    expect(POLICE_QUICK_ROUTES.evidence).toBe('/dashboard/evidence');
+describe('officerNav', () => {
+  it('maps officer quick links to /officer routes', () => {
+    expect(OFFICER_QUICK_ROUTES.reports).toBe('/officer/reports');
+    expect(OFFICER_QUICK_ROUTES.evidence).toBe('/officer/evidence');
+    expect(POLICE_QUICK_ROUTES.reports).toBe(OFFICER_QUICK_ROUTES.reports);
   });
 });

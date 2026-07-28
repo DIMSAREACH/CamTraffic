@@ -1,0 +1,170 @@
+{
+  "source": "stock-footage-phnom-penh-cambodia-th-january-busy-traffic-on-chaktomuk-walk-street-in-phnom-penh.webm",
+  "video_key": "chaktomuk",
+  "frame_index": 197,
+  "frame_file": "frame_0197_t7.88s.jpg",
+  "timestamp_sec": 7.88,
+  "image_size": {
+    "width": 898,
+    "height": 506
+  },
+  "tracking": true,
+  "annotations": [
+    {
+      "kind": "sign",
+      "class_key": "NO_U_TURN",
+      "class_id": 7,
+      "label_en": "No U Turn",
+      "confidence": 44.3,
+      "track_id": 1200,
+      "bbox_norm": {
+        "x1": 0.5827651023864746,
+        "y1": 0.27863529324531555,
+        "x2": 0.6186819672584534,
+        "y2": 0.346042662858963
+      },
+      "bbox_px": {
+        "x1": 523,
+        "y1": 141,
+        "x2": 556,
+        "y2": 175
+      },
+      "bbox_yolo": {
+        "x_center": 0.600724,
+        "y_center": 0.312339,
+        "width": 0.035917,
+        "height": 0.067407
+      }
+    },
+    {
+      "kind": "sign",
+      "class_key": "NO_HORN",
+      "class_id": 6,
+      "label_en": "No Horn",
+      "confidence": 37.0,
+      "track_id": 1203,
+      "bbox_norm": {
+        "x1": 0.5831312537193298,
+        "y1": 0.2781097888946533,
+        "x2": 0.6184226274490356,
+        "y2": 0.34412381052970886
+      },
+      "bbox_px": {
+        "x1": 524,
+        "y1": 141,
+        "x2": 555,
+        "y2": 174
+      },
+      "bbox_yolo": {
+        "x_center": 0.600777,
+        "y_center": 0.311117,
+        "width": 0.035291,
+        "height": 0.066014
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "car",
+      "class_id": 1,
+      "label_en": "Car",
+      "confidence": 88.2,
+      "track_id": 121,
+      "bbox_norm": {
+        "x1": 0.3925,
+        "y1": 0.4164,
+        "x2": 0.5513,
+        "y2": 0.6019
+      },
+      "bbox_px": {
+        "x1": 352,
+        "y1": 211,
+        "x2": 495,
+        "y2": 305
+      },
+      "bbox_yolo": {
+        "x_center": 0.4719,
+        "y_center": 0.50915,
+        "width": 0.1588,
+        "height": 0.1855
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "motorcycle",
+      "class_id": 2,
+      "label_en": "Motorcycle",
+      "confidence": 81.5,
+      "track_id": 120,
+      "bbox_norm": {
+        "x1": 0.5321,
+        "y1": 0.5001,
+        "x2": 0.6177,
+        "y2": 0.7074
+      },
+      "bbox_px": {
+        "x1": 478,
+        "y1": 253,
+        "x2": 555,
+        "y2": 358
+      },
+      "bbox_yolo": {
+        "x_center": 0.5749,
+        "y_center": 0.60375,
+        "width": 0.0856,
+        "height": 0.2073
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "motorcycle",
+      "class_id": 2,
+      "label_en": "Motorcycle",
+      "confidence": 71.8,
+      "track_id": 124,
+      "bbox_norm": {
+        "x1": 0.3255,
+        "y1": 0.4945,
+        "x2": 0.3975,
+        "y2": 0.7194
+      },
+      "bbox_px": {
+        "x1": 292,
+        "y1": 250,
+        "x2": 357,
+        "y2": 364
+      },
+      "bbox_yolo": {
+        "x_center": 0.3615,
+        "y_center": 0.60695,
+        "width": 0.072,
+        "height": 0.2249
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "motorcycle",
+      "class_id": 2,
+      "label_en": "Motorcycle",
+      "confidence": 70.0,
+      "track_id": 122,
+      "bbox_norm": {
+        "x1": 0.2169,
+        "y1": 0.4971,
+        "x2": 0.3439,
+        "y2": 0.8055
+      },
+      "bbox_px": {
+        "x1": 195,
+        "y1": 252,
+        "x2": 309,
+        "y2": 408
+      },
+      "bbox_yolo": {
+        "x_center": 0.2804,
+        "y_center": 0.6513,
+        "width": 0.127,
+        "height": 0.3084
+      }
+    }
+  ]
+}

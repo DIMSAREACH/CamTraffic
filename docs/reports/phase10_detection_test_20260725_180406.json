@@ -1,0 +1,19 @@
+{
+  "generated_at": "2026-07-25T18:04:06.582530+00:00",
+  "weights": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\weights\\best.pt",
+  "conf": 0.25,
+  "image_yolo": {
+    "count": 0,
+    "detected_count": 0,
+    "detection_rate_pct": 0,
+    "mean_inference_ms": 0,
+    "rows": []
+  },
+  "video_yolo": {
+    "count": 0,
+    "detected_count": 0,
+    "rows": []
+  },
+  "pipeline_sample": null,
+  "json_file": "phase10_detection_test_20260725_180406.json"
+}

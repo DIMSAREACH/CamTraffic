@@ -9,27 +9,32 @@
 
 | Step | Command / action |
 |------|------------------|
-| Backend | `cd backend && python manage.py runserver` |
-| User portal | `cd frontend-user && npm run dev` → http://localhost:5173 |
-| Admin portal | `cd frontend-admin && npm run dev` → http://localhost:5174 |
-| AI weights | Verify `ai/weights/best_v2.pt` exists |
+| Backend | `cd src/backend && python manage.py runserver` |
+| User portal | `npm run dev:user` → http://localhost:5173 |
+| Admin portal | `npm run dev:admin` → http://localhost:5174 |
+| AI weights | Use **248-class** `ai/weights/best.pt` (`AI_MODEL_PATH`) |
+| Confirm load | Startup log: `Loaded sign YOLO: 248 classes` |
 | Seed data | `npm run seed:demo` |
 | Test accounts | `docs/final-year-project/DEMO-ACCOUNTS.md` |
+| Model story | [`docs/AI-MODEL-STORY.md`](../AI-MODEL-STORY.md) |
 
 **Fallback:** Pre-recorded video per `FINAL-DEMO-VIDEO-PACKAGE.md`
+
+**AI story (one line):** Live = **248** (`best.pt`); thesis mAP@50 = 0.908 = **10-class** eval (`best_v2.pt`) only.
 
 ---
 
 ## Scene 1 — Admin login & dashboard (1 min)
 
-**Portal:** Admin · http://localhost:5174
+**Portal:** Administration · http://localhost:5174 → `/admin`  
+**Account:** `admin@camtraffic.demo`
 
-1. Open admin portal → log in as administrator
+1. Open admin portal → log in as administrator → confirm `/admin/...`
 2. Show dashboard KPI widgets (auto-refresh every 30s)
 3. Highlight **Live cameras** status from `/api/cameras/live-status/`
 4. Mention bilingual toggle (Khmer/English) in header
 
-**Say:** *"Administrators monitor system health, users, and enforcement KPIs from a single dashboard."*
+**Say:** *"Administrators govern the system—users, RBAC, cameras, AI models, and audit—not case decisions."*
 
 ---
 
@@ -55,9 +60,9 @@
 3. If vehicle visible: show bounding box + plate OCR result
 4. Optional: Khmer TTS for sign name
 
-**Test image:** Use sample with NO_ENTRY or M_STOP for clear detection
+**Test image:** Prefer `ai/test_samples/real/03_no_entry.png` or `01_stop.png` (real Cambodian signs). Fallback: `demo_no_entry.png` / `demo_stop.png`.
 
-**Say:** *"YOLO11n runs at ~20 FPS on CPU with mAP@50 of 0.908 on our 10-class model."*
+**Say:** *"Live detection uses our full 248-class Cambodian sign model. Separately, the balanced 10-class subset reached mAP@50 of 0.908 for thesis evaluation."*
 
 ---
 
@@ -76,28 +81,31 @@
 
 ## Scene 5 — Officer review & fine issuance (2 min)
 
-**Portal:** User → Officer tab
+**Portal:** Traffic Operations · http://localhost:5173 → `/officer`  
+**Account:** `officer@camtraffic.demo`
 
-1. Log in as traffic police
+1. Log in as traffic police (Officer tab) → confirm URL is `/officer`
 2. Open pending violation → review evidence image
 3. Confirm violation → navigate to **Fines** → **Issue Fine**
 4. Lookup driver by license → set amount → submit
 5. Show fine PDF export option
 
-**Say:** *"Officers retain final authority—automation assists, not replaces, judgment."*
+**Say:** *"Officers retain final authority—automation assists, not replaces, judgment. Admins cannot issue fines."*
 
 ---
 
-## Scene 6 — Driver portal (2 min)
+## Scene 6 — Driver / Citizen portal (2 min)
 
-**Portal:** User → Driver tab
+**Portal:** Citizen Service · http://localhost:5173 → `/citizen`  
+**Account:** `driver@camtraffic.demo`
 
-1. Log in as driver (matching license from Scene 5)
+1. Log in as driver (Driver tab) → confirm URL is `/citizen`
 2. Show violation and fine on dashboard
 3. Open **Fines** → view amount, due date, linked evidence
 4. Click **Pay Now** (demo payment recording)
 5. Show notification bell with fine alert
 
+**Say:** *"Citizens only see their own records—self-service for vehicles, fines, and appeals."*
 **Say:** *"Drivers have transparent access to evidence and can submit appeals."*
 
 ---

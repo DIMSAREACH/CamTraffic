@@ -1,0 +1,42 @@
+{
+  "live_model": {
+    "path": "ai/weights/best.pt",
+    "classes": 248,
+    "role": "runtime_catalog"
+  },
+  "thesis_eval_10_class": {
+    "weights": "ai/weights/best_v2.pt",
+    "classes": 10,
+    "map50": 0.9084,
+    "map50_95": 0.7956,
+    "precision": 0.89251,
+    "recall": 0.92593,
+    "note": "Cite mAP@50≈0.908 only for best_v2.pt / dataset_10 eval.",
+    "results_csv": "ai/training/runs/detect/dataset_10_train/results.csv",
+    "results_csv_last_epoch": {
+      "map50": 0.97667,
+      "map50_95": 0.97667
+    }
+  },
+  "b2_named_26_class": {
+    "weights": "ai/weights/best_b2_named.pt",
+    "classes": 26,
+    "map50": 0.4317,
+    "map50_95": 0.3708,
+    "precision": 0.52595,
+    "recall": 0.42573,
+    "results_csv": "ai/training/runs/detect/b2_cambodia_named_signs/results.csv"
+  },
+  "full_248_class": {
+    "weights": "ai/weights/best.pt",
+    "classes": 248,
+    "map50": null,
+    "note": "Full 248-class mAP requires populated ai/dataset train/val images. Until then, do not claim 0.908 for best.pt. Use best_v2 for thesis accuracy demo."
+  },
+  "ocr": {
+    "engine": "EasyOCR + Cambodia normalize + fuzzy vehicle link",
+    "exact_match_rate": 0.0,
+    "cer_postprocess": 2.401,
+    "note": "Officer confirmation required; OCR assists, does not auto-fine."
+  }
+}

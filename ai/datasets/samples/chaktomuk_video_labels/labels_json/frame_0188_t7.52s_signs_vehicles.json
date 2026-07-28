@@ -1,0 +1,92 @@
+{
+  "source": "stock-footage-phnom-penh-cambodia-th-january-busy-traffic-on-chaktomuk-walk-street-in-phnom-penh.webm",
+  "video_key": "chaktomuk",
+  "frame_index": 188,
+  "frame_file": "frame_0188_t7.52s.jpg",
+  "timestamp_sec": 7.52,
+  "image_size": {
+    "width": 898,
+    "height": 506
+  },
+  "tracking": true,
+  "annotations": [
+    {
+      "kind": "sign",
+      "class_key": "NO_U_TURN",
+      "class_id": 7,
+      "label_en": "No U Turn",
+      "confidence": 38.0,
+      "track_id": 1200,
+      "bbox_norm": {
+        "x1": 0.5833225250244141,
+        "y1": 0.2787373960018158,
+        "x2": 0.6188427209854126,
+        "y2": 0.3455231487751007
+      },
+      "bbox_px": {
+        "x1": 524,
+        "y1": 141,
+        "x2": 556,
+        "y2": 175
+      },
+      "bbox_yolo": {
+        "x_center": 0.601083,
+        "y_center": 0.31213,
+        "width": 0.03552,
+        "height": 0.066786
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "motorcycle",
+      "class_id": 2,
+      "label_en": "Motorcycle",
+      "confidence": 84.4,
+      "track_id": 111,
+      "bbox_norm": {
+        "x1": 0.454,
+        "y1": 0.4864,
+        "x2": 0.5172,
+        "y2": 0.661
+      },
+      "bbox_px": {
+        "x1": 408,
+        "y1": 246,
+        "x2": 464,
+        "y2": 334
+      },
+      "bbox_yolo": {
+        "x_center": 0.4856,
+        "y_center": 0.5737,
+        "width": 0.0632,
+        "height": 0.1746
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "motorcycle",
+      "class_id": 2,
+      "label_en": "Motorcycle",
+      "confidence": 70.0,
+      "track_id": 101,
+      "bbox_norm": {
+        "x1": 0.1777,
+        "y1": 0.4924,
+        "x2": 0.2741,
+        "y2": 0.727
+      },
+      "bbox_px": {
+        "x1": 160,
+        "y1": 249,
+        "x2": 246,
+        "y2": 368
+      },
+      "bbox_yolo": {
+        "x_center": 0.2259,
+        "y_center": 0.6097,
+        "width": 0.0964,
+        "height": 0.2346
+      }
+    }
+  ]
+}

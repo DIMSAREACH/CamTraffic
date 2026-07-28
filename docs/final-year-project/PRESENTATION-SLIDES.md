@@ -41,44 +41,53 @@
 | O1 | Detect Cambodian traffic signs (YOLO) | ✅ mAP@50 = 0.908 |
 | O2 | License plate OCR integration | ✅ Pipeline live |
 | O3 | Violation → fine → appeal workflow | ✅ Full API |
-| O4 | Admin + officer + driver portals | ✅ React SPAs |
+| O4 | Admin + officer + citizen portals (3 domains) | ✅ React SPAs |
 | O5 | Production deployment | ✅ Docker 8-service stack |
 
 **Speaker notes:** Emphasize end-to-end scope—not just a model demo.
 
 ---
 
-## Slide 4 — System Overview
+## Slide 4 — System Overview (Multi-Domain)
 
-**Three stakeholders, one platform:**
+**Three domains — not one Admin Dashboard:**
 
 ```
-Admin (:5174)  →  users, cameras, reports, audit
-Officer (:5173) →  AI detect, violations, fines
-Driver (:5173)  →  fines, appeals, vehicles
-         ↓
-    Django REST API + PostgreSQL
-         ↓
-    YOLO11n + EasyOCR pipeline
+Administration     Traffic Operations     Citizen Service
+/admin/*           /officer/*             /citizen/*
+:5174              :5173                  :5173
+users, RBAC,       AI review,             own vehicles,
+cameras, audit     approve, issue fine    fines, appeals
+         \               |               /
+          \              |              /
+           → Django /api/v1/{admin|officer|citizen} ←
+                         ↓
+              YOLO11n + EasyOCR + PostgreSQL
 ```
 
-**Speaker notes:** Show live architecture diagram from `docs/ARCHITECTURE.md` if presenting with backup slides.
+| Domain | Who | Cannot |
+|--------|-----|--------|
+| Administration | Admin | Issue fines / approve cases |
+| Traffic Operations | Officer | Manage RBAC / AI model deploy |
+| Citizen Service | Driver | Edit violations / see others |
+
+**Speaker notes:** This is the enterprise architecture examiners expect. Cite Chapter 4.2.5.
 
 ---
 
 ## Slide 5 — Architecture (Task 403)
 
-**Modular monolith — not microservices**
+**Modular monolith — multi-domain presentation layer**
 
 | Layer | Components |
 |-------|------------|
-| Client | React 19 + Vite (admin + user portals) |
-| API | Django REST + Gunicorn |
+| Client | React 19 + Vite (`frontend-admin`, `frontend-user` with `officer/` + `citizen/`) |
+| API | Django REST — `/api/v1/admin|officer|citizen` + domain apps |
 | AI | YOLO11n embedded + optional ai-worker |
 | Data | PostgreSQL 16, Redis 7 |
 | Edge | Nginx + Let's Encrypt (production) |
 
-**Diagram:** `docs/final-year-project/diagrams/DEPLOYMENT-DIAGRAM.md`
+**Diagram:** `docs/final-year-project/thesis/CHAPTER-4-2-5-MULTI-DOMAIN-ARCHITECTURE.md`
 
 **Tech stack table:**
 
@@ -95,15 +104,15 @@ Driver (:5173)  →  fines, appeals, vehicles
 
 ## Slide 6 — Use Cases & Roles
 
-**Figure:** Use case diagram (Admin, Police, Driver, AI Engine)
+**Figure:** Use case diagram (Admin, Officer, Driver/Citizen, AI Engine)
 
-| Role | Key actions |
-|------|-------------|
-| Admin | Users, cameras, RBAC, backup, audit |
-| Police | Detect signs, confirm violations, issue fines |
-| Driver | View fines, pay (demo), submit appeals |
+| Role | Domain routes | Key actions |
+|------|---------------|-------------|
+| Admin | `/admin/*` | Users, cameras, RBAC, backup, audit |
+| Officer | `/officer/*` | Detect signs, confirm violations, issue fines |
+| Driver | `/citizen/*` | View fines, pay (demo), submit appeals |
 
-**Speaker notes:** Reference `diagrams/USE-CASE-DIAGRAM.md`.
+**Speaker notes:** Reference `diagrams/USE-CASE-DIAGRAM.md` and permission matrix in Chapter 4.2.5.
 
 ---
 
@@ -175,12 +184,12 @@ AIDetectionLog → Violation → Fine → Notification
 
 **7-scene demo** (`DEMO-SCRIPT.md` — ~12 min)
 
-1. Admin login + dashboard KPIs  
+1. Admin login → `/admin` KPIs  
 2. Live camera grid  
 3. AI detection (upload/webcam)  
 4. Violation auto-create  
-5. Officer confirm + issue fine  
-6. Driver portal + notification  
+5. Officer → `/officer` confirm + issue fine  
+6. Citizen → `/citizen` portal + notification  
 7. PDF/Excel report export  
 
 **Speaker notes:** Transition to live demo or pre-recorded video backup.

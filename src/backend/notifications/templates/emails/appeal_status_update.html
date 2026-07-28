@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appeal Status Update</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #2563eb; color: white; padding: 20px; text-align: center; }
+        .content { background-color: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; }
+        .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 12px; }
+        .details { background-color: white; padding: 15px; border-radius: 4px; margin: 15px 0; }
+        .label { font-weight: bold; color: #374151; }
+        .status { padding: 8px 16px; border-radius: 4px; display: inline-block; margin: 10px 0; }
+        .status-approved { background-color: #dcfce7; color: #166534; }
+        .status-rejected { background-color: #fee2e2; color: #991b1b; }
+        .status-under-review { background-color: #fef3c7; color: #854d0e; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 Appeal Status Update</h1>
+        </div>
+        <div class="content">
+            <p>Dear {{ driver_name }},</p>
+            
+            <p>Your appeal for the traffic violation has been reviewed.</p>
+            
+            <div class="details">
+                <p><span class="label">Violation Type:</span> {{ violation_type }}</p>
+                <p><span class="label">Appeal Status:</span> 
+                    <span class="status {% if appeal_status == 'approved' %}status-approved{% elif appeal_status == 'rejected' %}status-rejected{% else %}status-under-review{% endif %}">
+                        {{ appeal_status|upper }}
+                    </span>
+                </p>
+                {% if reviewed_at %}
+                <p><span class="label">Reviewed On:</span> {{ reviewed_at|date:"F d, Y" }}</p>
+                {% endif %}
+                {% if reviewer_note %}
+                <p><span class="label">Review Note:</span><br>{{ reviewer_note }}</p>
+                {% endif %}
+            </div>
+            
+            {% if appeal_status == 'approved' %}
+            <p>Good news! Your appeal has been <strong>approved</strong>. The violation and associated fine have been dismissed.</p>
+            {% elif appeal_status == 'rejected' %}
+            <p>Your appeal has been <strong>rejected</strong> after careful review. The original violation and fine remain in effect. Please proceed with payment to avoid further penalties.</p>
+            {% else %}
+            <p>Your appeal is currently <strong>under review</strong>. We will notify you once a decision has been made.</p>
+            {% endif %}
+            
+            <p style="margin-top: 30px; color: #6b7280; font-size: 14px;">
+                If you have questions about this decision, please contact the traffic office during business hours.
+            </p>
+        </div>
+        <div class="footer">
+            <p>CamTraffic - AI-Based Traffic Enforcement System</p>
+            <p>This is an automated notification. Please do not reply to this email.</p>
+        </div>
+    </div>
+</body>
+</html>

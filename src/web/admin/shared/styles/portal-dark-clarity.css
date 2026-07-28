@@ -1,0 +1,345 @@
+/* ═══════════════════════════════════════════════════════════════
+   Portal dark clarity — system-wide readable text + clean surfaces
+   Loaded last so it wins over page-specific light hardcodes.
+═══════════════════════════════════════════════════════════════ */
+
+html.dark {
+  --portal-heading: #f8fafc;
+  --portal-body: #e2e8f0;
+  --portal-subtle: #cbd5e1;
+  --portal-faint: #94a3b8;
+  --portal-hover: rgba(148, 163, 184, 0.12);
+  --portal-hover-strong: rgba(148, 163, 184, 0.18);
+}
+
+/* Base readable ink on every dashboard surface */
+html.dark .app-shell,
+html.dark .app-layout-main,
+html.dark .app-dashboard,
+html.dark .app-dashboard .dashboard-page,
+html.dark .app-dashboard .enforcement-page,
+html.dark .app-dashboard .admin-dash {
+  color: var(--portal-body);
+}
+
+html.dark .app-dashboard h1,
+html.dark .app-dashboard h2,
+html.dark .app-dashboard h3,
+html.dark .app-dashboard h4,
+html.dark .app-dashboard h5,
+html.dark .app-dashboard h6,
+html.dark .app-dashboard .field-label {
+  color: var(--portal-heading);
+}
+
+html.dark .app-dashboard [class*='__title']:not([class*='on-color']):not(.enforcement-page__title):not(.admin-dash-hero__title),
+html.dark .app-dashboard [class*='__heading'],
+html.dark .app-dashboard [class*='__name'],
+html.dark .app-dashboard [class*='__primary'],
+html.dark .app-dashboard [class*='__value']:not([class*='on-color']):not([class*='stat-value']) {
+  color: var(--portal-heading);
+}
+
+html.dark .app-dashboard [class*='__label']:not([class*='on-color']):not([class*='badge']):not([class*='pill']) {
+  color: var(--portal-heading);
+}
+
+html.dark .app-dashboard [class*='__subtitle'],
+html.dark .app-dashboard [class*='__hint'],
+html.dark .app-dashboard [class*='__meta'],
+html.dark .app-dashboard [class*='__desc'],
+html.dark .app-dashboard [class*='__description'],
+html.dark .app-dashboard [class*='__secondary'],
+html.dark .app-dashboard [class*='__muted'],
+html.dark .app-dashboard [class*='__sub'],
+html.dark .app-dashboard [class*='__time'],
+html.dark .app-dashboard [class*='__path'],
+html.dark .app-dashboard [class*='__count'],
+html.dark .app-dashboard .text-muted-foreground {
+  color: var(--portal-subtle) !important;
+}
+
+/* Tailwind slate / gray / zinc / neutral light text → clear dark text */
+html.dark .app-dashboard .text-slate-950,
+html.dark .app-dashboard .text-slate-900,
+html.dark .app-dashboard .text-slate-800,
+html.dark .app-dashboard .text-gray-950,
+html.dark .app-dashboard .text-gray-900,
+html.dark .app-dashboard .text-gray-800,
+html.dark .app-dashboard .text-zinc-950,
+html.dark .app-dashboard .text-zinc-900,
+html.dark .app-dashboard .text-zinc-800,
+html.dark .app-dashboard .text-neutral-950,
+html.dark .app-dashboard .text-neutral-900,
+html.dark .app-dashboard .text-neutral-800,
+html.dark .app-dashboard .text-black {
+  color: var(--portal-heading) !important;
+}
+
+html.dark .app-dashboard .text-slate-700,
+html.dark .app-dashboard .text-slate-600,
+html.dark .app-dashboard .text-gray-700,
+html.dark .app-dashboard .text-gray-600,
+html.dark .app-dashboard .text-zinc-700,
+html.dark .app-dashboard .text-zinc-600,
+html.dark .app-dashboard .text-neutral-700,
+html.dark .app-dashboard .text-neutral-600 {
+  color: var(--portal-body) !important;
+}
+
+html.dark .app-dashboard .text-slate-500,
+html.dark .app-dashboard .text-slate-400,
+html.dark .app-dashboard .text-slate-300,
+html.dark .app-dashboard .text-gray-500,
+html.dark .app-dashboard .text-gray-400,
+html.dark .app-dashboard .text-zinc-500,
+html.dark .app-dashboard .text-zinc-400,
+html.dark .app-dashboard .text-neutral-500,
+html.dark .app-dashboard .text-neutral-400 {
+  color: var(--portal-subtle) !important;
+}
+
+/* Inline / stylesheet light hex ink → dark-safe */
+html.dark .app-dashboard [style*='color: #0F172A'],
+html.dark .app-dashboard [style*='color:#0F172A'],
+html.dark .app-dashboard [style*='color: #0f172a'],
+html.dark .app-dashboard [style*='color:#0f172a'],
+html.dark .app-dashboard [style*='color: #1E293B'],
+html.dark .app-dashboard [style*='color:#1E293B'],
+html.dark .app-dashboard [style*='color: #1e293b'],
+html.dark .app-dashboard [style*='color:#1e293b'],
+html.dark .app-dashboard [style*='color: #020617'],
+html.dark .app-dashboard [style*='color:#020617'] {
+  color: var(--portal-heading) !important;
+}
+
+html.dark .app-dashboard [style*='color: #334155'],
+html.dark .app-dashboard [style*='color:#334155'],
+html.dark .app-dashboard [style*='color: #475569'],
+html.dark .app-dashboard [style*='color:#475569'] {
+  color: var(--portal-body) !important;
+}
+
+html.dark .app-dashboard [style*='color: #64748B'],
+html.dark .app-dashboard [style*='color:#64748B'],
+html.dark .app-dashboard [style*='color: #64748b'],
+html.dark .app-dashboard [style*='color:#64748b'],
+html.dark .app-dashboard [style*='color: #94A3B8'],
+html.dark .app-dashboard [style*='color:#94A3B8'],
+html.dark .app-dashboard [style*='color: #94a3b8'],
+html.dark .app-dashboard [style*='color:#94a3b8'] {
+  color: var(--portal-subtle) !important;
+}
+
+/* Soft light utility fills → slate (do not match gradient #fff stops) */
+html.dark .app-dashboard .bg-white {
+  background-color: var(--portal-surface) !important;
+  color: var(--portal-body);
+}
+
+html.dark .app-dashboard .bg-slate-50,
+html.dark .app-dashboard .bg-gray-50,
+html.dark .app-dashboard .bg-zinc-50,
+html.dark .app-dashboard .bg-neutral-50 {
+  background-color: var(--portal-muted-surface) !important;
+  color: var(--portal-body);
+}
+
+html.dark .app-dashboard [data-slot='card'] {
+  color: var(--portal-body);
+}
+
+/* Catch remaining light ink hardcodes across enterprise CSS */
+html.dark .app-dashboard [class*='page'] [class*='title'],
+html.dark .app-dashboard [class*='page'] [class*='heading'],
+html.dark .app-dashboard [class*='shell'] [class*='heading'],
+html.dark .app-dashboard [class*='shell'] [class*='title'] {
+  color: var(--portal-heading);
+}
+
+html.dark .reports-page__filters-title,
+html.dark .reports-page__quick-export-copy h2,
+html.dark .report-center-page__report-title,
+html.dark .settings-shell__nav-heading,
+html.dark .settings-shell__panel-heading,
+html.dark .settings-shell__panel-title,
+html.dark .settings-overview__health-title,
+html.dark .cam-loc__card-hero-title {
+  color: var(--portal-heading) !important;
+}
+
+/* Tables — clear headers + hover */
+html.dark .app-dashboard thead th,
+html.dark .app-dashboard [data-slot='table-head'],
+html.dark .app-dashboard [class*='table-head'] th,
+html.dark .app-dashboard [class*='__th'] {
+  color: var(--portal-subtle) !important;
+  border-color: var(--portal-surface-border) !important;
+}
+
+html.dark .app-dashboard tbody td,
+html.dark .app-dashboard [data-slot='table-cell'] {
+  color: var(--portal-body);
+  border-color: rgba(148, 163, 184, 0.12);
+}
+
+html.dark .app-dashboard tbody tr:hover,
+html.dark .app-dashboard [data-slot='table-row']:hover {
+  background: var(--portal-hover) !important;
+}
+
+html.dark .app-dashboard button[class*='__row']:hover,
+html.dark .app-dashboard [class*='filter-btn']:not([class*='--active']):hover,
+html.dark .app-dashboard [class*='quick-btn']:hover,
+html.dark .app-dashboard [class*='view-toggle__btn']:not(.is-active):hover {
+  filter: brightness(1.12);
+}
+
+/* Forms */
+html.dark .app-dashboard input:not([type='checkbox']):not([type='radio']):not([type='range']),
+html.dark .app-dashboard textarea,
+html.dark .app-dashboard select,
+html.dark [data-slot='dialog-content'] input:not([type='checkbox']):not([type='radio']):not([type='range']),
+html.dark [data-slot='dialog-content'] textarea,
+html.dark [data-slot='dialog-content'] select {
+  background-color: #172033 !important;
+  color: var(--portal-heading) !important;
+  border-color: var(--portal-surface-border) !important;
+}
+
+html.dark .app-dashboard input::placeholder,
+html.dark .app-dashboard textarea::placeholder,
+html.dark [data-slot='dialog-content'] input::placeholder,
+html.dark [data-slot='dialog-content'] textarea::placeholder {
+  color: var(--portal-faint) !important;
+}
+
+/* Dialogs / drawers */
+html.dark [data-slot='dialog-content'],
+html.dark [data-slot='sheet-content'],
+html.dark [data-slot='alert-dialog-content'] {
+  background: var(--portal-surface) !important;
+  color: var(--portal-body) !important;
+  border-color: var(--portal-surface-border) !important;
+}
+
+html.dark [data-slot='dialog-title'],
+html.dark [data-slot='sheet-title'],
+html.dark [data-slot='alert-dialog-title'] {
+  color: var(--portal-heading) !important;
+}
+
+html.dark [data-slot='dialog-description'],
+html.dark [data-slot='sheet-description'],
+html.dark [data-slot='alert-dialog-description'] {
+  color: var(--portal-subtle) !important;
+}
+
+/* Keep white text on colored heroes / KPI gradients */
+html.dark .app-dashboard .text-white {
+  color: #ffffff !important;
+}
+
+html.dark .app-dashboard .enforcement-page__hero .enforcement-page__title,
+html.dark .app-dashboard .admin-dash-hero__title,
+html.dark .app-dashboard .admin-dash-kpi__value--on-color,
+html.dark .app-dashboard .admin-dash-kpi__label--on-color {
+  color: #ffffff !important;
+}
+
+html.dark .app-dashboard .enforcement-page__hero .enforcement-page__subtitle,
+html.dark .app-dashboard .admin-dash-hero__subtitle,
+html.dark .app-dashboard .admin-dash-kpi__sub--on-color {
+  color: rgba(255, 255, 255, 0.78) !important;
+}
+
+/* Admin dashboard panels — explicit clear ink */
+html.dark .admin-dash-panel__title,
+html.dark .admin-dash-ops-card__value,
+html.dark .admin-dash-ops-card__label,
+html.dark .admin-dash-quick-btn__label,
+html.dark .admin-dash-activity__title,
+html.dark .admin-dash-activity__amount,
+html.dark .admin-dash-hotspots__name,
+html.dark .admin-dash-views__title {
+  color: #f8fafc !important;
+}
+
+html.dark .admin-dash-panel__subtitle,
+html.dark .admin-dash-ops-card__sub,
+html.dark .admin-dash-activity__meta,
+html.dark .admin-dash-activity__time,
+html.dark .admin-dash-hotspots__count,
+html.dark .admin-dash-views__path,
+html.dark .admin-dash-views__time,
+html.dark .admin-dash-empty {
+  color: #cbd5e1 !important;
+}
+
+/* Enforcement / signs / reports common light !important ink */
+html.dark .enforcement-page__cell-primary,
+html.dark .enforcement-page__stat-value,
+html.dark .enforcement-page__dialog-title,
+html.dark .signs-page__panel-title,
+html.dark .dashboard-page--signs .signs-page__panel-title,
+html.dark .dashboard-card__title,
+html.dark .notif-templates-page__kpi-value {
+  color: var(--portal-heading) !important;
+}
+
+html.dark .enforcement-page__cell-secondary,
+html.dark .enforcement-page__cell-body,
+html.dark .enforcement-page__stat-label,
+html.dark .signs-page__panel-subtitle,
+html.dark .dashboard-page--signs .signs-page__panel-subtitle,
+html.dark .dashboard-signs-table__desc,
+html.dark .notif-templates-page__kpi-label {
+  color: var(--portal-subtle) !important;
+}
+
+html.dark .dashboard-page--signs .enforcement-page__panel--signs,
+html.dark .dashboard-page--signs .signs-page__panel-head {
+  background: var(--portal-surface) !important;
+  color: var(--portal-body);
+  border-color: var(--portal-surface-border);
+}
+
+html.dark .signs-form-dialog__btn-cancel {
+  color: var(--portal-subtle) !important;
+}
+
+html.dark .signs-form-dialog__btn-cancel:hover {
+  background: var(--portal-hover) !important;
+  color: var(--portal-heading) !important;
+}
+
+html.dark .signs-form-dialog__filename {
+  color: var(--portal-body) !important;
+  background: var(--portal-muted-surface) !important;
+  border-color: var(--portal-surface-border) !important;
+}
+
+html.dark .signs-form-dialog__footer {
+  background: var(--portal-surface) !important;
+  border-color: var(--portal-surface-border) !important;
+}
+
+/* Empty / dashed states */
+html.dark .app-dashboard [class*='empty'],
+html.dark .app-dashboard [style*='dashed'] {
+  color: var(--portal-subtle) !important;
+  border-color: rgba(148, 163, 184, 0.22) !important;
+}
+
+/* Sidebar + navbar readable */
+html.dark .app-sidebar,
+html.dark .app-navbar,
+html.dark [data-sidebar],
+html.dark .navbar {
+  color: var(--portal-body);
+}
+
+html.dark .app-sidebar [class*='title'],
+html.dark .app-navbar [class*='title'] {
+  color: var(--portal-heading);
+}

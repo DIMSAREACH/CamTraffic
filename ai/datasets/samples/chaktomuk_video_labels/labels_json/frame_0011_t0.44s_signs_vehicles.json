@@ -1,0 +1,92 @@
+{
+  "source": "stock-footage-phnom-penh-cambodia-th-january-busy-traffic-on-chaktomuk-walk-street-in-phnom-penh.webm",
+  "video_key": "chaktomuk",
+  "frame_index": 11,
+  "frame_file": "frame_0011_t0.44s.jpg",
+  "timestamp_sec": 0.44,
+  "image_size": {
+    "width": 898,
+    "height": 506
+  },
+  "tracking": true,
+  "annotations": [
+    {
+      "kind": "sign",
+      "class_key": "NO_U_TURN",
+      "class_id": 7,
+      "label_en": "No U Turn",
+      "confidence": 57.0,
+      "track_id": 1200,
+      "bbox_norm": {
+        "x1": 0.5328605771064758,
+        "y1": 0.29458025097846985,
+        "x2": 0.5641511678695679,
+        "y2": 0.3540366291999817
+      },
+      "bbox_px": {
+        "x1": 479,
+        "y1": 149,
+        "x2": 507,
+        "y2": 179
+      },
+      "bbox_yolo": {
+        "x_center": 0.548506,
+        "y_center": 0.324308,
+        "width": 0.031291,
+        "height": 0.059456
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "car",
+      "class_id": 1,
+      "label_en": "Car",
+      "confidence": 82.8,
+      "track_id": 1,
+      "bbox_norm": {
+        "x1": 0.4605,
+        "y1": 0.4014,
+        "x2": 0.7536,
+        "y2": 0.7328
+      },
+      "bbox_px": {
+        "x1": 414,
+        "y1": 203,
+        "x2": 677,
+        "y2": 371
+      },
+      "bbox_yolo": {
+        "x_center": 0.60705,
+        "y_center": 0.5671,
+        "width": 0.2931,
+        "height": 0.3314
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "motorcycle",
+      "class_id": 2,
+      "label_en": "Motorcycle",
+      "confidence": 70.9,
+      "track_id": 7,
+      "bbox_norm": {
+        "x1": 0.3911,
+        "y1": 0.445,
+        "x2": 0.4472,
+        "y2": 0.6045
+      },
+      "bbox_px": {
+        "x1": 351,
+        "y1": 225,
+        "x2": 402,
+        "y2": 306
+      },
+      "bbox_yolo": {
+        "x_center": 0.41915,
+        "y_center": 0.52475,
+        "width": 0.0561,
+        "height": 0.1595
+      }
+    }
+  ]
+}

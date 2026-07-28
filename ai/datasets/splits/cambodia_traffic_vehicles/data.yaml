@@ -1,0 +1,16 @@
+# Cambodia Traffic Vehicles — Roboflow v1 (YOLOv8)
+# Source: Dim Sareach / Cambodia Traffic.v1i.yolov8
+# Real Phnom Penh road footage | CC BY 4.0
+# Classes: Bus, Car, Moto, Truck, Tuk Tuk
+path: D:/Year4/Project Thesis/Expert System/Project/CamTraffic/ai/datasets/splits/cambodia_traffic_vehicles
+train: train/images
+val: valid/images
+test: test/images
+
+nc: 5
+names:
+  0: Bus
+  1: Car
+  2: Moto
+  3: Truck
+  4: Tuk Tuk

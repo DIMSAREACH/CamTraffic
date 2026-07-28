@@ -1,0 +1,59 @@
+{
+  "generated_at": "2026-07-22T20:06:05.833609+00:00",
+  "traffic_signs": {
+    "target": 2980,
+    "collected": 0,
+    "full_dataset": {
+      "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\dataset",
+      "images": 0,
+      "classes": 0,
+      "by_class": {}
+    },
+    "production_10_class": {
+      "path": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\dataset_10",
+      "images": 0,
+      "classes": 50,
+      "by_class": {}
+    },
+    "cam_tsr_street": 0
+  },
+  "vehicles": {
+    "target": 4615,
+    "collected": 0,
+    "classes": [
+      "sedan",
+      "suv",
+      "pickup",
+      "motorcycle",
+      "scooter",
+      "bus",
+      "truck",
+      "van",
+      "taxi"
+    ]
+  },
+  "license_plates": {
+    "target": 1253,
+    "collected": 0,
+    "classes": [
+      "private",
+      "commercial",
+      "government"
+    ],
+    "by_class": {}
+  },
+  "road_footage": {
+    "target_total": 8848,
+    "collected_total": 0,
+    "buckets": {
+      "day": 0,
+      "night": 0,
+      "rain": 0,
+      "highway": 0,
+      "urban": 0,
+      "rural": 0
+    }
+  },
+  "grand_total_images": 0,
+  "grand_target": 17696
+}

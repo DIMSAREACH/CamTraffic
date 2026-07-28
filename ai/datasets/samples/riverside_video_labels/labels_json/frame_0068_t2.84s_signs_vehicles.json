@@ -1,0 +1,92 @@
+{
+  "source": "stock-footage-phnom-penh-cambodia-vehicles-and-motorbikes-move-along-the-riverside-road-near-a.webm",
+  "video_key": "riverside",
+  "frame_index": 68,
+  "frame_file": "frame_0068_t2.84s.jpg",
+  "timestamp_sec": 2.836,
+  "image_size": {
+    "width": 898,
+    "height": 506
+  },
+  "tracking": true,
+  "annotations": [
+    {
+      "kind": "sign",
+      "class_key": "SLOW_DOWN",
+      "class_id": 7,
+      "label_en": "Slow Down",
+      "confidence": 39.5,
+      "track_id": 1202,
+      "bbox_norm": {
+        "x1": 0.44485747814178467,
+        "y1": 0.3891167938709259,
+        "x2": 0.4816778898239136,
+        "y2": 0.46188369393348694
+      },
+      "bbox_px": {
+        "x1": 399,
+        "y1": 197,
+        "x2": 433,
+        "y2": 234
+      },
+      "bbox_yolo": {
+        "x_center": 0.463268,
+        "y_center": 0.4255,
+        "width": 0.03682,
+        "height": 0.072767
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "car",
+      "class_id": 1,
+      "label_en": "Car",
+      "confidence": 96.4,
+      "track_id": 11,
+      "bbox_norm": {
+        "x1": 0.6751,
+        "y1": 0.4579,
+        "x2": 0.9998,
+        "y2": 0.9896
+      },
+      "bbox_px": {
+        "x1": 606,
+        "y1": 232,
+        "x2": 898,
+        "y2": 501
+      },
+      "bbox_yolo": {
+        "x_center": 0.83745,
+        "y_center": 0.72375,
+        "width": 0.3247,
+        "height": 0.5317
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "car",
+      "class_id": 1,
+      "label_en": "Car",
+      "confidence": 87.2,
+      "track_id": 1,
+      "bbox_norm": {
+        "x1": 0.0976,
+        "y1": 0.516,
+        "x2": 0.3228,
+        "y2": 0.7926
+      },
+      "bbox_px": {
+        "x1": 88,
+        "y1": 261,
+        "x2": 290,
+        "y2": 401
+      },
+      "bbox_yolo": {
+        "x_center": 0.2102,
+        "y_center": 0.6543,
+        "width": 0.2252,
+        "height": 0.2766
+      }
+    }
+  ]
+}

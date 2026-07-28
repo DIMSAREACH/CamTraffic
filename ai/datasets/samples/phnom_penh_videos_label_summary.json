@@ -1,0 +1,23 @@
+{
+  "ok": true,
+  "videos": [
+    {
+      "key": "riverside",
+      "source": "stock-footage-phnom-penh-cambodia-vehicles-and-motorbikes-move-along-the-riverside-road-near-a.webm",
+      "frames": 295,
+      "annotated_frames": 295,
+      "vehicles": 922,
+      "signs": 53,
+      "coverage_pct": 100.0
+    },
+    {
+      "key": "chaktomuk",
+      "source": "stock-footage-phnom-penh-cambodia-th-january-busy-traffic-on-chaktomuk-walk-street-in-phnom-penh.webm",
+      "frames": 294,
+      "annotated_frames": 294,
+      "vehicles": 1064,
+      "signs": 293,
+      "coverage_pct": 100.0
+    }
+  ]
+}

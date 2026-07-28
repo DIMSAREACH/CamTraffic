@@ -1,0 +1,6399 @@
+{
+  "ok": true,
+  "video_key": "riverside",
+  "source_filename": "stock-footage-phnom-penh-cambodia-vehicles-and-motorbikes-move-along-the-riverside-road-near-a.webm",
+  "video_file": "riverside_phnom_penh.webm",
+  "md5": "ad47457b17b893f56949a8efdb323a2a",
+  "extract_mode": "all_frames",
+  "frames_extracted": 295,
+  "frames_with_annotations": 295,
+  "box_coverage_pct": 100.0,
+  "total_vehicle_detections": 922,
+  "total_sign_detections": 53,
+  "tracking": true,
+  "annotated_preview": "annotated_preview.mp4",
+  "demo_preview": "/demo-detections/pp-riverside-annotated.mp4",
+  "class_map": {
+    "vehicles": {
+      "bus": 0,
+      "car": 1,
+      "motorcycle": 2,
+      "truck": 3,
+      "tuk_tuk": 4
+    },
+    "signs": {
+      "NO_PARKING": 5,
+      "PEDESTRIAN_AREA": 6,
+      "SLOW_DOWN": 7
+    }
+  },
+  "frames": [
+    {
+      "index": 0,
+      "timestamp_sec": 0.0,
+      "frame_file": "frame_0000_t0.00s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#1",
+        "Car#2",
+        "Motorcycle#3"
+      ],
+      "track_ids": [
+        1,
+        2,
+        3
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "PEDESTRIAN_AREA"
+      ],
+      "annotated": "frame_0000_t0.00s_annotated.jpg",
+      "label_json": "frame_0000_t0.00s_signs_vehicles.json",
+      "label_yolo": "frame_0000_t0.00s.txt"
+    },
+    {
+      "index": 1,
+      "timestamp_sec": 0.042,
+      "frame_file": "frame_0001_t0.04s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#1",
+        "Car#2",
+        "Motorcycle#3"
+      ],
+      "track_ids": [
+        1,
+        2,
+        3
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "PEDESTRIAN_AREA"
+      ],
+      "annotated": "frame_0001_t0.04s_annotated.jpg",
+      "label_json": "frame_0001_t0.04s_signs_vehicles.json",
+      "label_yolo": "frame_0001_t0.04s.txt"
+    },
+    {
+      "index": 2,
+      "timestamp_sec": 0.083,
+      "frame_file": "frame_0002_t0.08s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#1",
+        "Motorcycle#3",
+        "Car#2"
+      ],
+      "track_ids": [
+        1,
+        3,
+        2
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "PEDESTRIAN_AREA"
+      ],
+      "annotated": "frame_0002_t0.08s_annotated.jpg",
+      "label_json": "frame_0002_t0.08s_signs_vehicles.json",
+      "label_yolo": "frame_0002_t0.08s.txt"
+    },
+    {
+      "index": 3,
+      "timestamp_sec": 0.125,
+      "frame_file": "frame_0003_t0.13s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#1",
+        "Motorcycle#3",
+        "Car#2"
+      ],
+      "track_ids": [
+        1,
+        3,
+        2
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "PEDESTRIAN_AREA"
+      ],
+      "annotated": "frame_0003_t0.13s_annotated.jpg",
+      "label_json": "frame_0003_t0.13s_signs_vehicles.json",
+      "label_yolo": "frame_0003_t0.13s.txt"
+    },
+    {
+      "index": 4,
+      "timestamp_sec": 0.167,
+      "frame_file": "frame_0004_t0.17s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#1",
+        "Car#2",
+        "Motorcycle#3"
+      ],
+      "track_ids": [
+        1,
+        2,
+        3
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0004_t0.17s_annotated.jpg",
+      "label_json": "frame_0004_t0.17s_signs_vehicles.json",
+      "label_yolo": "frame_0004_t0.17s.txt"
+    },
+    {
+      "index": 5,
+      "timestamp_sec": 0.209,
+      "frame_file": "frame_0005_t0.21s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#1",
+        "Motorcycle#3",
+        "Car#2"
+      ],
+      "track_ids": [
+        1,
+        3,
+        2
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0005_t0.21s_annotated.jpg",
+      "label_json": "frame_0005_t0.21s_signs_vehicles.json",
+      "label_yolo": "frame_0005_t0.21s.txt"
+    },
+    {
+      "index": 6,
+      "timestamp_sec": 0.25,
+      "frame_file": "frame_0006_t0.25s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#1",
+        "Motorcycle#3",
+        "Car#2"
+      ],
+      "track_ids": [
+        1,
+        3,
+        2
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0006_t0.25s_annotated.jpg",
+      "label_json": "frame_0006_t0.25s_signs_vehicles.json",
+      "label_yolo": "frame_0006_t0.25s.txt"
+    },
+    {
+      "index": 7,
+      "timestamp_sec": 0.292,
+      "frame_file": "frame_0007_t0.29s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#1",
+        "Car#2",
+        "Motorcycle#3"
+      ],
+      "track_ids": [
+        1,
+        2,
+        3
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0007_t0.29s_annotated.jpg",
+      "label_json": "frame_0007_t0.29s_signs_vehicles.json",
+      "label_yolo": "frame_0007_t0.29s.txt"
+    },
+    {
+      "index": 8,
+      "timestamp_sec": 0.334,
+      "frame_file": "frame_0008_t0.33s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#1",
+        "Car#2",
+        "Motorcycle#3"
+      ],
+      "track_ids": [
+        1,
+        2,
+        3
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0008_t0.33s_annotated.jpg",
+      "label_json": "frame_0008_t0.33s_signs_vehicles.json",
+      "label_yolo": "frame_0008_t0.33s.txt"
+    },
+    {
+      "index": 9,
+      "timestamp_sec": 0.375,
+      "frame_file": "frame_0009_t0.38s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#1",
+        "Car#2",
+        "Motorcycle#3"
+      ],
+      "track_ids": [
+        1,
+        2,
+        3
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0009_t0.38s_annotated.jpg",
+      "label_json": "frame_0009_t0.38s_signs_vehicles.json",
+      "label_yolo": "frame_0009_t0.38s.txt"
+    },
+    {
+      "index": 10,
+      "timestamp_sec": 0.417,
+      "frame_file": "frame_0010_t0.42s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#3",
+        "Car#1",
+        "Car#2"
+      ],
+      "track_ids": [
+        3,
+        1,
+        2
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0010_t0.42s_annotated.jpg",
+      "label_json": "frame_0010_t0.42s_signs_vehicles.json",
+      "label_yolo": "frame_0010_t0.42s.txt"
+    },
+    {
+      "index": 11,
+      "timestamp_sec": 0.459,
+      "frame_file": "frame_0011_t0.46s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Car#1",
+        "Motorcycle#3",
+        "Car#2",
+        "Motorcycle#4"
+      ],
+      "track_ids": [
+        1,
+        3,
+        2,
+        4
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0011_t0.46s_annotated.jpg",
+      "label_json": "frame_0011_t0.46s_signs_vehicles.json",
+      "label_yolo": "frame_0011_t0.46s.txt"
+    },
+    {
+      "index": 12,
+      "timestamp_sec": 0.5,
+      "frame_file": "frame_0012_t0.50s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Car#2",
+        "Car#1",
+        "Motorcycle#3",
+        "Motorcycle#4"
+      ],
+      "track_ids": [
+        2,
+        1,
+        3,
+        4
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0012_t0.50s_annotated.jpg",
+      "label_json": "frame_0012_t0.50s_signs_vehicles.json",
+      "label_yolo": "frame_0012_t0.50s.txt"
+    },
+    {
+      "index": 13,
+      "timestamp_sec": 0.542,
+      "frame_file": "frame_0013_t0.54s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Car#2",
+        "Car#1",
+        "Motorcycle#3",
+        "Motorcycle#4"
+      ],
+      "track_ids": [
+        2,
+        1,
+        3,
+        4
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0013_t0.54s_annotated.jpg",
+      "label_json": "frame_0013_t0.54s_signs_vehicles.json",
+      "label_yolo": "frame_0013_t0.54s.txt"
+    },
+    {
+      "index": 14,
+      "timestamp_sec": 0.584,
+      "frame_file": "frame_0014_t0.58s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#3",
+        "Car#1",
+        "Car#2"
+      ],
+      "track_ids": [
+        3,
+        1,
+        2
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0014_t0.58s_annotated.jpg",
+      "label_json": "frame_0014_t0.58s_signs_vehicles.json",
+      "label_yolo": "frame_0014_t0.58s.txt"
+    },
+    {
+      "index": 15,
+      "timestamp_sec": 0.626,
+      "frame_file": "frame_0015_t0.63s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#1",
+        "Truck#2",
+        "Motorcycle#3"
+      ],
+      "track_ids": [
+        1,
+        2,
+        3
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0015_t0.63s_annotated.jpg",
+      "label_json": "frame_0015_t0.63s_signs_vehicles.json",
+      "label_yolo": "frame_0015_t0.63s.txt"
+    },
+    {
+      "index": 16,
+      "timestamp_sec": 0.667,
+      "frame_file": "frame_0016_t0.67s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#1",
+        "Truck#2",
+        "Motorcycle#5"
+      ],
+      "track_ids": [
+        1,
+        2,
+        5
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0016_t0.67s_annotated.jpg",
+      "label_json": "frame_0016_t0.67s_signs_vehicles.json",
+      "label_yolo": "frame_0016_t0.67s.txt"
+    },
+    {
+      "index": 17,
+      "timestamp_sec": 0.709,
+      "frame_file": "frame_0017_t0.71s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Car#1",
+        "Truck#2"
+      ],
+      "track_ids": [
+        1,
+        2
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0017_t0.71s_annotated.jpg",
+      "label_json": "frame_0017_t0.71s_signs_vehicles.json",
+      "label_yolo": "frame_0017_t0.71s.txt"
+    },
+    {
+      "index": 18,
+      "timestamp_sec": 0.751,
+      "frame_file": "frame_0018_t0.75s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Car#1",
+        "Car#2"
+      ],
+      "track_ids": [
+        1,
+        2
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0018_t0.75s_annotated.jpg",
+      "label_json": "frame_0018_t0.75s_signs_vehicles.json",
+      "label_yolo": "frame_0018_t0.75s.txt"
+    },
+    {
+      "index": 19,
+      "timestamp_sec": 0.792,
+      "frame_file": "frame_0019_t0.79s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#1",
+        "Motorcycle#6",
+        "Car#2"
+      ],
+      "track_ids": [
+        1,
+        6,
+        2
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0019_t0.79s_annotated.jpg",
+      "label_json": "frame_0019_t0.79s_signs_vehicles.json",
+      "label_yolo": "frame_0019_t0.79s.txt"
+    },
+    {
+      "index": 20,
+      "timestamp_sec": 0.834,
+      "frame_file": "frame_0020_t0.83s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Car#1",
+        "Car#2",
+        "Motorcycle#6",
+        "Motorcycle#7"
+      ],
+      "track_ids": [
+        1,
+        2,
+        6,
+        7
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0020_t0.83s_annotated.jpg",
+      "label_json": "frame_0020_t0.83s_signs_vehicles.json",
+      "label_yolo": "frame_0020_t0.83s.txt"
+    },
+    {
+      "index": 21,
+      "timestamp_sec": 0.876,
+      "frame_file": "frame_0021_t0.88s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Car#1",
+        "Car#2",
+        "Motorcycle#6",
+        "Motorcycle#7"
+      ],
+      "track_ids": [
+        1,
+        2,
+        6,
+        7
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0021_t0.88s_annotated.jpg",
+      "label_json": "frame_0021_t0.88s_signs_vehicles.json",
+      "label_yolo": "frame_0021_t0.88s.txt"
+    },
+    {
+      "index": 22,
+      "timestamp_sec": 0.918,
+      "frame_file": "frame_0022_t0.92s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Car#1",
+        "Tuk Tuk#8",
+        "Car#2",
+        "Motorcycle#6"
+      ],
+      "track_ids": [
+        1,
+        8,
+        2,
+        6
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0022_t0.92s_annotated.jpg",
+      "label_json": "frame_0022_t0.92s_signs_vehicles.json",
+      "label_yolo": "frame_0022_t0.92s.txt"
+    },
+    {
+      "index": 23,
+      "timestamp_sec": 0.959,
+      "frame_file": "frame_0023_t0.96s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Car#1",
+        "Car#2",
+        "Tuk Tuk#8",
+        "Motorcycle#9"
+      ],
+      "track_ids": [
+        1,
+        2,
+        8,
+        9
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0023_t0.96s_annotated.jpg",
+      "label_json": "frame_0023_t0.96s_signs_vehicles.json",
+      "label_yolo": "frame_0023_t0.96s.txt"
+    },
+    {
+      "index": 24,
+      "timestamp_sec": 1.001,
+      "frame_file": "frame_0024_t1.00s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Car#1",
+        "Car#2",
+        "Motorcycle#8",
+        "Motorcycle#9"
+      ],
+      "track_ids": [
+        1,
+        2,
+        8,
+        9
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0024_t1.00s_annotated.jpg",
+      "label_json": "frame_0024_t1.00s_signs_vehicles.json",
+      "label_yolo": "frame_0024_t1.00s.txt"
+    },
+    {
+      "index": 25,
+      "timestamp_sec": 1.043,
+      "frame_file": "frame_0025_t1.04s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#1",
+        "Car#2",
+        "Motorcycle#9"
+      ],
+      "track_ids": [
+        1,
+        2,
+        9
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0025_t1.04s_annotated.jpg",
+      "label_json": "frame_0025_t1.04s_signs_vehicles.json",
+      "label_yolo": "frame_0025_t1.04s.txt"
+    },
+    {
+      "index": 26,
+      "timestamp_sec": 1.084,
+      "frame_file": "frame_0026_t1.08s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Car#1",
+        "Tuk Tuk#10",
+        "Car#2",
+        "Motorcycle#9"
+      ],
+      "track_ids": [
+        1,
+        10,
+        2,
+        9
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0026_t1.08s_annotated.jpg",
+      "label_json": "frame_0026_t1.08s_signs_vehicles.json",
+      "label_yolo": "frame_0026_t1.08s.txt"
+    },
+    {
+      "index": 27,
+      "timestamp_sec": 1.126,
+      "frame_file": "frame_0027_t1.13s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#1",
+        "Tuk Tuk#10",
+        "Car#2"
+      ],
+      "track_ids": [
+        1,
+        10,
+        2
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0027_t1.13s_annotated.jpg",
+      "label_json": "frame_0027_t1.13s_signs_vehicles.json",
+      "label_yolo": "frame_0027_t1.13s.txt"
+    },
+    {
+      "index": 28,
+      "timestamp_sec": 1.168,
+      "frame_file": "frame_0028_t1.17s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Car#1",
+        "Tuk Tuk#10"
+      ],
+      "track_ids": [
+        1,
+        10
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0028_t1.17s_annotated.jpg",
+      "label_json": "frame_0028_t1.17s_signs_vehicles.json",
+      "label_yolo": "frame_0028_t1.17s.txt"
+    },
+    {
+      "index": 29,
+      "timestamp_sec": 1.21,
+      "frame_file": "frame_0029_t1.21s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Tuk Tuk#10",
+        "Car#1",
+        "Car#11"
+      ],
+      "track_ids": [
+        10,
+        1,
+        11
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0029_t1.21s_annotated.jpg",
+      "label_json": "frame_0029_t1.21s_signs_vehicles.json",
+      "label_yolo": "frame_0029_t1.21s.txt"
+    },
+    {
+      "index": 30,
+      "timestamp_sec": 1.251,
+      "frame_file": "frame_0030_t1.25s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#1",
+        "Tuk Tuk#10",
+        "Car#11"
+      ],
+      "track_ids": [
+        1,
+        10,
+        11
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0030_t1.25s_annotated.jpg",
+      "label_json": "frame_0030_t1.25s_signs_vehicles.json",
+      "label_yolo": "frame_0030_t1.25s.txt"
+    },
+    {
+      "index": 31,
+      "timestamp_sec": 1.293,
+      "frame_file": "frame_0031_t1.29s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Car#1",
+        "Tuk Tuk#10",
+        "Motorcycle#12",
+        "Car#11"
+      ],
+      "track_ids": [
+        1,
+        10,
+        12,
+        11
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0031_t1.29s_annotated.jpg",
+      "label_json": "frame_0031_t1.29s_signs_vehicles.json",
+      "label_yolo": "frame_0031_t1.29s.txt"
+    },
+    {
+      "index": 32,
+      "timestamp_sec": 1.335,
+      "frame_file": "frame_0032_t1.33s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Car#1",
+        "Motorcycle#12",
+        "Car#11",
+        "Motorcycle#10"
+      ],
+      "track_ids": [
+        1,
+        12,
+        11,
+        10
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0032_t1.33s_annotated.jpg",
+      "label_json": "frame_0032_t1.33s_signs_vehicles.json",
+      "label_yolo": "frame_0032_t1.33s.txt"
+    },
+    {
+      "index": 33,
+      "timestamp_sec": 1.376,
+      "frame_file": "frame_0033_t1.38s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Motorcycle#12",
+        "Car#1",
+        "Car#11",
+        "Motorcycle#10"
+      ],
+      "track_ids": [
+        12,
+        1,
+        11,
+        10
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0033_t1.38s_annotated.jpg",
+      "label_json": "frame_0033_t1.38s_signs_vehicles.json",
+      "label_yolo": "frame_0033_t1.38s.txt"
+    },
+    {
+      "index": 34,
+      "timestamp_sec": 1.418,
+      "frame_file": "frame_0034_t1.42s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#12",
+        "Car#1",
+        "Car#11"
+      ],
+      "track_ids": [
+        12,
+        1,
+        11
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0034_t1.42s_annotated.jpg",
+      "label_json": "frame_0034_t1.42s_signs_vehicles.json",
+      "label_yolo": "frame_0034_t1.42s.txt"
+    },
+    {
+      "index": 35,
+      "timestamp_sec": 1.46,
+      "frame_file": "frame_0035_t1.46s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#12",
+        "Car#1",
+        "Car#11"
+      ],
+      "track_ids": [
+        12,
+        1,
+        11
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0035_t1.46s_annotated.jpg",
+      "label_json": "frame_0035_t1.46s_signs_vehicles.json",
+      "label_yolo": "frame_0035_t1.46s.txt"
+    },
+    {
+      "index": 36,
+      "timestamp_sec": 1.501,
+      "frame_file": "frame_0036_t1.50s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#12",
+        "Car#1",
+        "Car#11"
+      ],
+      "track_ids": [
+        12,
+        1,
+        11
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "NO_PARKING"
+      ],
+      "annotated": "frame_0036_t1.50s_annotated.jpg",
+      "label_json": "frame_0036_t1.50s_signs_vehicles.json",
+      "label_yolo": "frame_0036_t1.50s.txt"
+    },
+    {
+      "index": 37,
+      "timestamp_sec": 1.543,
+      "frame_file": "frame_0037_t1.54s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#12",
+        "Car#1",
+        "Car#11"
+      ],
+      "track_ids": [
+        12,
+        1,
+        11
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "NO_PARKING"
+      ],
+      "annotated": "frame_0037_t1.54s_annotated.jpg",
+      "label_json": "frame_0037_t1.54s_signs_vehicles.json",
+      "label_yolo": "frame_0037_t1.54s.txt"
+    },
+    {
+      "index": 38,
+      "timestamp_sec": 1.585,
+      "frame_file": "frame_0038_t1.58s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#1",
+        "Car#11",
+        "Motorcycle#12"
+      ],
+      "track_ids": [
+        1,
+        11,
+        12
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0038_t1.58s_annotated.jpg",
+      "label_json": "frame_0038_t1.58s_signs_vehicles.json",
+      "label_yolo": "frame_0038_t1.58s.txt"
+    },
+    {
+      "index": 39,
+      "timestamp_sec": 1.627,
+      "frame_file": "frame_0039_t1.63s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#1",
+        "Car#11",
+        "Truck#13"
+      ],
+      "track_ids": [
+        1,
+        11,
+        13
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0039_t1.63s_annotated.jpg",
+      "label_json": "frame_0039_t1.63s_signs_vehicles.json",
+      "label_yolo": "frame_0039_t1.63s.txt"
+    },
+    {
+      "index": 40,
+      "timestamp_sec": 1.668,
+      "frame_file": "frame_0040_t1.67s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#1",
+        "Car#11",
+        "Truck#13"
+      ],
+      "track_ids": [
+        1,
+        11,
+        13
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0040_t1.67s_annotated.jpg",
+      "label_json": "frame_0040_t1.67s_signs_vehicles.json",
+      "label_yolo": "frame_0040_t1.67s.txt"
+    },
+    {
+      "index": 41,
+      "timestamp_sec": 1.71,
+      "frame_file": "frame_0041_t1.71s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#1",
+        "Car#11",
+        "Truck#13"
+      ],
+      "track_ids": [
+        1,
+        11,
+        13
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0041_t1.71s_annotated.jpg",
+      "label_json": "frame_0041_t1.71s_signs_vehicles.json",
+      "label_yolo": "frame_0041_t1.71s.txt"
+    },
+    {
+      "index": 42,
+      "timestamp_sec": 1.752,
+      "frame_file": "frame_0042_t1.75s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#1",
+        "Car#11",
+        "Truck#13"
+      ],
+      "track_ids": [
+        1,
+        11,
+        13
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0042_t1.75s_annotated.jpg",
+      "label_json": "frame_0042_t1.75s_signs_vehicles.json",
+      "label_yolo": "frame_0042_t1.75s.txt"
+    },
+    {
+      "index": 43,
+      "timestamp_sec": 1.793,
+      "frame_file": "frame_0043_t1.79s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#1",
+        "Car#11",
+        "Truck#13"
+      ],
+      "track_ids": [
+        1,
+        11,
+        13
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0043_t1.79s_annotated.jpg",
+      "label_json": "frame_0043_t1.79s_signs_vehicles.json",
+      "label_yolo": "frame_0043_t1.79s.txt"
+    },
+    {
+      "index": 44,
+      "timestamp_sec": 1.835,
+      "frame_file": "frame_0044_t1.84s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Truck#13",
+        "Car#1",
+        "Car#11"
+      ],
+      "track_ids": [
+        13,
+        1,
+        11
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0044_t1.84s_annotated.jpg",
+      "label_json": "frame_0044_t1.84s_signs_vehicles.json",
+      "label_yolo": "frame_0044_t1.84s.txt"
+    },
+    {
+      "index": 45,
+      "timestamp_sec": 1.877,
+      "frame_file": "frame_0045_t1.88s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#1",
+        "Truck#13",
+        "Car#11"
+      ],
+      "track_ids": [
+        1,
+        13,
+        11
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0045_t1.88s_annotated.jpg",
+      "label_json": "frame_0045_t1.88s_signs_vehicles.json",
+      "label_yolo": "frame_0045_t1.88s.txt"
+    },
+    {
+      "index": 46,
+      "timestamp_sec": 1.919,
+      "frame_file": "frame_0046_t1.92s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#1",
+        "Car#11",
+        "Truck#13"
+      ],
+      "track_ids": [
+        1,
+        11,
+        13
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0046_t1.92s_annotated.jpg",
+      "label_json": "frame_0046_t1.92s_signs_vehicles.json",
+      "label_yolo": "frame_0046_t1.92s.txt"
+    },
+    {
+      "index": 47,
+      "timestamp_sec": 1.96,
+      "frame_file": "frame_0047_t1.96s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#11",
+        "Car#1",
+        "Truck#13"
+      ],
+      "track_ids": [
+        11,
+        1,
+        13
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0047_t1.96s_annotated.jpg",
+      "label_json": "frame_0047_t1.96s_signs_vehicles.json",
+      "label_yolo": "frame_0047_t1.96s.txt"
+    },
+    {
+      "index": 48,
+      "timestamp_sec": 2.002,
+      "frame_file": "frame_0048_t2.00s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#11",
+        "Car#1",
+        "Car#13"
+      ],
+      "track_ids": [
+        11,
+        1,
+        13
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0048_t2.00s_annotated.jpg",
+      "label_json": "frame_0048_t2.00s_signs_vehicles.json",
+      "label_yolo": "frame_0048_t2.00s.txt"
+    },
+    {
+      "index": 49,
+      "timestamp_sec": 2.044,
+      "frame_file": "frame_0049_t2.04s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#11",
+        "Car#1",
+        "Bus#13"
+      ],
+      "track_ids": [
+        11,
+        1,
+        13
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0049_t2.04s_annotated.jpg",
+      "label_json": "frame_0049_t2.04s_signs_vehicles.json",
+      "label_yolo": "frame_0049_t2.04s.txt"
+    },
+    {
+      "index": 50,
+      "timestamp_sec": 2.085,
+      "frame_file": "frame_0050_t2.09s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Car#11",
+        "Car#1"
+      ],
+      "track_ids": [
+        11,
+        1
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0050_t2.09s_annotated.jpg",
+      "label_json": "frame_0050_t2.09s_signs_vehicles.json",
+      "label_yolo": "frame_0050_t2.09s.txt"
+    },
+    {
+      "index": 51,
+      "timestamp_sec": 2.127,
+      "frame_file": "frame_0051_t2.13s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Car#11",
+        "Car#1"
+      ],
+      "track_ids": [
+        11,
+        1
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0051_t2.13s_annotated.jpg",
+      "label_json": "frame_0051_t2.13s_signs_vehicles.json",
+      "label_yolo": "frame_0051_t2.13s.txt"
+    },
+    {
+      "index": 52,
+      "timestamp_sec": 2.169,
+      "frame_file": "frame_0052_t2.17s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Car#11",
+        "Car#1"
+      ],
+      "track_ids": [
+        11,
+        1
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0052_t2.17s_annotated.jpg",
+      "label_json": "frame_0052_t2.17s_signs_vehicles.json",
+      "label_yolo": "frame_0052_t2.17s.txt"
+    },
+    {
+      "index": 53,
+      "timestamp_sec": 2.211,
+      "frame_file": "frame_0053_t2.21s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Car#11",
+        "Car#1"
+      ],
+      "track_ids": [
+        11,
+        1
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0053_t2.21s_annotated.jpg",
+      "label_json": "frame_0053_t2.21s_signs_vehicles.json",
+      "label_yolo": "frame_0053_t2.21s.txt"
+    },
+    {
+      "index": 54,
+      "timestamp_sec": 2.252,
+      "frame_file": "frame_0054_t2.25s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Car#11",
+        "Car#1"
+      ],
+      "track_ids": [
+        11,
+        1
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0054_t2.25s_annotated.jpg",
+      "label_json": "frame_0054_t2.25s_signs_vehicles.json",
+      "label_yolo": "frame_0054_t2.25s.txt"
+    },
+    {
+      "index": 55,
+      "timestamp_sec": 2.294,
+      "frame_file": "frame_0055_t2.29s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Car#11",
+        "Car#1"
+      ],
+      "track_ids": [
+        11,
+        1
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0055_t2.29s_annotated.jpg",
+      "label_json": "frame_0055_t2.29s_signs_vehicles.json",
+      "label_yolo": "frame_0055_t2.29s.txt"
+    },
+    {
+      "index": 56,
+      "timestamp_sec": 2.336,
+      "frame_file": "frame_0056_t2.34s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Car#11",
+        "Car#1"
+      ],
+      "track_ids": [
+        11,
+        1
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0056_t2.34s_annotated.jpg",
+      "label_json": "frame_0056_t2.34s_signs_vehicles.json",
+      "label_yolo": "frame_0056_t2.34s.txt"
+    },
+    {
+      "index": 57,
+      "timestamp_sec": 2.377,
+      "frame_file": "frame_0057_t2.38s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Car#11",
+        "Car#1"
+      ],
+      "track_ids": [
+        11,
+        1
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0057_t2.38s_annotated.jpg",
+      "label_json": "frame_0057_t2.38s_signs_vehicles.json",
+      "label_yolo": "frame_0057_t2.38s.txt"
+    },
+    {
+      "index": 58,
+      "timestamp_sec": 2.419,
+      "frame_file": "frame_0058_t2.42s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Car#11",
+        "Car#1"
+      ],
+      "track_ids": [
+        11,
+        1
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0058_t2.42s_annotated.jpg",
+      "label_json": "frame_0058_t2.42s_signs_vehicles.json",
+      "label_yolo": "frame_0058_t2.42s.txt"
+    },
+    {
+      "index": 59,
+      "timestamp_sec": 2.461,
+      "frame_file": "frame_0059_t2.46s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Car#11",
+        "Car#1"
+      ],
+      "track_ids": [
+        11,
+        1
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0059_t2.46s_annotated.jpg",
+      "label_json": "frame_0059_t2.46s_signs_vehicles.json",
+      "label_yolo": "frame_0059_t2.46s.txt"
+    },
+    {
+      "index": 60,
+      "timestamp_sec": 2.502,
+      "frame_file": "frame_0060_t2.50s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Car#11",
+        "Car#1"
+      ],
+      "track_ids": [
+        11,
+        1
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "PEDESTRIAN_AREA"
+      ],
+      "annotated": "frame_0060_t2.50s_annotated.jpg",
+      "label_json": "frame_0060_t2.50s_signs_vehicles.json",
+      "label_yolo": "frame_0060_t2.50s.txt"
+    },
+    {
+      "index": 61,
+      "timestamp_sec": 2.544,
+      "frame_file": "frame_0061_t2.54s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Car#11",
+        "Car#1"
+      ],
+      "track_ids": [
+        11,
+        1
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "PEDESTRIAN_AREA"
+      ],
+      "annotated": "frame_0061_t2.54s_annotated.jpg",
+      "label_json": "frame_0061_t2.54s_signs_vehicles.json",
+      "label_yolo": "frame_0061_t2.54s.txt"
+    },
+    {
+      "index": 62,
+      "timestamp_sec": 2.586,
+      "frame_file": "frame_0062_t2.59s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Car#11",
+        "Car#1"
+      ],
+      "track_ids": [
+        11,
+        1
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "PEDESTRIAN_AREA"
+      ],
+      "annotated": "frame_0062_t2.59s_annotated.jpg",
+      "label_json": "frame_0062_t2.59s_signs_vehicles.json",
+      "label_yolo": "frame_0062_t2.59s.txt"
+    },
+    {
+      "index": 63,
+      "timestamp_sec": 2.628,
+      "frame_file": "frame_0063_t2.63s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Car#11",
+        "Car#1"
+      ],
+      "track_ids": [
+        11,
+        1
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "PEDESTRIAN_AREA"
+      ],
+      "annotated": "frame_0063_t2.63s_annotated.jpg",
+      "label_json": "frame_0063_t2.63s_signs_vehicles.json",
+      "label_yolo": "frame_0063_t2.63s.txt"
+    },
+    {
+      "index": 64,
+      "timestamp_sec": 2.669,
+      "frame_file": "frame_0064_t2.67s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#11",
+        "Tuk Tuk#14",
+        "Car#1"
+      ],
+      "track_ids": [
+        11,
+        14,
+        1
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "PEDESTRIAN_AREA"
+      ],
+      "annotated": "frame_0064_t2.67s_annotated.jpg",
+      "label_json": "frame_0064_t2.67s_signs_vehicles.json",
+      "label_yolo": "frame_0064_t2.67s.txt"
+    },
+    {
+      "index": 65,
+      "timestamp_sec": 2.711,
+      "frame_file": "frame_0065_t2.71s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#11",
+        "Tuk Tuk#14",
+        "Car#1"
+      ],
+      "track_ids": [
+        11,
+        14,
+        1
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0065_t2.71s_annotated.jpg",
+      "label_json": "frame_0065_t2.71s_signs_vehicles.json",
+      "label_yolo": "frame_0065_t2.71s.txt"
+    },
+    {
+      "index": 66,
+      "timestamp_sec": 2.753,
+      "frame_file": "frame_0066_t2.75s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Car#11",
+        "Car#1"
+      ],
+      "track_ids": [
+        11,
+        1
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0066_t2.75s_annotated.jpg",
+      "label_json": "frame_0066_t2.75s_signs_vehicles.json",
+      "label_yolo": "frame_0066_t2.75s.txt"
+    },
+    {
+      "index": 67,
+      "timestamp_sec": 2.794,
+      "frame_file": "frame_0067_t2.79s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Car#11",
+        "Car#1"
+      ],
+      "track_ids": [
+        11,
+        1
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0067_t2.79s_annotated.jpg",
+      "label_json": "frame_0067_t2.79s_signs_vehicles.json",
+      "label_yolo": "frame_0067_t2.79s.txt"
+    },
+    {
+      "index": 68,
+      "timestamp_sec": 2.836,
+      "frame_file": "frame_0068_t2.84s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Car#11",
+        "Car#1"
+      ],
+      "track_ids": [
+        11,
+        1
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "SLOW_DOWN"
+      ],
+      "annotated": "frame_0068_t2.84s_annotated.jpg",
+      "label_json": "frame_0068_t2.84s_signs_vehicles.json",
+      "label_yolo": "frame_0068_t2.84s.txt"
+    },
+    {
+      "index": 69,
+      "timestamp_sec": 2.878,
+      "frame_file": "frame_0069_t2.88s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#11",
+        "Car#1",
+        "Tuk Tuk#15"
+      ],
+      "track_ids": [
+        11,
+        1,
+        15
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "SLOW_DOWN"
+      ],
+      "annotated": "frame_0069_t2.88s_annotated.jpg",
+      "label_json": "frame_0069_t2.88s_signs_vehicles.json",
+      "label_yolo": "frame_0069_t2.88s.txt"
+    },
+    {
+      "index": 70,
+      "timestamp_sec": 2.92,
+      "frame_file": "frame_0070_t2.92s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Car#11",
+        "Car#1"
+      ],
+      "track_ids": [
+        11,
+        1
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "SLOW_DOWN"
+      ],
+      "annotated": "frame_0070_t2.92s_annotated.jpg",
+      "label_json": "frame_0070_t2.92s_signs_vehicles.json",
+      "label_yolo": "frame_0070_t2.92s.txt"
+    },
+    {
+      "index": 71,
+      "timestamp_sec": 2.961,
+      "frame_file": "frame_0071_t2.96s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Car#11",
+        "Truck#1"
+      ],
+      "track_ids": [
+        11,
+        1
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "SLOW_DOWN"
+      ],
+      "annotated": "frame_0071_t2.96s_annotated.jpg",
+      "label_json": "frame_0071_t2.96s_signs_vehicles.json",
+      "label_yolo": "frame_0071_t2.96s.txt"
+    },
+    {
+      "index": 72,
+      "timestamp_sec": 3.003,
+      "frame_file": "frame_0072_t3.00s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#11",
+        "Truck#1",
+        "Motorcycle#16"
+      ],
+      "track_ids": [
+        11,
+        1,
+        16
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "SLOW_DOWN"
+      ],
+      "annotated": "frame_0072_t3.00s_annotated.jpg",
+      "label_json": "frame_0072_t3.00s_signs_vehicles.json",
+      "label_yolo": "frame_0072_t3.00s.txt"
+    },
+    {
+      "index": 73,
+      "timestamp_sec": 3.045,
+      "frame_file": "frame_0073_t3.04s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#11",
+        "Motorcycle#16",
+        "Car#1"
+      ],
+      "track_ids": [
+        11,
+        16,
+        1
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0073_t3.04s_annotated.jpg",
+      "label_json": "frame_0073_t3.04s_signs_vehicles.json",
+      "label_yolo": "frame_0073_t3.04s.txt"
+    },
+    {
+      "index": 74,
+      "timestamp_sec": 3.086,
+      "frame_file": "frame_0074_t3.09s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#11",
+        "Motorcycle#16",
+        "Truck#1"
+      ],
+      "track_ids": [
+        11,
+        16,
+        1
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0074_t3.09s_annotated.jpg",
+      "label_json": "frame_0074_t3.09s_signs_vehicles.json",
+      "label_yolo": "frame_0074_t3.09s.txt"
+    },
+    {
+      "index": 75,
+      "timestamp_sec": 3.128,
+      "frame_file": "frame_0075_t3.13s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#11",
+        "Motorcycle#16",
+        "Truck#1"
+      ],
+      "track_ids": [
+        11,
+        16,
+        1
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0075_t3.13s_annotated.jpg",
+      "label_json": "frame_0075_t3.13s_signs_vehicles.json",
+      "label_yolo": "frame_0075_t3.13s.txt"
+    },
+    {
+      "index": 76,
+      "timestamp_sec": 3.17,
+      "frame_file": "frame_0076_t3.17s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#11",
+        "Motorcycle#16",
+        "Truck#1"
+      ],
+      "track_ids": [
+        11,
+        16,
+        1
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0076_t3.17s_annotated.jpg",
+      "label_json": "frame_0076_t3.17s_signs_vehicles.json",
+      "label_yolo": "frame_0076_t3.17s.txt"
+    },
+    {
+      "index": 77,
+      "timestamp_sec": 3.212,
+      "frame_file": "frame_0077_t3.21s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#11",
+        "Truck#1",
+        "Motorcycle#16"
+      ],
+      "track_ids": [
+        11,
+        1,
+        16
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0077_t3.21s_annotated.jpg",
+      "label_json": "frame_0077_t3.21s_signs_vehicles.json",
+      "label_yolo": "frame_0077_t3.21s.txt"
+    },
+    {
+      "index": 78,
+      "timestamp_sec": 3.253,
+      "frame_file": "frame_0078_t3.25s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#11",
+        "Truck#1",
+        "Motorcycle#16"
+      ],
+      "track_ids": [
+        11,
+        1,
+        16
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0078_t3.25s_annotated.jpg",
+      "label_json": "frame_0078_t3.25s_signs_vehicles.json",
+      "label_yolo": "frame_0078_t3.25s.txt"
+    },
+    {
+      "index": 79,
+      "timestamp_sec": 3.295,
+      "frame_file": "frame_0079_t3.29s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Motorcycle#16",
+        "Truck#1"
+      ],
+      "track_ids": [
+        16,
+        1
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0079_t3.29s_annotated.jpg",
+      "label_json": "frame_0079_t3.29s_signs_vehicles.json",
+      "label_yolo": "frame_0079_t3.29s.txt"
+    },
+    {
+      "index": 80,
+      "timestamp_sec": 3.337,
+      "frame_file": "frame_0080_t3.34s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Motorcycle#16",
+        "Truck#1"
+      ],
+      "track_ids": [
+        16,
+        1
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0080_t3.34s_annotated.jpg",
+      "label_json": "frame_0080_t3.34s_signs_vehicles.json",
+      "label_yolo": "frame_0080_t3.34s.txt"
+    },
+    {
+      "index": 81,
+      "timestamp_sec": 3.378,
+      "frame_file": "frame_0081_t3.38s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Truck#1",
+        "Motorcycle#16",
+        "Motorcycle#17"
+      ],
+      "track_ids": [
+        1,
+        16,
+        17
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0081_t3.38s_annotated.jpg",
+      "label_json": "frame_0081_t3.38s_signs_vehicles.json",
+      "label_yolo": "frame_0081_t3.38s.txt"
+    },
+    {
+      "index": 82,
+      "timestamp_sec": 3.42,
+      "frame_file": "frame_0082_t3.42s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Truck#1",
+        "Motorcycle#16"
+      ],
+      "track_ids": [
+        1,
+        16
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0082_t3.42s_annotated.jpg",
+      "label_json": "frame_0082_t3.42s_signs_vehicles.json",
+      "label_yolo": "frame_0082_t3.42s.txt"
+    },
+    {
+      "index": 83,
+      "timestamp_sec": 3.462,
+      "frame_file": "frame_0083_t3.46s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Truck#1",
+        "Motorcycle#16"
+      ],
+      "track_ids": [
+        1,
+        16
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0083_t3.46s_annotated.jpg",
+      "label_json": "frame_0083_t3.46s_signs_vehicles.json",
+      "label_yolo": "frame_0083_t3.46s.txt"
+    },
+    {
+      "index": 84,
+      "timestamp_sec": 3.503,
+      "frame_file": "frame_0084_t3.50s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Truck#1",
+        "Motorcycle#16"
+      ],
+      "track_ids": [
+        1,
+        16
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0084_t3.50s_annotated.jpg",
+      "label_json": "frame_0084_t3.50s_signs_vehicles.json",
+      "label_yolo": "frame_0084_t3.50s.txt"
+    },
+    {
+      "index": 85,
+      "timestamp_sec": 3.545,
+      "frame_file": "frame_0085_t3.55s.jpg",
+      "vehicles": 1,
+      "vehicle_labels": [
+        "Truck#1"
+      ],
+      "track_ids": [
+        1
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0085_t3.55s_annotated.jpg",
+      "label_json": "frame_0085_t3.55s_signs_vehicles.json",
+      "label_yolo": "frame_0085_t3.55s.txt"
+    },
+    {
+      "index": 86,
+      "timestamp_sec": 3.587,
+      "frame_file": "frame_0086_t3.59s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Truck#1",
+        "Motorcycle#18",
+        "Motorcycle#19"
+      ],
+      "track_ids": [
+        1,
+        18,
+        19
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0086_t3.59s_annotated.jpg",
+      "label_json": "frame_0086_t3.59s_signs_vehicles.json",
+      "label_yolo": "frame_0086_t3.59s.txt"
+    },
+    {
+      "index": 87,
+      "timestamp_sec": 3.629,
+      "frame_file": "frame_0087_t3.63s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#18",
+        "Truck#1",
+        "Motorcycle#19"
+      ],
+      "track_ids": [
+        18,
+        1,
+        19
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0087_t3.63s_annotated.jpg",
+      "label_json": "frame_0087_t3.63s_signs_vehicles.json",
+      "label_yolo": "frame_0087_t3.63s.txt"
+    },
+    {
+      "index": 88,
+      "timestamp_sec": 3.67,
+      "frame_file": "frame_0088_t3.67s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#18",
+        "Truck#1",
+        "Motorcycle#19"
+      ],
+      "track_ids": [
+        18,
+        1,
+        19
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0088_t3.67s_annotated.jpg",
+      "label_json": "frame_0088_t3.67s_signs_vehicles.json",
+      "label_yolo": "frame_0088_t3.67s.txt"
+    },
+    {
+      "index": 89,
+      "timestamp_sec": 3.712,
+      "frame_file": "frame_0089_t3.71s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Truck#1",
+        "Motorcycle#18",
+        "Motorcycle#20"
+      ],
+      "track_ids": [
+        1,
+        18,
+        20
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0089_t3.71s_annotated.jpg",
+      "label_json": "frame_0089_t3.71s_signs_vehicles.json",
+      "label_yolo": "frame_0089_t3.71s.txt"
+    },
+    {
+      "index": 90,
+      "timestamp_sec": 3.754,
+      "frame_file": "frame_0090_t3.75s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Truck#1",
+        "Tuk Tuk#21",
+        "Motorcycle#18"
+      ],
+      "track_ids": [
+        1,
+        21,
+        18
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0090_t3.75s_annotated.jpg",
+      "label_json": "frame_0090_t3.75s_signs_vehicles.json",
+      "label_yolo": "frame_0090_t3.75s.txt"
+    },
+    {
+      "index": 91,
+      "timestamp_sec": 3.795,
+      "frame_file": "frame_0091_t3.80s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#18",
+        "Motorcycle#22",
+        "Car#1"
+      ],
+      "track_ids": [
+        18,
+        22,
+        1
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0091_t3.80s_annotated.jpg",
+      "label_json": "frame_0091_t3.80s_signs_vehicles.json",
+      "label_yolo": "frame_0091_t3.80s.txt"
+    },
+    {
+      "index": 92,
+      "timestamp_sec": 3.837,
+      "frame_file": "frame_0092_t3.84s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#18",
+        "Truck#1",
+        "Motorcycle#22"
+      ],
+      "track_ids": [
+        18,
+        1,
+        22
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0092_t3.84s_annotated.jpg",
+      "label_json": "frame_0092_t3.84s_signs_vehicles.json",
+      "label_yolo": "frame_0092_t3.84s.txt"
+    },
+    {
+      "index": 93,
+      "timestamp_sec": 3.879,
+      "frame_file": "frame_0093_t3.88s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#18",
+        "Truck#1",
+        "Motorcycle#22"
+      ],
+      "track_ids": [
+        18,
+        1,
+        22
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0093_t3.88s_annotated.jpg",
+      "label_json": "frame_0093_t3.88s_signs_vehicles.json",
+      "label_yolo": "frame_0093_t3.88s.txt"
+    },
+    {
+      "index": 94,
+      "timestamp_sec": 3.921,
+      "frame_file": "frame_0094_t3.92s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#18",
+        "Truck#1",
+        "Motorcycle#22"
+      ],
+      "track_ids": [
+        18,
+        1,
+        22
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0094_t3.92s_annotated.jpg",
+      "label_json": "frame_0094_t3.92s_signs_vehicles.json",
+      "label_yolo": "frame_0094_t3.92s.txt"
+    },
+    {
+      "index": 95,
+      "timestamp_sec": 3.962,
+      "frame_file": "frame_0095_t3.96s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#18",
+        "Motorcycle#22",
+        "Truck#1"
+      ],
+      "track_ids": [
+        18,
+        22,
+        1
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0095_t3.96s_annotated.jpg",
+      "label_json": "frame_0095_t3.96s_signs_vehicles.json",
+      "label_yolo": "frame_0095_t3.96s.txt"
+    },
+    {
+      "index": 96,
+      "timestamp_sec": 4.004,
+      "frame_file": "frame_0096_t4.00s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#22",
+        "Truck#1",
+        "Car#23"
+      ],
+      "track_ids": [
+        22,
+        1,
+        23
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0096_t4.00s_annotated.jpg",
+      "label_json": "frame_0096_t4.00s_signs_vehicles.json",
+      "label_yolo": "frame_0096_t4.00s.txt"
+    },
+    {
+      "index": 97,
+      "timestamp_sec": 4.046,
+      "frame_file": "frame_0097_t4.05s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#24",
+        "Motorcycle#22",
+        "Truck#1"
+      ],
+      "track_ids": [
+        24,
+        22,
+        1
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0097_t4.05s_annotated.jpg",
+      "label_json": "frame_0097_t4.05s_signs_vehicles.json",
+      "label_yolo": "frame_0097_t4.05s.txt"
+    },
+    {
+      "index": 98,
+      "timestamp_sec": 4.087,
+      "frame_file": "frame_0098_t4.09s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Motorcycle#24",
+        "Motorcycle#22"
+      ],
+      "track_ids": [
+        24,
+        22
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0098_t4.09s_annotated.jpg",
+      "label_json": "frame_0098_t4.09s_signs_vehicles.json",
+      "label_yolo": "frame_0098_t4.09s.txt"
+    },
+    {
+      "index": 99,
+      "timestamp_sec": 4.129,
+      "frame_file": "frame_0099_t4.13s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#22",
+        "Truck#25",
+        "Car#26"
+      ],
+      "track_ids": [
+        22,
+        25,
+        26
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0099_t4.13s_annotated.jpg",
+      "label_json": "frame_0099_t4.13s_signs_vehicles.json",
+      "label_yolo": "frame_0099_t4.13s.txt"
+    },
+    {
+      "index": 100,
+      "timestamp_sec": 4.171,
+      "frame_file": "frame_0100_t4.17s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#22",
+        "Truck#25",
+        "Car#26"
+      ],
+      "track_ids": [
+        22,
+        25,
+        26
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0100_t4.17s_annotated.jpg",
+      "label_json": "frame_0100_t4.17s_signs_vehicles.json",
+      "label_yolo": "frame_0100_t4.17s.txt"
+    },
+    {
+      "index": 101,
+      "timestamp_sec": 4.213,
+      "frame_file": "frame_0101_t4.21s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#22",
+        "Car#26",
+        "Truck#25"
+      ],
+      "track_ids": [
+        22,
+        26,
+        25
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0101_t4.21s_annotated.jpg",
+      "label_json": "frame_0101_t4.21s_signs_vehicles.json",
+      "label_yolo": "frame_0101_t4.21s.txt"
+    },
+    {
+      "index": 102,
+      "timestamp_sec": 4.254,
+      "frame_file": "frame_0102_t4.25s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#22",
+        "Car#26",
+        "Truck#25"
+      ],
+      "track_ids": [
+        22,
+        26,
+        25
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0102_t4.25s_annotated.jpg",
+      "label_json": "frame_0102_t4.25s_signs_vehicles.json",
+      "label_yolo": "frame_0102_t4.25s.txt"
+    },
+    {
+      "index": 103,
+      "timestamp_sec": 4.296,
+      "frame_file": "frame_0103_t4.30s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#22",
+        "Car#26",
+        "Truck#25"
+      ],
+      "track_ids": [
+        22,
+        26,
+        25
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0103_t4.30s_annotated.jpg",
+      "label_json": "frame_0103_t4.30s_signs_vehicles.json",
+      "label_yolo": "frame_0103_t4.30s.txt"
+    },
+    {
+      "index": 104,
+      "timestamp_sec": 4.338,
+      "frame_file": "frame_0104_t4.34s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#22",
+        "Car#26",
+        "Truck#25"
+      ],
+      "track_ids": [
+        22,
+        26,
+        25
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0104_t4.34s_annotated.jpg",
+      "label_json": "frame_0104_t4.34s_signs_vehicles.json",
+      "label_yolo": "frame_0104_t4.34s.txt"
+    },
+    {
+      "index": 105,
+      "timestamp_sec": 4.379,
+      "frame_file": "frame_0105_t4.38s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Motorcycle#22",
+        "Car#26"
+      ],
+      "track_ids": [
+        22,
+        26
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0105_t4.38s_annotated.jpg",
+      "label_json": "frame_0105_t4.38s_signs_vehicles.json",
+      "label_yolo": "frame_0105_t4.38s.txt"
+    },
+    {
+      "index": 106,
+      "timestamp_sec": 4.421,
+      "frame_file": "frame_0106_t4.42s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#22",
+        "Car#26",
+        "Car#27"
+      ],
+      "track_ids": [
+        22,
+        26,
+        27
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0106_t4.42s_annotated.jpg",
+      "label_json": "frame_0106_t4.42s_signs_vehicles.json",
+      "label_yolo": "frame_0106_t4.42s.txt"
+    },
+    {
+      "index": 107,
+      "timestamp_sec": 4.463,
+      "frame_file": "frame_0107_t4.46s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#22",
+        "Car#26",
+        "Truck#27"
+      ],
+      "track_ids": [
+        22,
+        26,
+        27
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0107_t4.46s_annotated.jpg",
+      "label_json": "frame_0107_t4.46s_signs_vehicles.json",
+      "label_yolo": "frame_0107_t4.46s.txt"
+    },
+    {
+      "index": 108,
+      "timestamp_sec": 4.504,
+      "frame_file": "frame_0108_t4.50s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Motorcycle#22",
+        "Car#26",
+        "Tuk Tuk#28",
+        "Car#27"
+      ],
+      "track_ids": [
+        22,
+        26,
+        28,
+        27
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0108_t4.50s_annotated.jpg",
+      "label_json": "frame_0108_t4.50s_signs_vehicles.json",
+      "label_yolo": "frame_0108_t4.50s.txt"
+    },
+    {
+      "index": 109,
+      "timestamp_sec": 4.546,
+      "frame_file": "frame_0109_t4.55s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Car#26",
+        "Tuk Tuk#28",
+        "Motorcycle#22",
+        "Truck#27"
+      ],
+      "track_ids": [
+        26,
+        28,
+        22,
+        27
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0109_t4.55s_annotated.jpg",
+      "label_json": "frame_0109_t4.55s_signs_vehicles.json",
+      "label_yolo": "frame_0109_t4.55s.txt"
+    },
+    {
+      "index": 110,
+      "timestamp_sec": 4.588,
+      "frame_file": "frame_0110_t4.59s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#26",
+        "Truck#27",
+        "Motorcycle#22"
+      ],
+      "track_ids": [
+        26,
+        27,
+        22
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0110_t4.59s_annotated.jpg",
+      "label_json": "frame_0110_t4.59s_signs_vehicles.json",
+      "label_yolo": "frame_0110_t4.59s.txt"
+    },
+    {
+      "index": 111,
+      "timestamp_sec": 4.63,
+      "frame_file": "frame_0111_t4.63s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#22",
+        "Car#26",
+        "Truck#27"
+      ],
+      "track_ids": [
+        22,
+        26,
+        27
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0111_t4.63s_annotated.jpg",
+      "label_json": "frame_0111_t4.63s_signs_vehicles.json",
+      "label_yolo": "frame_0111_t4.63s.txt"
+    },
+    {
+      "index": 112,
+      "timestamp_sec": 4.671,
+      "frame_file": "frame_0112_t4.67s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#26",
+        "Motorcycle#22",
+        "Truck#27"
+      ],
+      "track_ids": [
+        26,
+        22,
+        27
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0112_t4.67s_annotated.jpg",
+      "label_json": "frame_0112_t4.67s_signs_vehicles.json",
+      "label_yolo": "frame_0112_t4.67s.txt"
+    },
+    {
+      "index": 113,
+      "timestamp_sec": 4.713,
+      "frame_file": "frame_0113_t4.71s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Car#26",
+        "Motorcycle#22",
+        "Truck#27",
+        "Motorcycle#29"
+      ],
+      "track_ids": [
+        26,
+        22,
+        27,
+        29
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0113_t4.71s_annotated.jpg",
+      "label_json": "frame_0113_t4.71s_signs_vehicles.json",
+      "label_yolo": "frame_0113_t4.71s.txt"
+    },
+    {
+      "index": 114,
+      "timestamp_sec": 4.755,
+      "frame_file": "frame_0114_t4.75s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Car#26",
+        "Motorcycle#22",
+        "Motorcycle#29",
+        "Truck#27"
+      ],
+      "track_ids": [
+        26,
+        22,
+        29,
+        27
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0114_t4.75s_annotated.jpg",
+      "label_json": "frame_0114_t4.75s_signs_vehicles.json",
+      "label_yolo": "frame_0114_t4.75s.txt"
+    },
+    {
+      "index": 115,
+      "timestamp_sec": 4.796,
+      "frame_file": "frame_0115_t4.80s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Car#26",
+        "Car#27",
+        "Motorcycle#22",
+        "Motorcycle#29"
+      ],
+      "track_ids": [
+        26,
+        27,
+        22,
+        29
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0115_t4.80s_annotated.jpg",
+      "label_json": "frame_0115_t4.80s_signs_vehicles.json",
+      "label_yolo": "frame_0115_t4.80s.txt"
+    },
+    {
+      "index": 116,
+      "timestamp_sec": 4.838,
+      "frame_file": "frame_0116_t4.84s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#26",
+        "Bus#27",
+        "Motorcycle#22"
+      ],
+      "track_ids": [
+        26,
+        27,
+        22
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0116_t4.84s_annotated.jpg",
+      "label_json": "frame_0116_t4.84s_signs_vehicles.json",
+      "label_yolo": "frame_0116_t4.84s.txt"
+    },
+    {
+      "index": 117,
+      "timestamp_sec": 4.88,
+      "frame_file": "frame_0117_t4.88s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Car#26",
+        "Motorcycle#30",
+        "Bus#27",
+        "Motorcycle#22"
+      ],
+      "track_ids": [
+        26,
+        30,
+        27,
+        22
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0117_t4.88s_annotated.jpg",
+      "label_json": "frame_0117_t4.88s_signs_vehicles.json",
+      "label_yolo": "frame_0117_t4.88s.txt"
+    },
+    {
+      "index": 118,
+      "timestamp_sec": 4.922,
+      "frame_file": "frame_0118_t4.92s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Car#26",
+        "Motorcycle#30",
+        "Truck#27",
+        "Motorcycle#22"
+      ],
+      "track_ids": [
+        26,
+        30,
+        27,
+        22
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0118_t4.92s_annotated.jpg",
+      "label_json": "frame_0118_t4.92s_signs_vehicles.json",
+      "label_yolo": "frame_0118_t4.92s.txt"
+    },
+    {
+      "index": 119,
+      "timestamp_sec": 4.963,
+      "frame_file": "frame_0119_t4.96s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Car#26",
+        "Tuk Tuk#22",
+        "Truck#27",
+        "Motorcycle#30"
+      ],
+      "track_ids": [
+        26,
+        22,
+        27,
+        30
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0119_t4.96s_annotated.jpg",
+      "label_json": "frame_0119_t4.96s_signs_vehicles.json",
+      "label_yolo": "frame_0119_t4.96s.txt"
+    },
+    {
+      "index": 120,
+      "timestamp_sec": 5.005,
+      "frame_file": "frame_0120_t5.00s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#26",
+        "Tuk Tuk#22",
+        "Motorcycle#30"
+      ],
+      "track_ids": [
+        26,
+        22,
+        30
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0120_t5.00s_annotated.jpg",
+      "label_json": "frame_0120_t5.00s_signs_vehicles.json",
+      "label_yolo": "frame_0120_t5.00s.txt"
+    },
+    {
+      "index": 121,
+      "timestamp_sec": 5.047,
+      "frame_file": "frame_0121_t5.05s.jpg",
+      "vehicles": 5,
+      "vehicle_labels": [
+        "Car#26",
+        "Motorcycle#22",
+        "Motorcycle#31",
+        "Car#32",
+        "Motorcycle#30"
+      ],
+      "track_ids": [
+        26,
+        22,
+        31,
+        32,
+        30
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0121_t5.05s_annotated.jpg",
+      "label_json": "frame_0121_t5.05s_signs_vehicles.json",
+      "label_yolo": "frame_0121_t5.05s.txt"
+    },
+    {
+      "index": 122,
+      "timestamp_sec": 5.088,
+      "frame_file": "frame_0122_t5.09s.jpg",
+      "vehicles": 5,
+      "vehicle_labels": [
+        "Motorcycle#22",
+        "Car#26",
+        "Car#32",
+        "Motorcycle#31",
+        "Motorcycle#30"
+      ],
+      "track_ids": [
+        22,
+        26,
+        32,
+        31,
+        30
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0122_t5.09s_annotated.jpg",
+      "label_json": "frame_0122_t5.09s_signs_vehicles.json",
+      "label_yolo": "frame_0122_t5.09s.txt"
+    },
+    {
+      "index": 123,
+      "timestamp_sec": 5.13,
+      "frame_file": "frame_0123_t5.13s.jpg",
+      "vehicles": 5,
+      "vehicle_labels": [
+        "Motorcycle#31",
+        "Motorcycle#22",
+        "Car#32",
+        "Car#26",
+        "Motorcycle#30"
+      ],
+      "track_ids": [
+        31,
+        22,
+        32,
+        26,
+        30
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0123_t5.13s_annotated.jpg",
+      "label_json": "frame_0123_t5.13s_signs_vehicles.json",
+      "label_yolo": "frame_0123_t5.13s.txt"
+    },
+    {
+      "index": 124,
+      "timestamp_sec": 5.172,
+      "frame_file": "frame_0124_t5.17s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Motorcycle#31",
+        "Tuk Tuk#33",
+        "Motorcycle#34",
+        "Car#26"
+      ],
+      "track_ids": [
+        31,
+        33,
+        34,
+        26
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0124_t5.17s_annotated.jpg",
+      "label_json": "frame_0124_t5.17s_signs_vehicles.json",
+      "label_yolo": "frame_0124_t5.17s.txt"
+    },
+    {
+      "index": 125,
+      "timestamp_sec": 5.214,
+      "frame_file": "frame_0125_t5.21s.jpg",
+      "vehicles": 1,
+      "vehicle_labels": [
+        "Motorcycle#31"
+      ],
+      "track_ids": [
+        31
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0125_t5.21s_annotated.jpg",
+      "label_json": "frame_0125_t5.21s_signs_vehicles.json",
+      "label_yolo": "frame_0125_t5.21s.txt"
+    },
+    {
+      "index": 126,
+      "timestamp_sec": 5.255,
+      "frame_file": "frame_0126_t5.26s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#31",
+        "Motorcycle#35",
+        "Truck#36"
+      ],
+      "track_ids": [
+        31,
+        35,
+        36
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0126_t5.26s_annotated.jpg",
+      "label_json": "frame_0126_t5.26s_signs_vehicles.json",
+      "label_yolo": "frame_0126_t5.26s.txt"
+    },
+    {
+      "index": 127,
+      "timestamp_sec": 5.297,
+      "frame_file": "frame_0127_t5.30s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Tuk Tuk#37",
+        "Motorcycle#31",
+        "Car#38",
+        "Car#36"
+      ],
+      "track_ids": [
+        37,
+        31,
+        38,
+        36
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0127_t5.30s_annotated.jpg",
+      "label_json": "frame_0127_t5.30s_signs_vehicles.json",
+      "label_yolo": "frame_0127_t5.30s.txt"
+    },
+    {
+      "index": 128,
+      "timestamp_sec": 5.339,
+      "frame_file": "frame_0128_t5.34s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Tuk Tuk#37",
+        "Car#38",
+        "Motorcycle#31",
+        "Bus#36"
+      ],
+      "track_ids": [
+        37,
+        38,
+        31,
+        36
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0128_t5.34s_annotated.jpg",
+      "label_json": "frame_0128_t5.34s_signs_vehicles.json",
+      "label_yolo": "frame_0128_t5.34s.txt"
+    },
+    {
+      "index": 129,
+      "timestamp_sec": 5.38,
+      "frame_file": "frame_0129_t5.38s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Tuk Tuk#37",
+        "Car#38",
+        "Car#36",
+        "Motorcycle#31"
+      ],
+      "track_ids": [
+        37,
+        38,
+        36,
+        31
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0129_t5.38s_annotated.jpg",
+      "label_json": "frame_0129_t5.38s_signs_vehicles.json",
+      "label_yolo": "frame_0129_t5.38s.txt"
+    },
+    {
+      "index": 130,
+      "timestamp_sec": 5.422,
+      "frame_file": "frame_0130_t5.42s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Tuk Tuk#37",
+        "Car#38",
+        "Car#36"
+      ],
+      "track_ids": [
+        37,
+        38,
+        36
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0130_t5.42s_annotated.jpg",
+      "label_json": "frame_0130_t5.42s_signs_vehicles.json",
+      "label_yolo": "frame_0130_t5.42s.txt"
+    },
+    {
+      "index": 131,
+      "timestamp_sec": 5.464,
+      "frame_file": "frame_0131_t5.46s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Tuk Tuk#37",
+        "Car#36",
+        "Car#38"
+      ],
+      "track_ids": [
+        37,
+        36,
+        38
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0131_t5.46s_annotated.jpg",
+      "label_json": "frame_0131_t5.46s_signs_vehicles.json",
+      "label_yolo": "frame_0131_t5.46s.txt"
+    },
+    {
+      "index": 132,
+      "timestamp_sec": 5.505,
+      "frame_file": "frame_0132_t5.51s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Motorcycle#39",
+        "Tuk Tuk#37",
+        "Car#38",
+        "Car#36"
+      ],
+      "track_ids": [
+        39,
+        37,
+        38,
+        36
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0132_t5.51s_annotated.jpg",
+      "label_json": "frame_0132_t5.51s_signs_vehicles.json",
+      "label_yolo": "frame_0132_t5.51s.txt"
+    },
+    {
+      "index": 133,
+      "timestamp_sec": 5.547,
+      "frame_file": "frame_0133_t5.55s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#36",
+        "Motorcycle#39",
+        "Car#38"
+      ],
+      "track_ids": [
+        36,
+        39,
+        38
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0133_t5.55s_annotated.jpg",
+      "label_json": "frame_0133_t5.55s_signs_vehicles.json",
+      "label_yolo": "frame_0133_t5.55s.txt"
+    },
+    {
+      "index": 134,
+      "timestamp_sec": 5.589,
+      "frame_file": "frame_0134_t5.59s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Motorcycle#39",
+        "Car#38",
+        "Car#36",
+        "Tuk Tuk#40"
+      ],
+      "track_ids": [
+        39,
+        38,
+        36,
+        40
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0134_t5.59s_annotated.jpg",
+      "label_json": "frame_0134_t5.59s_signs_vehicles.json",
+      "label_yolo": "frame_0134_t5.59s.txt"
+    },
+    {
+      "index": 135,
+      "timestamp_sec": 5.631,
+      "frame_file": "frame_0135_t5.63s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#39",
+        "Car#38",
+        "Car#36"
+      ],
+      "track_ids": [
+        39,
+        38,
+        36
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0135_t5.63s_annotated.jpg",
+      "label_json": "frame_0135_t5.63s_signs_vehicles.json",
+      "label_yolo": "frame_0135_t5.63s.txt"
+    },
+    {
+      "index": 136,
+      "timestamp_sec": 5.672,
+      "frame_file": "frame_0136_t5.67s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Motorcycle#39",
+        "Car#38",
+        "Tuk Tuk#41",
+        "Car#36"
+      ],
+      "track_ids": [
+        39,
+        38,
+        41,
+        36
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0136_t5.67s_annotated.jpg",
+      "label_json": "frame_0136_t5.67s_signs_vehicles.json",
+      "label_yolo": "frame_0136_t5.67s.txt"
+    },
+    {
+      "index": 137,
+      "timestamp_sec": 5.714,
+      "frame_file": "frame_0137_t5.71s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Tuk Tuk#41",
+        "Car#38",
+        "Motorcycle#39"
+      ],
+      "track_ids": [
+        41,
+        38,
+        39
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0137_t5.71s_annotated.jpg",
+      "label_json": "frame_0137_t5.71s_signs_vehicles.json",
+      "label_yolo": "frame_0137_t5.71s.txt"
+    },
+    {
+      "index": 138,
+      "timestamp_sec": 5.756,
+      "frame_file": "frame_0138_t5.76s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#39",
+        "Car#38",
+        "Tuk Tuk#41"
+      ],
+      "track_ids": [
+        39,
+        38,
+        41
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0138_t5.76s_annotated.jpg",
+      "label_json": "frame_0138_t5.76s_signs_vehicles.json",
+      "label_yolo": "frame_0138_t5.76s.txt"
+    },
+    {
+      "index": 139,
+      "timestamp_sec": 5.797,
+      "frame_file": "frame_0139_t5.80s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#38",
+        "Tuk Tuk#41",
+        "Motorcycle#39"
+      ],
+      "track_ids": [
+        38,
+        41,
+        39
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0139_t5.80s_annotated.jpg",
+      "label_json": "frame_0139_t5.80s_signs_vehicles.json",
+      "label_yolo": "frame_0139_t5.80s.txt"
+    },
+    {
+      "index": 140,
+      "timestamp_sec": 5.839,
+      "frame_file": "frame_0140_t5.84s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#39",
+        "Car#38",
+        "Tuk Tuk#41"
+      ],
+      "track_ids": [
+        39,
+        38,
+        41
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0140_t5.84s_annotated.jpg",
+      "label_json": "frame_0140_t5.84s_signs_vehicles.json",
+      "label_yolo": "frame_0140_t5.84s.txt"
+    },
+    {
+      "index": 141,
+      "timestamp_sec": 5.881,
+      "frame_file": "frame_0141_t5.88s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Tuk Tuk#41",
+        "Motorcycle#39",
+        "Car#38"
+      ],
+      "track_ids": [
+        41,
+        39,
+        38
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0141_t5.88s_annotated.jpg",
+      "label_json": "frame_0141_t5.88s_signs_vehicles.json",
+      "label_yolo": "frame_0141_t5.88s.txt"
+    },
+    {
+      "index": 142,
+      "timestamp_sec": 5.923,
+      "frame_file": "frame_0142_t5.92s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Tuk Tuk#41",
+        "Motorcycle#39",
+        "Car#38",
+        "Truck#42"
+      ],
+      "track_ids": [
+        41,
+        39,
+        38,
+        42
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0142_t5.92s_annotated.jpg",
+      "label_json": "frame_0142_t5.92s_signs_vehicles.json",
+      "label_yolo": "frame_0142_t5.92s.txt"
+    },
+    {
+      "index": 143,
+      "timestamp_sec": 5.964,
+      "frame_file": "frame_0143_t5.96s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#39",
+        "Car#38",
+        "Motorcycle#41"
+      ],
+      "track_ids": [
+        39,
+        38,
+        41
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0143_t5.96s_annotated.jpg",
+      "label_json": "frame_0143_t5.96s_signs_vehicles.json",
+      "label_yolo": "frame_0143_t5.96s.txt"
+    },
+    {
+      "index": 144,
+      "timestamp_sec": 6.006,
+      "frame_file": "frame_0144_t6.01s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Car#38",
+        "Motorcycle#39",
+        "Tuk Tuk#41",
+        "Truck#43"
+      ],
+      "track_ids": [
+        38,
+        39,
+        41,
+        43
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0144_t6.01s_annotated.jpg",
+      "label_json": "frame_0144_t6.01s_signs_vehicles.json",
+      "label_yolo": "frame_0144_t6.01s.txt"
+    },
+    {
+      "index": 145,
+      "timestamp_sec": 6.048,
+      "frame_file": "frame_0145_t6.05s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Car#38",
+        "Motorcycle#39",
+        "Tuk Tuk#41",
+        "Car#43"
+      ],
+      "track_ids": [
+        38,
+        39,
+        41,
+        43
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0145_t6.05s_annotated.jpg",
+      "label_json": "frame_0145_t6.05s_signs_vehicles.json",
+      "label_yolo": "frame_0145_t6.05s.txt"
+    },
+    {
+      "index": 146,
+      "timestamp_sec": 6.089,
+      "frame_file": "frame_0146_t6.09s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Motorcycle#39",
+        "Car#38",
+        "Tuk Tuk#41",
+        "Truck#43"
+      ],
+      "track_ids": [
+        39,
+        38,
+        41,
+        43
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0146_t6.09s_annotated.jpg",
+      "label_json": "frame_0146_t6.09s_signs_vehicles.json",
+      "label_yolo": "frame_0146_t6.09s.txt"
+    },
+    {
+      "index": 147,
+      "timestamp_sec": 6.131,
+      "frame_file": "frame_0147_t6.13s.jpg",
+      "vehicles": 5,
+      "vehicle_labels": [
+        "Motorcycle#39",
+        "Tuk Tuk#41",
+        "Car#38",
+        "Motorcycle#44",
+        "Truck#43"
+      ],
+      "track_ids": [
+        39,
+        41,
+        38,
+        44,
+        43
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0147_t6.13s_annotated.jpg",
+      "label_json": "frame_0147_t6.13s_signs_vehicles.json",
+      "label_yolo": "frame_0147_t6.13s.txt"
+    },
+    {
+      "index": 148,
+      "timestamp_sec": 6.173,
+      "frame_file": "frame_0148_t6.17s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Motorcycle#39",
+        "Tuk Tuk#41",
+        "Car#38",
+        "Motorcycle#44"
+      ],
+      "track_ids": [
+        39,
+        41,
+        38,
+        44
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0148_t6.17s_annotated.jpg",
+      "label_json": "frame_0148_t6.17s_signs_vehicles.json",
+      "label_yolo": "frame_0148_t6.17s.txt"
+    },
+    {
+      "index": 149,
+      "timestamp_sec": 6.215,
+      "frame_file": "frame_0149_t6.21s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Motorcycle#39",
+        "Car#38",
+        "Motorcycle#44",
+        "Tuk Tuk#41"
+      ],
+      "track_ids": [
+        39,
+        38,
+        44,
+        41
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0149_t6.21s_annotated.jpg",
+      "label_json": "frame_0149_t6.21s_signs_vehicles.json",
+      "label_yolo": "frame_0149_t6.21s.txt"
+    },
+    {
+      "index": 150,
+      "timestamp_sec": 6.256,
+      "frame_file": "frame_0150_t6.26s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#39",
+        "Car#38",
+        "Motorcycle#45"
+      ],
+      "track_ids": [
+        39,
+        38,
+        45
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0150_t6.26s_annotated.jpg",
+      "label_json": "frame_0150_t6.26s_signs_vehicles.json",
+      "label_yolo": "frame_0150_t6.26s.txt"
+    },
+    {
+      "index": 151,
+      "timestamp_sec": 6.298,
+      "frame_file": "frame_0151_t6.30s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Motorcycle#39",
+        "Car#38"
+      ],
+      "track_ids": [
+        39,
+        38
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0151_t6.30s_annotated.jpg",
+      "label_json": "frame_0151_t6.30s_signs_vehicles.json",
+      "label_yolo": "frame_0151_t6.30s.txt"
+    },
+    {
+      "index": 152,
+      "timestamp_sec": 6.34,
+      "frame_file": "frame_0152_t6.34s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Motorcycle#39",
+        "Car#38"
+      ],
+      "track_ids": [
+        39,
+        38
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0152_t6.34s_annotated.jpg",
+      "label_json": "frame_0152_t6.34s_signs_vehicles.json",
+      "label_yolo": "frame_0152_t6.34s.txt"
+    },
+    {
+      "index": 153,
+      "timestamp_sec": 6.381,
+      "frame_file": "frame_0153_t6.38s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Motorcycle#46",
+        "Motorcycle#39"
+      ],
+      "track_ids": [
+        46,
+        39
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0153_t6.38s_annotated.jpg",
+      "label_json": "frame_0153_t6.38s_signs_vehicles.json",
+      "label_yolo": "frame_0153_t6.38s.txt"
+    },
+    {
+      "index": 154,
+      "timestamp_sec": 6.423,
+      "frame_file": "frame_0154_t6.42s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#39",
+        "Tuk Tuk#47",
+        "Truck#48"
+      ],
+      "track_ids": [
+        39,
+        47,
+        48
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "PEDESTRIAN_AREA"
+      ],
+      "annotated": "frame_0154_t6.42s_annotated.jpg",
+      "label_json": "frame_0154_t6.42s_signs_vehicles.json",
+      "label_yolo": "frame_0154_t6.42s.txt"
+    },
+    {
+      "index": 155,
+      "timestamp_sec": 6.465,
+      "frame_file": "frame_0155_t6.46s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Motorcycle#39",
+        "Motorcycle#47",
+        "Truck#48",
+        "Car#49"
+      ],
+      "track_ids": [
+        39,
+        47,
+        48,
+        49
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "PEDESTRIAN_AREA"
+      ],
+      "annotated": "frame_0155_t6.46s_annotated.jpg",
+      "label_json": "frame_0155_t6.46s_signs_vehicles.json",
+      "label_yolo": "frame_0155_t6.46s.txt"
+    },
+    {
+      "index": 156,
+      "timestamp_sec": 6.506,
+      "frame_file": "frame_0156_t6.51s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Motorcycle#39",
+        "Tuk Tuk#47",
+        "Motorcycle#50",
+        "Car#49"
+      ],
+      "track_ids": [
+        39,
+        47,
+        50,
+        49
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "PEDESTRIAN_AREA"
+      ],
+      "annotated": "frame_0156_t6.51s_annotated.jpg",
+      "label_json": "frame_0156_t6.51s_signs_vehicles.json",
+      "label_yolo": "frame_0156_t6.51s.txt"
+    },
+    {
+      "index": 157,
+      "timestamp_sec": 6.548,
+      "frame_file": "frame_0157_t6.55s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Tuk Tuk#47",
+        "Motorcycle#39",
+        "Motorcycle#50",
+        "Car#49"
+      ],
+      "track_ids": [
+        47,
+        39,
+        50,
+        49
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "PEDESTRIAN_AREA"
+      ],
+      "annotated": "frame_0157_t6.55s_annotated.jpg",
+      "label_json": "frame_0157_t6.55s_signs_vehicles.json",
+      "label_yolo": "frame_0157_t6.55s.txt"
+    },
+    {
+      "index": 158,
+      "timestamp_sec": 6.59,
+      "frame_file": "frame_0158_t6.59s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Tuk Tuk#47",
+        "Car#49",
+        "Motorcycle#51",
+        "Motorcycle#39"
+      ],
+      "track_ids": [
+        47,
+        49,
+        51,
+        39
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0158_t6.59s_annotated.jpg",
+      "label_json": "frame_0158_t6.59s_signs_vehicles.json",
+      "label_yolo": "frame_0158_t6.59s.txt"
+    },
+    {
+      "index": 159,
+      "timestamp_sec": 6.632,
+      "frame_file": "frame_0159_t6.63s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#52",
+        "Tuk Tuk#47",
+        "Motorcycle#39"
+      ],
+      "track_ids": [
+        52,
+        47,
+        39
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "PEDESTRIAN_AREA"
+      ],
+      "annotated": "frame_0159_t6.63s_annotated.jpg",
+      "label_json": "frame_0159_t6.63s_signs_vehicles.json",
+      "label_yolo": "frame_0159_t6.63s.txt"
+    },
+    {
+      "index": 160,
+      "timestamp_sec": 6.673,
+      "frame_file": "frame_0160_t6.67s.jpg",
+      "vehicles": 6,
+      "vehicle_labels": [
+        "Car#52",
+        "Motorcycle#53",
+        "Motorcycle#39",
+        "Motorcycle#47",
+        "Car#54",
+        "Motorcycle#55"
+      ],
+      "track_ids": [
+        52,
+        53,
+        39,
+        47,
+        54,
+        55
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "PEDESTRIAN_AREA"
+      ],
+      "annotated": "frame_0160_t6.67s_annotated.jpg",
+      "label_json": "frame_0160_t6.67s_signs_vehicles.json",
+      "label_yolo": "frame_0160_t6.67s.txt"
+    },
+    {
+      "index": 161,
+      "timestamp_sec": 6.715,
+      "frame_file": "frame_0161_t6.72s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Car#52",
+        "Motorcycle#39",
+        "Motorcycle#56",
+        "Motorcycle#53"
+      ],
+      "track_ids": [
+        52,
+        39,
+        56,
+        53
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "PEDESTRIAN_AREA"
+      ],
+      "annotated": "frame_0161_t6.72s_annotated.jpg",
+      "label_json": "frame_0161_t6.72s_signs_vehicles.json",
+      "label_yolo": "frame_0161_t6.72s.txt"
+    },
+    {
+      "index": 162,
+      "timestamp_sec": 6.757,
+      "frame_file": "frame_0162_t6.76s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#52",
+        "Motorcycle#57",
+        "Motorcycle#53"
+      ],
+      "track_ids": [
+        52,
+        57,
+        53
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0162_t6.76s_annotated.jpg",
+      "label_json": "frame_0162_t6.76s_signs_vehicles.json",
+      "label_yolo": "frame_0162_t6.76s.txt"
+    },
+    {
+      "index": 163,
+      "timestamp_sec": 6.798,
+      "frame_file": "frame_0163_t6.80s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Car#52",
+        "Motorcycle#53",
+        "Motorcycle#58",
+        "Motorcycle#57"
+      ],
+      "track_ids": [
+        52,
+        53,
+        58,
+        57
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0163_t6.80s_annotated.jpg",
+      "label_json": "frame_0163_t6.80s_signs_vehicles.json",
+      "label_yolo": "frame_0163_t6.80s.txt"
+    },
+    {
+      "index": 164,
+      "timestamp_sec": 6.84,
+      "frame_file": "frame_0164_t6.84s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#52",
+        "Motorcycle#58",
+        "Motorcycle#59"
+      ],
+      "track_ids": [
+        52,
+        58,
+        59
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0164_t6.84s_annotated.jpg",
+      "label_json": "frame_0164_t6.84s_signs_vehicles.json",
+      "label_yolo": "frame_0164_t6.84s.txt"
+    },
+    {
+      "index": 165,
+      "timestamp_sec": 6.882,
+      "frame_file": "frame_0165_t6.88s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Car#52",
+        "Motorcycle#60"
+      ],
+      "track_ids": [
+        52,
+        60
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0165_t6.88s_annotated.jpg",
+      "label_json": "frame_0165_t6.88s_signs_vehicles.json",
+      "label_yolo": "frame_0165_t6.88s.txt"
+    },
+    {
+      "index": 166,
+      "timestamp_sec": 6.924,
+      "frame_file": "frame_0166_t6.92s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Car#52",
+        "Motorcycle#61"
+      ],
+      "track_ids": [
+        52,
+        61
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "PEDESTRIAN_AREA"
+      ],
+      "annotated": "frame_0166_t6.92s_annotated.jpg",
+      "label_json": "frame_0166_t6.92s_signs_vehicles.json",
+      "label_yolo": "frame_0166_t6.92s.txt"
+    },
+    {
+      "index": 167,
+      "timestamp_sec": 6.965,
+      "frame_file": "frame_0167_t6.97s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#52",
+        "Motorcycle#62",
+        "Motorcycle#61"
+      ],
+      "track_ids": [
+        52,
+        62,
+        61
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0167_t6.97s_annotated.jpg",
+      "label_json": "frame_0167_t6.97s_signs_vehicles.json",
+      "label_yolo": "frame_0167_t6.97s.txt"
+    },
+    {
+      "index": 168,
+      "timestamp_sec": 7.007,
+      "frame_file": "frame_0168_t7.01s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Car#52",
+        "Motorcycle#61"
+      ],
+      "track_ids": [
+        52,
+        61
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0168_t7.01s_annotated.jpg",
+      "label_json": "frame_0168_t7.01s_signs_vehicles.json",
+      "label_yolo": "frame_0168_t7.01s.txt"
+    },
+    {
+      "index": 169,
+      "timestamp_sec": 7.049,
+      "frame_file": "frame_0169_t7.05s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Tuk Tuk#52",
+        "Motorcycle#61",
+        "Motorcycle#63"
+      ],
+      "track_ids": [
+        52,
+        61,
+        63
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0169_t7.05s_annotated.jpg",
+      "label_json": "frame_0169_t7.05s_signs_vehicles.json",
+      "label_yolo": "frame_0169_t7.05s.txt"
+    },
+    {
+      "index": 170,
+      "timestamp_sec": 7.09,
+      "frame_file": "frame_0170_t7.09s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#61",
+        "Bus#52",
+        "Truck#63"
+      ],
+      "track_ids": [
+        61,
+        52,
+        63
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0170_t7.09s_annotated.jpg",
+      "label_json": "frame_0170_t7.09s_signs_vehicles.json",
+      "label_yolo": "frame_0170_t7.09s.txt"
+    },
+    {
+      "index": 171,
+      "timestamp_sec": 7.132,
+      "frame_file": "frame_0171_t7.13s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#61",
+        "Bus#52",
+        "Motorcycle#63"
+      ],
+      "track_ids": [
+        61,
+        52,
+        63
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "PEDESTRIAN_AREA"
+      ],
+      "annotated": "frame_0171_t7.13s_annotated.jpg",
+      "label_json": "frame_0171_t7.13s_signs_vehicles.json",
+      "label_yolo": "frame_0171_t7.13s.txt"
+    },
+    {
+      "index": 172,
+      "timestamp_sec": 7.174,
+      "frame_file": "frame_0172_t7.17s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#52",
+        "Motorcycle#63",
+        "Motorcycle#61"
+      ],
+      "track_ids": [
+        52,
+        63,
+        61
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0172_t7.17s_annotated.jpg",
+      "label_json": "frame_0172_t7.17s_signs_vehicles.json",
+      "label_yolo": "frame_0172_t7.17s.txt"
+    },
+    {
+      "index": 173,
+      "timestamp_sec": 7.216,
+      "frame_file": "frame_0173_t7.22s.jpg",
+      "vehicles": 1,
+      "vehicle_labels": [
+        "Tuk Tuk#52"
+      ],
+      "track_ids": [
+        52
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0173_t7.22s_annotated.jpg",
+      "label_json": "frame_0173_t7.22s_signs_vehicles.json",
+      "label_yolo": "frame_0173_t7.22s.txt"
+    },
+    {
+      "index": 174,
+      "timestamp_sec": 7.257,
+      "frame_file": "frame_0174_t7.26s.jpg",
+      "vehicles": 1,
+      "vehicle_labels": [
+        "Tuk Tuk#52"
+      ],
+      "track_ids": [
+        52
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "PEDESTRIAN_AREA"
+      ],
+      "annotated": "frame_0174_t7.26s_annotated.jpg",
+      "label_json": "frame_0174_t7.26s_signs_vehicles.json",
+      "label_yolo": "frame_0174_t7.26s.txt"
+    },
+    {
+      "index": 175,
+      "timestamp_sec": 7.299,
+      "frame_file": "frame_0175_t7.30s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Bus#52",
+        "Motorcycle#64"
+      ],
+      "track_ids": [
+        52,
+        64
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0175_t7.30s_annotated.jpg",
+      "label_json": "frame_0175_t7.30s_signs_vehicles.json",
+      "label_yolo": "frame_0175_t7.30s.txt"
+    },
+    {
+      "index": 176,
+      "timestamp_sec": 7.341,
+      "frame_file": "frame_0176_t7.34s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Bus#52",
+        "Motorcycle#64"
+      ],
+      "track_ids": [
+        52,
+        64
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0176_t7.34s_annotated.jpg",
+      "label_json": "frame_0176_t7.34s_signs_vehicles.json",
+      "label_yolo": "frame_0176_t7.34s.txt"
+    },
+    {
+      "index": 177,
+      "timestamp_sec": 7.382,
+      "frame_file": "frame_0177_t7.38s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Bus#52",
+        "Motorcycle#64"
+      ],
+      "track_ids": [
+        52,
+        64
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0177_t7.38s_annotated.jpg",
+      "label_json": "frame_0177_t7.38s_signs_vehicles.json",
+      "label_yolo": "frame_0177_t7.38s.txt"
+    },
+    {
+      "index": 178,
+      "timestamp_sec": 7.424,
+      "frame_file": "frame_0178_t7.42s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Bus#52",
+        "Motorcycle#64"
+      ],
+      "track_ids": [
+        52,
+        64
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0178_t7.42s_annotated.jpg",
+      "label_json": "frame_0178_t7.42s_signs_vehicles.json",
+      "label_yolo": "frame_0178_t7.42s.txt"
+    },
+    {
+      "index": 179,
+      "timestamp_sec": 7.466,
+      "frame_file": "frame_0179_t7.47s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Tuk Tuk#52",
+        "Motorcycle#64",
+        "Motorcycle#65"
+      ],
+      "track_ids": [
+        52,
+        64,
+        65
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0179_t7.47s_annotated.jpg",
+      "label_json": "frame_0179_t7.47s_signs_vehicles.json",
+      "label_yolo": "frame_0179_t7.47s.txt"
+    },
+    {
+      "index": 180,
+      "timestamp_sec": 7.507,
+      "frame_file": "frame_0180_t7.51s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Bus#52",
+        "Motorcycle#64"
+      ],
+      "track_ids": [
+        52,
+        64
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0180_t7.51s_annotated.jpg",
+      "label_json": "frame_0180_t7.51s_signs_vehicles.json",
+      "label_yolo": "frame_0180_t7.51s.txt"
+    },
+    {
+      "index": 181,
+      "timestamp_sec": 7.549,
+      "frame_file": "frame_0181_t7.55s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Motorcycle#64",
+        "Tuk Tuk#52"
+      ],
+      "track_ids": [
+        64,
+        52
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "SLOW_DOWN"
+      ],
+      "annotated": "frame_0181_t7.55s_annotated.jpg",
+      "label_json": "frame_0181_t7.55s_signs_vehicles.json",
+      "label_yolo": "frame_0181_t7.55s.txt"
+    },
+    {
+      "index": 182,
+      "timestamp_sec": 7.591,
+      "frame_file": "frame_0182_t7.59s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Tuk Tuk#52",
+        "Motorcycle#64",
+        "Motorcycle#66"
+      ],
+      "track_ids": [
+        52,
+        64,
+        66
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "SLOW_DOWN"
+      ],
+      "annotated": "frame_0182_t7.59s_annotated.jpg",
+      "label_json": "frame_0182_t7.59s_signs_vehicles.json",
+      "label_yolo": "frame_0182_t7.59s.txt"
+    },
+    {
+      "index": 183,
+      "timestamp_sec": 7.633,
+      "frame_file": "frame_0183_t7.63s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Tuk Tuk#52",
+        "Truck#67",
+        "Motorcycle#64"
+      ],
+      "track_ids": [
+        52,
+        67,
+        64
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "SLOW_DOWN"
+      ],
+      "annotated": "frame_0183_t7.63s_annotated.jpg",
+      "label_json": "frame_0183_t7.63s_signs_vehicles.json",
+      "label_yolo": "frame_0183_t7.63s.txt"
+    },
+    {
+      "index": 184,
+      "timestamp_sec": 7.674,
+      "frame_file": "frame_0184_t7.67s.jpg",
+      "vehicles": 1,
+      "vehicle_labels": [
+        "Tuk Tuk#52"
+      ],
+      "track_ids": [
+        52
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "SLOW_DOWN"
+      ],
+      "annotated": "frame_0184_t7.67s_annotated.jpg",
+      "label_json": "frame_0184_t7.67s_signs_vehicles.json",
+      "label_yolo": "frame_0184_t7.67s.txt"
+    },
+    {
+      "index": 185,
+      "timestamp_sec": 7.716,
+      "frame_file": "frame_0185_t7.72s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Tuk Tuk#52",
+        "Motorcycle#68"
+      ],
+      "track_ids": [
+        52,
+        68
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "SLOW_DOWN"
+      ],
+      "annotated": "frame_0185_t7.72s_annotated.jpg",
+      "label_json": "frame_0185_t7.72s_signs_vehicles.json",
+      "label_yolo": "frame_0185_t7.72s.txt"
+    },
+    {
+      "index": 186,
+      "timestamp_sec": 7.758,
+      "frame_file": "frame_0186_t7.76s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Tuk Tuk#52",
+        "Motorcycle#68"
+      ],
+      "track_ids": [
+        52,
+        68
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "SLOW_DOWN"
+      ],
+      "annotated": "frame_0186_t7.76s_annotated.jpg",
+      "label_json": "frame_0186_t7.76s_signs_vehicles.json",
+      "label_yolo": "frame_0186_t7.76s.txt"
+    },
+    {
+      "index": 187,
+      "timestamp_sec": 7.799,
+      "frame_file": "frame_0187_t7.80s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Tuk Tuk#52",
+        "Motorcycle#68",
+        "Motorcycle#69",
+        "Car#70"
+      ],
+      "track_ids": [
+        52,
+        68,
+        69,
+        70
+      ],
+      "signs": 2,
+      "sign_labels": [
+        "SLOW_DOWN",
+        "PEDESTRIAN_AREA"
+      ],
+      "annotated": "frame_0187_t7.80s_annotated.jpg",
+      "label_json": "frame_0187_t7.80s_signs_vehicles.json",
+      "label_yolo": "frame_0187_t7.80s.txt"
+    },
+    {
+      "index": 188,
+      "timestamp_sec": 7.841,
+      "frame_file": "frame_0188_t7.84s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Tuk Tuk#52",
+        "Tuk Tuk#69",
+        "Car#70"
+      ],
+      "track_ids": [
+        52,
+        69,
+        70
+      ],
+      "signs": 2,
+      "sign_labels": [
+        "SLOW_DOWN",
+        "PEDESTRIAN_AREA"
+      ],
+      "annotated": "frame_0188_t7.84s_annotated.jpg",
+      "label_json": "frame_0188_t7.84s_signs_vehicles.json",
+      "label_yolo": "frame_0188_t7.84s.txt"
+    },
+    {
+      "index": 189,
+      "timestamp_sec": 7.883,
+      "frame_file": "frame_0189_t7.88s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#70",
+        "Tuk Tuk#52",
+        "Motorcycle#71"
+      ],
+      "track_ids": [
+        70,
+        52,
+        71
+      ],
+      "signs": 2,
+      "sign_labels": [
+        "PEDESTRIAN_AREA",
+        "SLOW_DOWN"
+      ],
+      "annotated": "frame_0189_t7.88s_annotated.jpg",
+      "label_json": "frame_0189_t7.88s_signs_vehicles.json",
+      "label_yolo": "frame_0189_t7.88s.txt"
+    },
+    {
+      "index": 190,
+      "timestamp_sec": 7.925,
+      "frame_file": "frame_0190_t7.92s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Motorcycle#72",
+        "Car#70"
+      ],
+      "track_ids": [
+        72,
+        70
+      ],
+      "signs": 2,
+      "sign_labels": [
+        "PEDESTRIAN_AREA",
+        "SLOW_DOWN"
+      ],
+      "annotated": "frame_0190_t7.92s_annotated.jpg",
+      "label_json": "frame_0190_t7.92s_signs_vehicles.json",
+      "label_yolo": "frame_0190_t7.92s.txt"
+    },
+    {
+      "index": 191,
+      "timestamp_sec": 7.966,
+      "frame_file": "frame_0191_t7.97s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Tuk Tuk#72",
+        "Motorcycle#73",
+        "Motorcycle#74",
+        "Motorcycle#75"
+      ],
+      "track_ids": [
+        72,
+        73,
+        74,
+        75
+      ],
+      "signs": 2,
+      "sign_labels": [
+        "PEDESTRIAN_AREA",
+        "SLOW_DOWN"
+      ],
+      "annotated": "frame_0191_t7.97s_annotated.jpg",
+      "label_json": "frame_0191_t7.97s_signs_vehicles.json",
+      "label_yolo": "frame_0191_t7.97s.txt"
+    },
+    {
+      "index": 192,
+      "timestamp_sec": 8.008,
+      "frame_file": "frame_0192_t8.01s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Tuk Tuk#72",
+        "Truck#76",
+        "Motorcycle#73"
+      ],
+      "track_ids": [
+        72,
+        76,
+        73
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "PEDESTRIAN_AREA"
+      ],
+      "annotated": "frame_0192_t8.01s_annotated.jpg",
+      "label_json": "frame_0192_t8.01s_signs_vehicles.json",
+      "label_yolo": "frame_0192_t8.01s.txt"
+    },
+    {
+      "index": 193,
+      "timestamp_sec": 8.05,
+      "frame_file": "frame_0193_t8.05s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Tuk Tuk#72",
+        "Tuk Tuk#73",
+        "Truck#76",
+        "Motorcycle#77"
+      ],
+      "track_ids": [
+        72,
+        73,
+        76,
+        77
+      ],
+      "signs": 2,
+      "sign_labels": [
+        "PEDESTRIAN_AREA",
+        "SLOW_DOWN"
+      ],
+      "annotated": "frame_0193_t8.05s_annotated.jpg",
+      "label_json": "frame_0193_t8.05s_signs_vehicles.json",
+      "label_yolo": "frame_0193_t8.05s.txt"
+    },
+    {
+      "index": 194,
+      "timestamp_sec": 8.091,
+      "frame_file": "frame_0194_t8.09s.jpg",
+      "vehicles": 5,
+      "vehicle_labels": [
+        "Tuk Tuk#72",
+        "Motorcycle#73",
+        "Motorcycle#77",
+        "Truck#76",
+        "Motorcycle#78"
+      ],
+      "track_ids": [
+        72,
+        73,
+        77,
+        76,
+        78
+      ],
+      "signs": 2,
+      "sign_labels": [
+        "PEDESTRIAN_AREA",
+        "SLOW_DOWN"
+      ],
+      "annotated": "frame_0194_t8.09s_annotated.jpg",
+      "label_json": "frame_0194_t8.09s_signs_vehicles.json",
+      "label_yolo": "frame_0194_t8.09s.txt"
+    },
+    {
+      "index": 195,
+      "timestamp_sec": 8.133,
+      "frame_file": "frame_0195_t8.13s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Tuk Tuk#72",
+        "Tuk Tuk#77",
+        "Motorcycle#78",
+        "Truck#76"
+      ],
+      "track_ids": [
+        72,
+        77,
+        78,
+        76
+      ],
+      "signs": 2,
+      "sign_labels": [
+        "PEDESTRIAN_AREA",
+        "SLOW_DOWN"
+      ],
+      "annotated": "frame_0195_t8.13s_annotated.jpg",
+      "label_json": "frame_0195_t8.13s_signs_vehicles.json",
+      "label_yolo": "frame_0195_t8.13s.txt"
+    },
+    {
+      "index": 196,
+      "timestamp_sec": 8.175,
+      "frame_file": "frame_0196_t8.17s.jpg",
+      "vehicles": 6,
+      "vehicle_labels": [
+        "Tuk Tuk#72",
+        "Tuk Tuk#77",
+        "Motorcycle#78",
+        "Truck#76",
+        "Motorcycle#79",
+        "Car#80"
+      ],
+      "track_ids": [
+        72,
+        77,
+        78,
+        76,
+        79,
+        80
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "PEDESTRIAN_AREA"
+      ],
+      "annotated": "frame_0196_t8.17s_annotated.jpg",
+      "label_json": "frame_0196_t8.17s_signs_vehicles.json",
+      "label_yolo": "frame_0196_t8.17s.txt"
+    },
+    {
+      "index": 197,
+      "timestamp_sec": 8.217,
+      "frame_file": "frame_0197_t8.22s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Tuk Tuk#77",
+        "Truck#76",
+        "Motorcycle#78",
+        "Motorcycle#72"
+      ],
+      "track_ids": [
+        77,
+        76,
+        78,
+        72
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0197_t8.22s_annotated.jpg",
+      "label_json": "frame_0197_t8.22s_signs_vehicles.json",
+      "label_yolo": "frame_0197_t8.22s.txt"
+    },
+    {
+      "index": 198,
+      "timestamp_sec": 8.258,
+      "frame_file": "frame_0198_t8.26s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Tuk Tuk#77",
+        "Car#76"
+      ],
+      "track_ids": [
+        77,
+        76
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0198_t8.26s_annotated.jpg",
+      "label_json": "frame_0198_t8.26s_signs_vehicles.json",
+      "label_yolo": "frame_0198_t8.26s.txt"
+    },
+    {
+      "index": 199,
+      "timestamp_sec": 8.3,
+      "frame_file": "frame_0199_t8.30s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Tuk Tuk#77",
+        "Motorcycle#81",
+        "Truck#82",
+        "Car#76"
+      ],
+      "track_ids": [
+        77,
+        81,
+        82,
+        76
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0199_t8.30s_annotated.jpg",
+      "label_json": "frame_0199_t8.30s_signs_vehicles.json",
+      "label_yolo": "frame_0199_t8.30s.txt"
+    },
+    {
+      "index": 200,
+      "timestamp_sec": 8.342,
+      "frame_file": "frame_0200_t8.34s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Car#82",
+        "Tuk Tuk#83",
+        "Tuk Tuk#77",
+        "Motorcycle#84"
+      ],
+      "track_ids": [
+        82,
+        83,
+        77,
+        84
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0200_t8.34s_annotated.jpg",
+      "label_json": "frame_0200_t8.34s_signs_vehicles.json",
+      "label_yolo": "frame_0200_t8.34s.txt"
+    },
+    {
+      "index": 201,
+      "timestamp_sec": 8.383,
+      "frame_file": "frame_0201_t8.38s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Car#82",
+        "Motorcycle#84",
+        "Tuk Tuk#77",
+        "Motorcycle#83"
+      ],
+      "track_ids": [
+        82,
+        84,
+        77,
+        83
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "SLOW_DOWN"
+      ],
+      "annotated": "frame_0201_t8.38s_annotated.jpg",
+      "label_json": "frame_0201_t8.38s_signs_vehicles.json",
+      "label_yolo": "frame_0201_t8.38s.txt"
+    },
+    {
+      "index": 202,
+      "timestamp_sec": 8.425,
+      "frame_file": "frame_0202_t8.43s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Motorcycle#77",
+        "Car#82",
+        "Motorcycle#85",
+        "Motorcycle#84"
+      ],
+      "track_ids": [
+        77,
+        82,
+        85,
+        84
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "SLOW_DOWN"
+      ],
+      "annotated": "frame_0202_t8.43s_annotated.jpg",
+      "label_json": "frame_0202_t8.43s_signs_vehicles.json",
+      "label_yolo": "frame_0202_t8.43s.txt"
+    },
+    {
+      "index": 203,
+      "timestamp_sec": 8.467,
+      "frame_file": "frame_0203_t8.47s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Motorcycle#84",
+        "Motorcycle#77",
+        "Motorcycle#85",
+        "Motorcycle#86"
+      ],
+      "track_ids": [
+        84,
+        77,
+        85,
+        86
+      ],
+      "signs": 1,
+      "sign_labels": [
+        "SLOW_DOWN"
+      ],
+      "annotated": "frame_0203_t8.47s_annotated.jpg",
+      "label_json": "frame_0203_t8.47s_signs_vehicles.json",
+      "label_yolo": "frame_0203_t8.47s.txt"
+    },
+    {
+      "index": 204,
+      "timestamp_sec": 8.508,
+      "frame_file": "frame_0204_t8.51s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Tuk Tuk#87",
+        "Motorcycle#86",
+        "Motorcycle#88",
+        "Motorcycle#84"
+      ],
+      "track_ids": [
+        87,
+        86,
+        88,
+        84
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0204_t8.51s_annotated.jpg",
+      "label_json": "frame_0204_t8.51s_signs_vehicles.json",
+      "label_yolo": "frame_0204_t8.51s.txt"
+    },
+    {
+      "index": 205,
+      "timestamp_sec": 8.55,
+      "frame_file": "frame_0205_t8.55s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Tuk Tuk#87",
+        "Truck#89",
+        "Motorcycle#88",
+        "Motorcycle#86"
+      ],
+      "track_ids": [
+        87,
+        89,
+        88,
+        86
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0205_t8.55s_annotated.jpg",
+      "label_json": "frame_0205_t8.55s_signs_vehicles.json",
+      "label_yolo": "frame_0205_t8.55s.txt"
+    },
+    {
+      "index": 206,
+      "timestamp_sec": 8.592,
+      "frame_file": "frame_0206_t8.59s.jpg",
+      "vehicles": 5,
+      "vehicle_labels": [
+        "Tuk Tuk#86",
+        "Tuk Tuk#87",
+        "Truck#89",
+        "Motorcycle#88",
+        "Motorcycle#90"
+      ],
+      "track_ids": [
+        86,
+        87,
+        89,
+        88,
+        90
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0206_t8.59s_annotated.jpg",
+      "label_json": "frame_0206_t8.59s_signs_vehicles.json",
+      "label_yolo": "frame_0206_t8.59s.txt"
+    },
+    {
+      "index": 207,
+      "timestamp_sec": 8.634,
+      "frame_file": "frame_0207_t8.63s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Tuk Tuk#87",
+        "Truck#89",
+        "Motorcycle#88",
+        "Motorcycle#86"
+      ],
+      "track_ids": [
+        87,
+        89,
+        88,
+        86
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0207_t8.63s_annotated.jpg",
+      "label_json": "frame_0207_t8.63s_signs_vehicles.json",
+      "label_yolo": "frame_0207_t8.63s.txt"
+    },
+    {
+      "index": 208,
+      "timestamp_sec": 8.675,
+      "frame_file": "frame_0208_t8.68s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Tuk Tuk#87",
+        "Truck#89",
+        "Motorcycle#86"
+      ],
+      "track_ids": [
+        87,
+        89,
+        86
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0208_t8.68s_annotated.jpg",
+      "label_json": "frame_0208_t8.68s_signs_vehicles.json",
+      "label_yolo": "frame_0208_t8.68s.txt"
+    },
+    {
+      "index": 209,
+      "timestamp_sec": 8.717,
+      "frame_file": "frame_0209_t8.72s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Tuk Tuk#87",
+        "Truck#89",
+        "Tuk Tuk#86",
+        "Motorcycle#91"
+      ],
+      "track_ids": [
+        87,
+        89,
+        86,
+        91
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0209_t8.72s_annotated.jpg",
+      "label_json": "frame_0209_t8.72s_signs_vehicles.json",
+      "label_yolo": "frame_0209_t8.72s.txt"
+    },
+    {
+      "index": 210,
+      "timestamp_sec": 8.759,
+      "frame_file": "frame_0210_t8.76s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Truck#89",
+        "Motorcycle#91",
+        "Tuk Tuk#86",
+        "Tuk Tuk#87"
+      ],
+      "track_ids": [
+        89,
+        91,
+        86,
+        87
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0210_t8.76s_annotated.jpg",
+      "label_json": "frame_0210_t8.76s_signs_vehicles.json",
+      "label_yolo": "frame_0210_t8.76s.txt"
+    },
+    {
+      "index": 211,
+      "timestamp_sec": 8.8,
+      "frame_file": "frame_0211_t8.80s.jpg",
+      "vehicles": 5,
+      "vehicle_labels": [
+        "Truck#89",
+        "Motorcycle#92",
+        "Motorcycle#91",
+        "Tuk Tuk#87",
+        "Motorcycle#86"
+      ],
+      "track_ids": [
+        89,
+        92,
+        91,
+        87,
+        86
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0211_t8.80s_annotated.jpg",
+      "label_json": "frame_0211_t8.80s_signs_vehicles.json",
+      "label_yolo": "frame_0211_t8.80s.txt"
+    },
+    {
+      "index": 212,
+      "timestamp_sec": 8.842,
+      "frame_file": "frame_0212_t8.84s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Tuk Tuk#87",
+        "Truck#89",
+        "Motorcycle#91"
+      ],
+      "track_ids": [
+        87,
+        89,
+        91
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0212_t8.84s_annotated.jpg",
+      "label_json": "frame_0212_t8.84s_signs_vehicles.json",
+      "label_yolo": "frame_0212_t8.84s.txt"
+    },
+    {
+      "index": 213,
+      "timestamp_sec": 8.884,
+      "frame_file": "frame_0213_t8.88s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#89",
+        "Motorcycle#91",
+        "Motorcycle#87"
+      ],
+      "track_ids": [
+        89,
+        91,
+        87
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0213_t8.88s_annotated.jpg",
+      "label_json": "frame_0213_t8.88s_signs_vehicles.json",
+      "label_yolo": "frame_0213_t8.88s.txt"
+    },
+    {
+      "index": 214,
+      "timestamp_sec": 8.926,
+      "frame_file": "frame_0214_t8.93s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Motorcycle#93",
+        "Truck#89",
+        "Motorcycle#91",
+        "Motorcycle#87"
+      ],
+      "track_ids": [
+        93,
+        89,
+        91,
+        87
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0214_t8.93s_annotated.jpg",
+      "label_json": "frame_0214_t8.93s_signs_vehicles.json",
+      "label_yolo": "frame_0214_t8.93s.txt"
+    },
+    {
+      "index": 215,
+      "timestamp_sec": 8.967,
+      "frame_file": "frame_0215_t8.97s.jpg",
+      "vehicles": 5,
+      "vehicle_labels": [
+        "Car#89",
+        "Tuk Tuk#93",
+        "Motorcycle#94",
+        "Motorcycle#91",
+        "Motorcycle#87"
+      ],
+      "track_ids": [
+        89,
+        93,
+        94,
+        91,
+        87
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0215_t8.97s_annotated.jpg",
+      "label_json": "frame_0215_t8.97s_signs_vehicles.json",
+      "label_yolo": "frame_0215_t8.97s.txt"
+    },
+    {
+      "index": 216,
+      "timestamp_sec": 9.009,
+      "frame_file": "frame_0216_t9.01s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Motorcycle#93",
+        "Motorcycle#91",
+        "Motorcycle#87",
+        "Motorcycle#95"
+      ],
+      "track_ids": [
+        93,
+        91,
+        87,
+        95
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0216_t9.01s_annotated.jpg",
+      "label_json": "frame_0216_t9.01s_signs_vehicles.json",
+      "label_yolo": "frame_0216_t9.01s.txt"
+    },
+    {
+      "index": 217,
+      "timestamp_sec": 9.051,
+      "frame_file": "frame_0217_t9.05s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Motorcycle#93",
+        "Truck#96",
+        "Motorcycle#97",
+        "Motorcycle#95"
+      ],
+      "track_ids": [
+        93,
+        96,
+        97,
+        95
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0217_t9.05s_annotated.jpg",
+      "label_json": "frame_0217_t9.05s_signs_vehicles.json",
+      "label_yolo": "frame_0217_t9.05s.txt"
+    },
+    {
+      "index": 218,
+      "timestamp_sec": 9.092,
+      "frame_file": "frame_0218_t9.09s.jpg",
+      "vehicles": 5,
+      "vehicle_labels": [
+        "Tuk Tuk#93",
+        "Motorcycle#95",
+        "Truck#96",
+        "Motorcycle#98",
+        "Motorcycle#97"
+      ],
+      "track_ids": [
+        93,
+        95,
+        96,
+        98,
+        97
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0218_t9.09s_annotated.jpg",
+      "label_json": "frame_0218_t9.09s_signs_vehicles.json",
+      "label_yolo": "frame_0218_t9.09s.txt"
+    },
+    {
+      "index": 219,
+      "timestamp_sec": 9.134,
+      "frame_file": "frame_0219_t9.13s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Tuk Tuk#99",
+        "Tuk Tuk#93",
+        "Truck#96"
+      ],
+      "track_ids": [
+        99,
+        93,
+        96
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0219_t9.13s_annotated.jpg",
+      "label_json": "frame_0219_t9.13s_signs_vehicles.json",
+      "label_yolo": "frame_0219_t9.13s.txt"
+    },
+    {
+      "index": 220,
+      "timestamp_sec": 9.176,
+      "frame_file": "frame_0220_t9.18s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Tuk Tuk#93",
+        "Truck#96",
+        "Car#100"
+      ],
+      "track_ids": [
+        93,
+        96,
+        100
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0220_t9.18s_annotated.jpg",
+      "label_json": "frame_0220_t9.18s_signs_vehicles.json",
+      "label_yolo": "frame_0220_t9.18s.txt"
+    },
+    {
+      "index": 221,
+      "timestamp_sec": 9.218,
+      "frame_file": "frame_0221_t9.22s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Truck#96",
+        "Tuk Tuk#93"
+      ],
+      "track_ids": [
+        96,
+        93
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0221_t9.22s_annotated.jpg",
+      "label_json": "frame_0221_t9.22s_signs_vehicles.json",
+      "label_yolo": "frame_0221_t9.22s.txt"
+    },
+    {
+      "index": 222,
+      "timestamp_sec": 9.259,
+      "frame_file": "frame_0222_t9.26s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Truck#96",
+        "Motorcycle#101"
+      ],
+      "track_ids": [
+        96,
+        101
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0222_t9.26s_annotated.jpg",
+      "label_json": "frame_0222_t9.26s_signs_vehicles.json",
+      "label_yolo": "frame_0222_t9.26s.txt"
+    },
+    {
+      "index": 223,
+      "timestamp_sec": 9.301,
+      "frame_file": "frame_0223_t9.30s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Truck#96",
+        "Motorcycle#102"
+      ],
+      "track_ids": [
+        96,
+        102
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0223_t9.30s_annotated.jpg",
+      "label_json": "frame_0223_t9.30s_signs_vehicles.json",
+      "label_yolo": "frame_0223_t9.30s.txt"
+    },
+    {
+      "index": 224,
+      "timestamp_sec": 9.343,
+      "frame_file": "frame_0224_t9.34s.jpg",
+      "vehicles": 1,
+      "vehicle_labels": [
+        "Motorcycle#102"
+      ],
+      "track_ids": [
+        102
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0224_t9.34s_annotated.jpg",
+      "label_json": "frame_0224_t9.34s_signs_vehicles.json",
+      "label_yolo": "frame_0224_t9.34s.txt"
+    },
+    {
+      "index": 225,
+      "timestamp_sec": 9.384,
+      "frame_file": "frame_0225_t9.38s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#103",
+        "Motorcycle#102",
+        "Motorcycle#104"
+      ],
+      "track_ids": [
+        103,
+        102,
+        104
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0225_t9.38s_annotated.jpg",
+      "label_json": "frame_0225_t9.38s_signs_vehicles.json",
+      "label_yolo": "frame_0225_t9.38s.txt"
+    },
+    {
+      "index": 226,
+      "timestamp_sec": 9.426,
+      "frame_file": "frame_0226_t9.43s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Car#103",
+        "Motorcycle#104"
+      ],
+      "track_ids": [
+        103,
+        104
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0226_t9.43s_annotated.jpg",
+      "label_json": "frame_0226_t9.43s_signs_vehicles.json",
+      "label_yolo": "frame_0226_t9.43s.txt"
+    },
+    {
+      "index": 227,
+      "timestamp_sec": 9.468,
+      "frame_file": "frame_0227_t9.47s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Truck#103",
+        "Tuk Tuk#105"
+      ],
+      "track_ids": [
+        103,
+        105
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0227_t9.47s_annotated.jpg",
+      "label_json": "frame_0227_t9.47s_signs_vehicles.json",
+      "label_yolo": "frame_0227_t9.47s.txt"
+    },
+    {
+      "index": 228,
+      "timestamp_sec": 9.509,
+      "frame_file": "frame_0228_t9.51s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Tuk Tuk#105",
+        "Truck#103"
+      ],
+      "track_ids": [
+        105,
+        103
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0228_t9.51s_annotated.jpg",
+      "label_json": "frame_0228_t9.51s_signs_vehicles.json",
+      "label_yolo": "frame_0228_t9.51s.txt"
+    },
+    {
+      "index": 229,
+      "timestamp_sec": 9.551,
+      "frame_file": "frame_0229_t9.55s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Tuk Tuk#105",
+        "Truck#103",
+        "Motorcycle#106"
+      ],
+      "track_ids": [
+        105,
+        103,
+        106
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0229_t9.55s_annotated.jpg",
+      "label_json": "frame_0229_t9.55s_signs_vehicles.json",
+      "label_yolo": "frame_0229_t9.55s.txt"
+    },
+    {
+      "index": 230,
+      "timestamp_sec": 9.593,
+      "frame_file": "frame_0230_t9.59s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Tuk Tuk#105",
+        "Truck#103",
+        "Motorcycle#106"
+      ],
+      "track_ids": [
+        105,
+        103,
+        106
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0230_t9.59s_annotated.jpg",
+      "label_json": "frame_0230_t9.59s_signs_vehicles.json",
+      "label_yolo": "frame_0230_t9.59s.txt"
+    },
+    {
+      "index": 231,
+      "timestamp_sec": 9.635,
+      "frame_file": "frame_0231_t9.63s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Truck#103",
+        "Tuk Tuk#105"
+      ],
+      "track_ids": [
+        103,
+        105
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0231_t9.63s_annotated.jpg",
+      "label_json": "frame_0231_t9.63s_signs_vehicles.json",
+      "label_yolo": "frame_0231_t9.63s.txt"
+    },
+    {
+      "index": 232,
+      "timestamp_sec": 9.676,
+      "frame_file": "frame_0232_t9.68s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Tuk Tuk#105",
+        "Truck#103"
+      ],
+      "track_ids": [
+        105,
+        103
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0232_t9.68s_annotated.jpg",
+      "label_json": "frame_0232_t9.68s_signs_vehicles.json",
+      "label_yolo": "frame_0232_t9.68s.txt"
+    },
+    {
+      "index": 233,
+      "timestamp_sec": 9.718,
+      "frame_file": "frame_0233_t9.72s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Tuk Tuk#105",
+        "Truck#103"
+      ],
+      "track_ids": [
+        105,
+        103
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0233_t9.72s_annotated.jpg",
+      "label_json": "frame_0233_t9.72s_signs_vehicles.json",
+      "label_yolo": "frame_0233_t9.72s.txt"
+    },
+    {
+      "index": 234,
+      "timestamp_sec": 9.76,
+      "frame_file": "frame_0234_t9.76s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Tuk Tuk#105",
+        "Tuk Tuk#107",
+        "Truck#103",
+        "Motorcycle#108"
+      ],
+      "track_ids": [
+        105,
+        107,
+        103,
+        108
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0234_t9.76s_annotated.jpg",
+      "label_json": "frame_0234_t9.76s_signs_vehicles.json",
+      "label_yolo": "frame_0234_t9.76s.txt"
+    },
+    {
+      "index": 235,
+      "timestamp_sec": 9.801,
+      "frame_file": "frame_0235_t9.80s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Tuk Tuk#107",
+        "Truck#103",
+        "Motorcycle#108",
+        "Truck#109"
+      ],
+      "track_ids": [
+        107,
+        103,
+        108,
+        109
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0235_t9.80s_annotated.jpg",
+      "label_json": "frame_0235_t9.80s_signs_vehicles.json",
+      "label_yolo": "frame_0235_t9.80s.txt"
+    },
+    {
+      "index": 236,
+      "timestamp_sec": 9.843,
+      "frame_file": "frame_0236_t9.84s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Tuk Tuk#107",
+        "Tuk Tuk#110",
+        "Truck#103",
+        "Truck#109"
+      ],
+      "track_ids": [
+        107,
+        110,
+        103,
+        109
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0236_t9.84s_annotated.jpg",
+      "label_json": "frame_0236_t9.84s_signs_vehicles.json",
+      "label_yolo": "frame_0236_t9.84s.txt"
+    },
+    {
+      "index": 237,
+      "timestamp_sec": 9.885,
+      "frame_file": "frame_0237_t9.88s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Tuk Tuk#107",
+        "Tuk Tuk#110",
+        "Car#103",
+        "Motorcycle#111"
+      ],
+      "track_ids": [
+        107,
+        110,
+        103,
+        111
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0237_t9.88s_annotated.jpg",
+      "label_json": "frame_0237_t9.88s_signs_vehicles.json",
+      "label_yolo": "frame_0237_t9.88s.txt"
+    },
+    {
+      "index": 238,
+      "timestamp_sec": 9.927,
+      "frame_file": "frame_0238_t9.93s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Tuk Tuk#110",
+        "Tuk Tuk#107",
+        "Car#103",
+        "Motorcycle#111"
+      ],
+      "track_ids": [
+        110,
+        107,
+        103,
+        111
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0238_t9.93s_annotated.jpg",
+      "label_json": "frame_0238_t9.93s_signs_vehicles.json",
+      "label_yolo": "frame_0238_t9.93s.txt"
+    },
+    {
+      "index": 239,
+      "timestamp_sec": 9.968,
+      "frame_file": "frame_0239_t9.97s.jpg",
+      "vehicles": 5,
+      "vehicle_labels": [
+        "Tuk Tuk#107",
+        "Tuk Tuk#110",
+        "Motorcycle#111",
+        "Car#103",
+        "Car#112"
+      ],
+      "track_ids": [
+        107,
+        110,
+        111,
+        103,
+        112
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0239_t9.97s_annotated.jpg",
+      "label_json": "frame_0239_t9.97s_signs_vehicles.json",
+      "label_yolo": "frame_0239_t9.97s.txt"
+    },
+    {
+      "index": 240,
+      "timestamp_sec": 10.01,
+      "frame_file": "frame_0240_t10.01s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Tuk Tuk#110",
+        "Tuk Tuk#107",
+        "Car#103",
+        "Car#112"
+      ],
+      "track_ids": [
+        110,
+        107,
+        103,
+        112
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0240_t10.01s_annotated.jpg",
+      "label_json": "frame_0240_t10.01s_signs_vehicles.json",
+      "label_yolo": "frame_0240_t10.01s.txt"
+    },
+    {
+      "index": 241,
+      "timestamp_sec": 10.052,
+      "frame_file": "frame_0241_t10.05s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Car#103",
+        "Tuk Tuk#107",
+        "Tuk Tuk#110",
+        "Truck#112"
+      ],
+      "track_ids": [
+        103,
+        107,
+        110,
+        112
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0241_t10.05s_annotated.jpg",
+      "label_json": "frame_0241_t10.05s_signs_vehicles.json",
+      "label_yolo": "frame_0241_t10.05s.txt"
+    },
+    {
+      "index": 242,
+      "timestamp_sec": 10.093,
+      "frame_file": "frame_0242_t10.09s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Tuk Tuk#107",
+        "Car#103",
+        "Motorcycle#110"
+      ],
+      "track_ids": [
+        107,
+        103,
+        110
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0242_t10.09s_annotated.jpg",
+      "label_json": "frame_0242_t10.09s_signs_vehicles.json",
+      "label_yolo": "frame_0242_t10.09s.txt"
+    },
+    {
+      "index": 243,
+      "timestamp_sec": 10.135,
+      "frame_file": "frame_0243_t10.14s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Tuk Tuk#107",
+        "Car#103",
+        "Tuk Tuk#110",
+        "Motorcycle#113"
+      ],
+      "track_ids": [
+        107,
+        103,
+        110,
+        113
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0243_t10.14s_annotated.jpg",
+      "label_json": "frame_0243_t10.14s_signs_vehicles.json",
+      "label_yolo": "frame_0243_t10.14s.txt"
+    },
+    {
+      "index": 244,
+      "timestamp_sec": 10.177,
+      "frame_file": "frame_0244_t10.18s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#103",
+        "Tuk Tuk#107",
+        "Tuk Tuk#110"
+      ],
+      "track_ids": [
+        103,
+        107,
+        110
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0244_t10.18s_annotated.jpg",
+      "label_json": "frame_0244_t10.18s_signs_vehicles.json",
+      "label_yolo": "frame_0244_t10.18s.txt"
+    },
+    {
+      "index": 245,
+      "timestamp_sec": 10.219,
+      "frame_file": "frame_0245_t10.22s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Car#103",
+        "Tuk Tuk#110",
+        "Tuk Tuk#107",
+        "Motorcycle#114"
+      ],
+      "track_ids": [
+        103,
+        110,
+        107,
+        114
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0245_t10.22s_annotated.jpg",
+      "label_json": "frame_0245_t10.22s_signs_vehicles.json",
+      "label_yolo": "frame_0245_t10.22s.txt"
+    },
+    {
+      "index": 246,
+      "timestamp_sec": 10.26,
+      "frame_file": "frame_0246_t10.26s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#103",
+        "Tuk Tuk#110",
+        "Tuk Tuk#107"
+      ],
+      "track_ids": [
+        103,
+        110,
+        107
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0246_t10.26s_annotated.jpg",
+      "label_json": "frame_0246_t10.26s_signs_vehicles.json",
+      "label_yolo": "frame_0246_t10.26s.txt"
+    },
+    {
+      "index": 247,
+      "timestamp_sec": 10.302,
+      "frame_file": "frame_0247_t10.30s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#103",
+        "Tuk Tuk#110",
+        "Motorcycle#107"
+      ],
+      "track_ids": [
+        103,
+        110,
+        107
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0247_t10.30s_annotated.jpg",
+      "label_json": "frame_0247_t10.30s_signs_vehicles.json",
+      "label_yolo": "frame_0247_t10.30s.txt"
+    },
+    {
+      "index": 248,
+      "timestamp_sec": 10.344,
+      "frame_file": "frame_0248_t10.34s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#103",
+        "Tuk Tuk#110",
+        "Tuk Tuk#107"
+      ],
+      "track_ids": [
+        103,
+        110,
+        107
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0248_t10.34s_annotated.jpg",
+      "label_json": "frame_0248_t10.34s_signs_vehicles.json",
+      "label_yolo": "frame_0248_t10.34s.txt"
+    },
+    {
+      "index": 249,
+      "timestamp_sec": 10.385,
+      "frame_file": "frame_0249_t10.39s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Tuk Tuk#110",
+        "Car#103",
+        "Tuk Tuk#107",
+        "Car#115"
+      ],
+      "track_ids": [
+        110,
+        103,
+        107,
+        115
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0249_t10.39s_annotated.jpg",
+      "label_json": "frame_0249_t10.39s_signs_vehicles.json",
+      "label_yolo": "frame_0249_t10.39s.txt"
+    },
+    {
+      "index": 250,
+      "timestamp_sec": 10.427,
+      "frame_file": "frame_0250_t10.43s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#103",
+        "Car#115",
+        "Tuk Tuk#110"
+      ],
+      "track_ids": [
+        103,
+        115,
+        110
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0250_t10.43s_annotated.jpg",
+      "label_json": "frame_0250_t10.43s_signs_vehicles.json",
+      "label_yolo": "frame_0250_t10.43s.txt"
+    },
+    {
+      "index": 251,
+      "timestamp_sec": 10.469,
+      "frame_file": "frame_0251_t10.47s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Car#103",
+        "Tuk Tuk#110"
+      ],
+      "track_ids": [
+        103,
+        110
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0251_t10.47s_annotated.jpg",
+      "label_json": "frame_0251_t10.47s_signs_vehicles.json",
+      "label_yolo": "frame_0251_t10.47s.txt"
+    },
+    {
+      "index": 252,
+      "timestamp_sec": 10.51,
+      "frame_file": "frame_0252_t10.51s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Tuk Tuk#110",
+        "Car#103",
+        "Car#116"
+      ],
+      "track_ids": [
+        110,
+        103,
+        116
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0252_t10.51s_annotated.jpg",
+      "label_json": "frame_0252_t10.51s_signs_vehicles.json",
+      "label_yolo": "frame_0252_t10.51s.txt"
+    },
+    {
+      "index": 253,
+      "timestamp_sec": 10.552,
+      "frame_file": "frame_0253_t10.55s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#103",
+        "Tuk Tuk#110",
+        "Car#116"
+      ],
+      "track_ids": [
+        103,
+        110,
+        116
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0253_t10.55s_annotated.jpg",
+      "label_json": "frame_0253_t10.55s_signs_vehicles.json",
+      "label_yolo": "frame_0253_t10.55s.txt"
+    },
+    {
+      "index": 254,
+      "timestamp_sec": 10.594,
+      "frame_file": "frame_0254_t10.59s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#103",
+        "Tuk Tuk#110",
+        "Car#116"
+      ],
+      "track_ids": [
+        103,
+        110,
+        116
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0254_t10.59s_annotated.jpg",
+      "label_json": "frame_0254_t10.59s_signs_vehicles.json",
+      "label_yolo": "frame_0254_t10.59s.txt"
+    },
+    {
+      "index": 255,
+      "timestamp_sec": 10.636,
+      "frame_file": "frame_0255_t10.64s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#103",
+        "Tuk Tuk#110",
+        "Car#116"
+      ],
+      "track_ids": [
+        103,
+        110,
+        116
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0255_t10.64s_annotated.jpg",
+      "label_json": "frame_0255_t10.64s_signs_vehicles.json",
+      "label_yolo": "frame_0255_t10.64s.txt"
+    },
+    {
+      "index": 256,
+      "timestamp_sec": 10.677,
+      "frame_file": "frame_0256_t10.68s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Car#103",
+        "Tuk Tuk#110",
+        "Car#116"
+      ],
+      "track_ids": [
+        103,
+        110,
+        116
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0256_t10.68s_annotated.jpg",
+      "label_json": "frame_0256_t10.68s_signs_vehicles.json",
+      "label_yolo": "frame_0256_t10.68s.txt"
+    },
+    {
+      "index": 257,
+      "timestamp_sec": 10.719,
+      "frame_file": "frame_0257_t10.72s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Car#103",
+        "Motorcycle#117",
+        "Tuk Tuk#110",
+        "Car#116"
+      ],
+      "track_ids": [
+        103,
+        117,
+        110,
+        116
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0257_t10.72s_annotated.jpg",
+      "label_json": "frame_0257_t10.72s_signs_vehicles.json",
+      "label_yolo": "frame_0257_t10.72s.txt"
+    },
+    {
+      "index": 258,
+      "timestamp_sec": 10.761,
+      "frame_file": "frame_0258_t10.76s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Car#103",
+        "Motorcycle#117",
+        "Tuk Tuk#110",
+        "Car#116"
+      ],
+      "track_ids": [
+        103,
+        117,
+        110,
+        116
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0258_t10.76s_annotated.jpg",
+      "label_json": "frame_0258_t10.76s_signs_vehicles.json",
+      "label_yolo": "frame_0258_t10.76s.txt"
+    },
+    {
+      "index": 259,
+      "timestamp_sec": 10.802,
+      "frame_file": "frame_0259_t10.80s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Car#103",
+        "Tuk Tuk#110",
+        "Motorcycle#117",
+        "Car#116"
+      ],
+      "track_ids": [
+        103,
+        110,
+        117,
+        116
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0259_t10.80s_annotated.jpg",
+      "label_json": "frame_0259_t10.80s_signs_vehicles.json",
+      "label_yolo": "frame_0259_t10.80s.txt"
+    },
+    {
+      "index": 260,
+      "timestamp_sec": 10.844,
+      "frame_file": "frame_0260_t10.84s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Tuk Tuk#110",
+        "Motorcycle#117",
+        "Car#116",
+        "Car#103"
+      ],
+      "track_ids": [
+        110,
+        117,
+        116,
+        103
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0260_t10.84s_annotated.jpg",
+      "label_json": "frame_0260_t10.84s_signs_vehicles.json",
+      "label_yolo": "frame_0260_t10.84s.txt"
+    },
+    {
+      "index": 261,
+      "timestamp_sec": 10.886,
+      "frame_file": "frame_0261_t10.89s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Tuk Tuk#110",
+        "Motorcycle#117",
+        "Car#103",
+        "Car#116"
+      ],
+      "track_ids": [
+        110,
+        117,
+        103,
+        116
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0261_t10.89s_annotated.jpg",
+      "label_json": "frame_0261_t10.89s_signs_vehicles.json",
+      "label_yolo": "frame_0261_t10.89s.txt"
+    },
+    {
+      "index": 262,
+      "timestamp_sec": 10.928,
+      "frame_file": "frame_0262_t10.93s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Tuk Tuk#110",
+        "Motorcycle#117",
+        "Car#116",
+        "Car#103"
+      ],
+      "track_ids": [
+        110,
+        117,
+        116,
+        103
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0262_t10.93s_annotated.jpg",
+      "label_json": "frame_0262_t10.93s_signs_vehicles.json",
+      "label_yolo": "frame_0262_t10.93s.txt"
+    },
+    {
+      "index": 263,
+      "timestamp_sec": 10.969,
+      "frame_file": "frame_0263_t10.97s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Tuk Tuk#110",
+        "Motorcycle#117",
+        "Car#116",
+        "Car#103"
+      ],
+      "track_ids": [
+        110,
+        117,
+        116,
+        103
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0263_t10.97s_annotated.jpg",
+      "label_json": "frame_0263_t10.97s_signs_vehicles.json",
+      "label_yolo": "frame_0263_t10.97s.txt"
+    },
+    {
+      "index": 264,
+      "timestamp_sec": 11.011,
+      "frame_file": "frame_0264_t11.01s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Tuk Tuk#110",
+        "Motorcycle#117",
+        "Car#103",
+        "Car#116"
+      ],
+      "track_ids": [
+        110,
+        117,
+        103,
+        116
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0264_t11.01s_annotated.jpg",
+      "label_json": "frame_0264_t11.01s_signs_vehicles.json",
+      "label_yolo": "frame_0264_t11.01s.txt"
+    },
+    {
+      "index": 265,
+      "timestamp_sec": 11.053,
+      "frame_file": "frame_0265_t11.05s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Tuk Tuk#110",
+        "Motorcycle#117",
+        "Car#103",
+        "Car#116"
+      ],
+      "track_ids": [
+        110,
+        117,
+        103,
+        116
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0265_t11.05s_annotated.jpg",
+      "label_json": "frame_0265_t11.05s_signs_vehicles.json",
+      "label_yolo": "frame_0265_t11.05s.txt"
+    },
+    {
+      "index": 266,
+      "timestamp_sec": 11.094,
+      "frame_file": "frame_0266_t11.09s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Tuk Tuk#110",
+        "Car#116",
+        "Motorcycle#117"
+      ],
+      "track_ids": [
+        110,
+        116,
+        117
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0266_t11.09s_annotated.jpg",
+      "label_json": "frame_0266_t11.09s_signs_vehicles.json",
+      "label_yolo": "frame_0266_t11.09s.txt"
+    },
+    {
+      "index": 267,
+      "timestamp_sec": 11.136,
+      "frame_file": "frame_0267_t11.14s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Tuk Tuk#110",
+        "Car#116",
+        "Motorcycle#117"
+      ],
+      "track_ids": [
+        110,
+        116,
+        117
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0267_t11.14s_annotated.jpg",
+      "label_json": "frame_0267_t11.14s_signs_vehicles.json",
+      "label_yolo": "frame_0267_t11.14s.txt"
+    },
+    {
+      "index": 268,
+      "timestamp_sec": 11.178,
+      "frame_file": "frame_0268_t11.18s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Tuk Tuk#110",
+        "Motorcycle#117",
+        "Car#116"
+      ],
+      "track_ids": [
+        110,
+        117,
+        116
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0268_t11.18s_annotated.jpg",
+      "label_json": "frame_0268_t11.18s_signs_vehicles.json",
+      "label_yolo": "frame_0268_t11.18s.txt"
+    },
+    {
+      "index": 269,
+      "timestamp_sec": 11.22,
+      "frame_file": "frame_0269_t11.22s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Tuk Tuk#110",
+        "Car#116"
+      ],
+      "track_ids": [
+        110,
+        116
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0269_t11.22s_annotated.jpg",
+      "label_json": "frame_0269_t11.22s_signs_vehicles.json",
+      "label_yolo": "frame_0269_t11.22s.txt"
+    },
+    {
+      "index": 270,
+      "timestamp_sec": 11.261,
+      "frame_file": "frame_0270_t11.26s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Tuk Tuk#110",
+        "Car#116"
+      ],
+      "track_ids": [
+        110,
+        116
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0270_t11.26s_annotated.jpg",
+      "label_json": "frame_0270_t11.26s_signs_vehicles.json",
+      "label_yolo": "frame_0270_t11.26s.txt"
+    },
+    {
+      "index": 271,
+      "timestamp_sec": 11.303,
+      "frame_file": "frame_0271_t11.30s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Tuk Tuk#110",
+        "Car#116"
+      ],
+      "track_ids": [
+        110,
+        116
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0271_t11.30s_annotated.jpg",
+      "label_json": "frame_0271_t11.30s_signs_vehicles.json",
+      "label_yolo": "frame_0271_t11.30s.txt"
+    },
+    {
+      "index": 272,
+      "timestamp_sec": 11.345,
+      "frame_file": "frame_0272_t11.34s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Tuk Tuk#110",
+        "Motorcycle#118",
+        "Truck#116"
+      ],
+      "track_ids": [
+        110,
+        118,
+        116
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0272_t11.34s_annotated.jpg",
+      "label_json": "frame_0272_t11.34s_signs_vehicles.json",
+      "label_yolo": "frame_0272_t11.34s.txt"
+    },
+    {
+      "index": 273,
+      "timestamp_sec": 11.386,
+      "frame_file": "frame_0273_t11.39s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Tuk Tuk#110",
+        "Car#116",
+        "Truck#119"
+      ],
+      "track_ids": [
+        110,
+        116,
+        119
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0273_t11.39s_annotated.jpg",
+      "label_json": "frame_0273_t11.39s_signs_vehicles.json",
+      "label_yolo": "frame_0273_t11.39s.txt"
+    },
+    {
+      "index": 274,
+      "timestamp_sec": 11.428,
+      "frame_file": "frame_0274_t11.43s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Tuk Tuk#110",
+        "Car#116",
+        "Truck#119"
+      ],
+      "track_ids": [
+        110,
+        116,
+        119
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0274_t11.43s_annotated.jpg",
+      "label_json": "frame_0274_t11.43s_signs_vehicles.json",
+      "label_yolo": "frame_0274_t11.43s.txt"
+    },
+    {
+      "index": 275,
+      "timestamp_sec": 11.47,
+      "frame_file": "frame_0275_t11.47s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Tuk Tuk#110",
+        "Truck#119",
+        "Car#116"
+      ],
+      "track_ids": [
+        110,
+        119,
+        116
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0275_t11.47s_annotated.jpg",
+      "label_json": "frame_0275_t11.47s_signs_vehicles.json",
+      "label_yolo": "frame_0275_t11.47s.txt"
+    },
+    {
+      "index": 276,
+      "timestamp_sec": 11.511,
+      "frame_file": "frame_0276_t11.51s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Tuk Tuk#110",
+        "Motorcycle#120",
+        "Truck#116"
+      ],
+      "track_ids": [
+        110,
+        120,
+        116
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0276_t11.51s_annotated.jpg",
+      "label_json": "frame_0276_t11.51s_signs_vehicles.json",
+      "label_yolo": "frame_0276_t11.51s.txt"
+    },
+    {
+      "index": 277,
+      "timestamp_sec": 11.553,
+      "frame_file": "frame_0277_t11.55s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Tuk Tuk#110",
+        "Motorcycle#120",
+        "Car#116"
+      ],
+      "track_ids": [
+        110,
+        120,
+        116
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0277_t11.55s_annotated.jpg",
+      "label_json": "frame_0277_t11.55s_signs_vehicles.json",
+      "label_yolo": "frame_0277_t11.55s.txt"
+    },
+    {
+      "index": 278,
+      "timestamp_sec": 11.595,
+      "frame_file": "frame_0278_t11.59s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Tuk Tuk#110",
+        "Motorcycle#121",
+        "Truck#116"
+      ],
+      "track_ids": [
+        110,
+        121,
+        116
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0278_t11.59s_annotated.jpg",
+      "label_json": "frame_0278_t11.59s_signs_vehicles.json",
+      "label_yolo": "frame_0278_t11.59s.txt"
+    },
+    {
+      "index": 279,
+      "timestamp_sec": 11.637,
+      "frame_file": "frame_0279_t11.64s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Tuk Tuk#110",
+        "Motorcycle#121",
+        "Car#116"
+      ],
+      "track_ids": [
+        110,
+        121,
+        116
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0279_t11.64s_annotated.jpg",
+      "label_json": "frame_0279_t11.64s_signs_vehicles.json",
+      "label_yolo": "frame_0279_t11.64s.txt"
+    },
+    {
+      "index": 280,
+      "timestamp_sec": 11.678,
+      "frame_file": "frame_0280_t11.68s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Tuk Tuk#110",
+        "Motorcycle#122"
+      ],
+      "track_ids": [
+        110,
+        122
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0280_t11.68s_annotated.jpg",
+      "label_json": "frame_0280_t11.68s_signs_vehicles.json",
+      "label_yolo": "frame_0280_t11.68s.txt"
+    },
+    {
+      "index": 281,
+      "timestamp_sec": 11.72,
+      "frame_file": "frame_0281_t11.72s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Tuk Tuk#110",
+        "Motorcycle#122",
+        "Car#123"
+      ],
+      "track_ids": [
+        110,
+        122,
+        123
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0281_t11.72s_annotated.jpg",
+      "label_json": "frame_0281_t11.72s_signs_vehicles.json",
+      "label_yolo": "frame_0281_t11.72s.txt"
+    },
+    {
+      "index": 282,
+      "timestamp_sec": 11.762,
+      "frame_file": "frame_0282_t11.76s.jpg",
+      "vehicles": 2,
+      "vehicle_labels": [
+        "Tuk Tuk#110",
+        "Car#123"
+      ],
+      "track_ids": [
+        110,
+        123
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0282_t11.76s_annotated.jpg",
+      "label_json": "frame_0282_t11.76s_signs_vehicles.json",
+      "label_yolo": "frame_0282_t11.76s.txt"
+    },
+    {
+      "index": 283,
+      "timestamp_sec": 11.803,
+      "frame_file": "frame_0283_t11.80s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#124",
+        "Car#123",
+        "Tuk Tuk#110"
+      ],
+      "track_ids": [
+        124,
+        123,
+        110
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0283_t11.80s_annotated.jpg",
+      "label_json": "frame_0283_t11.80s_signs_vehicles.json",
+      "label_yolo": "frame_0283_t11.80s.txt"
+    },
+    {
+      "index": 284,
+      "timestamp_sec": 11.845,
+      "frame_file": "frame_0284_t11.85s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#124",
+        "Truck#110",
+        "Car#123"
+      ],
+      "track_ids": [
+        124,
+        110,
+        123
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0284_t11.85s_annotated.jpg",
+      "label_json": "frame_0284_t11.85s_signs_vehicles.json",
+      "label_yolo": "frame_0284_t11.85s.txt"
+    },
+    {
+      "index": 285,
+      "timestamp_sec": 11.887,
+      "frame_file": "frame_0285_t11.89s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Tuk Tuk#125",
+        "Motorcycle#124",
+        "Tuk Tuk#110"
+      ],
+      "track_ids": [
+        125,
+        124,
+        110
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0285_t11.89s_annotated.jpg",
+      "label_json": "frame_0285_t11.89s_signs_vehicles.json",
+      "label_yolo": "frame_0285_t11.89s.txt"
+    },
+    {
+      "index": 286,
+      "timestamp_sec": 11.929,
+      "frame_file": "frame_0286_t11.93s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Motorcycle#124",
+        "Car#126",
+        "Tuk Tuk#110",
+        "Tuk Tuk#125"
+      ],
+      "track_ids": [
+        124,
+        126,
+        110,
+        125
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0286_t11.93s_annotated.jpg",
+      "label_json": "frame_0286_t11.93s_signs_vehicles.json",
+      "label_yolo": "frame_0286_t11.93s.txt"
+    },
+    {
+      "index": 287,
+      "timestamp_sec": 11.97,
+      "frame_file": "frame_0287_t11.97s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#124",
+        "Car#126",
+        "Tuk Tuk#125"
+      ],
+      "track_ids": [
+        124,
+        126,
+        125
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0287_t11.97s_annotated.jpg",
+      "label_json": "frame_0287_t11.97s_signs_vehicles.json",
+      "label_yolo": "frame_0287_t11.97s.txt"
+    },
+    {
+      "index": 288,
+      "timestamp_sec": 12.012,
+      "frame_file": "frame_0288_t12.01s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Motorcycle#124",
+        "Car#126",
+        "Tuk Tuk#125",
+        "Tuk Tuk#127"
+      ],
+      "track_ids": [
+        124,
+        126,
+        125,
+        127
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0288_t12.01s_annotated.jpg",
+      "label_json": "frame_0288_t12.01s_signs_vehicles.json",
+      "label_yolo": "frame_0288_t12.01s.txt"
+    },
+    {
+      "index": 289,
+      "timestamp_sec": 12.054,
+      "frame_file": "frame_0289_t12.05s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Motorcycle#124",
+        "Tuk Tuk#125",
+        "Car#126",
+        "Tuk Tuk#127"
+      ],
+      "track_ids": [
+        124,
+        125,
+        126,
+        127
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0289_t12.05s_annotated.jpg",
+      "label_json": "frame_0289_t12.05s_signs_vehicles.json",
+      "label_yolo": "frame_0289_t12.05s.txt"
+    },
+    {
+      "index": 290,
+      "timestamp_sec": 12.095,
+      "frame_file": "frame_0290_t12.10s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Car#126",
+        "Motorcycle#124",
+        "Tuk Tuk#125",
+        "Tuk Tuk#127"
+      ],
+      "track_ids": [
+        126,
+        124,
+        125,
+        127
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0290_t12.10s_annotated.jpg",
+      "label_json": "frame_0290_t12.10s_signs_vehicles.json",
+      "label_yolo": "frame_0290_t12.10s.txt"
+    },
+    {
+      "index": 291,
+      "timestamp_sec": 12.137,
+      "frame_file": "frame_0291_t12.14s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Tuk Tuk#125",
+        "Motorcycle#124",
+        "Car#126",
+        "Tuk Tuk#127"
+      ],
+      "track_ids": [
+        125,
+        124,
+        126,
+        127
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0291_t12.14s_annotated.jpg",
+      "label_json": "frame_0291_t12.14s_signs_vehicles.json",
+      "label_yolo": "frame_0291_t12.14s.txt"
+    },
+    {
+      "index": 292,
+      "timestamp_sec": 12.179,
+      "frame_file": "frame_0292_t12.18s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Motorcycle#124",
+        "Truck#127",
+        "Car#126",
+        "Tuk Tuk#125"
+      ],
+      "track_ids": [
+        124,
+        127,
+        126,
+        125
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0292_t12.18s_annotated.jpg",
+      "label_json": "frame_0292_t12.18s_signs_vehicles.json",
+      "label_yolo": "frame_0292_t12.18s.txt"
+    },
+    {
+      "index": 293,
+      "timestamp_sec": 12.221,
+      "frame_file": "frame_0293_t12.22s.jpg",
+      "vehicles": 4,
+      "vehicle_labels": [
+        "Car#126",
+        "Motorcycle#124",
+        "Tuk Tuk#127",
+        "Tuk Tuk#125"
+      ],
+      "track_ids": [
+        126,
+        124,
+        127,
+        125
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0293_t12.22s_annotated.jpg",
+      "label_json": "frame_0293_t12.22s_signs_vehicles.json",
+      "label_yolo": "frame_0293_t12.22s.txt"
+    },
+    {
+      "index": 294,
+      "timestamp_sec": 12.262,
+      "frame_file": "frame_0294_t12.26s.jpg",
+      "vehicles": 3,
+      "vehicle_labels": [
+        "Motorcycle#124",
+        "Car#126",
+        "Tuk Tuk#125"
+      ],
+      "track_ids": [
+        124,
+        126,
+        125
+      ],
+      "signs": 0,
+      "sign_labels": [],
+      "annotated": "frame_0294_t12.26s_annotated.jpg",
+      "label_json": "frame_0294_t12.26s_signs_vehicles.json",
+      "label_yolo": "frame_0294_t12.26s.txt"
+    }
+  ]
+}

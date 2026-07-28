@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Reminder</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #f59e0b; color: white; padding: 20px; text-align: center; }
+        .content { background-color: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; }
+        .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 12px; }
+        .button { display: inline-block; background-color: #16a34a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin-top: 20px; }
+        .details { background-color: white; padding: 15px; border-radius: 4px; margin: 15px 0; }
+        .warning { background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 15px 0; }
+        .label { font-weight: bold; color: #374151; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚠️ Payment Reminder</h1>
+        </div>
+        <div class="content">
+            <p>Dear {{ driver_name }},</p>
+            
+            <div class="warning">
+                <p><strong>Your traffic fine payment is overdue.</strong></p>
+            </div>
+            
+            <p>This is a friendly reminder that you have an unpaid traffic fine that requires your attention.</p>
+            
+            <div class="details">
+                <p><span class="label">Amount Due:</span> ${{ fine_amount }} USD</p>
+                <p><span class="label">Reason:</span> {{ reason }}</p>
+                <p><span class="label">Original Due Date:</span> {{ due_date|date:"F d, Y" }}</p>
+                {% if days_overdue > 0 %}
+                <p><span class="label">Days Overdue:</span> <span style="color: #dc2626;">{{ days_overdue }} days</span></p>
+                {% endif %}
+            </div>
+            
+            <p>Please make payment as soon as possible to avoid additional penalties or legal action.</p>
+            
+            <a href="{{ view_url }}" class="button">Pay Now</a>
+            
+            <p style="margin-top: 30px; color: #6b7280; font-size: 14px;">
+                <strong>Important:</strong> Failure to pay may result in suspension of your driver's license and additional fines.
+            </p>
+        </div>
+        <div class="footer">
+            <p>CamTraffic - AI-Based Traffic Enforcement System</p>
+            <p>This is an automated notification. Please do not reply to this email.</p>
+        </div>
+    </div>
+</body>
+</html>

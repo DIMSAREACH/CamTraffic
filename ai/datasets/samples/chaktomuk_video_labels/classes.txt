@@ -1,0 +1,9 @@
+bus
+car
+motorcycle
+truck
+tuk_tuk
+KEEP_RIGHT
+NO_HORN
+NO_U_TURN
+SPEED_LIMIT_40

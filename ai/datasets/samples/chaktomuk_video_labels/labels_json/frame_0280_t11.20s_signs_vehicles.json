@@ -1,0 +1,144 @@
+{
+  "source": "stock-footage-phnom-penh-cambodia-th-january-busy-traffic-on-chaktomuk-walk-street-in-phnom-penh.webm",
+  "video_key": "chaktomuk",
+  "frame_index": 280,
+  "frame_file": "frame_0280_t11.20s.jpg",
+  "timestamp_sec": 11.2,
+  "image_size": {
+    "width": 898,
+    "height": 506
+  },
+  "tracking": true,
+  "annotations": [
+    {
+      "kind": "sign",
+      "class_key": "NO_U_TURN",
+      "class_id": 7,
+      "label_en": "No U Turn",
+      "confidence": 37.4,
+      "track_id": 1200,
+      "bbox_norm": {
+        "x1": 0.5713050961494446,
+        "y1": 0.2831408977508545,
+        "x2": 0.6076358556747437,
+        "y2": 0.3541361689567566
+      },
+      "bbox_px": {
+        "x1": 513,
+        "y1": 143,
+        "x2": 546,
+        "y2": 179
+      },
+      "bbox_yolo": {
+        "x_center": 0.58947,
+        "y_center": 0.318639,
+        "width": 0.036331,
+        "height": 0.070995
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "tuk_tuk",
+      "class_id": 4,
+      "label_en": "Tuk Tuk",
+      "confidence": 90.4,
+      "track_id": 158,
+      "bbox_norm": {
+        "x1": 0.1293,
+        "y1": 0.4307,
+        "x2": 0.1873,
+        "y2": 0.5632
+      },
+      "bbox_px": {
+        "x1": 116,
+        "y1": 218,
+        "x2": 168,
+        "y2": 285
+      },
+      "bbox_yolo": {
+        "x_center": 0.1583,
+        "y_center": 0.49695,
+        "width": 0.058,
+        "height": 0.1325
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "car",
+      "class_id": 1,
+      "label_en": "Car",
+      "confidence": 78.2,
+      "track_id": 155,
+      "bbox_norm": {
+        "x1": 0.3952,
+        "y1": 0.4137,
+        "x2": 0.5748,
+        "y2": 0.6284
+      },
+      "bbox_px": {
+        "x1": 355,
+        "y1": 209,
+        "x2": 516,
+        "y2": 318
+      },
+      "bbox_yolo": {
+        "x_center": 0.485,
+        "y_center": 0.52105,
+        "width": 0.1796,
+        "height": 0.2147
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "car",
+      "class_id": 1,
+      "label_en": "Car",
+      "confidence": 71.7,
+      "track_id": 156,
+      "bbox_norm": {
+        "x1": 0.1739,
+        "y1": 0.4429,
+        "x2": 0.2324,
+        "y2": 0.5453
+      },
+      "bbox_px": {
+        "x1": 156,
+        "y1": 224,
+        "x2": 209,
+        "y2": 276
+      },
+      "bbox_yolo": {
+        "x_center": 0.20315,
+        "y_center": 0.4941,
+        "width": 0.0585,
+        "height": 0.1024
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "tuk_tuk",
+      "class_id": 4,
+      "label_en": "Tuk Tuk",
+      "confidence": 70.0,
+      "track_id": 159,
+      "bbox_norm": {
+        "x1": 0.5607,
+        "y1": 0.4183,
+        "x2": 0.6732,
+        "y2": 0.5997
+      },
+      "bbox_px": {
+        "x1": 504,
+        "y1": 212,
+        "x2": 605,
+        "y2": 303
+      },
+      "bbox_yolo": {
+        "x_center": 0.61695,
+        "y_center": 0.509,
+        "width": 0.1125,
+        "height": 0.1814
+      }
+    }
+  ]
+}

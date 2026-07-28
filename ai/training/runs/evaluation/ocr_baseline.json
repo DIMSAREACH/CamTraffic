@@ -1,0 +1,7 @@
+{
+  "evaluated_at": "2026-07-12T21:22:17.175126+00:00",
+  "engine": "easyocr",
+  "samples": 50,
+  "cer": 2.5546666666666673,
+  "exact_match_rate": 0.0
+}

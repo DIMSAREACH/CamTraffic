@@ -1,0 +1,118 @@
+{
+  "source": "stock-footage-phnom-penh-cambodia-th-january-busy-traffic-on-chaktomuk-walk-street-in-phnom-penh.webm",
+  "video_key": "chaktomuk",
+  "frame_index": 147,
+  "frame_file": "frame_0147_t5.88s.jpg",
+  "timestamp_sec": 5.88,
+  "image_size": {
+    "width": 898,
+    "height": 506
+  },
+  "tracking": true,
+  "annotations": [
+    {
+      "kind": "sign",
+      "class_key": "SPEED_LIMIT_40",
+      "class_id": 8,
+      "label_en": "Speed Limit 40",
+      "confidence": 44.1,
+      "track_id": 1201,
+      "bbox_norm": {
+        "x1": 0.5749108195304871,
+        "y1": 0.2760374844074249,
+        "x2": 0.6114428043365479,
+        "y2": 0.34238147735595703
+      },
+      "bbox_px": {
+        "x1": 516,
+        "y1": 140,
+        "x2": 549,
+        "y2": 173
+      },
+      "bbox_yolo": {
+        "x_center": 0.593177,
+        "y_center": 0.309209,
+        "width": 0.036532,
+        "height": 0.066344
+      }
+    },
+    {
+      "kind": "sign",
+      "class_key": "NO_U_TURN",
+      "class_id": 7,
+      "label_en": "No U Turn",
+      "confidence": 37.2,
+      "track_id": 1200,
+      "bbox_norm": {
+        "x1": 0.5752242207527161,
+        "y1": 0.2741578221321106,
+        "x2": 0.6107672452926636,
+        "y2": 0.342517614364624
+      },
+      "bbox_px": {
+        "x1": 517,
+        "y1": 139,
+        "x2": 548,
+        "y2": 173
+      },
+      "bbox_yolo": {
+        "x_center": 0.592996,
+        "y_center": 0.308338,
+        "width": 0.035543,
+        "height": 0.06836
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "car",
+      "class_id": 1,
+      "label_en": "Car",
+      "confidence": 84.0,
+      "track_id": 80,
+      "bbox_norm": {
+        "x1": 0.669,
+        "y1": 0.3777,
+        "x2": 0.9987,
+        "y2": 0.7375
+      },
+      "bbox_px": {
+        "x1": 601,
+        "y1": 191,
+        "x2": 897,
+        "y2": 373
+      },
+      "bbox_yolo": {
+        "x_center": 0.83385,
+        "y_center": 0.5576,
+        "width": 0.3297,
+        "height": 0.3598
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "motorcycle",
+      "class_id": 2,
+      "label_en": "Motorcycle",
+      "confidence": 77.5,
+      "track_id": 74,
+      "bbox_norm": {
+        "x1": 0.4291,
+        "y1": 0.5082,
+        "x2": 0.5635,
+        "y2": 0.8683
+      },
+      "bbox_px": {
+        "x1": 385,
+        "y1": 257,
+        "x2": 506,
+        "y2": 439
+      },
+      "bbox_yolo": {
+        "x_center": 0.4963,
+        "y_center": 0.68825,
+        "width": 0.1344,
+        "height": 0.3601
+      }
+    }
+  ]
+}

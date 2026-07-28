@@ -1,0 +1,66 @@
+{
+  "source": "stock-footage-phnom-penh-cambodia-th-january-busy-traffic-on-chaktomuk-walk-street-in-phnom-penh.webm",
+  "video_key": "chaktomuk",
+  "frame_index": 21,
+  "frame_file": "frame_0021_t0.84s.jpg",
+  "timestamp_sec": 0.84,
+  "image_size": {
+    "width": 898,
+    "height": 506
+  },
+  "tracking": true,
+  "annotations": [
+    {
+      "kind": "vehicle",
+      "class_key": "car",
+      "class_id": 1,
+      "label_en": "Car",
+      "confidence": 87.2,
+      "track_id": 1,
+      "bbox_norm": {
+        "x1": 0.5892,
+        "y1": 0.4087,
+        "x2": 0.9966,
+        "y2": 0.8829
+      },
+      "bbox_px": {
+        "x1": 529,
+        "y1": 207,
+        "x2": 895,
+        "y2": 447
+      },
+      "bbox_yolo": {
+        "x_center": 0.7929,
+        "y_center": 0.6458,
+        "width": 0.4074,
+        "height": 0.4742
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "motorcycle",
+      "class_id": 2,
+      "label_en": "Motorcycle",
+      "confidence": 84.4,
+      "track_id": 14,
+      "bbox_norm": {
+        "x1": 0.4524,
+        "y1": 0.4646,
+        "x2": 0.522,
+        "y2": 0.6373
+      },
+      "bbox_px": {
+        "x1": 406,
+        "y1": 235,
+        "x2": 469,
+        "y2": 322
+      },
+      "bbox_yolo": {
+        "x_center": 0.4872,
+        "y_center": 0.55095,
+        "width": 0.0696,
+        "height": 0.1727
+      }
+    }
+  ]
+}

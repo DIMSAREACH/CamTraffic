@@ -1,0 +1,196 @@
+{
+  "source": "stock-footage-phnom-penh-cambodia-th-january-busy-traffic-on-chaktomuk-walk-street-in-phnom-penh.webm",
+  "video_key": "chaktomuk",
+  "frame_index": 71,
+  "frame_file": "frame_0071_t2.84s.jpg",
+  "timestamp_sec": 2.84,
+  "image_size": {
+    "width": 898,
+    "height": 506
+  },
+  "tracking": true,
+  "annotations": [
+    {
+      "kind": "sign",
+      "class_key": "NO_U_TURN",
+      "class_id": 7,
+      "label_en": "No U Turn",
+      "confidence": 78.3,
+      "track_id": 1200,
+      "bbox_norm": {
+        "x1": 0.5438641309738159,
+        "y1": 0.28521987795829773,
+        "x2": 0.5789932608604431,
+        "y2": 0.3489503562450409
+      },
+      "bbox_px": {
+        "x1": 488,
+        "y1": 144,
+        "x2": 520,
+        "y2": 177
+      },
+      "bbox_yolo": {
+        "x_center": 0.561429,
+        "y_center": 0.317085,
+        "width": 0.035129,
+        "height": 0.06373
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "motorcycle",
+      "class_id": 2,
+      "label_en": "Motorcycle",
+      "confidence": 93.8,
+      "track_id": 32,
+      "bbox_norm": {
+        "x1": 0.4786,
+        "y1": 0.4869,
+        "x2": 0.5683,
+        "y2": 0.7247
+      },
+      "bbox_px": {
+        "x1": 430,
+        "y1": 246,
+        "x2": 510,
+        "y2": 367
+      },
+      "bbox_yolo": {
+        "x_center": 0.52345,
+        "y_center": 0.6058,
+        "width": 0.0897,
+        "height": 0.2378
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "motorcycle",
+      "class_id": 2,
+      "label_en": "Motorcycle",
+      "confidence": 76.6,
+      "track_id": 27,
+      "bbox_norm": {
+        "x1": 0.8135,
+        "y1": 0.5318,
+        "x2": 1.0,
+        "y2": 1.0
+      },
+      "bbox_px": {
+        "x1": 731,
+        "y1": 269,
+        "x2": 898,
+        "y2": 506
+      },
+      "bbox_yolo": {
+        "x_center": 0.90675,
+        "y_center": 0.7659,
+        "width": 0.1865,
+        "height": 0.4682
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "car",
+      "class_id": 1,
+      "label_en": "Car",
+      "confidence": 70.0,
+      "track_id": 45,
+      "bbox_norm": {
+        "x1": 0.4774,
+        "y1": 0.4081,
+        "x2": 0.6551,
+        "y2": 0.6141
+      },
+      "bbox_px": {
+        "x1": 429,
+        "y1": 206,
+        "x2": 588,
+        "y2": 311
+      },
+      "bbox_yolo": {
+        "x_center": 0.56625,
+        "y_center": 0.5111,
+        "width": 0.1777,
+        "height": 0.206
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "motorcycle",
+      "class_id": 2,
+      "label_en": "Motorcycle",
+      "confidence": 70.0,
+      "track_id": 31,
+      "bbox_norm": {
+        "x1": 0.3524,
+        "y1": 0.4649,
+        "x2": 0.4317,
+        "y2": 0.7031
+      },
+      "bbox_px": {
+        "x1": 316,
+        "y1": 235,
+        "x2": 388,
+        "y2": 356
+      },
+      "bbox_yolo": {
+        "x_center": 0.39205,
+        "y_center": 0.584,
+        "width": 0.0793,
+        "height": 0.2382
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "car",
+      "class_id": 1,
+      "label_en": "Car",
+      "confidence": 70.0,
+      "track_id": 46,
+      "bbox_norm": {
+        "x1": 0.2809,
+        "y1": 0.4138,
+        "x2": 0.3606,
+        "y2": 0.5325
+      },
+      "bbox_px": {
+        "x1": 252,
+        "y1": 209,
+        "x2": 324,
+        "y2": 269
+      },
+      "bbox_yolo": {
+        "x_center": 0.32075,
+        "y_center": 0.47315,
+        "width": 0.0797,
+        "height": 0.1187
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "car",
+      "class_id": 1,
+      "label_en": "Car",
+      "confidence": 70.0,
+      "track_id": 47,
+      "bbox_norm": {
+        "x1": 0.2195,
+        "y1": 0.437,
+        "x2": 0.2741,
+        "y2": 0.5433
+      },
+      "bbox_px": {
+        "x1": 197,
+        "y1": 221,
+        "x2": 246,
+        "y2": 275
+      },
+      "bbox_yolo": {
+        "x_center": 0.2468,
+        "y_center": 0.49015,
+        "width": 0.0546,
+        "height": 0.1063
+      }
+    }
+  ]
+}

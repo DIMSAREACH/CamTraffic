@@ -26,12 +26,10 @@ DATASET_DIR = ROOT / 'dataset'
 WEIGHTS_DIR = ROOT / 'weights'
 WEIGHTS_DIR.mkdir(exist_ok=True)
 BACKEND_DIR = ROOT.parent / 'backend'
-CAMBODIA_REFERENCE_ROOT = (
-    ROOT.parent.parent.parent
-    / 'Reference(PDF Download)'
-    / 'Dim Sareach'
-    / 'Road signs in Cambodia'
-)
+sys.path.insert(0, str(ROOT / 'scripts'))
+from dim_sareach_paths import road_signs_root  # noqa: E402
+
+CAMBODIA_REFERENCE_ROOT = road_signs_root()
 DEFAULT_SOURCE_DIRS = (CAMBODIA_REFERENCE_ROOT,)
 
 

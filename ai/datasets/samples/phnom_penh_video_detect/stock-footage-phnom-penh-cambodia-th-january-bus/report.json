@@ -1,0 +1,226 @@
+{
+  "ok": true,
+  "video": "stock-footage-phnom-penh-cambodia-th-january-busy-traffic-on-chaktomuk-walk-street-in-phnom-penh.webm",
+  "frames_sampled": 12,
+  "frames_with_boxes": 12,
+  "total_vehicle_detections": 117,
+  "total_plate_boxes": 3,
+  "box_coverage_pct": 100.0,
+  "annotated_preview": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\samples\\phnom_penh_video_detect\\stock-footage-phnom-penh-cambodia-th-january-bus\\annotated_preview.mp4",
+  "summaries": [
+    {
+      "timestamp_sec": 0.0,
+      "vehicles": 6,
+      "vehicle_labels": [
+        "Car",
+        "Car",
+        "Car",
+        "Car",
+        "Motorcycle",
+        "Motorcycle"
+      ],
+      "plate_boxes": 0,
+      "plate_text": "",
+      "overlay_count": 6,
+      "annotated": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\samples\\phnom_penh_video_detect\\stock-footage-phnom-penh-cambodia-th-january-bus\\frame_00_t0.0s_annotated.jpg"
+    },
+    {
+      "timestamp_sec": 1.08,
+      "vehicles": 9,
+      "vehicle_labels": [
+        "Car",
+        "Motorcycle",
+        "Car",
+        "Motorcycle",
+        "Car",
+        "Car",
+        "Car",
+        "Motorcycle"
+      ],
+      "plate_boxes": 0,
+      "plate_text": "",
+      "overlay_count": 9,
+      "annotated": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\samples\\phnom_penh_video_detect\\stock-footage-phnom-penh-cambodia-th-january-bus\\frame_01_t1.1s_annotated.jpg"
+    },
+    {
+      "timestamp_sec": 2.12,
+      "vehicles": 10,
+      "vehicle_labels": [
+        "Motorcycle",
+        "Motorcycle",
+        "Car",
+        "Motorcycle",
+        "Car",
+        "Tuk Tuk",
+        "Car",
+        "Motorcycle"
+      ],
+      "plate_boxes": 0,
+      "plate_text": "",
+      "overlay_count": 10,
+      "annotated": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\samples\\phnom_penh_video_detect\\stock-footage-phnom-penh-cambodia-th-january-bus\\frame_02_t2.1s_annotated.jpg"
+    },
+    {
+      "timestamp_sec": 3.2,
+      "vehicles": 11,
+      "vehicle_labels": [
+        "Motorcycle",
+        "Motorcycle",
+        "Motorcycle",
+        "Motorcycle",
+        "Car",
+        "Car",
+        "Car",
+        "Car"
+      ],
+      "plate_boxes": 0,
+      "plate_text": "",
+      "overlay_count": 11,
+      "annotated": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\samples\\phnom_penh_video_detect\\stock-footage-phnom-penh-cambodia-th-january-bus\\frame_03_t3.2s_annotated.jpg"
+    },
+    {
+      "timestamp_sec": 4.28,
+      "vehicles": 12,
+      "vehicle_labels": [
+        "Motorcycle",
+        "Motorcycle",
+        "Motorcycle",
+        "Car",
+        "Tuk Tuk",
+        "Car",
+        "Bus",
+        "Car"
+      ],
+      "plate_boxes": 0,
+      "plate_text": "",
+      "overlay_count": 12,
+      "annotated": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\samples\\phnom_penh_video_detect\\stock-footage-phnom-penh-cambodia-th-january-bus\\frame_04_t4.3s_annotated.jpg"
+    },
+    {
+      "timestamp_sec": 5.32,
+      "vehicles": 12,
+      "vehicle_labels": [
+        "Car",
+        "Car",
+        "Car",
+        "Motorcycle",
+        "Motorcycle",
+        "Car",
+        "Motorcycle",
+        "Tuk Tuk"
+      ],
+      "plate_boxes": 0,
+      "plate_text": "",
+      "overlay_count": 12,
+      "annotated": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\samples\\phnom_penh_video_detect\\stock-footage-phnom-penh-cambodia-th-january-bus\\frame_05_t5.3s_annotated.jpg"
+    },
+    {
+      "timestamp_sec": 6.4,
+      "vehicles": 9,
+      "vehicle_labels": [
+        "Motorcycle",
+        "Car",
+        "Car",
+        "Motorcycle",
+        "Car",
+        "Tuk Tuk",
+        "Bus",
+        "Car"
+      ],
+      "plate_boxes": 0,
+      "plate_text": "",
+      "overlay_count": 9,
+      "annotated": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\samples\\phnom_penh_video_detect\\stock-footage-phnom-penh-cambodia-th-january-bus\\frame_06_t6.4s_annotated.jpg"
+    },
+    {
+      "timestamp_sec": 7.44,
+      "vehicles": 12,
+      "vehicle_labels": [
+        "Bus",
+        "Car",
+        "Motorcycle",
+        "Motorcycle",
+        "Bus",
+        "Motorcycle",
+        "Car",
+        "Car"
+      ],
+      "plate_boxes": 0,
+      "plate_text": "",
+      "overlay_count": 12,
+      "annotated": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\samples\\phnom_penh_video_detect\\stock-footage-phnom-penh-cambodia-th-january-bus\\frame_07_t7.4s_annotated.jpg"
+    },
+    {
+      "timestamp_sec": 8.52,
+      "vehicles": 11,
+      "vehicle_labels": [
+        "Motorcycle",
+        "Motorcycle",
+        "Car",
+        "Tuk Tuk",
+        "Motorcycle",
+        "Car",
+        "Car",
+        "Car"
+      ],
+      "plate_boxes": 0,
+      "plate_text": "",
+      "overlay_count": 11,
+      "annotated": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\samples\\phnom_penh_video_detect\\stock-footage-phnom-penh-cambodia-th-january-bus\\frame_08_t8.5s_annotated.jpg"
+    },
+    {
+      "timestamp_sec": 9.6,
+      "vehicles": 9,
+      "vehicle_labels": [
+        "Motorcycle",
+        "Car",
+        "Car",
+        "Car",
+        "Car",
+        "Car",
+        "Car",
+        "Car"
+      ],
+      "plate_boxes": 1,
+      "plate_text": "",
+      "overlay_count": 10,
+      "annotated": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\samples\\phnom_penh_video_detect\\stock-footage-phnom-penh-cambodia-th-january-bus\\frame_09_t9.6s_annotated.jpg"
+    },
+    {
+      "timestamp_sec": 10.64,
+      "vehicles": 7,
+      "vehicle_labels": [
+        "Car",
+        "Motorcycle",
+        "Car",
+        "Car",
+        "Car",
+        "Tuk Tuk",
+        "Car"
+      ],
+      "plate_boxes": 1,
+      "plate_text": "",
+      "overlay_count": 8,
+      "annotated": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\samples\\phnom_penh_video_detect\\stock-footage-phnom-penh-cambodia-th-january-bus\\frame_10_t10.6s_annotated.jpg"
+    },
+    {
+      "timestamp_sec": 11.72,
+      "vehicles": 9,
+      "vehicle_labels": [
+        "Car",
+        "Tuk Tuk",
+        "Car",
+        "Tuk Tuk",
+        "Car",
+        "Car",
+        "Motorcycle",
+        "Car"
+      ],
+      "plate_boxes": 1,
+      "plate_text": "",
+      "overlay_count": 10,
+      "annotated": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\samples\\phnom_penh_video_detect\\stock-footage-phnom-penh-cambodia-th-january-bus\\frame_11_t11.7s_annotated.jpg"
+    }
+  ],
+  "output_dir": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\samples\\phnom_penh_video_detect\\stock-footage-phnom-penh-cambodia-th-january-bus"
+}

@@ -2,6 +2,10 @@
 
 ## AI-Based Traffic Sign Detection and Traffic Law Enforcement System in Cambodia
 
+> **Master Build complete workflows (roles, AI, police, driver, admin, fine, appeal, E2E, DFD):**  
+> [`docs/COMPLETE-SYSTEM-WORKFLOW.md`](COMPLETE-SYSTEM-WORKFLOW.md) ·  
+> Thesis activity/sequence Mermaid: [`final-year-project/diagrams/ACTIVITY-DIAGRAMS-MASTER-BUILD.md`](final-year-project/diagrams/ACTIVITY-DIAGRAMS-MASTER-BUILD.md)
+
 Think of CamTraffic as **five connected systems** working together:
 
 ```text

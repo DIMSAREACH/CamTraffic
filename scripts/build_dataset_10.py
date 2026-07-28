@@ -24,7 +24,7 @@ OUTPUT_ROOT = AI_ROOT / 'dataset_10'
 DATA_YAML_SRC = AI_ROOT / 'data.yaml'
 REPORT_DIR = ROOT / 'docs' / 'reports'
 
-# New class order (new_id -> class_name)
+# Class order (new_id -> class_name). Original 10 + four expansion batches (+10 each).
 TARGET_CLASSES: list[str] = [
     'NO_ENTRY',
     'NO_LEFT_TURN',
@@ -36,6 +36,50 @@ TARGET_CLASSES: list[str] = [
     'P_SPEED_LIMIT_50_KM_H',
     'W_PEDESTRIAN_CROSSING',
     'I_ONE_WAY_TRAFFIC',
+    # +10 batch A
+    'M_YIELD_GIVE_WAY',
+    'M_PRIORITY_ROAD',
+    'W_ROUNDABOUT_AHEAD',
+    'M_KEEP_RIGHT',
+    'P_NO_MOTORCYCLES',
+    'P_NO_OVERTAKING',
+    'W_SHARP_CURVE_TO_THE_LEFT',
+    'W_END_ROAD_WORKS',
+    'I_HOSPITAL',
+    'I_BUILT_UP_AREA_BEGINS',
+    # +10 batch B
+    'NO_STOPPING',
+    'P_NO_HONKING',
+    'P_MAXIMUM_SPEED_LIMIT',  # no P_SPEED_LIMIT_30 in full pack
+    'M_GO_STRAIGHT',
+    'W_HUMP',
+    'W_TRAFFIC_LIGHTS_AHEAD',
+    'W_CATTLE_OR_DOMESTIC_ANIMALS',
+    'W_NARROW_BRIDGE',
+    'I_PARKING_LOT',
+    'I_U_TURN',
+    # +10 batch C
+    'M_KEEP_LEFT',
+    'M_TURN_LEFT',
+    'M_TURN_RIGHT',
+    'M_BICYCLES_ONLY',
+    'I_EXPRESSWAY_BEGINS',
+    'I_EXPRESSWAY_ENDS',
+    'I_GAS_STATION',
+    'I_BUILT_UP_AREA_ENDS',
+    'M_PRIORITY_INTERSECTION',
+    'M_SINGLE_TRACK_RAILWAY_CROSSING',
+    # +10 batch D
+    'I_AIRPORTS',
+    'I_FERRY',
+    'I_DEAD_END',
+    'I_HOTEL_OR_MOTEL',
+    'I_RESTAURANTS_SHOP',
+    'I_TELEPHONE',
+    'I_WEIGH_STATION',
+    'I_PROVINCIAL_DISTRICT_OR_COMMUNE_BOUNDARY',
+    'I_BEWARE_OF_TRAINS',
+    'W_HANDICAPPED_CROSSING',  # G_PEDESTRIAN_CROSSING already covered by W_PEDESTRIAN_CROSSING
 ]
 
 IMAGE_EXTS = {'.jpg', '.jpeg', '.png', '.webp', '.bmp'}
@@ -160,7 +204,7 @@ def write_dataset_files(
     # Preserve path style from source data.yaml when possible.
     path_value = str(output_root.resolve()).replace('\\', '/')
     names_block = '\n'.join(f'  {i}: {new_to_name[i]}' for i in range(len(new_to_name)))
-    data_yaml = f"""# 10-class subset — auto-generated
+    data_yaml = f"""# Multi-class subset ({len(new_to_name)} classes) — auto-generated
 path: {path_value}
 train: images/train
 val: images/val

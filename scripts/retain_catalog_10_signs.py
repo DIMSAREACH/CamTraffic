@@ -25,7 +25,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-BACKEND = ROOT / 'backend'
+BACKEND = ROOT / 'src' / 'backend'
 CATALOG_PATH = ROOT / 'ai' / 'traffic_sign_catalog_10.json'
 TRAINING_STATUS_PATH = ROOT / 'ai' / 'weights' / 'training_status.json'
 CUSTOM_SIGNS_DIR = ROOT / 'ai' / 'custom_signs'

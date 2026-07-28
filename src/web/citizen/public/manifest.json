@@ -1,0 +1,22 @@
+{
+  "name": "CamTraffic Citizen",
+  "short_name": "CamTraffic",
+  "description": "View fines, pay penalties, and manage appeals — Cambodia",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#1d4ed8",
+  "lang": "km-KH",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

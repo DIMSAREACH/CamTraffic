@@ -1,0 +1,157 @@
+{
+  "generated_at": "2026-07-22T22:02:03.740491+00:00",
+  "count": 30,
+  "note": "Low mean-luminance frames for night/shadow robustness checks",
+  "samples": [
+    {
+      "file": "hard_01_bri91.jpg",
+      "source": "GX010276.MP4_snapshot_10.57.217.JPG",
+      "brightness": 91.29
+    },
+    {
+      "file": "hard_02_bri92.jpg",
+      "source": "GX010217.MP4_snapshot_11.46.798.JPG",
+      "brightness": 92.13
+    },
+    {
+      "file": "hard_03_bri93.jpg",
+      "source": "NR6_364.jpg",
+      "brightness": 93.91
+    },
+    {
+      "file": "hard_04_bri94.jpg",
+      "source": "GX010119.MP4_snapshot_07.08.695.jpg",
+      "brightness": 94.86
+    },
+    {
+      "file": "hard_05_bri95.jpg",
+      "source": "GX010217.MP4_snapshot_17.36.673.jpg",
+      "brightness": 95.54
+    },
+    {
+      "file": "hard_06_bri95.jpg",
+      "source": "NR6_425.jpg",
+      "brightness": 95.59
+    },
+    {
+      "file": "hard_07_bri96.jpg",
+      "source": "GX010119.MP4_snapshot_06.21.479.jpg",
+      "brightness": 96.07
+    },
+    {
+      "file": "hard_08_bri96.jpg",
+      "source": "GX010118.MP4_snapshot_14.22.498.jpg",
+      "brightness": 96.9
+    },
+    {
+      "file": "hard_09_bri97.jpg",
+      "source": "GX010234.MP4_snapshot_03.08.018.jpg",
+      "brightness": 97.25
+    },
+    {
+      "file": "hard_10_bri97.jpg",
+      "source": "GX010131.MP4_snapshot_11.08.448.JPG",
+      "brightness": 97.29
+    },
+    {
+      "file": "hard_11_bri97.jpg",
+      "source": "NR6_402.jpg",
+      "brightness": 97.3
+    },
+    {
+      "file": "hard_12_bri98.jpg",
+      "source": "GX010238.MP4_snapshot_13.16.621.jpg",
+      "brightness": 98.97
+    },
+    {
+      "file": "hard_13_bri99.jpg",
+      "source": "NR6_413.jpg",
+      "brightness": 99.05
+    },
+    {
+      "file": "hard_14_bri101.jpg",
+      "source": "GX010119.MP4_snapshot_20.16.682.jpg",
+      "brightness": 101.26
+    },
+    {
+      "file": "hard_15_bri101.jpg",
+      "source": "NR6_408.jpg",
+      "brightness": 101.41
+    },
+    {
+      "file": "hard_16_bri101.jpg",
+      "source": "GX010277.MP4_snapshot_00.15.875.JPG",
+      "brightness": 101.44
+    },
+    {
+      "file": "hard_17_bri101.jpg",
+      "source": "NR6_397.jpg",
+      "brightness": 101.49
+    },
+    {
+      "file": "hard_18_bri102.jpg",
+      "source": "GX010119.MP4_snapshot_03.35.345.jpg",
+      "brightness": 102.51
+    },
+    {
+      "file": "hard_19_bri102.jpg",
+      "source": "GX010277.MP4_snapshot_35.19.447.JPG",
+      "brightness": 102.59
+    },
+    {
+      "file": "hard_20_bri104.jpg",
+      "source": "GX010131.MP4_snapshot_07.26.401.jpg",
+      "brightness": 104.04
+    },
+    {
+      "file": "hard_21_bri104.jpg",
+      "source": "NR6_301.jpg",
+      "brightness": 104.47
+    },
+    {
+      "file": "hard_22_bri106.jpg",
+      "source": "GX010119.MP4_snapshot_02.21.739.jpg",
+      "brightness": 106.52
+    },
+    {
+      "file": "hard_23_bri107.jpg",
+      "source": "NR6_359.jpg",
+      "brightness": 107.77
+    },
+    {
+      "file": "hard_24_bri109.jpg",
+      "source": "NR6_386.jpg",
+      "brightness": 109.02
+    },
+    {
+      "file": "hard_25_bri110.jpg",
+      "source": "GX010131.MP4_snapshot_01.04.072.jpg",
+      "brightness": 110.48
+    },
+    {
+      "file": "hard_26_bri111.jpg",
+      "source": "NR6_108.jpg",
+      "brightness": 111.11
+    },
+    {
+      "file": "hard_27_bri112.jpg",
+      "source": "GX020275.MP4_snapshot_01.23.082.JPG",
+      "brightness": 112.1
+    },
+    {
+      "file": "hard_28_bri112.jpg",
+      "source": "GX010113.MP4_snapshot_04.53.518.JPG",
+      "brightness": 112.78
+    },
+    {
+      "file": "hard_29_bri113.jpg",
+      "source": "GX010234.MP4_snapshot_09.42.434.jpg",
+      "brightness": 113.0
+    },
+    {
+      "file": "hard_30_bri113.jpg",
+      "source": "GX010276.MP4_snapshot_20.30.475.JPG",
+      "brightness": 113.51
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "source": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\samples\\phnom_penh_video_detect\\stock-footage-phnom-penh-cambodia-th-january-bus\\frame_00_t0.0s_annotated.jpg",
+  "vehicles": 1,
+  "vehicle_labels": [
+    "Car"
+  ],
+  "plate_boxes": 2,
+  "plate_bbox": {
+    "x1": 0.4003,
+    "y1": 0.6415,
+    "x2": 0.5805,
+    "y2": 0.666
+  },
+  "detection_mode": "vehicle",
+  "annotated": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\samples\\webcam_street_verify\\webcam_street_annotated.jpg"
+}

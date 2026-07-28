@@ -26,7 +26,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 AI_ROOT = ROOT / 'ai'
-BACKEND = ROOT / 'backend'
+BACKEND = ROOT / 'src' / 'backend'
 REPORT_DIR = ROOT / 'docs' / 'reports'
 MODEL_PATH = AI_ROOT / 'weights' / 'best.pt'
 DATA_YAML = AI_ROOT / 'data.yaml'

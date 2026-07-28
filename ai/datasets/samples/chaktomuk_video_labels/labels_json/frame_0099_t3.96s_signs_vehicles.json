@@ -1,0 +1,196 @@
+{
+  "source": "stock-footage-phnom-penh-cambodia-th-january-busy-traffic-on-chaktomuk-walk-street-in-phnom-penh.webm",
+  "video_key": "chaktomuk",
+  "frame_index": 99,
+  "frame_file": "frame_0099_t3.96s.jpg",
+  "timestamp_sec": 3.96,
+  "image_size": {
+    "width": 898,
+    "height": 506
+  },
+  "tracking": true,
+  "annotations": [
+    {
+      "kind": "sign",
+      "class_key": "SPEED_LIMIT_40",
+      "class_id": 8,
+      "label_en": "Speed Limit 40",
+      "confidence": 40.7,
+      "track_id": 1201,
+      "bbox_norm": {
+        "x1": 0.5478546619415283,
+        "y1": 0.2799781262874603,
+        "x2": 0.5840142369270325,
+        "y2": 0.3458069860935211
+      },
+      "bbox_px": {
+        "x1": 492,
+        "y1": 142,
+        "x2": 524,
+        "y2": 175
+      },
+      "bbox_yolo": {
+        "x_center": 0.565934,
+        "y_center": 0.312893,
+        "width": 0.03616,
+        "height": 0.065829
+      }
+    },
+    {
+      "kind": "sign",
+      "class_key": "NO_U_TURN",
+      "class_id": 7,
+      "label_en": "No U Turn",
+      "confidence": 38.1,
+      "track_id": 1200,
+      "bbox_norm": {
+        "x1": 0.5475958585739136,
+        "y1": 0.279177725315094,
+        "x2": 0.5834578275680542,
+        "y2": 0.3434887230396271
+      },
+      "bbox_px": {
+        "x1": 492,
+        "y1": 141,
+        "x2": 524,
+        "y2": 174
+      },
+      "bbox_yolo": {
+        "x_center": 0.565527,
+        "y_center": 0.311333,
+        "width": 0.035862,
+        "height": 0.064311
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "motorcycle",
+      "class_id": 2,
+      "label_en": "Motorcycle",
+      "confidence": 98.1,
+      "track_id": 57,
+      "bbox_norm": {
+        "x1": 0.384,
+        "y1": 0.458,
+        "x2": 0.4358,
+        "y2": 0.6244
+      },
+      "bbox_px": {
+        "x1": 345,
+        "y1": 232,
+        "x2": 391,
+        "y2": 316
+      },
+      "bbox_yolo": {
+        "x_center": 0.4099,
+        "y_center": 0.5412,
+        "width": 0.0518,
+        "height": 0.1664
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "car",
+      "class_id": 1,
+      "label_en": "Car",
+      "confidence": 78.5,
+      "track_id": 53,
+      "bbox_norm": {
+        "x1": 0.4128,
+        "y1": 0.4282,
+        "x2": 0.5014,
+        "y2": 0.5739
+      },
+      "bbox_px": {
+        "x1": 371,
+        "y1": 217,
+        "x2": 450,
+        "y2": 290
+      },
+      "bbox_yolo": {
+        "x_center": 0.4571,
+        "y_center": 0.50105,
+        "width": 0.0886,
+        "height": 0.1457
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "motorcycle",
+      "class_id": 2,
+      "label_en": "Motorcycle",
+      "confidence": 72.0,
+      "track_id": 48,
+      "bbox_norm": {
+        "x1": 0.2475,
+        "y1": 0.4918,
+        "x2": 0.3208,
+        "y2": 0.7116
+      },
+      "bbox_px": {
+        "x1": 222,
+        "y1": 249,
+        "x2": 288,
+        "y2": 360
+      },
+      "bbox_yolo": {
+        "x_center": 0.28415,
+        "y_center": 0.6017,
+        "width": 0.0733,
+        "height": 0.2198
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "bus",
+      "class_id": 0,
+      "label_en": "Bus",
+      "confidence": 71.3,
+      "track_id": 62,
+      "bbox_norm": {
+        "x1": 0.7071,
+        "y1": 0.3742,
+        "x2": 0.8878,
+        "y2": 0.6609
+      },
+      "bbox_px": {
+        "x1": 635,
+        "y1": 189,
+        "x2": 797,
+        "y2": 334
+      },
+      "bbox_yolo": {
+        "x_center": 0.79745,
+        "y_center": 0.51755,
+        "width": 0.1807,
+        "height": 0.2867
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "tuk_tuk",
+      "class_id": 4,
+      "label_en": "Tuk Tuk",
+      "confidence": 70.0,
+      "track_id": 61,
+      "bbox_norm": {
+        "x1": 0.5386,
+        "y1": 0.408,
+        "x2": 0.6442,
+        "y2": 0.571
+      },
+      "bbox_px": {
+        "x1": 484,
+        "y1": 206,
+        "x2": 578,
+        "y2": 289
+      },
+      "bbox_yolo": {
+        "x_center": 0.5914,
+        "y_center": 0.4895,
+        "width": 0.1056,
+        "height": 0.163
+      }
+    }
+  ]
+}

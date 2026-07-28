@@ -1,0 +1,144 @@
+{
+  "source": "stock-footage-phnom-penh-cambodia-vehicles-and-motorbikes-move-along-the-riverside-road-near-a.webm",
+  "video_key": "riverside",
+  "frame_index": 156,
+  "frame_file": "frame_0156_t6.51s.jpg",
+  "timestamp_sec": 6.506,
+  "image_size": {
+    "width": 898,
+    "height": 506
+  },
+  "tracking": true,
+  "annotations": [
+    {
+      "kind": "sign",
+      "class_key": "PEDESTRIAN_AREA",
+      "class_id": 6,
+      "label_en": "Pedestrian Area",
+      "confidence": 49.7,
+      "track_id": 1200,
+      "bbox_norm": {
+        "x1": 0.4665887951850891,
+        "y1": 0.45127633213996887,
+        "x2": 0.5018815994262695,
+        "y2": 0.515207827091217
+      },
+      "bbox_px": {
+        "x1": 419,
+        "y1": 228,
+        "x2": 451,
+        "y2": 261
+      },
+      "bbox_yolo": {
+        "x_center": 0.484235,
+        "y_center": 0.483242,
+        "width": 0.035293,
+        "height": 0.063931
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "motorcycle",
+      "class_id": 2,
+      "label_en": "Motorcycle",
+      "confidence": 87.7,
+      "track_id": 39,
+      "bbox_norm": {
+        "x1": 0.3616,
+        "y1": 0.621,
+        "x2": 0.4379,
+        "y2": 0.7875
+      },
+      "bbox_px": {
+        "x1": 325,
+        "y1": 314,
+        "x2": 393,
+        "y2": 398
+      },
+      "bbox_yolo": {
+        "x_center": 0.39975,
+        "y_center": 0.70425,
+        "width": 0.0763,
+        "height": 0.1665
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "tuk_tuk",
+      "class_id": 4,
+      "label_en": "Tuk Tuk",
+      "confidence": 78.6,
+      "track_id": 47,
+      "bbox_norm": {
+        "x1": 0.2013,
+        "y1": 0.5898,
+        "x2": 0.2462,
+        "y2": 0.6929
+      },
+      "bbox_px": {
+        "x1": 181,
+        "y1": 298,
+        "x2": 221,
+        "y2": 351
+      },
+      "bbox_yolo": {
+        "x_center": 0.22375,
+        "y_center": 0.64135,
+        "width": 0.0449,
+        "height": 0.1031
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "motorcycle",
+      "class_id": 2,
+      "label_en": "Motorcycle",
+      "confidence": 75.5,
+      "track_id": 50,
+      "bbox_norm": {
+        "x1": 0.0352,
+        "y1": 0.6145,
+        "x2": 0.0981,
+        "y2": 0.7734
+      },
+      "bbox_px": {
+        "x1": 32,
+        "y1": 311,
+        "x2": 88,
+        "y2": 391
+      },
+      "bbox_yolo": {
+        "x_center": 0.06665,
+        "y_center": 0.69395,
+        "width": 0.0629,
+        "height": 0.1589
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "car",
+      "class_id": 1,
+      "label_en": "Car",
+      "confidence": 70.0,
+      "track_id": 49,
+      "bbox_norm": {
+        "x1": 0.0842,
+        "y1": 0.5609,
+        "x2": 0.2081,
+        "y2": 0.7589
+      },
+      "bbox_px": {
+        "x1": 76,
+        "y1": 284,
+        "x2": 187,
+        "y2": 384
+      },
+      "bbox_yolo": {
+        "x_center": 0.14615,
+        "y_center": 0.6599,
+        "width": 0.1239,
+        "height": 0.198
+      }
+    }
+  ]
+}

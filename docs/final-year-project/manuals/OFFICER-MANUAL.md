@@ -1,17 +1,18 @@
 # Traffic Officer Manual — CamTraffic
 
-**Role:** Traffic Police  
-**Portal:** http://localhost:5173 → **Officer** tab  
+**Role:** Traffic Police (Traffic Operations domain)  
+**Portal:** http://localhost:5173 → login as **Officer** → lands on `/officer`  
+**API namespace:** `/api/v1/officer/`  
 **Task:** 376
 
 ---
 
 ## 1. Login
 
-1. Open the user portal.
+1. Open the user portal (http://localhost:5173).
 2. Click **Officer** tab on login page.
-3. Enter police email and password.
-4. Dashboard shows enforcement KPIs for your jurisdiction.
+3. Enter police email and password (demo: `officer@camtraffic.demo`).
+4. You are redirected to **`/officer`** (Traffic Operations dashboard).
 
 ---
 
@@ -20,6 +21,8 @@
 ```
 Detection → Review violation → Issue fine → Handle appeals
 ```
+
+**Important:** Only officers can approve/reject AI cases and issue fines. Admins manage the system; they do not issue fines.
 
 ---
 

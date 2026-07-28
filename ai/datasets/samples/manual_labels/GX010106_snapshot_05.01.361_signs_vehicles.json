@@ -1,0 +1,212 @@
+{
+  "source": "GX010106.MP4_snapshot_05.01.361.png",
+  "image_size": {
+    "width": 3840,
+    "height": 2160
+  },
+  "annotations": [
+    {
+      "kind": "sign",
+      "class_id": 200,
+      "class_key": "HEIGHT_LIMIT_5_5M",
+      "label_en": "Height Limit 5.5m",
+      "confidence": 95.0,
+      "bbox_xyxy": [
+        2831,
+        50,
+        2999,
+        217
+      ],
+      "bbox_yolo": {
+        "x_center": 0.759115,
+        "y_center": 0.061806,
+        "width": 0.04375,
+        "height": 0.077315
+      },
+      "bbox_norm": {
+        "x1": 0.73724,
+        "y1": 0.023148,
+        "x2": 0.78099,
+        "y2": 0.100463
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_id": 102,
+      "class_key": "TRUCK",
+      "label_en": "Truck",
+      "confidence": 94.6,
+      "bbox_xyxy": [
+        1270,
+        529,
+        1782,
+        1312
+      ],
+      "bbox_yolo": {
+        "x_center": 0.397501,
+        "y_center": 0.426398,
+        "width": 0.133461,
+        "height": 0.362632
+      },
+      "bbox_norm": {
+        "x1": 0.33077,
+        "y1": 0.245082,
+        "x2": 0.464231,
+        "y2": 0.607714
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_id": 102,
+      "class_key": "TRUCK",
+      "label_en": "Truck",
+      "confidence": 91.4,
+      "bbox_xyxy": [
+        2325,
+        763,
+        2773,
+        1225
+      ],
+      "bbox_yolo": {
+        "x_center": 0.663892,
+        "y_center": 0.460402,
+        "width": 0.116569,
+        "height": 0.214152
+      },
+      "bbox_norm": {
+        "x1": 0.605608,
+        "y1": 0.353326,
+        "x2": 0.722177,
+        "y2": 0.567478
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_id": 100,
+      "class_key": "CAR",
+      "label_en": "Car",
+      "confidence": 66.8,
+      "bbox_xyxy": [
+        2,
+        875,
+        1302,
+        2107
+      ],
+      "bbox_yolo": {
+        "x_center": 0.169864,
+        "y_center": 0.690562,
+        "width": 0.338649,
+        "height": 0.570045
+      },
+      "bbox_norm": {
+        "x1": 0.000539,
+        "y1": 0.40554,
+        "x2": 0.339188,
+        "y2": 0.975585
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_id": 100,
+      "class_key": "CAR",
+      "label_en": "Car",
+      "confidence": 49.1,
+      "bbox_xyxy": [
+        2002,
+        1040,
+        2083,
+        1114
+      ],
+      "bbox_yolo": {
+        "x_center": 0.532004,
+        "y_center": 0.498853,
+        "width": 0.021253,
+        "height": 0.034301
+      },
+      "bbox_norm": {
+        "x1": 0.521378,
+        "y1": 0.481702,
+        "x2": 0.542631,
+        "y2": 0.516003
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_id": 104,
+      "class_key": "TUK_TUK",
+      "label_en": "Tuk Tuk",
+      "confidence": 92.0,
+      "bbox_xyxy": [
+        2840,
+        930,
+        3460,
+        1340
+      ],
+      "bbox_norm": {
+        "x1": 0.739583,
+        "y1": 0.430556,
+        "x2": 0.901042,
+        "y2": 0.62037
+      },
+      "bbox_yolo": {
+        "x_center": 0.820312,
+        "y_center": 0.525463,
+        "width": 0.161459,
+        "height": 0.189814
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_id": 101,
+      "class_key": "MOTORCYCLE",
+      "label_en": "Motorcycle",
+      "confidence": 88.0,
+      "bbox_xyxy": [
+        3485,
+        1005,
+        3655,
+        1245
+      ],
+      "bbox_norm": {
+        "x1": 0.907552,
+        "y1": 0.465278,
+        "x2": 0.951823,
+        "y2": 0.576389
+      },
+      "bbox_yolo": {
+        "x_center": 0.929688,
+        "y_center": 0.520834,
+        "width": 0.044271,
+        "height": 0.111111
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_id": 104,
+      "class_key": "TUK_TUK",
+      "label_en": "Tuk Tuk",
+      "confidence": 75.0,
+      "bbox_xyxy": [
+        3660,
+        1020,
+        3839,
+        1220
+      ],
+      "bbox_norm": {
+        "x1": 0.953125,
+        "y1": 0.472222,
+        "x2": 0.99974,
+        "y2": 0.564815
+      },
+      "bbox_yolo": {
+        "x_center": 0.976433,
+        "y_center": 0.518518,
+        "width": 0.046615,
+        "height": 0.092593
+      }
+    }
+  ],
+  "vehicle_count": 7,
+  "sign_count": 1,
+  "notes": "Height Limit 5.5m on overpass. Full Tuk Tuk box (incl. plate 1HU-3055) + Motorcycle + far-right Tuk Tuk."
+}

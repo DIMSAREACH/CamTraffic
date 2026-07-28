@@ -1,0 +1,8 @@
+bus
+car
+motorcycle
+truck
+tuk_tuk
+NO_PARKING
+PEDESTRIAN_AREA
+SLOW_DOWN

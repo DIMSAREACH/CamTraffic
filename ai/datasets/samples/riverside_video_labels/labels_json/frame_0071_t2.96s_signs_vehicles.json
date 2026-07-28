@@ -1,0 +1,92 @@
+{
+  "source": "stock-footage-phnom-penh-cambodia-vehicles-and-motorbikes-move-along-the-riverside-road-near-a.webm",
+  "video_key": "riverside",
+  "frame_index": 71,
+  "frame_file": "frame_0071_t2.96s.jpg",
+  "timestamp_sec": 2.961,
+  "image_size": {
+    "width": 898,
+    "height": 506
+  },
+  "tracking": true,
+  "annotations": [
+    {
+      "kind": "sign",
+      "class_key": "SLOW_DOWN",
+      "class_id": 7,
+      "label_en": "Slow Down",
+      "confidence": 54.4,
+      "track_id": 1202,
+      "bbox_norm": {
+        "x1": 0.4448792338371277,
+        "y1": 0.38997533917427063,
+        "x2": 0.4831223487854004,
+        "y2": 0.4636291265487671
+      },
+      "bbox_px": {
+        "x1": 400,
+        "y1": 197,
+        "x2": 434,
+        "y2": 235
+      },
+      "bbox_yolo": {
+        "x_center": 0.464001,
+        "y_center": 0.426802,
+        "width": 0.038243,
+        "height": 0.073654
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "car",
+      "class_id": 1,
+      "label_en": "Car",
+      "confidence": 95.9,
+      "track_id": 11,
+      "bbox_norm": {
+        "x1": 0.7265,
+        "y1": 0.4546,
+        "x2": 1.0,
+        "y2": 0.9945
+      },
+      "bbox_px": {
+        "x1": 652,
+        "y1": 230,
+        "x2": 898,
+        "y2": 503
+      },
+      "bbox_yolo": {
+        "x_center": 0.86325,
+        "y_center": 0.72455,
+        "width": 0.2735,
+        "height": 0.5399
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "truck",
+      "class_id": 3,
+      "label_en": "Truck",
+      "confidence": 70.0,
+      "track_id": 1,
+      "bbox_norm": {
+        "x1": 0.1024,
+        "y1": 0.5007,
+        "x2": 0.3465,
+        "y2": 0.8022
+      },
+      "bbox_px": {
+        "x1": 92,
+        "y1": 253,
+        "x2": 311,
+        "y2": 406
+      },
+      "bbox_yolo": {
+        "x_center": 0.22445,
+        "y_center": 0.65145,
+        "width": 0.2441,
+        "height": 0.3015
+      }
+    }
+  ]
+}

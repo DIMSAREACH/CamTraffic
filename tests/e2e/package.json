@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "test": "playwright test -c playwright.config.ts",
-    "test:headed": "playwright test -c playwright.config.ts --headed"
+    "test:headed": "playwright test -c playwright.config.ts --headed",
+    "test:officer-ai": "playwright test -c playwright.config.ts --project=user-chromium officer-ai-detection.spec.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.1",

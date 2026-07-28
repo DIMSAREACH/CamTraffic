@@ -1,0 +1,180 @@
+{
+  "source": "GX010106.MP4_snapshot_07.36.000.jpg",
+  "image_size": {
+    "width": 3840,
+    "height": 2160
+  },
+  "annotations": [
+    {
+      "kind": "sign",
+      "class_id": 9,
+      "class_key": "NO_ENTRY",
+      "label_en": "No Entry",
+      "label_kh": "ហាមចូល",
+      "sign_code": "R1-01",
+      "category": "prohibitory",
+      "confidence": 99.0,
+      "bbox_xyxy": [
+        1049,
+        620,
+        1236,
+        803
+      ],
+      "bbox_yolo": {
+        "x_center": 0.297786,
+        "y_center": 0.32963,
+        "width": 0.048698,
+        "height": 0.085185
+      },
+      "bbox_norm": {
+        "x1": 0.273437,
+        "y1": 0.287038,
+        "x2": 0.322135,
+        "y2": 0.372222
+      }
+    },
+    {
+      "kind": "sign",
+      "class_id": 7,
+      "class_key": "KEEP_RIGHT",
+      "label_en": "Keep Right",
+      "label_kh": "បត់ស្តាំ",
+      "sign_code": "R2-10",
+      "category": "mandatory",
+      "confidence": 98.0,
+      "bbox_xyxy": [
+        1097,
+        923,
+        1308,
+        1120
+      ],
+      "bbox_yolo": {
+        "x_center": 0.313411,
+        "y_center": 0.473148,
+        "width": 0.054948,
+        "height": 0.091667
+      },
+      "bbox_norm": {
+        "x1": 0.285937,
+        "y1": 0.427315,
+        "x2": 0.340885,
+        "y2": 0.518981
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_id": 101,
+      "class_key": "MOTORCYCLE",
+      "label_en": "Motorcycle",
+      "confidence": 74.7,
+      "bbox_xyxy": [
+        117,
+        1118,
+        353,
+        1325
+      ],
+      "bbox_yolo": {
+        "x_center": 0.06135,
+        "y_center": 0.5657,
+        "width": 0.0615,
+        "height": 0.096
+      },
+      "bbox_norm": {
+        "x1": 0.0306,
+        "y1": 0.5177,
+        "x2": 0.0921,
+        "y2": 0.6137
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_id": 104,
+      "class_key": "TUK_TUK",
+      "label_en": "Tuk Tuk",
+      "confidence": 23.2,
+      "bbox_xyxy": [
+        951,
+        1015,
+        1289,
+        1254
+      ],
+      "bbox_yolo": {
+        "x_center": 0.29184,
+        "y_center": 0.525456,
+        "width": 0.088115,
+        "height": 0.110667
+      },
+      "bbox_norm": {
+        "x1": 0.247782,
+        "y1": 0.470123,
+        "x2": 0.335897,
+        "y2": 0.58079
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_id": 102,
+      "class_key": "TRUCK",
+      "label_en": "Truck",
+      "confidence": 21.0,
+      "bbox_xyxy": [
+        1969,
+        926,
+        2085,
+        1096
+      ],
+      "bbox_yolo": {
+        "x_center": 0.527942,
+        "y_center": 0.468213,
+        "width": 0.030203,
+        "height": 0.078541
+      },
+      "bbox_norm": {
+        "x1": 0.51284,
+        "y1": 0.428942,
+        "x2": 0.543043,
+        "y2": 0.507483
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_id": 102,
+      "class_key": "TRUCK",
+      "label_en": "Truck",
+      "confidence": 68.0,
+      "bbox_xyxy": [
+        1710,
+        990,
+        1820,
+        1095
+      ],
+      "bbox_yolo": {
+        "x_center": 0.459635,
+        "y_center": 0.482639,
+        "width": 0.028646,
+        "height": 0.048611
+      },
+      "bbox_norm": {
+        "x1": 0.4453125,
+        "y1": 0.4583333333333333,
+        "x2": 0.4739583333333333,
+        "y2": 0.5069444444444444
+      }
+    }
+  ],
+  "ai_sign_result": {
+    "sign_name_en": "Traffic Sign keep-right",
+    "confidence": 90.4,
+    "sign_bbox": {
+      "x1": 0.2844,
+      "y1": 0.4261,
+      "x2": 0.3412,
+      "y2": 0.5198
+    }
+  },
+  "vehicle_count": 4,
+  "sign_count": 2,
+  "format": "YOLO (class_id x_center y_center width height) normalized",
+  "dataset_ref": "ai/datasets/splits/b2_cambodia_named_signs (signs 0-25); vehicles class_id >= 100",
+  "notes": "Signs from GT labels; vehicles from CamTraffic YOLO pipeline."
+}
