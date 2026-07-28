@@ -750,8 +750,9 @@ export function sampleUsers(): User[] {
   return mockUsers;
 }
 
-/** Live API users plus demo catalog entries (deduped by email) for a fuller admin table. */
+/** Live API users plus demo catalog entries (deduped by email). Gated — never in production-truth. */
 export function mergeUsersWithSamples(live: User[]): User[] {
+  if (!allowSampleFallback()) return live;
   const seen = new Set(live.map((u) => u.email.trim().toLowerCase()));
   const merged: User[] = [...live];
   for (const sample of mockUsers) {

@@ -1,7 +1,7 @@
 import { useEffect, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '@shared/context/AuthContext';
-import { USER_PORTAL_ROUTES, canAccessOperationalAi } from '@shared/constants/portalRoutes';
+import { canAccessOperationalAi } from '@shared/constants/portalRoutes';
 
 /** Redirect drivers away from operational AI pages (detection, cameras, logs). */
 export function OperationalAiGuard({ children }: { children: ReactNode }) {
@@ -11,7 +11,7 @@ export function OperationalAiGuard({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isLoading || !user) return;
     if (!canAccessOperationalAi(user.role)) {
-      navigate(USER_PORTAL_ROUTES.dashboard, { replace: true });
+      navigate('/admin/dashboard', { replace: true });
     }
   }, [user, isLoading, navigate]);
 

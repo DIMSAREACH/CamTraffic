@@ -1157,6 +1157,27 @@ html.dark .admin-dash-refresh:hover {
   transform: translateY(-2px);
 }
 
+.admin-dash-kpi--link,
+.admin-dash-ops-card--link {
+  appearance: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.admin-dash-kpi--link:focus-visible,
+.admin-dash-ops-card--link:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.85);
+  outline-offset: 2px;
+}
+
+.admin-dash-ops-card--link:focus-visible {
+  outline-color: rgba(37, 99, 235, 0.55);
+}
+
 /* Colorful production dashboard accents */
 .admin-dash-hero--colorful {
   position: relative;
@@ -9246,6 +9267,22 @@ html.dark .enforcement-page__subtitle {
   box-shadow: 0 8px 24px rgba(37, 99, 235, 0.08);
 }
 
+button.enforcement-page__stat-card,
+.enforcement-page__stat-card--link {
+  appearance: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+button.enforcement-page__stat-card:focus-visible,
+.enforcement-page__stat-card--link:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.55);
+  outline-offset: 2px;
+}
+
 html.dark .enforcement-page__stat-card:hover {
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
 }
@@ -13902,6 +13939,368 @@ html.dark .fines-page__action-btn--view {
 
 html.dark .fines-page__action-btn--view:hover {
   background: rgba(37, 99, 235, 0.26);
+}
+
+/* ── Pay Fine dialog (driver KHQR) ── */
+.fines-pay-dialog {
+  --pay-teal: #0d9488;
+  --pay-teal-deep: #0f766e;
+  --pay-sky: #0284c7;
+  --pay-ink: #0f172a;
+  --pay-muted: #64748b;
+  --pay-line: rgba(13, 148, 136, 0.18);
+  --pay-soft: #f0fdfa;
+}
+
+.fines-pay-dialog__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 0.15rem 0.1rem 0.35rem;
+  max-height: min(62vh, 560px);
+  overflow-y: auto;
+}
+
+.fines-pay-dialog__hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  padding: 1rem 1.1rem;
+  border-radius: 1rem;
+  background:
+    radial-gradient(circle at 90% 10%, rgba(255, 255, 255, 0.22), transparent 42%),
+    linear-gradient(125deg, #0f766e 0%, #0d9488 48%, #0284c7 100%);
+  color: #fff;
+  box-shadow: 0 14px 28px rgba(13, 148, 136, 0.28);
+}
+
+.fines-pay-dialog__hero-label {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  opacity: 0.92;
+}
+
+.fines-pay-dialog__hero-amount {
+  margin: 0.2rem 0 0;
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.fines-pay-dialog__hero-usd {
+  margin: 0.25rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  opacity: 0.88;
+}
+
+.fines-pay-dialog__hero-badge {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.9rem;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  flex-shrink: 0;
+}
+
+.fines-pay-dialog__steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.fines-pay-dialog__steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.75rem;
+  background: var(--pay-soft);
+  border: 1px solid var(--pay-line);
+  color: #334155;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.fines-pay-dialog__steps li span {
+  display: grid;
+  place-items: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(135deg, var(--pay-teal), var(--pay-sky));
+}
+
+.fines-pay-dialog__khqr {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.9rem;
+  border-radius: 1rem;
+  border: 1px solid var(--pay-line);
+  background:
+    linear-gradient(180deg, rgba(240, 253, 250, 0.95) 0%, #ffffff 48%);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+}
+
+.fines-pay-dialog__khqr-head {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.fines-pay-dialog__khqr-icon {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.7rem;
+  color: #0f766e;
+  background: rgba(13, 148, 136, 0.12);
+}
+
+.fines-pay-dialog__khqr-title {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 750;
+  color: var(--pay-ink);
+}
+
+.fines-pay-dialog__khqr-merchant {
+  margin: 0.1rem 0 0;
+  font-size: 0.75rem;
+  color: var(--pay-muted);
+  font-weight: 600;
+}
+
+.fines-pay-dialog__qr-frame {
+  margin: 0 auto;
+  padding: 0.75rem;
+  border-radius: 1rem;
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  box-shadow: 0 10px 24px rgba(2, 132, 199, 0.08);
+}
+
+.fines-pay-dialog__qr-img {
+  display: block;
+  width: min(220px, 100%);
+  height: auto;
+  margin: 0 auto;
+  border-radius: 0.5rem;
+}
+
+.fines-pay-dialog__qr-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 160px;
+  border-radius: 1rem;
+  border: 1px dashed rgba(13, 148, 136, 0.35);
+  background: rgba(240, 253, 250, 0.65);
+  color: var(--pay-teal-deep);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.fines-pay-dialog__meta {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.fines-pay-dialog__meta-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.65rem;
+  background: rgba(248, 250, 252, 0.95);
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  font-size: 0.75rem;
+  color: var(--pay-muted);
+}
+
+.fines-pay-dialog__meta-row strong {
+  color: var(--pay-ink);
+  font-weight: 700;
+  text-align: right;
+  word-break: break-all;
+}
+
+.fines-pay-dialog__meta-row--accent {
+  background: linear-gradient(90deg, rgba(13, 148, 136, 0.12), rgba(2, 132, 199, 0.1));
+  border-color: rgba(13, 148, 136, 0.22);
+}
+
+.fines-pay-dialog__meta-row--accent strong {
+  color: #0f766e;
+  font-size: 0.95rem;
+}
+
+.fines-pay-dialog__ref {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.7rem;
+}
+
+.fines-pay-dialog__reload,
+.fines-pay-dialog__stripe-btn,
+.fines-pay-dialog__submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.fines-pay-dialog__reload {
+  width: 100%;
+  padding: 0.65rem 0.9rem;
+  border-radius: 0.75rem;
+  color: #0f766e;
+  background: rgba(13, 148, 136, 0.1);
+  border: 1px solid rgba(13, 148, 136, 0.22);
+}
+
+.fines-pay-dialog__stripe-btn {
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.8rem;
+  color: #fff;
+  background: linear-gradient(135deg, #2563eb, #0284c7);
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.25);
+}
+
+.fines-pay-dialog__form {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(226, 232, 240, 0.98);
+  background: #fff;
+}
+
+.fines-pay-dialog__field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.fines-pay-dialog__label {
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  color: #334155 !important;
+}
+
+.fines-pay-dialog__hint {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--pay-muted);
+  line-height: 1.4;
+}
+
+.fines-pay-dialog__select,
+.fines-pay-dialog__input {
+  border-color: rgba(13, 148, 136, 0.28) !important;
+  border-radius: 0.7rem !important;
+}
+
+.fines-pay-dialog__select:focus,
+.fines-pay-dialog__input:focus {
+  border-color: #0d9488 !important;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15) !important;
+}
+
+.fines-pay-dialog__upload {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 0.85rem;
+  border: 1.5px dashed rgba(13, 148, 136, 0.4);
+  background: linear-gradient(180deg, #f0fdfa, #ffffff);
+  color: #0f766e;
+  font-size: 0.8rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.fines-pay-dialog__upload:hover {
+  border-color: #0d9488;
+  transform: translateY(-1px);
+}
+
+.fines-pay-dialog__upload.is-ready {
+  border-style: solid;
+  background: rgba(16, 185, 129, 0.08);
+  color: #047857;
+}
+
+.fines-pay-dialog__upload span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fines-pay-dialog__footer {
+  gap: 0.55rem !important;
+}
+
+.fines-pay-dialog__submit {
+  min-height: 2.4rem;
+  padding: 0.55rem 1.1rem;
+  border-radius: 0.75rem;
+  color: #fff;
+  background: linear-gradient(135deg, #0d9488, #0284c7);
+  box-shadow: 0 10px 22px rgba(13, 148, 136, 0.28);
+}
+
+.fines-pay-dialog__submit:disabled,
+.fines-pay-dialog__reload:disabled,
+.fines-pay-dialog__stripe-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+html.dark .fines-pay-dialog__steps li,
+html.dark .fines-pay-dialog__form,
+html.dark .fines-pay-dialog__meta-row {
+  background: rgba(15, 23, 42, 0.55);
+  border-color: rgba(45, 212, 191, 0.18);
+  color: #cbd5e1;
+}
+
+html.dark .fines-pay-dialog__khqr {
+  background: linear-gradient(180deg, rgba(15, 118, 110, 0.18), rgba(15, 23, 42, 0.72));
+  border-color: rgba(45, 212, 191, 0.22);
+}
+
+html.dark .fines-pay-dialog__khqr-title,
+html.dark .fines-pay-dialog__meta-row strong,
+html.dark .fines-pay-dialog__label {
+  color: #f1f5f9 !important;
+}
+
+html.dark .fines-pay-dialog__upload {
+  background: rgba(15, 23, 42, 0.5);
+  border-color: rgba(45, 212, 191, 0.35);
+  color: #5eead4;
 }
 
 .fines-view-dialog {

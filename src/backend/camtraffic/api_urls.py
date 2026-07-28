@@ -22,6 +22,7 @@ urlpatterns = [
     path('settings/', include('core.settings_urls')),
     path('signs/', include('traffic_signs.urls')),
     path('fines/', include('fines.urls')),
+    path('webhooks/payments/', include('fines.webhook_urls')),
     path('appeals/', include('appeals.urls')),
     path('audit/', include('audit.urls')),
     path('unknown-vehicles/', include('unknown_vehicles.urls')),

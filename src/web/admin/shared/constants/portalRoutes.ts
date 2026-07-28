@@ -1,15 +1,16 @@
 import type { UserRole } from '@shared/types';
 
-export const USER_PORTAL_BASE = '/dashboard';
+/** Admin SPA base — keep in sync with admin/routes.tsx (`/admin/*`). */
+export const USER_PORTAL_BASE = '/admin';
 
-/** Canonical user-portal paths (officer + driver). */
+/** Canonical admin-portal paths (shared components still call this USER_PORTAL_*). */
 export const USER_PORTAL_ROUTES = {
-  dashboard: USER_PORTAL_BASE,
+  dashboard: `${USER_PORTAL_BASE}/dashboard`,
   aiDetection: `${USER_PORTAL_BASE}/ai-detection`,
   cameras: `${USER_PORTAL_BASE}/cameras`,
   signs: `${USER_PORTAL_BASE}/signs`,
   fines: `${USER_PORTAL_BASE}/fines`,
-  finesPayments: `${USER_PORTAL_BASE}/fines/payments`,
+  finesPayments: `${USER_PORTAL_BASE}/fines`,
   violations: `${USER_PORTAL_BASE}/violations`,
   appeals: `${USER_PORTAL_BASE}/appeals`,
   vehicles: `${USER_PORTAL_BASE}/vehicles`,

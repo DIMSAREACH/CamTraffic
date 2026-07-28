@@ -11,13 +11,14 @@ from domains.officer_views import (
 )
 from fines.views import DriverLookupView, FineDetailView, FineListCreateView, FineVerifyPaymentView
 from infrastructure.views import CameraListCreateView, CameraLiveStatusView
-from violations.views import ViolationDetailView, ViolationListCreateView
+from violations.views import ViolationDetailView, ViolationListCreateView, ViolationStatsView
 
 urlpatterns = [
     path('', DomainCatalogView.as_view(), {'domain': 'officer'}, name='domain-officer-catalog'),
     path('dashboard/', PoliceDashboardView.as_view(), name='domain-officer-dashboard'),
     path('detection-queue/', OfficerDetectionQueueView.as_view(), name='domain-officer-detection-queue'),
     path('violations/', ViolationListCreateView.as_view(), name='domain-officer-violations'),
+    path('violations/stats/', ViolationStatsView.as_view(), name='domain-officer-violation-stats'),
     path('violations/<uuid:pk>/', ViolationDetailView.as_view(), name='domain-officer-violation-detail'),
     path('violations/<uuid:pk>/approve/', OfficerApproveViolationView.as_view(), name='domain-officer-approve'),
     path('violations/<uuid:pk>/reject/', OfficerRejectViolationView.as_view(), name='domain-officer-reject'),

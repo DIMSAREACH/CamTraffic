@@ -4,7 +4,9 @@
 
 > **Legend:** ✅ = Phase complete · 🔄 = In Progress · ⬜ = Not Started  
 > **Checkbox:** `[x]` = done in repo · `[ ]` = not done / missing deliverable  
-> **Audited:** 2026-07-14 against actual codebase (`frontend-*/`, `backend/`, `ai/`, `deploy/`)  
+> **Audited:** 2026-07-14 against actual codebase (`src/web/*`, `src/backend/`, `ai/`, `infra/`) · refreshed 2026-07-25 for Master Build O8 SPA Compose  
+> **Master Build phases:** [`MASTER-BUILD-STATUS.md`](MASTER-BUILD-STATUS.md) · decisions [`DECISIONS.md`](DECISIONS.md)  
+> **Production master checklist (20 phases, ~630 tasks):** [`PRODUCTION-TASK-CHECKLIST.md`](PRODUCTION-TASK-CHECKLIST.md)  
 > **Software built (web + API + AI integration):** **100%** — see [`SOFTWARE-BUILD-COMPLETION.md`](SOFTWARE-BUILD-COMPLETION.md)  
 > **End-to-end production platform (honest v1.0):** **100%** — [`PRODUCTION-PLATFORM-COMPLETION.md`](PRODUCTION-PLATFORM-COMPLETION.md) · `npm run validate:production`  
 > **Real data only (no mock/sample UI):** **100%** — [`REAL-DATA-SYSTEM-COMPLETION.md`](REAL-DATA-SYSTEM-COMPLETION.md) · `npm run validate:real-data`  

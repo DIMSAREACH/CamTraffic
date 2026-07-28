@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 
 const SIGN_GRID_COL_BREAKPOINTS = [
   { mq: '(min-width: 1024px)', cols: 5 },
@@ -64,10 +64,19 @@ export function usePagination<T>(
   const safePage = Math.min(page, totalPages);
   const from = total === 0 ? 0 : (safePage - 1) * pageSize + 1;
   const to = Math.min(safePage * pageSize, total);
-  const pageItems = items.slice(from - 1, to);
+  const pageItems = useMemo(
+    () => items.slice(from - 1, to),
+    [items, from, to],
+  );
 
-  const setPage = (p: number) => setPageRaw(Math.max(1, Math.min(p, totalPages)));
-  const setPageSize = (s: number) => { setPageSizeRaw(s); setPageRaw(1); };
+  const setPage = useCallback((p: number) => {
+    setPageRaw(Math.max(1, Math.min(p, totalPages)));
+  }, [totalPages]);
+
+  const setPageSize = useCallback((s: number) => {
+    setPageSizeRaw(s);
+    setPageRaw(1);
+  }, []);
 
   return { page: safePage, pageSize, total, totalPages, from, to, pageItems, setPage, setPageSize };
 }

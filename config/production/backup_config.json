@@ -1,0 +1,18 @@
+{
+  "schedule": {
+    "database_backup": "0 2 * * *",
+    "file_backup": "0 3 * * 0",
+    "log_backup": "0 4 * * *"
+  },
+  "retention": {
+    "daily_backups": 7,
+    "weekly_backups": 4,
+    "monthly_backups": 12
+  },
+  "storage": {
+    "local_path": "/var/backups/camtraffic",
+    "remote_enabled": false,
+    "remote_type": "s3",
+    "remote_bucket": "camtraffic-backups"
+  }
+}

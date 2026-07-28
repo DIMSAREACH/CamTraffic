@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 
 from ai_detection.models import AIDetectionLog
 from ai_detection.pipeline_enforcement import resolve_driver, resolve_vehicle
-from core.permissions import IsAdmin, IsPoliceOrAdmin
+from core.permissions import IsAdmin
 from core.responses import error_response, success_response
 from infrastructure.models import Camera, Road
 from users.models import Driver, Officer
@@ -333,10 +333,23 @@ class ViolationDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class ViolationStatsView(APIView):
-    permission_classes = [IsAuthenticated, IsPoliceOrAdmin]
+    """Aggregate counts — admin/police see all; drivers see only their own."""
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        return success_response(get_violation_stats())
+        user = request.user
+        qs = TrafficViolation.objects.all()
+        if user.role == 'driver':
+            try:
+                driver = user.driver_profile
+            except Driver.DoesNotExist:
+                qs = TrafficViolation.objects.none()
+            else:
+                qs = qs.filter(driver=driver)
+        elif user.role not in ('police', 'admin'):
+            # Authenticated but unknown/legacy role — empty stats (avoid hard 403 in SPA)
+            qs = TrafficViolation.objects.none()
+        return success_response(get_violation_stats(qs))
 
 
 class ViolationSeedRulesView(APIView):

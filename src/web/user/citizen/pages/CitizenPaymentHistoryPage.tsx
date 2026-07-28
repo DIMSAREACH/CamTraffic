@@ -62,6 +62,9 @@ export function CitizenPaymentHistoryPage() {
             return bTime - aTime;
           }),
       );
+    } catch {
+      // Backend may be briefly unavailable during Django autoreload — keep prior rows.
+      if (!silent) setFines([]);
     } finally {
       if (!silent) setLoading(false);
     }

@@ -1,0 +1,28 @@
+{
+  "fail2ban": {
+    "enabled": true,
+    "max_retry": 3,
+    "ban_time": 600,
+    "find_time": 300
+  },
+  "firewall": {
+    "enabled": true,
+    "allowed_ports": [
+      22,
+      80,
+      443,
+      8000
+    ],
+    "allowed_ips": [
+      "10.0.0.0/8",
+      "172.16.0.0/12",
+      "192.168.0.0/16"
+    ]
+  },
+  "ssh": {
+    "disable_root_login": true,
+    "disable_password_auth": true,
+    "key_only_auth": true,
+    "port": 22
+  }
+}

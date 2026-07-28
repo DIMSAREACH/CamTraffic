@@ -54,7 +54,6 @@ export function DetectionDisplayImage({
 
   useEffect(() => {
     let cancelled = false;
-    let upscaledUrl: string | null = null;
     let proxiedUrl: string | null = null;
 
     setSharpSrc(null);
@@ -115,29 +114,33 @@ export function DetectionDisplayImage({
           setSharpSrc(workingSrc);
           return;
         }
-        canvas.toBlob(
-          (blob) => {
-            if (cancelled || !blob) {
-              setSharpSrc(workingSrc);
-              return;
-            }
-            upscaledUrl = URL.createObjectURL(blob);
-            setSharpSrc(upscaledUrl);
-          },
-          'image/png',
-        );
+        // data: URL — no revoke lifecycle (avoids blob ERR_FILE_NOT_FOUND).
+        try {
+          setSharpSrc(canvas.toDataURL('image/png'));
+        } catch {
+          setSharpSrc(workingSrc);
+        }
       };
 
       img.onerror = () => {
-        if (!cancelled) setSharpSrc(src);
+        if (cancelled) return;
+        if (src.startsWith('blob:') || workingSrc.startsWith('blob:')) {
+          setSharpSrc(null);
+          return;
+        }
+        setSharpSrc(src);
       };
       img.src = workingSrc;
     })();
 
     return () => {
       cancelled = true;
-      if (upscaledUrl) URL.revokeObjectURL(upscaledUrl);
-      if (proxiedUrl) URL.revokeObjectURL(proxiedUrl);
+      setSharpSrc(null);
+      const doomedProxy = proxiedUrl;
+      proxiedUrl = null;
+      window.setTimeout(() => {
+        if (doomedProxy) URL.revokeObjectURL(doomedProxy);
+      }, 500);
     };
   }, [src, variant]);
 
@@ -145,14 +148,20 @@ export function DetectionDisplayImage({
 
   return (
     <div className="ai-detect-image-wrap">
-      <img
-        src={displaySrc}
-        alt={alt}
-        decoding="sync"
-        draggable={false}
-        className={imgClass}
-        style={fill ? undefined : { maxHeight: MAX_HEIGHT[variant] }}
-      />
+      {displaySrc ? (
+        <img
+          key={displaySrc}
+          src={displaySrc}
+          alt={alt}
+          decoding="sync"
+          draggable={false}
+          className={imgClass}
+          style={fill ? undefined : { maxHeight: MAX_HEIGHT[variant] }}
+          onError={(e) => {
+            e.currentTarget.removeAttribute('src');
+          }}
+        />
+      ) : null}
     </div>
   );
 }

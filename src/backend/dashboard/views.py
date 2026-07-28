@@ -117,10 +117,14 @@ class EnforcementMonthlyExcelView(APIView):
 
 
 class EvidenceArchiveView(APIView):
-    """Unified search across detection, violation, and fine evidence images."""
-    permission_classes = [IsAuthenticated, IsPoliceOrAdmin]
+    """Unified search across detection, violation, and fine evidence images.
+    Police/admin: full archive. Drivers: own violations/fines/linked detections only.
+    """
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        if request.user.role not in ('admin', 'police', 'driver'):
+            return error_response('Forbidden', status_code=status.HTTP_403_FORBIDDEN)
         plate = (request.query_params.get('plate') or '').strip()
         source_type = (request.query_params.get('type') or 'all').strip().lower()
         if source_type not in ('all', 'detection', 'violation', 'fine'):

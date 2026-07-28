@@ -36,7 +36,7 @@ class VehicleListCreateView(generics.ListCreateAPIView):
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
-        serializer = VehicleSerializer(queryset, many=True)
+        serializer = VehicleSerializer(queryset, many=True, context={'request': request})
         return success_response(serializer.data)
 
     def create(self, request, *args, **kwargs):
@@ -49,7 +49,7 @@ class VehicleListCreateView(generics.ListCreateAPIView):
         serializer.is_valid(raise_exception=True)
         vehicle = serializer.save()
         return success_response(
-            VehicleSerializer(vehicle).data,
+            VehicleSerializer(vehicle, context={'request': request}).data,
             message='Vehicle registered',
             status_code=status.HTTP_201_CREATED,
         )
@@ -72,7 +72,7 @@ class VehicleDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
-        return success_response(VehicleSerializer(instance).data)
+        return success_response(VehicleSerializer(instance, context={'request': request}).data)
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -82,7 +82,10 @@ class VehicleDetailView(generics.RetrieveUpdateDestroyAPIView):
         serializer = VehicleUpdateSerializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         vehicle = serializer.save()
-        return success_response(VehicleSerializer(vehicle).data, message='Vehicle updated')
+        return success_response(
+            VehicleSerializer(vehicle, context={'request': request}).data,
+            message='Vehicle updated',
+        )
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()

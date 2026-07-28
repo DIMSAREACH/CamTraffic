@@ -6,16 +6,24 @@ function fileExtension(name: string): string {
   return name.split('.').pop()?.toLowerCase() || '';
 }
 
-async function loadImage(file: File): Promise<HTMLImageElement> {
+async function withObjectUrlImage<T>(
+  file: File,
+  use: (img: HTMLImageElement) => Promise<T>,
+): Promise<T> {
   const url = URL.createObjectURL(file);
+  const el = new Image();
   try {
-    return await new Promise<HTMLImageElement>((resolve, reject) => {
-      const el = new Image();
-      el.onload = () => resolve(el);
+    await new Promise<void>((resolve, reject) => {
+      el.onload = () => resolve();
       el.onerror = () => reject(new Error('Could not read this image format in the browser.'));
       el.src = url;
     });
+    return await use(el);
   } finally {
+    // Detach before revoke — otherwise Chrome logs net::ERR_FILE_NOT_FOUND on the blob.
+    el.onload = null;
+    el.onerror = null;
+    el.removeAttribute('src');
     URL.revokeObjectURL(url);
   }
 }
@@ -57,18 +65,17 @@ export async function convertImageToJpeg(file: File): Promise<File> {
     || file.type === 'image/heic';
 
   if (needsConversion) {
-    const img = await loadImage(file);
-    return canvasToJpegFile(img, file.name);
+    return withObjectUrlImage(file, (img) => canvasToJpegFile(img, file.name));
   }
 
   if (file.size <= RESIZE_BYTE_THRESHOLD) {
     return file;
   }
 
-  const img = await loadImage(file);
-  if (Math.max(img.naturalWidth, img.naturalHeight) <= MAX_UPLOAD_EDGE) {
-    return file;
-  }
-
-  return canvasToJpegFile(img, file.name);
+  return withObjectUrlImage(file, async (img) => {
+    if (Math.max(img.naturalWidth, img.naturalHeight) <= MAX_UPLOAD_EDGE) {
+      return file;
+    }
+    return canvasToJpegFile(img, file.name);
+  });
 }
