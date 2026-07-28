@@ -24,7 +24,7 @@ class OfficerListCreateView(generics.ListCreateAPIView):
     filterset_fields = ['status', 'department', 'station']
     search_fields = ['badge_no', 'rank', 'department', 'user__full_name', 'user__email']
     ordering_fields = ['badge_no', 'created_at', 'rank']
-    ordering = ['badge_no']
+    ordering = ['-created_at']
 
     def get_queryset(self):
         return (
@@ -123,7 +123,7 @@ class PoliceStationListCreateView(generics.ListCreateAPIView):
     filterset_fields = ['status', 'city', 'region']
     search_fields = ['name', 'code', 'city', 'address']
     ordering_fields = ['name', 'city', 'created_at']
-    ordering = ['name']
+    ordering = ['-created_at']
 
     def get_permissions(self):
         if self.request.method == 'POST':
@@ -192,7 +192,7 @@ class DriverListCreateView(generics.ListCreateAPIView):
     filterset_fields = ['status', 'kyc_status']
     search_fields = ['license_no', 'national_id', 'user__full_name', 'user__email']
     ordering_fields = ['license_no', 'created_at', 'kyc_status']
-    ordering = ['license_no']
+    ordering = ['-created_at']
 
     def get_queryset(self):
         return Driver.objects.select_related('user').filter(

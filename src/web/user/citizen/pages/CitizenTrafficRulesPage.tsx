@@ -101,7 +101,7 @@ export function CitizenTrafficRulesPage() {
               <span className="enforcement-page__eyebrow-icon">
                 <Scale size={14} />
               </span>
-              {t('trafficRules.eyebrow')} · Educational guide (not live case data)
+              {t('trafficRules.eyebrow')} · {t('trafficRules.educationalGuide')}
             </div>
             <h1 className="enforcement-page__title">{t('sidebar.pageTitles.trafficRules')}</h1>
             <p className="enforcement-page__subtitle">{t('trafficRules.subtitle')}</p>

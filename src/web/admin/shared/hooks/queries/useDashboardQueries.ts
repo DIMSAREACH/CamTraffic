@@ -5,12 +5,17 @@ import type { DashboardStats } from '@shared/types';
 
 const LIVE_INTERVAL_MS = 30_000;
 
+const liveQueryOpts = {
+  refetchInterval: LIVE_INTERVAL_MS,
+  refetchIntervalInBackground: false,
+  placeholderData: <T,>(prev: T | undefined) => prev,
+} as const;
+
 export function useAdminDashboardStats() {
   return useQuery({
     queryKey: queryKeys.dashboard.admin,
     queryFn: () => dashboardAPI.getAdminStats(),
-    refetchInterval: LIVE_INTERVAL_MS,
-    placeholderData: (prev) => prev,
+    ...liveQueryOpts,
   });
 }
 
@@ -19,8 +24,7 @@ export function usePoliceDashboardStats(policeId?: string | number) {
     queryKey: queryKeys.dashboard.police(policeId),
     queryFn: () => dashboardAPI.getPoliceStats(policeId!),
     enabled: policeId != null,
-    refetchInterval: LIVE_INTERVAL_MS,
-    placeholderData: (prev) => prev,
+    ...liveQueryOpts,
   });
 }
 
@@ -29,8 +33,7 @@ export function useDriverDashboardStats(driverId?: string | number) {
     queryKey: queryKeys.dashboard.driver(driverId),
     queryFn: () => dashboardAPI.getDriverStats(driverId!),
     enabled: driverId != null,
-    refetchInterval: LIVE_INTERVAL_MS,
-    placeholderData: (prev) => prev,
+    ...liveQueryOpts,
   });
 }
 
@@ -46,7 +49,6 @@ export function useCameraLiveStatus() {
   return useQuery({
     queryKey: queryKeys.cameras.liveStatus,
     queryFn: () => camerasAPI.liveStatus(),
-    refetchInterval: LIVE_INTERVAL_MS,
-    placeholderData: (prev) => prev,
+    ...liveQueryOpts,
   });
 }

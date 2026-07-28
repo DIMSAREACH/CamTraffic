@@ -241,13 +241,20 @@ def match_sign_from_catalog_images(image_path: str, *, live_capture: bool = Fals
     min_score = _live_match_min_correlation() if live_capture else _match_min_correlation()
     min_margin = _match_min_margin() if live_capture else max(_match_min_margin(), 0.08)
 
-    from .services import _no_u_turn_shape_hint, _prohibitory_red_ring_hint
+    from .services import _generic_no_entry_bar_hint, _no_u_turn_shape_hint, _prohibitory_red_ring_hint
 
     if not live_capture and profile == 'white_field' and not _prohibitory_red_ring_hint(image_path):
         min_margin = max(min_margin, 0.12)
 
     if profile == 'white_field':
-        if _no_u_turn_shape_hint(image_path):
+        if _generic_no_entry_bar_hint(image_path):
+            for code, score in scored[:24]:
+                row = code_to_row.get(code) or {}
+                key = (row.get('class_key') or '').upper()
+                if key in ('NO_ENTRY', 'I_NO_ENTRY') and score >= best_score - 0.15:
+                    best_code, best_score = code, score
+                    break
+        elif _no_u_turn_shape_hint(image_path):
             for code, score in scored[:24]:
                 row = code_to_row.get(code) or {}
                 key = (row.get('class_key') or '').upper()

@@ -23,7 +23,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 AI_ROOT = ROOT / 'ai'
 REPORTS = ROOT / 'docs' / 'reports'
-BACKEND = ROOT / 'backend'
+BACKEND = ROOT / 'src' / 'backend'
 
 IMAGE_POOLS = [
     (AI_ROOT / 'dataset_10' / 'images' / 'val', 'dataset_10_val'),

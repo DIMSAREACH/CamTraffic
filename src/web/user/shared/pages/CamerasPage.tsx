@@ -676,7 +676,7 @@ function CameraFeedPreview({
 
   const src = useMemo(() => {
     if (!camera) return '';
-    if (camera.status === 'inactive') return '';
+    if (camera.status === 'inactive' || camera.status === 'offline') return '';
     const base = fallbackSrc || resolveCameraFrameUrl(camera.frame_source_url, camera);
     if (!base) return '';
     if (isCameraVideoUrl(camera.frame_source_url) || isCameraVideoUrl(base)) return base;
@@ -695,7 +695,7 @@ function CameraFeedPreview({
       setLastUpdated(null);
       return;
     }
-    if (camera.status === 'inactive') {
+    if (camera.status === 'inactive' || camera.status === 'offline') {
       setFeedState('offline');
       return;
     }
@@ -710,7 +710,7 @@ function CameraFeedPreview({
   // Still-image feeds: bump loading when refreshTick changes so the new JPEG can settle.
   useEffect(() => {
     if (!camera) return;
-    if (camera.status === 'inactive') return;
+    if (camera.status === 'inactive' || camera.status === 'offline') return;
     if (isCameraVideoUrl(camera.frame_source_url)) return;
     if (!resolveCameraFrameUrl(camera.frame_source_url, camera)) return;
     setFeedState('loading');
@@ -969,7 +969,9 @@ function CameraFeedPreview({
               <span className="cameras-feed-chip cameras-feed-chip--live">
                 <span className="cameras-feed-chip__dot" />
                 {t('pages.cameras.liveBadge')}
-                <span className="cameras-feed-chip__interval">{POLL_INTERVAL_MS / 1000}s</span>
+                {!isVideoFeed && (
+                  <span className="cameras-feed-chip__interval">{POLL_INTERVAL_MS / 1000}s</span>
+                )}
               </span>
             ) : isStreaming ? (
               <span className="cameras-feed-chip cameras-feed-chip--paused">
@@ -1059,8 +1061,8 @@ export function CamerasPage() {
     [cameras, selectedId],
   );
 
-  const loadCameras = useCallback(async () => {
-    setLoading(true);
+  const loadCameras = useCallback(async (opts?: { soft?: boolean }) => {
+    if (!opts?.soft) setLoading(true);
     try {
       let data: Camera[];
       if (canManage) {
@@ -1093,11 +1095,11 @@ export function CamerasPage() {
     } catch {
       toast.error(t('pages.cameras.loadFailed'));
     } finally {
-      setLoading(false);
+      if (!opts?.soft) setLoading(false);
     }
   }, [t, canManage]);
 
-  useEffect(() => { loadCameras(); }, [loadCameras]);
+  useEffect(() => { void loadCameras(); }, [loadCameras]);
 
   useEffect(() => {
     if (!canManage) return;
@@ -1185,13 +1187,16 @@ export function CamerasPage() {
   }, [search, cameras]);
 
   useEffect(() => {
-    if (!autoRefresh || !selected || selected.status === 'inactive') return;
+    if (!autoRefresh || !selected || selected.status === 'inactive' || selected.status === 'offline') return;
     if (!resolveCameraFrameUrl(selected.frame_source_url, selected)) return;
     // Video loops in the browser — polling only applies to still JPEG snapshots.
     if (isCameraVideoUrl(selected.frame_source_url)) return;
-    const id = window.setInterval(() => setRefreshTick((n) => n + 1), POLL_INTERVAL_MS);
+    const id = window.setInterval(() => {
+      if (document.visibilityState === 'hidden') return;
+      setRefreshTick((n) => n + 1);
+    }, POLL_INTERVAL_MS);
     return () => window.clearInterval(id);
-  }, [autoRefresh, selected]);
+  }, [autoRefresh, selectedId, selected?.status, selected?.frame_source_url]);
 
   const handleManualRefresh = () => setRefreshTick((n) => n + 1);
 
@@ -1266,7 +1271,7 @@ export function CamerasPage() {
             <button
               type="button"
               className="cameras-tool-btn cameras-tool-btn--primary"
-              onClick={loadCameras}
+              onClick={() => void loadCameras({ soft: true })}
               disabled={loading}
             >
               <span className="cameras-tool-btn__icon">

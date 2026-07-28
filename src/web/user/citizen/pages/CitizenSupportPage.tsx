@@ -112,7 +112,7 @@ export function CitizenSupportPage() {
               <span className="enforcement-page__eyebrow-icon">
                 <MessageCircle size={14} />
               </span>
-              {t('support.eyebrow')} · Help desk (static FAQ — not sample enforcement data)
+              {t('support.eyebrow')} · {t('support.helpDeskGuide')}
             </div>
             <h1 className="enforcement-page__title">{t('sidebar.pageTitles.support')}</h1>
             <p className="enforcement-page__subtitle">{t('support.subtitle')}</p>

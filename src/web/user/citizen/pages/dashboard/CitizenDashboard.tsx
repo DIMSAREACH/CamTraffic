@@ -73,10 +73,10 @@ export function CitizenDashboard() {
   const statusLabel = (status: string) => t(`fines.status.${status}` as 'fines.status.pending');
 
   const statCards = [
-    { tone: 'teal', icon: Car, value: String(stats?.vehicles ?? 0), label: t('dashboard.statMyVehicles') },
-    { tone: 'blue', icon: FileText, value: String(stats?.total_fines ?? 0), label: t('dashboard.statTotalFines') },
-    { tone: 'amber', icon: Clock, value: String(stats?.pending ?? 0), label: t('dashboard.statOutstanding') },
-    { tone: 'rose', icon: AlertTriangle, value: formatAppCurrency(locale, stats?.owed ?? 0), label: t('dashboard.statAmountOwed') },
+    { tone: 'teal', icon: Car, value: String(stats?.vehicles ?? 0), label: t('dashboard.statMyVehicles'), onClick: () => navigate(CITIZEN_PORTAL_ROUTES.vehicles) },
+    { tone: 'blue', icon: FileText, value: String(stats?.total_fines ?? 0), label: t('dashboard.statTotalFines'), onClick: () => navigate(CITIZEN_PORTAL_ROUTES.fines) },
+    { tone: 'amber', icon: Clock, value: String(stats?.pending ?? 0), label: t('dashboard.statOutstanding'), onClick: () => navigate(CITIZEN_PORTAL_ROUTES.fines) },
+    { tone: 'rose', icon: AlertTriangle, value: formatAppCurrency(locale, stats?.owed ?? 0), label: t('dashboard.statAmountOwed'), onClick: () => navigate(CITIZEN_PORTAL_ROUTES.fines) },
   ];
 
   const quickActions = [
@@ -141,7 +141,7 @@ export function CitizenDashboard() {
     );
   }
 
-  const firstName = user?.full_name.split(' ')[0] ?? '';
+  const displayName = user?.full_name?.trim() || '';
   const hasOutstanding = (stats?.owed ?? 0) > 0;
 
   return (
@@ -160,7 +160,7 @@ export function CitizenDashboard() {
                 {t('dashboard.driverPortal')}
               </div>
               <h1 className="enforcement-page__title">
-                {t(greetingKey(now.getHours()))}, {firstName}
+                {t(greetingKey(now.getHours()))}, {displayName}
               </h1>
               <p className="enforcement-page__subtitle driver-dashboard-hero__subtitle">
                 {t('dashboard.driverWelcome', { name: user?.full_name ?? '' })} · {formatAppDate(locale, now)}
@@ -203,7 +203,12 @@ export function CitizenDashboard() {
         {statCards.map((card) => {
           const Icon = card.icon;
           return (
-            <div key={card.label} className={`enforcement-page__stat-card enforcement-page__stat-card--${card.tone}`}>
+            <button
+              key={card.label}
+              type="button"
+              onClick={card.onClick}
+              className={`enforcement-page__stat-card enforcement-page__stat-card--${card.tone} enforcement-page__stat-card--link`}
+            >
               <div className={`enforcement-page__stat-icon enforcement-page__stat-icon--${card.tone}`}>
                 <Icon size={18} />
               </div>
@@ -213,7 +218,7 @@ export function CitizenDashboard() {
                   {card.label}
                 </p>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>

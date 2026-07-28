@@ -8,10 +8,10 @@ from django.db.models.functions import TruncMonth
 from django.utils import timezone
 
 from ai_detection.models import AIDetectionLog
+from ai_detection.page_stats import _trained_signs_queryset
 from ai_detection.serializers import AIDetectionLogSerializer
 from fines.models import Fine
 from fines.serializers import FineSerializer
-from traffic_signs.models import TrafficSign
 from vehicles.models import Vehicle
 from violations.models import TrafficViolation
 
@@ -23,7 +23,9 @@ def _serializer_context(request):
 
 
 def _monthly_counts(qs, date_field='created_at', months=6):
-    since = timezone.now() - timedelta(days=months * 31)
+    """Return a continuous month series (zeros included) for chart X-axis."""
+    now = timezone.now()
+    since = now - timedelta(days=months * 31)
     data = (
         qs.filter(**{f'{date_field}__gte': since})
         .annotate(month=TruncMonth(date_field))
@@ -31,19 +33,29 @@ def _monthly_counts(qs, date_field='created_at', months=6):
         .annotate(count=Count('id'))
         .order_by('month')
     )
-    return [
-        {
-            'month': month_abbr[row['month'].month] if row['month'] else '',
-            'count': row['count'],
-        }
-        for row in data
-        if row['month']
-    ]
+    by_key = {}
+    for row in data:
+        if not row['month']:
+            continue
+        key = (row['month'].year, row['month'].month)
+        by_key[key] = row['count']
+
+    series = []
+    y, m = now.year, now.month
+    for _ in range(months):
+        series.append({'month': month_abbr[m], 'count': by_key.get((y, m), 0)})
+        m -= 1
+        if m == 0:
+            m = 12
+            y -= 1
+    series.reverse()
+    return series
 
 
 def _monthly_fine_stats(fines, months=6):
-    """Fine volume and paid revenue per month for charts."""
-    since = timezone.now() - timedelta(days=months * 31)
+    """Fine volume and paid revenue per month for charts (full month series)."""
+    now = timezone.now()
+    since = now - timedelta(days=months * 31)
     scoped = fines.filter(created_at__gte=since)
     counts = (
         scoped.annotate(month=TruncMonth('created_at'))
@@ -58,20 +70,30 @@ def _monthly_fine_stats(fines, months=6):
         .annotate(revenue=Sum('amount'))
         .order_by('month')
     )
-    rev_by_month = {
-        row['month']: float(row['revenue'] or 0)
-        for row in revenues
-        if row['month']
-    }
-    return [
-        {
-            'month': month_abbr[row['month'].month],
-            'count': row['count'],
-            'revenue': rev_by_month.get(row['month'], 0),
-        }
-        for row in counts
-        if row['month']
-    ]
+    count_by = {}
+    for row in counts:
+        if row['month']:
+            count_by[(row['month'].year, row['month'].month)] = row['count']
+    rev_by = {}
+    for row in revenues:
+        if row['month']:
+            rev_by[(row['month'].year, row['month'].month)] = float(row['revenue'] or 0)
+
+    series = []
+    y, m = now.year, now.month
+    for _ in range(months):
+        key = (y, m)
+        series.append({
+            'month': month_abbr[m],
+            'count': count_by.get(key, 0),
+            'revenue': rev_by.get(key, 0),
+        })
+        m -= 1
+        if m == 0:
+            m = 12
+            y -= 1
+    series.reverse()
+    return series
 
 
 def _trend_percent(current: int, previous: int) -> dict | None:
@@ -98,7 +120,7 @@ def get_admin_stats(request=None):
     paid = fines.filter(status='paid')
     detections = AIDetectionLog.objects.all()
     violations = TrafficViolation.objects.all()
-    monthly_fines = _monthly_fine_stats(fines)
+    monthly_fines = _monthly_fine_stats(fines, months=7)
 
     # Match User Management: soft-deleted accounts stay in DB for FKs/audit but are not counted.
     users = User.objects.not_deleted()
@@ -112,7 +134,8 @@ def get_admin_stats(request=None):
         'pending_fines': fines.filter(status='pending').count(),
         'total_detections': detections.count(),
         'total_vehicles': Vehicle.objects.count(),
-        'total_signs': TrafficSign.objects.count(),
+        # Match Traffic Signs module: only signs in the trained AI catalog.
+        'total_signs': _trained_signs_queryset().count(),
         'total_violations': violations.count(),
         'pending_violations': violations.filter(status='pending_review').count(),
         'confirmed_violations': violations.filter(status='confirmed').count(),
@@ -122,8 +145,8 @@ def get_admin_stats(request=None):
             1,
         ),
         'monthly_fines': monthly_fines,
-        'monthly_detections': _monthly_counts(detections),
-        'monthly_violations': _monthly_counts(violations, date_field='violation_date'),
+        'monthly_detections': _monthly_counts(detections, months=7),
+        'monthly_violations': _monthly_counts(violations, date_field='violation_date', months=7),
         'fine_by_reason': [
             {'reason': (row['reason'] or 'Other')[:48], 'count': row['count']}
             for row in fines.values('reason').annotate(count=Count('id')).order_by('-count')[:8]
@@ -156,7 +179,7 @@ def get_admin_stats(request=None):
     try:
         from .analytics_extensions import get_recent_activity, get_top_locations
         stats['top_locations'] = get_top_locations()
-        stats['recent_activity'] = get_recent_activity(12)
+        stats['recent_activity'] = get_recent_activity(12, request=request)
     except Exception:
         stats['top_locations'] = []
         stats['recent_activity'] = []

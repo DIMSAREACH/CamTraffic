@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 /** Poll a data loader on an interval for near-real-time list pages.
  * Does not run on mount — pair with an initial useEffect load to avoid
  * double-fetching that burns API rate limits under React StrictMode.
+ * Skips ticks while the browser tab is hidden.
  */
 export function useLiveData(
   loader: () => void | Promise<void>,
@@ -19,7 +20,12 @@ export function useLiveData(
     let cancelled = false;
     let nextDelay = intervalMs;
 
-    const runLoader = () => Promise.resolve(loaderRef.current());
+    const runLoader = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+        return Promise.resolve();
+      }
+      return Promise.resolve(loaderRef.current());
+    };
 
     const schedule = (delay: number) => {
       timeoutId = window.setTimeout(async () => {
@@ -35,11 +41,18 @@ export function useLiveData(
       }, delay);
     };
 
+    const onVisibility = () => {
+      if (cancelled || document.visibilityState !== 'visible') return;
+      void runLoader();
+    };
+
+    document.addEventListener('visibilitychange', onVisibility);
     schedule(intervalMs);
 
     return () => {
       cancelled = true;
       window.clearTimeout(timeoutId);
+      document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [intervalMs, enabled]);
 }

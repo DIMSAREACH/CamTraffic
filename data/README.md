@@ -45,12 +45,20 @@ python manage.py migrate <app_name> <migration_name>
 
 ### Seed Data
 ```bash
-# Load development data
+# Canonical demo accounts + sample data
 npm run seed:demo
 
-# Load production data
+# Full system: demo accounts + PDF Phnom Penh seed + integrity check
+npm run seed:complete
+
+# PDF location pack only (data/pdf_seed_demo/)
+npm run seed:pdf
+
+# Load production-scale sample data
 npm run seed:production
 ```
+
+Do **not** run raw `data/pdf_seed_demo/*.sql` against the live DB — use `npm run seed:pdf`.
 
 ### Backup
 ```bash

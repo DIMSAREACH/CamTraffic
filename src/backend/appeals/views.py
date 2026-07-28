@@ -71,12 +71,29 @@ class AppealListCreateView(generics.ListCreateAPIView):
         if ViolationAppeal.objects.filter(violation=violation, status='pending').exists():
             return error_response('A pending appeal already exists for this violation', status_code=status.HTTP_400_BAD_REQUEST)
 
+        if ViolationAppeal.objects.filter(violation=violation).exclude(status='pending').exists():
+            return error_response(
+                'This violation already has a reviewed appeal',
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
         fine = None
         fine_id = data.get('fine_id')
         if fine_id:
             fine = Fine.objects.filter(pk=fine_id, driver=request.user).first()
         elif hasattr(violation, 'fine'):
             fine = getattr(violation, 'fine', None)
+
+        if fine and fine.status in ('paid', 'dismissed'):
+            return error_response(
+                'Cannot appeal a paid or dismissed fine',
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+        if fine and fine.status not in ('pending', 'overdue', 'disputed', 'awaiting_verification'):
+            return error_response(
+                'This fine cannot be appealed in its current status',
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
 
         appeal = ViolationAppeal.objects.create(
             violation=violation,
@@ -86,7 +103,7 @@ class AppealListCreateView(generics.ListCreateAPIView):
             evidence_image=data.get('evidence_image'),
         )
 
-        if fine:
+        if fine and fine.status != 'disputed':
             fine.status = 'disputed'
             fine.save(update_fields=['status'])
 
@@ -138,6 +155,12 @@ class AppealReviewView(APIView):
         except ViolationAppeal.DoesNotExist:
             return error_response('Appeal not found', status_code=status.HTTP_404_NOT_FOUND)
 
+        if appeal.status != 'pending':
+            return error_response(
+                'Only pending appeals can be reviewed',
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
         new_status = request.data.get('status')
         if new_status not in ('upheld', 'dismissed'):
             return error_response('status must be upheld or dismissed')
@@ -165,6 +188,14 @@ class AppealReviewView(APIView):
             old_value={'status': old_status},
             new_value={'status': new_status, 'officer_comments': appeal.officer_comments},
         )
+
+        # COMPLETE-SYSTEM-WORKFLOW §9/§10: notify driver of appeal decision.
+        try:
+            from notifications.services import notify_driver_appeal_decision
+            notify_driver_appeal_decision(appeal)
+        except Exception:
+            # Never block officer review on notification failures.
+            pass
 
         return success_response(
             ViolationAppealSerializer(appeal, context={'request': request}).data,

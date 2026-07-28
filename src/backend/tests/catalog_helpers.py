@@ -11,10 +11,10 @@ PRODUCTION_CATALOG_PATH = ROOT / 'ai' / 'traffic_sign_catalog_10.json'
 
 # Official PW03 / short thesis codes <-> production catalog display codes.
 CODE_ALIASES: dict[str, set[str]] = {
-    'PW03-R1-04': {'R1-04', 'PROH-001'},
-    'PW03-R1-01': {'R1-01', 'PROH-002'},
-    'PW03-R1-02': {'R1-02', 'PROH-003'},
-    'PW03-R1-03': {'R1-03', 'PROH-004'},
+    'PW03-R1-04': {'R1-04', 'PROH-001', 'I-019'},
+    'PW03-R1-01': {'R1-01', 'PROH-002', 'I-020'},
+    'PW03-R1-02': {'R1-02', 'PROH-003', 'I-021'},
+    'PW03-R1-03': {'R1-03', 'PROH-004', 'I-037'},
     'PW03-R2-10': {'R2-10', 'PROH-005'},
     'M-032': {'MAN-001'},
 }

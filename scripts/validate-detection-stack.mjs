@@ -40,7 +40,7 @@ if (userHash !== adminHash) {
 console.log('OK   detectionEndpoints.ts (user/admin parity)');
 
 run('Backend integration', 'node', ['scripts/backend-python.mjs', 'scripts/validate_integration.py'], root);
-run('Backend detection API tests', 'node', ['scripts/backend-python.mjs', 'manage.py', 'test', 'tests.test_detection_api_aliases', '--noinput'], root);
+run('Backend detection API tests', 'node', ['scripts/backend-python.mjs', 'manage.py', 'test', 'tests.test_detection_api_aliases', '--noinput', '--keepdb'], root);
 run('Frontend user detection tests', 'npm', ['test', '--prefix', 'src/web/user']);
 
 console.log('\n✅ Detection stack validation passed (API aliases, integration, frontend client).');

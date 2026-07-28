@@ -112,10 +112,20 @@ def effective_collection_count(*, raw: int, export: int, target: int, aug_factor
     return min(target, effective)
 
 
+def count_datasets_samples() -> int:
+    """Count labeled/sample images under ai/datasets (current thesis layout)."""
+    root = DATASETS_ROOT
+    if not root.is_dir():
+        return 0
+    exts = {'.jpg', '.jpeg', '.png', '.webp', '.bmp'}
+    return sum(1 for p in root.rglob('*') if p.is_file() and p.suffix.lower() in exts)
+
+
 def build_report() -> dict:
     full = count_yolo_dataset(AI_ROOT / 'dataset', AI_ROOT / 'data.yaml')
     ten = count_yolo_dataset(AI_ROOT / 'dataset_10', AI_ROOT / 'dataset_10' / 'data.yaml')
     cam_tsr_images = count_cam_tsr_street()
+    samples_images = count_datasets_samples()
 
     raw_root = DATASETS_ROOT / 'raw'
     road_counts_raw = {b: count_raw_bucket(raw_root / 'road_footage' / b) for b in ROAD_BUCKETS}
@@ -127,7 +137,7 @@ def build_report() -> dict:
 
     sign_images = min(
         TARGETS['traffic_signs'],
-        max(full['images'], ten['images']) + cam_tsr_images,
+        max(full['images'], ten['images'], samples_images) + cam_tsr_images,
     )
     vehicle_count = effective_collection_count(
         raw=vehicle_raw, export=roboveh, target=TARGETS['vehicles'], aug_factor=24,
@@ -157,6 +167,7 @@ def build_report() -> dict:
             'full_dataset': full,
             'production_10_class': ten,
             'cam_tsr_street': cam_tsr_images,
+            'datasets_samples': samples_images,
         },
         'vehicles': {
             'target': TARGETS['vehicles'],

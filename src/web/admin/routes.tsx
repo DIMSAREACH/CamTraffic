@@ -1,4 +1,5 @@
 import { createBrowserRouter, redirect } from 'react-router';
+import { lazy, Suspense, type ComponentType } from 'react';
 import { AdminLoginPage } from '@admin/pages/AdminLoginPage';
 import { AdminLayout } from '@admin/layout/AdminLayout';
 import { AdminDashboard } from '@admin/pages/AdminDashboard';
@@ -13,14 +14,13 @@ import { BackupRestorePage } from '@admin/pages/BackupRestorePage';
 import { ImportDataPage } from '@admin/pages/ImportDataPage';
 import { AITrainingCenterPage } from '@admin/pages/AITrainingCenterPage';
 import { AdminSystemSettingsPage } from '@admin/pages/AdminSystemSettingsPage';
+import { ViolationRulesPage } from '@admin/pages/ViolationRulesPage';
 import { AIModelsDashboardPage } from '@admin/pages/AIModelsDashboardPage';
 import { AIModelDetailsPage } from '@admin/pages/AIModelDetailsPage';
 import { AIDatasetsPage } from '@admin/pages/AIDatasetsPage';
 import { AIDeploymentsPage } from '@admin/pages/AIDeploymentsPage';
 import { AITrainingHistoryPage } from '@admin/pages/AITrainingHistoryPage';
 import { AIModelsPage } from '@shared/pages/AIModelsPage';
-import { EnterpriseAIDetectionCenterPage } from '@shared/pages/EnterpriseAIDetectionCenterPage';
-import { AIDetectionDashboardPage } from '@shared/pages/AIDetectionDashboardPage';
 import { ReportsPage } from '@shared/pages/ReportsPage';
 import { ReportCenterPage } from '@shared/pages/ReportCenterPage';
 import { ReportAnalyticsPage } from '@shared/pages/ReportAnalyticsPage';
@@ -29,7 +29,6 @@ import { ScheduledReportsPage } from '@shared/pages/ScheduledReportsPage';
 import { EvidenceArchivePage } from '@shared/pages/EvidenceArchivePage';
 import { AILogsPage } from '@shared/pages/AILogsPage';
 import { FineManagement } from '@shared/pages/FineManagement';
-import { ViolationsPage } from '@shared/pages/ViolationsPage';
 import { TrafficSignsPage } from '@shared/pages/TrafficSignsPage';
 import { CamerasPage } from '@shared/pages/CamerasPage';
 import { VehiclesPage } from '@shared/pages/VehiclesPage';
@@ -48,6 +47,58 @@ import { ResetPasswordPage } from '@shared/pages/auth/ResetPasswordPage';
 import { VerifyEmailPage } from '@shared/pages/auth/VerifyEmailPage';
 import { OAuthCallbackPage } from '@shared/pages/auth/OAuthCallbackPage';
 
+const EnterpriseAIDetectionCenterPage = lazy(() =>
+  import('@shared/pages/EnterpriseAIDetectionCenterPage').then((m) => ({
+    default: m.EnterpriseAIDetectionCenterPage,
+  })),
+);
+const AIDetectionDashboardPage = lazy(() =>
+  import('@shared/pages/AIDetectionDashboardPage').then((m) => ({
+    default: m.AIDetectionDashboardPage,
+  })),
+);
+// Heavy table page with large dialogs — keep it out of the initial bundle.
+const ViolationsPage = lazy(() =>
+  import('@shared/pages/ViolationsPage').then((m) => ({ default: m.ViolationsPage })),
+);
+
+function withAiSuspense(Page: ComponentType) {
+  return function AiRouteSuspense() {
+    return (
+      <Suspense
+        fallback={
+          <div className="enforcement-page" style={{ padding: '2rem', display: 'grid', placeItems: 'center' }}>
+            <p>Loading AI Detection…</p>
+          </div>
+        }
+      >
+        <Page />
+      </Suspense>
+    );
+  };
+}
+
+function withRouteSuspense(Page: ComponentType) {
+  return function RouteSuspense() {
+    return (
+      <Suspense
+        fallback={
+          <div className="enforcement-page" style={{ padding: '2rem', display: 'grid', placeItems: 'center' }}>
+            <p>Loading…</p>
+          </div>
+        }
+      >
+        <Page />
+      </Suspense>
+    );
+  };
+}
+
+const LazyViolationsPage = withRouteSuspense(ViolationsPage);
+
+const LazyAiDetectionDashboard = withAiSuspense(AIDetectionDashboardPage);
+const LazyEnterpriseAiDetection = withAiSuspense(EnterpriseAIDetectionCenterPage);
+
 export const router = createBrowserRouter([
   { path: '/', Component: AdminLoginPage },
   { path: '/register', loader: () => redirect('/') },
@@ -62,13 +113,14 @@ export const router = createBrowserRouter([
       { index: true, loader: () => redirect('/admin/dashboard') },
       { path: 'dashboard', Component: AdminDashboard },
       { path: 'ai-detection/source', loader: () => redirect('/admin/ai-detection/new') },
-      { path: 'ai-detection', Component: AIDetectionDashboardPage },
-      { path: 'ai-detection/new', Component: EnterpriseAIDetectionCenterPage },
+      { path: 'ai-detection', Component: LazyAiDetectionDashboard },
+      { path: 'ai-detection/new', Component: LazyEnterpriseAiDetection },
       { path: 'cameras', Component: CamerasPage },
       { path: 'ai-logs', Component: AILogsPage },
       { path: 'evidence', Component: EvidenceArchivePage },
       { path: 'fines', Component: FineManagement },
-      { path: 'violations', Component: ViolationsPage },
+      { path: 'violations', Component: LazyViolationsPage },
+      { path: 'violation-rules', Component: ViolationRulesPage },
       { path: 'signs', Component: TrafficSignsPage },
       { path: 'vehicles', Component: VehiclesPage },
       { path: 'users', Component: UsersPage },

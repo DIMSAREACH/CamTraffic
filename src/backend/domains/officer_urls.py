@@ -31,5 +31,6 @@ urlpatterns = [
     path('cameras/', CameraListCreateView.as_view(), name='domain-officer-cameras'),
     path('reports/', PoliceReportsView.as_view(), name='domain-officer-reports'),
     path('assigned-cases/', OfficerDetectionQueueView.as_view(), name='domain-officer-cases'),
+    path('audit/', include('audit.urls')),
     path('ai/', include('ai_detection.urls')),
 ]

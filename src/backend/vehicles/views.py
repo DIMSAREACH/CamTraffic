@@ -15,9 +15,11 @@ User = get_user_model()
 
 class VehicleListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['plate_number', 'model']
     filterset_fields = ['vehicle_type', 'owner']
+    ordering_fields = ['created_at', 'plate_number', 'model']
+    ordering = ['-created_at']
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -38,8 +40,11 @@ class VehicleListCreateView(generics.ListCreateAPIView):
         return success_response(serializer.data)
 
     def create(self, request, *args, **kwargs):
-        if request.user.role not in ('driver', 'admin'):
-            return error_response('Only drivers can register vehicles', status_code=status.HTTP_403_FORBIDDEN)
+        if request.user.role not in ('driver', 'admin', 'police'):
+            return error_response(
+                'Only drivers, officers, or admins can register vehicles',
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
         serializer = VehicleCreateSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         vehicle = serializer.save()

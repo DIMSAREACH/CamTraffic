@@ -1,0 +1,31 @@
+{
+  "source": "GX010107_snapshot_05.49.549.png",
+  "image_size": {
+    "width": 1024,
+    "height": 576
+  },
+  "annotations": [
+    {
+      "class_id": 3,
+      "class_key": "NO_U_TURN",
+      "label_en": "No U-Turn",
+      "label_kh": "ហាមបត់ត្រឡប់",
+      "bbox_xyxy": [
+        907,
+        188,
+        972,
+        251
+      ],
+      "bbox_yolo": {
+        "x_center": 0.91748,
+        "y_center": 0.381076,
+        "width": 0.063477,
+        "height": 0.109375
+      },
+      "sign_code": "KH-NOUT / R1-03",
+      "category": "prohibitory"
+    }
+  ],
+  "format": "YOLO (class_id x_center y_center width height) normalized",
+  "dataset_ref": "ai/dataset_10/classes.txt index 3 = NO_U_TURN"
+}

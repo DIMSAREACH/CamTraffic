@@ -36,6 +36,8 @@
     "validate:real-data": "node scripts/validate-real-data-system.mjs",
     "seed:demo": "node scripts/backend-python.mjs manage.py seed_demo",
     "seed:production": "node scripts/backend-python.mjs manage.py seed_production",
+    "seed:pdf": "node scripts/backend-python.mjs manage.py load_pdf_seed_demo",
+    "seed:complete": "node scripts/backend-python.mjs manage.py complete_system",
     "audit:api": "node scripts/backend-python.mjs manage.py audit_api_permissions",
     "test:backend": "node scripts/backend-python.mjs manage.py test --noinput",
     "test:backend:phase12": "node scripts/backend-python.mjs manage.py test tests.backend tests.api.test_health_auth_users tests.integration tests.security tests.test_officer_only_fines -v 2 --noinput --keepdb",

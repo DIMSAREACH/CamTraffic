@@ -1,8 +1,13 @@
 """
-Normalize fine.amount to realistic USD values (UI shows KHR = amount × 4100).
+Normalize `fines.Fine.amount` to realistic USD values.
 
-Bug: some seed/update scripts stored KHR-like integers (5000–200000) in the USD field,
-which then displayed as millions of riel (e.g. 15000 → KHR 61,500,000).
+The frontend stores fine amounts in USD and displays Khmer Riel as:
+  displayed_KHR = amount_USD × 4100
+
+Some seeds stored KHR-like *thousands* (e.g. `5` meaning `5,000 KHR`) directly
+into the USD field. This command fixes that by interpreting schedule values
+as KHR-thousands and converting them to USD:
+  amount_USD = (KHR_thousands × 1000) / 4100
 """
 from decimal import Decimal
 import random
@@ -12,7 +17,9 @@ from django.db.models import Avg, Max, Min, Sum
 
 from fines.models import Fine
 
-# Stored in USD. Display ≈ amount × 4100 KHR.
+# Schedule values below are KHR-thousands (not USD).
+#
+# Example: `helmet: [4,5,8,10]` means 4,000–10,000 KHR.
 REALISTIC_USD_BY_KEYWORD = {
     'helmet': [5, 8, 10],
     'speed': [15, 20, 25],
@@ -34,15 +41,19 @@ REALISTIC_USD_BY_KEYWORD = {
     'emergency': [25, 30, 40],
 }
 
-DEFAULT_USD = [8, 10, 12, 15, 20]
+DEFAULT_USD = [8, 10, 12, 15, 20]  # KHR-thousands
+
+USD_TO_KHR = Decimal('4100')
 
 
 def pick_usd(reason: str) -> Decimal:
     lower = (reason or '').lower()
     for keyword, choices in REALISTIC_USD_BY_KEYWORD.items():
         if keyword in lower:
-            return Decimal(str(random.choice(choices)))
-    return Decimal(str(random.choice(DEFAULT_USD)))
+            khr_thousands = Decimal(str(random.choice(choices)))
+            return (khr_thousands * Decimal('1000')) / USD_TO_KHR
+    khr_thousands = Decimal(str(random.choice(DEFAULT_USD)))
+    return (khr_thousands * Decimal('1000')) / USD_TO_KHR
 
 
 class Command(BaseCommand):
@@ -54,9 +65,15 @@ class Command(BaseCommand):
             action='store_true',
             help='Show what would change without saving',
         )
+        parser.add_argument(
+            '--force',
+            action='store_true',
+            help='Re-apply normalization even if amounts already look sane',
+        )
 
     def handle(self, *args, **options):
         dry = options['dry_run']
+        force = options['force']
         self.stdout.write(self.style.NOTICE(
             '\nFixing fine amounts → realistic USD (display KHR = USD × 4100)\n'
         ))
@@ -67,7 +84,7 @@ class Command(BaseCommand):
         for fine in fines:
             old = Decimal(str(fine.amount))
             # Already in a sane USD band for traffic fines (< $150)
-            if Decimal('1') <= old <= Decimal('150'):
+            if (not force) and (Decimal('0.5') <= old <= Decimal('30')):
                 continue
 
             new_amount = pick_usd(fine.reason)

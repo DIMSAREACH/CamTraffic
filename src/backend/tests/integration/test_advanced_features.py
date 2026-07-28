@@ -26,7 +26,7 @@ from fines.pdf_receipt import generate_fine_receipt_pdf
 from notifications.models import Notification, PushDevice, SMSLog
 from notifications.push_service import PushNotificationService
 from notifications.sms_service import SMSService
-from violations.models import Violation
+from violations.models import TrafficViolation
 
 User = get_user_model()
 
@@ -86,7 +86,7 @@ def violation_for_testing(db, driver_user):
         }
     )
     
-    violation = Violation.objects.create(
+    violation = TrafficViolation.objects.create(
         driver=driver_user,
         camera=camera,
         road=road,
@@ -553,7 +553,7 @@ class TestCompleteAdvancedWorkflow:
         assert installment_response.status_code == status.HTTP_201_CREATED
         
         # 5. View on map (create violation first)
-        violation = Violation.objects.create(
+        violation = TrafficViolation.objects.create(
             driver=driver_user,
             violation_type='speeding',
             location='Street 51, Phnom Penh',

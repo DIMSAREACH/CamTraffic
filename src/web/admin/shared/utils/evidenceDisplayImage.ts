@@ -38,11 +38,11 @@ export function inferSignCodeFromEvidenceTitle(title: string): string | null {
 }
 
 /**
- * Production: always show the stored evidence image from the API.
- * Demo-sign substitution is intentionally disabled (no sample art overlay).
+ * Prefer the full-frame evidence photo for card / dialog preview.
+ * Falls back to vehicle then plate crop only when the main frame is missing.
  */
 export function resolveEvidenceDisplayImage(
-  item: Pick<EvidenceArchiveItem, 'image_url' | 'title' | 'source_type'>,
+  item: Pick<EvidenceArchiveItem, 'image_url' | 'vehicle_image_url' | 'plate_image_url' | 'title' | 'source_type'>,
 ): string | null {
-  return item.image_url ?? null;
+  return item.image_url || item.vehicle_image_url || item.plate_image_url || null;
 }

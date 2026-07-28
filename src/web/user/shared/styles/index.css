@@ -5,6 +5,7 @@
 @import './globals.css';
 @import './sidebar.css';
 @import './dashboard.css';
+@import './cambodia-plate.css';
 @import './cameras-officer-align.css';
 @import './navbar.css';
 @import './profile-avatar.css';
@@ -12,6 +13,7 @@
 @import './notifications-enterprise.css';
 @import './signs-enterprise.css';
 @import './settings-enterprise.css';
+@import './fine-detail-page.css';
 @import './portal-theme.css';
 @import './portal-pages-polish.css';
 @import './ai-detection-center.css';

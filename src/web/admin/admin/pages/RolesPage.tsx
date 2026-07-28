@@ -19,10 +19,12 @@ import { TablePagination } from '@shared/components/ui/TablePagination';
 import { CrudRowActions } from '@shared/components/admin/CrudRowActions';
 import { EntityDetailField, EntityViewDialog } from '@shared/components/admin/EntityViewDialog';
 import { usePagination } from '@shared/hooks/usePagination';
+import { useFieldErrors } from '@shared/hooks/useFieldErrors';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { useAuth } from '@shared/context/AuthContext';
 import { auditAPI, rbacAPI, usersAPI } from '@shared/services/api';
 import { cn } from '@shared/components/ui/utils';
+import { FieldError, FormErrorBanner } from '@shared/components/ui/FieldError';
 import {
   CHART, chartAxisTick, chartTooltipStyle,
 } from '@shared/constants/chartPalette';
@@ -189,6 +191,7 @@ export function RolesPage() {
   const [deleteRole, setDeleteRole] = useState<RBACRole | null>(null);
   const [viewRole, setViewRole] = useState<RBACRole | null>(null);
   const [form, setForm] = useState({ role_name: '', description: '', status: 'active' as RBACRole['status'] });
+  const formErrors = useFieldErrors<'role_name'>();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [roleSearch, setRoleSearch] = useState('');
@@ -414,8 +417,12 @@ export function RolesPage() {
       toast.error('Only a super administrator can create or edit roles.');
       return;
     }
-    if (!form.role_name.trim()) {
-      toast.error(t('roles.nameRequired'));
+    const ok = formErrors.validateRequired(
+      { role_name: form.role_name },
+      { role_name: t('roles.nameRequired') !== 'roles.nameRequired' ? t('roles.nameRequired') : t('common.fieldRequired') },
+    );
+    if (!ok) {
+      toast.error(t('common.formIncomplete'));
       return;
     }
     try {
@@ -1276,17 +1283,23 @@ export function RolesPage() {
           </DialogHeader>
 
           <div className="roles-form-dialog__body">
+            <FormErrorBanner message={formErrors.hasErrors ? t('common.formIncomplete') : null} />
             <div className="roles-form-dialog__panel">
               <p className="roles-form-dialog__section-title">{t('roles.formSectionBasic')}</p>
               <div className="roles-form-dialog__field">
                 <Label className="roles-form-dialog__label">{t('roles.name')} *</Label>
                 <Input
-                  className="roles-form-dialog__input"
+                  className={cn('roles-form-dialog__input', formErrors.errors.role_name && 'ct-field--invalid')}
                   placeholder={t('roles.namePlaceholder')}
                   value={form.role_name}
-                  onChange={(e) => setForm({ ...form, role_name: e.target.value })}
+                  aria-invalid={Boolean(formErrors.errors.role_name)}
+                  onChange={(e) => {
+                    formErrors.clearField('role_name');
+                    setForm({ ...form, role_name: e.target.value });
+                  }}
                   disabled={!!editRole && isSystemRole(editRole.role_name)}
                 />
+                <FieldError message={formErrors.errors.role_name} />
               </div>
               <div className="roles-form-dialog__field">
                 <Label className="roles-form-dialog__label">{t('roles.description')}</Label>

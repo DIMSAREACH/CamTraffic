@@ -1,6 +1,6 @@
 import type { VehicleDetectionItem } from '@shared/hooks/useWebcamDetection';
 import { signDisplayNames, type SignNameFields } from '@shared/utils/signDisplayNames';
-import { canonicalClassKey, labelsForClassKey } from '@shared/utils/yoloSignLabels';
+import { canonicalClassKey, classKeyFromSignLabel, labelsForClassKey } from '@shared/utils/yoloSignLabels';
 
 export type DetectionMode = 'sign' | 'vehicle' | 'plate' | 'unknown_sign' | 'no_sign';
 
@@ -193,23 +193,42 @@ function isPlaceholderSignName(name?: string | null): boolean {
   const value = (name || '').trim();
   if (!value) return true;
   if (/^Traffic Sign\b/i.test(value)) return true;
+  // Category + slug leftovers: "សញ្ញាព្រមាន keep-right"
+  if (/^សញ្ញា(?:ព្រមាន|ហាមឃាត់|បញ្ជា|ផ្តល់ព័ត៌មាន)\s+/u.test(value)) return true;
   if (/^សញ្ញា\s+[A-Z0-9-]+/.test(value)) return true;
   if (/^ស្លាក\s+[A-Z0-9-]+/.test(value)) return true;
   return false;
 }
 
 /** Ensure webcam/API results use official Cambodia catalog sign names. */
-export function normalizeDetectionSign<T extends SignNameFields & { class_key?: string; display_title?: string; display_title_en?: string; display_title_km?: string }>(
-  result: T,
-): T {
-  const classLabels = labelsForClassKey(result.class_key);
+export function normalizeDetectionSign<
+  T extends {
+    sign_name?: string;
+    sign_name_km?: string;
+    sign_name_en?: string;
+    sign_code?: string;
+    description_en?: string;
+    class_key?: string;
+    display_title?: string;
+    display_title_en?: string;
+    display_title_km?: string;
+  },
+>(result: T): T {
+  const inferredKey =
+    result.class_key
+    || classKeyFromSignLabel(result.sign_name_km)
+    || classKeyFromSignLabel(result.sign_name)
+    || classKeyFromSignLabel(result.sign_name_en)
+    || classKeyFromSignLabel(result.display_title_km)
+    || classKeyFromSignLabel(result.display_title);
+  const classLabels = labelsForClassKey(inferredKey);
   const signCode = (result.sign_code || classLabels?.code || '').toUpperCase();
   const merged: SignNameFields = {
-    sign_code: signCode || result.sign_code,
-    sign_name: result.sign_name,
-    sign_name_km: result.sign_name_km,
-    sign_name_en: result.sign_name_en,
-    description_en: result.description_en,
+    sign_code: signCode || result.sign_code || '',
+    sign_name: result.sign_name || '',
+    sign_name_km: result.sign_name_km || '',
+    sign_name_en: result.sign_name_en || '',
+    description_en: result.description_en || '',
   };
 
   if (classLabels) {
@@ -217,7 +236,12 @@ export function normalizeDetectionSign<T extends SignNameFields & { class_key?: 
       merged.sign_name_km = classLabels.km;
       merged.sign_name = classLabels.km;
     }
-    if (isPlaceholderSignName(merged.sign_name_en) || !merged.sign_name_en) {
+    // Logs often store Khmer in sign_name_en — replace with catalog English.
+    if (
+      isPlaceholderSignName(merged.sign_name_en)
+      || !merged.sign_name_en
+      || hasKhmer(merged.sign_name_en)
+    ) {
       merged.sign_name_en = classLabels.en;
     }
     if (!merged.sign_code) merged.sign_code = classLabels.code;
@@ -226,18 +250,19 @@ export function normalizeDetectionSign<T extends SignNameFields & { class_key?: 
   const labels = signDisplayNames(merged);
   const next = {
     ...result,
+    ...(inferredKey ? { class_key: canonicalClassKey(inferredKey) } : {}),
     sign_code: merged.sign_code || result.sign_code,
     sign_name_km: labels.km || result.sign_name_km || result.sign_name,
     sign_name_en: labels.en || result.sign_name_en,
     sign_name: labels.km || result.sign_name_km || result.sign_name,
-  };
+  } as T;
 
   if (labels.km) {
-    next.display_title_km = labels.km;
-    next.display_title = labels.km;
+    (next as { display_title_km?: string; display_title?: string }).display_title_km = labels.km;
+    (next as { display_title_km?: string; display_title?: string }).display_title = labels.km;
   }
   if (labels.en) {
-    next.display_title_en = labels.en;
+    (next as { display_title_en?: string }).display_title_en = labels.en;
   }
 
   return next;
@@ -317,7 +342,9 @@ export interface LogDisplayInput {
 function enrichLogInput(log: LogDisplayInput): DetectionDisplayInput {
   if (log.display_label || log.display_confidence != null) {
     return {
-      sign_name: log.detected_sign,
+      sign_name: log.display_label_km || log.display_label || log.detected_sign,
+      sign_name_km: log.display_label_km || log.display_label || log.detected_sign,
+      sign_name_en: log.display_label_en || log.detected_sign,
       confidence: log.confidence,
       description: log.display_description || log.description,
       description_en: log.display_description_en,
@@ -337,10 +364,17 @@ function enrichLogInput(log: LogDisplayInput): DetectionDisplayInput {
   }
 
   const vehicles = log.detected_vehicles ?? [];
+  const inferredKey = classKeyFromSignLabel(log.detected_sign);
+  const catalog = labelsForClassKey(inferredKey);
   const input: DetectionDisplayInput = {
     sign_name: log.detected_sign,
-    sign_name_km: log.detected_sign,
-    sign_name_en: log.detected_sign === 'ស្លាកមិនស្គាល់' ? 'Unknown sign' : log.detected_sign,
+    sign_name_km: catalog?.km || log.detected_sign,
+    sign_name_en:
+      log.detected_sign === 'ស្លាកមិនស្គាល់'
+        ? 'Unknown sign'
+        : (catalog?.en || (hasKhmer(log.detected_sign) ? '' : log.detected_sign)),
+    sign_code: catalog?.code,
+    class_key: inferredKey || undefined,
     confidence: log.confidence,
     description: log.description,
     guidance: log.guidance || '',
@@ -390,7 +424,7 @@ export function logDisplayColor(mode: DetectionMode): string {
 }
 
 export function detectionHero(result: DetectionDisplayInput, locale: 'km' | 'en') {
-  const normalized = normalizeDetectionSign(result);
+  const normalized = normalizeDetectionSign(result) as DetectionDisplayInput;
   const mode = resolveDetectionMode(normalized);
   const isEn = locale === 'en';
 
@@ -445,8 +479,8 @@ export function detectionHero(result: DetectionDisplayInput, locale: 'km' | 'en'
   }
 
   const labels = signDisplayNames({
-    sign_code: normalized.sign_code,
-    sign_name: normalized.sign_name,
+    sign_code: normalized.sign_code || '',
+    sign_name: normalized.sign_name || '',
     sign_name_km: normalized.sign_name_km,
     sign_name_en: normalized.sign_name_en,
     description_en: normalized.description_en,

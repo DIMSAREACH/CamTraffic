@@ -74,13 +74,31 @@ def get_or_create_preferences(user: User) -> UserPreference:
 
 def record_login_event(user: User, request, *, success: bool = True) -> LoginEvent:
     user_agent = request.META.get('HTTP_USER_AGENT', '')
-    return LoginEvent.objects.create(
+    event = LoginEvent.objects.create(
         user=user,
         ip_address=get_client_ip(request),
         user_agent=user_agent[:500],
         device_label=parse_device_label(user_agent),
         status='success' if success else 'failed',
     )
+    try:
+        from audit.services import write_audit_log
+
+        write_audit_log(
+            user=user if success else None,
+            action='login' if success else 'login_failed',
+            resource='user',
+            resource_id=str(getattr(user, 'id', '') or ''),
+            request=request,
+            new_value={
+                'status': 'success' if success else 'failed',
+                'device': parse_device_label(user_agent),
+            },
+        )
+    except Exception:
+        # Login must never fail because of audit side-effects.
+        pass
+    return event
 
 
 def relative_time_label(dt) -> str:

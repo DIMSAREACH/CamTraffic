@@ -1,0 +1,92 @@
+{
+  "source": "stock-footage-phnom-penh-cambodia-vehicles-and-motorbikes-move-along-the-riverside-road-near-a.webm",
+  "video_key": "riverside",
+  "frame_index": 185,
+  "frame_file": "frame_0185_t7.72s.jpg",
+  "timestamp_sec": 7.716,
+  "image_size": {
+    "width": 898,
+    "height": 506
+  },
+  "tracking": true,
+  "annotations": [
+    {
+      "kind": "sign",
+      "class_key": "SLOW_DOWN",
+      "class_id": 7,
+      "label_en": "Slow Down",
+      "confidence": 49.4,
+      "track_id": 1202,
+      "bbox_norm": {
+        "x1": 0.4690071940422058,
+        "y1": 0.37236347794532776,
+        "x2": 0.5079247355461121,
+        "y2": 0.4493115544319153
+      },
+      "bbox_px": {
+        "x1": 421,
+        "y1": 188,
+        "x2": 456,
+        "y2": 227
+      },
+      "bbox_yolo": {
+        "x_center": 0.488466,
+        "y_center": 0.410838,
+        "width": 0.038918,
+        "height": 0.076948
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "tuk_tuk",
+      "class_id": 4,
+      "label_en": "Tuk Tuk",
+      "confidence": 80.0,
+      "track_id": 52,
+      "bbox_norm": {
+        "x1": 0.6883,
+        "y1": 0.5388,
+        "x2": 0.8613,
+        "y2": 0.8113
+      },
+      "bbox_px": {
+        "x1": 618,
+        "y1": 273,
+        "x2": 773,
+        "y2": 411
+      },
+      "bbox_yolo": {
+        "x_center": 0.7748,
+        "y_center": 0.67505,
+        "width": 0.173,
+        "height": 0.2725
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "motorcycle",
+      "class_id": 2,
+      "label_en": "Motorcycle",
+      "confidence": 70.0,
+      "track_id": 68,
+      "bbox_norm": {
+        "x1": 0.5275,
+        "y1": 0.618,
+        "x2": 0.6349,
+        "y2": 0.7995
+      },
+      "bbox_px": {
+        "x1": 474,
+        "y1": 313,
+        "x2": 570,
+        "y2": 405
+      },
+      "bbox_yolo": {
+        "x_center": 0.5812,
+        "y_center": 0.70875,
+        "width": 0.1074,
+        "height": 0.1815
+      }
+    }
+  ]
+}

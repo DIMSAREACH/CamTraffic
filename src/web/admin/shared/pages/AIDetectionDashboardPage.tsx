@@ -58,15 +58,15 @@ export function AIDetectionDashboardPage() {
     }
   }, []);
 
-  const refreshLogs = useCallback(async () => {
-    setLoadingLogs(true);
+  const refreshLogs = useCallback(async (opts?: { soft?: boolean }) => {
+    if (!opts?.soft) setLoadingLogs(true);
     try {
       const logs = await aiAPI.getLogs();
       setRecentLogs(logs);
     } catch {
       setRecentLogs([]);
     } finally {
-      setLoadingLogs(false);
+      if (!opts?.soft) setLoadingLogs(false);
     }
   }, []);
 
@@ -81,9 +81,13 @@ export function AIDetectionDashboardPage() {
   }, []);
 
   useEffect(() => {
+    // Stats first for fast KPI paint; defer heavier list fetches.
     void refreshStats();
-    void refreshLogs();
-    void refreshCameras();
+    const idle = window.setTimeout(() => {
+      void refreshLogs();
+      void refreshCameras();
+    }, 80);
+    return () => window.clearTimeout(idle);
   }, [refreshStats, refreshLogs, refreshCameras]);
 
   useEffect(() => {
@@ -101,7 +105,7 @@ export function AIDetectionDashboardPage() {
 
   useLiveData(() => {
     void refreshStats();
-    void refreshLogs();
+    void refreshLogs({ soft: true });
   }, 30_000, true);
 
   const todayDetections = useMemo(

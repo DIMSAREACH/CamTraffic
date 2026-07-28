@@ -18,7 +18,8 @@ import { toast } from 'sonner';
 import { SpeakButton } from '@shared/components/SpeakButton';
 import { useSpeech } from '@shared/hooks/useSpeech';
 import { heroSpeechText, logDisplay, logDisplayColor } from '@shared/utils/detectionDisplay';
-import { getProfileImageSrc } from '@shared/utils/profileImage';
+import { getProfileImageSrc, getProfileImageUrl } from '@shared/utils/profileImage';
+import { getDetectionThumbCandidates } from '@shared/components/ai/DetectionThumb';
 import type { AIDetectionLog } from '@shared/types';
 
 function effectiveConfidence(log: AIDetectionLog, locale: 'km' | 'en') {
@@ -135,6 +136,18 @@ function AILogDetailDialog({
   locale: 'km' | 'en';
 }) {
   const { speak, speakingId } = useSpeech(locale);
+  const [previewIndex, setPreviewIndex] = useState(0);
+  const [previewBroken, setPreviewBroken] = useState(false);
+
+  const candidates = useMemo(
+    () => (log ? getDetectionThumbCandidates(log) : []),
+    [log],
+  );
+
+  useEffect(() => {
+    setPreviewIndex(0);
+    setPreviewBroken(false);
+  }, [log?.id]);
 
   if (!log) return null;
 
@@ -147,6 +160,14 @@ function AILogDetailDialog({
   const ModeIcon = modeIcon(hero.mode);
   const confidenceTierLabel = (value: keyof typeof CONFIDENCE_STYLE) => t(`aiLogs.confidence.${value}`);
   const formattedDate = new Date(log.created_at).toLocaleString(dateLocale);
+  const shortLogId = String(log.id).slice(0, 8);
+  const previewSrc = !previewBroken && previewIndex < candidates.length
+    ? candidates[previewIndex]
+    : null;
+  const openFullUrl = previewSrc
+    || getProfileImageUrl(log.uploaded_image)
+    || getProfileImageUrl(log.vehicle_snapshot)
+    || getProfileImageUrl(log.plate_snapshot);
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
@@ -159,8 +180,8 @@ function AILogDetailDialog({
             <div className="ai-log-dialog__header-copy">
               <h2 className="ai-log-dialog__header-title">{t('aiLogs.detailTitle')}</h2>
               <div className="ai-log-dialog__header-meta">
-                <span className="ai-log-dialog__header-meta-id">
-                  {t('aiLogs.detailLogId')} #{log.id}
+                <span className="ai-log-dialog__header-meta-id" title={String(log.id)}>
+                  {t('aiLogs.detailLogId')} #{shortLogId}
                 </span>
                 <span className="ai-log-dialog__header-meta-date">{formattedDate}</span>
               </div>
@@ -169,11 +190,18 @@ function AILogDetailDialog({
 
           <div className="ai-log-dialog__body">
           <div className="ai-log-dialog__preview">
-            {log.uploaded_image ? (
+            {previewSrc ? (
               <img
-                src={log.uploaded_image}
+                src={previewSrc}
                 alt={hero.title}
                 className="ai-log-dialog__preview-img"
+                onError={() => {
+                  if (previewIndex + 1 < candidates.length) {
+                    setPreviewIndex((i) => i + 1);
+                  } else {
+                    setPreviewBroken(true);
+                  }
+                }}
               />
             ) : (
               <div className="ai-log-dialog__preview-empty">
@@ -345,9 +373,9 @@ function AILogDetailDialog({
           </div>
 
           <div className="ai-log-dialog__footer">
-            {log.uploaded_image ? (
+            {openFullUrl ? (
               <a
-                href={log.uploaded_image}
+                href={openFullUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="ai-log-dialog__open-link"
@@ -404,8 +432,18 @@ export function AILogsPage() {
 
   const loadLogs = useCallback((silent = false) => {
     if (!silent) setLoading(true);
-    aiAPI.getLogs()
-      .then((data) => setLogs(data))
+    aiAPI.getLogs(undefined, { pageSize: 200 })
+      .then((data) => setLogs(Array.isArray(data) ? data.map((row) => {
+        const uploaded = getProfileImageUrl(row.uploaded_image) || row.uploaded_image || '';
+        const vehicle = getProfileImageUrl(row.vehicle_snapshot) || row.vehicle_snapshot || '';
+        const plate = getProfileImageUrl(row.plate_snapshot) || row.plate_snapshot || '';
+        return {
+          ...row,
+          uploaded_image: uploaded,
+          vehicle_snapshot: vehicle,
+          plate_snapshot: plate,
+        };
+      }) : data))
       .catch(() => { if (!silent) toast.error(t('aiLogs.loadFail')); })
       .finally(() => { if (!silent) setLoading(false); });
   }, [t]);
@@ -451,7 +489,11 @@ export function AILogsPage() {
           || plate.includes(q);
       });
     }
-    return rows;
+    return [...rows].sort((a, b) => {
+      const at = new Date(a.created_at || 0).getTime();
+      const bt = new Date(b.created_at || 0).getTime();
+      return bt - at; // newest first
+    });
   }, [logs, search, confidenceFilter, speechLocale, dateFilter, plateFilter, typeFilter]);
 
   const handleDelete = async (log: AIDetectionLog) => {
@@ -662,19 +704,29 @@ export function AILogsPage() {
                 return (
                   <TableRow key={log.id} className="enforcement-page__table-row ai-log-table__row">
                     <TableCell className={`py-3.5 ${tableColumns[0].colClass} ai-log-table__col--center`}>
-                      {log.uploaded_image ? (
-                        <button
-                          type="button"
-                          className="enforcement-page__log-thumb"
-                          onClick={() => setSelected(log)}
-                        >
-                          <img src={log.uploaded_image} alt="" className="enforcement-page__log-thumb-img" />
-                        </button>
-                      ) : (
-                        <div className="enforcement-page__log-thumb enforcement-page__log-thumb--empty">
-                          <ImageIcon size={16} />
-                        </div>
-                      )}
+                      {(() => {
+                        const thumb = getDetectionThumbCandidates(log)[0];
+                        if (thumb) {
+                          return (
+                            <button
+                              type="button"
+                              className="enforcement-page__log-thumb"
+                              onClick={() => setSelected(log)}
+                            >
+                              <img src={thumb} alt="" className="enforcement-page__log-thumb-img" loading="lazy" />
+                            </button>
+                          );
+                        }
+                        return (
+                          <button
+                            type="button"
+                            className="enforcement-page__log-thumb enforcement-page__log-thumb--empty"
+                            onClick={() => setSelected(log)}
+                          >
+                            <ImageIcon size={16} />
+                          </button>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell className={`py-3.5 ${tableColumns[1].colClass}`}>
                       <div className="ai-log-table__user">

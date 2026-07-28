@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 AI_ROOT = Path(__file__).resolve().parents[2]
-BACKEND = AI_ROOT.parent / 'backend'
+BACKEND = AI_ROOT.parent / 'src' / 'backend'
 sys.path.insert(0, str(BACKEND))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'camtraffic.settings')
 

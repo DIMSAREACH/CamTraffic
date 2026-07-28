@@ -10,6 +10,7 @@ import { RielIcon } from '@shared/components/RielIcon';
 import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
 import { Label } from '@shared/components/ui/label';
+import { FieldError, FormErrorBanner } from '@shared/components/ui/FieldError';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@shared/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/components/ui/select';
 import { useAuth } from '@shared/context/AuthContext';
@@ -21,8 +22,11 @@ import { usePoliceDashboardStats, useCameraLiveStatus } from '@shared/hooks/quer
 import { EMPTY_POLICE_STATS } from '@shared/constants/emptyDashboard';
 import { DASHBOARD_PALETTE } from '@shared/constants/chartPalette';
 import { OFFICER_PORTAL_ROUTES } from '@shared/constants/portalRoutes';
+import { useFieldErrors } from '@shared/hooks/useFieldErrors';
 import { toast } from 'sonner';
 import type { Fine, User, Vehicle } from '@shared/types';
+
+type IssueFineField = 'driver' | 'reason' | 'amount' | 'location';
 
 const C = DASHBOARD_PALETTE;
 
@@ -90,7 +94,9 @@ export function OfficerDashboard() {
   const [searching, setSearching] = useState(false);
   const [issueFineOpen, setIssueFineOpen] = useState(false);
   const [fineForm, setFineForm] = useState({ driver_id: '' as string, vehicle_plate: '', reason: '', amount: '', location: '' });
+  const [locationCustom, setLocationCustom] = useState(false);
   const [issuing, setIssuing] = useState(false);
+  const issueErrors = useFieldErrors<IssueFineField>();
 
   useEffect(() => {
     if (isError) toast.error(t('dashboard.loadErrorTitle'));
@@ -119,8 +125,24 @@ export function OfficerDashboard() {
   };
 
   const handleIssueFine = async () => {
-    if (!user || !fineForm.driver_id || !fineForm.reason || !fineForm.amount) {
-      toast.error(t('fines.toastFillRequired')); return;
+    if (!user) return;
+    const ok = issueErrors.validateRequired(
+      {
+        driver: fineForm.driver_id,
+        reason: fineForm.reason,
+        amount: fineForm.amount,
+        location: fineForm.location,
+      },
+      {
+        driver: t('common.lookupRequired'),
+        reason: t('common.fieldRequired'),
+        amount: t('common.fieldRequired'),
+        location: t('common.fieldRequired'),
+      },
+    );
+    if (!ok) {
+      toast.error(t('common.formIncomplete'));
+      return;
     }
     setIssuing(true);
     try {
@@ -128,7 +150,9 @@ export function OfficerDashboard() {
       toast.success(t('fines.toastIssued'));
       setIssueFineOpen(false);
       setFineForm({ driver_id: '', vehicle_plate: '', reason: '', amount: '', location: '' });
+      setLocationCustom(false);
       setSearchResult(null);
+      issueErrors.clearErrors();
       if (user) {
         await queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.police(user.id) });
       }
@@ -141,16 +165,28 @@ export function OfficerDashboard() {
 
   const statusLabel = (status: string) => t(`fines.status.${status}` as 'fines.status.pending');
 
-  const openIssueFine = (driver: User) => {
-    setFineForm((f) => ({ ...f, driver_id: driver.id }));
+  const resetIssueFineForm = (driverId = '') => {
+    setFineForm({ driver_id: driverId, vehicle_plate: '', reason: '', amount: '', location: '' });
+    setLocationCustom(false);
+    issueErrors.clearErrors();
+  };
+
+  const openIssueFine = (driver?: User) => {
+    const selected = driver ?? searchResult?.driver ?? undefined;
+    resetIssueFineForm(selected?.id ?? '');
     setIssueFineOpen(true);
   };
 
+  const handleIssueFineOpenChange = (open: boolean) => {
+    setIssueFineOpen(open);
+    if (!open) resetIssueFineForm();
+  };
+
   const statCards = [
-    { tone: 'blue', icon: FileText, value: String(stats.total_issued), label: t('dashboard.policeTotalIssued') },
-    { tone: 'amber', icon: TrendingUp, value: String(stats.today_issued), label: t('dashboard.policeTodayFines') },
-    { tone: 'rose', icon: Clock, value: String(stats.pending), label: t('dashboard.policePending') },
-    { tone: 'teal', icon: RielIcon, value: formatAppCurrency(locale, stats.revenue), label: t('dashboard.revenue') },
+    { tone: 'blue', icon: FileText, value: String(stats.total_issued), label: t('dashboard.policeTotalIssued'), onClick: () => navigate(OFFICER_PORTAL_ROUTES.fines) },
+    { tone: 'amber', icon: TrendingUp, value: String(stats.today_issued), label: t('dashboard.policeTodayFines'), onClick: () => navigate(OFFICER_PORTAL_ROUTES.fines) },
+    { tone: 'rose', icon: Clock, value: String(stats.pending), label: t('dashboard.policePending'), onClick: () => navigate(OFFICER_PORTAL_ROUTES.fines) },
+    { tone: 'teal', icon: RielIcon, value: formatAppCurrency(locale, stats.revenue), label: t('dashboard.revenue'), onClick: () => navigate(OFFICER_PORTAL_ROUTES.fines) },
   ];
 
   const quickActions = [
@@ -160,7 +196,7 @@ export function OfficerDashboard() {
       icon: Plus,
       tone: C[1],
       badge: null as string | null,
-      onClick: () => setIssueFineOpen(true),
+      onClick: () => openIssueFine(),
     },
     {
       label: t('dashboard.qaPoliceFines'),
@@ -217,7 +253,7 @@ export function OfficerDashboard() {
     );
   }
 
-  const firstName = user?.full_name.split(' ')[0] ?? '';
+  const displayName = user?.full_name?.trim() || '';
 
   return (
     <div className="enforcement-page enforcement-page--police-dashboard police-dashboard-page admin-dashboard-page">
@@ -235,7 +271,7 @@ export function OfficerDashboard() {
                 {t('dashboard.policePortal')}
               </div>
               <h1 className="enforcement-page__title">
-                {t(greetingKey(now.getHours()))}, {firstName}
+                {t(greetingKey(now.getHours()))}, {displayName}
               </h1>
               <p className="enforcement-page__subtitle police-dashboard-hero__subtitle">
                 {t('dashboard.policeWelcome', { name: user?.full_name ?? '' })} · {formatAppDate(locale, now)}
@@ -254,7 +290,7 @@ export function OfficerDashboard() {
             </button>
             <button
               type="button"
-              onClick={() => setIssueFineOpen(true)}
+              onClick={() => openIssueFine()}
               className="enforcement-page__hero-btn"
             >
               <Plus size={15} /> {t('dashboard.issueFine')}
@@ -267,7 +303,12 @@ export function OfficerDashboard() {
         {statCards.map((card) => {
           const Icon = card.icon;
           return (
-            <div key={card.label} className={`enforcement-page__stat-card enforcement-page__stat-card--${card.tone}`}>
+            <button
+              key={card.label}
+              type="button"
+              onClick={card.onClick}
+              className={`enforcement-page__stat-card enforcement-page__stat-card--${card.tone} enforcement-page__stat-card--link`}
+            >
               <div className={`enforcement-page__stat-icon enforcement-page__stat-icon--${card.tone}`}>
                 <Icon size={18} />
               </div>
@@ -277,7 +318,7 @@ export function OfficerDashboard() {
                   {card.label}
                 </p>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
@@ -397,7 +438,7 @@ export function OfficerDashboard() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => openIssueFine(searchResult.driver!)}
+                  onClick={() => openIssueFine(searchResult.driver ?? undefined)}
                   className="enforcement-page__hero-btn"
                 >
                   <Plus size={15} /> {t('dashboard.issueFine')}
@@ -491,108 +532,167 @@ export function OfficerDashboard() {
         </div>
       </div>
 
-      <Dialog open={issueFineOpen} onOpenChange={setIssueFineOpen}>
-        <DialogContent className="max-w-md" accent="rose">
+      <Dialog open={issueFineOpen} onOpenChange={handleIssueFineOpenChange}>
+        <DialogContent className="fines-issue-dialog" accent="teal">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <div className="enforcement-page__dialog-icon enforcement-page__dialog-icon--rose">
+            <DialogTitle className="flex items-center gap-2.5">
+              <div className="enforcement-page__dialog-icon enforcement-page__dialog-icon--teal">
                 <FileText size={15} />
               </div>
               <span className="enforcement-page__dialog-title">{t('fines.issueNewFine')}</span>
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div>
-              <Label className="enforcement-page__form-label">{t('fines.driverLicense')} *</Label>
-              <div className="flex gap-2 mt-1">
-                <Input
-                  placeholder={t('fines.licensePlaceholder')}
-                  value={searchLicense}
-                  onChange={(e) => setSearchLicense(e.target.value)}
-                  className="flex-1"
-                />
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={async () => {
-                    if (!searchLicense.trim()) return;
-                    const r = await finesAPI.searchByLicense(searchLicense.trim());
-                    if (r.driver) {
-                      setFineForm((f) => ({ ...f, driver_id: r.driver!.id }));
-                      setSearchResult(r);
-                      toast.success(`${t('fines.lookup')}: ${r.driver.full_name}`);
-                    } else toast.error(t('fines.toastDriverNotFound'));
-                  }}
-                >
-                  {t('fines.lookup')}
-                </Button>
+          <div className="fines-issue-dialog__body">
+            <FormErrorBanner message={issueErrors.hasErrors ? t('common.formIncomplete') : null} />
+            <div className="fines-issue-dialog__grid">
+              <div className="fines-issue-dialog__panel">
+                <p className="fines-issue-dialog__panel-title">{t('fines.driverSection')}</p>
+                <div className="fines-issue-dialog__field">
+                  <Label className="enforcement-page__form-label">
+                    {t('fines.driverLicense')} *
+                    <span className="enforcement-page__form-hint"> {t('fines.lookupRequired')}</span>
+                  </Label>
+                  <div className="fines-issue-dialog__lookup">
+                    <Input
+                      placeholder={t('fines.licensePlaceholder')}
+                      value={searchLicense}
+                      className={issueErrors.errors.driver ? 'ct-field--invalid' : undefined}
+                      aria-invalid={Boolean(issueErrors.errors.driver)}
+                      onChange={(e) => {
+                        issueErrors.clearField('driver');
+                        setSearchLicense(e.target.value);
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        if (!searchLicense.trim()) return;
+                        const r = await finesAPI.searchByLicense(searchLicense.trim());
+                        if (r.driver) {
+                          setFineForm((f) => ({ ...f, driver_id: r.driver!.id }));
+                          setSearchResult(r);
+                          issueErrors.clearField('driver');
+                          toast.success(`${t('fines.lookup')}: ${r.driver.full_name}`);
+                        } else toast.error(t('fines.toastDriverNotFound'));
+                      }}
+                    >
+                      {t('fines.lookup')}
+                    </Button>
+                  </div>
+                  {searchResult?.driver ? (
+                    <p className="fines-issue-dialog__success">✓ {searchResult.driver.full_name}</p>
+                  ) : null}
+                  <FieldError message={issueErrors.errors.driver} />
+                </div>
+                <div className="fines-issue-dialog__field">
+                  <Label className="enforcement-page__form-label">{t('fines.vehiclePlateLabel')}</Label>
+                  <Input
+                    placeholder={t('fines.platePlaceholder')}
+                    value={fineForm.vehicle_plate}
+                    onChange={(e) => setFineForm((f) => ({ ...f, vehicle_plate: e.target.value }))}
+                  />
+                </div>
               </div>
-              {searchResult?.driver && (
-                <p className="text-xs mt-1 font-semibold text-emerald-600">✓ {searchResult.driver.full_name}</p>
-              )}
-            </div>
-            <div>
-              <Label className="enforcement-page__form-label">{t('fines.vehiclePlateLabel')}</Label>
-              <Input
-                className="mt-1"
-                placeholder={t('fines.platePlaceholder')}
-                value={fineForm.vehicle_plate}
-                onChange={(e) => setFineForm((f) => ({ ...f, vehicle_plate: e.target.value }))}
-              />
-            </div>
-            <div>
-              <Label className="enforcement-page__form-label">{t('fines.violationLabel')} *</Label>
-              <Select onValueChange={(v) => setFineForm((f) => ({ ...f, reason: v }))}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder={t('fines.selectViolation')} /></SelectTrigger>
-                <SelectContent>
-                  {VIOLATION_REASONS.map((r) => (
-                    <SelectItem key={r.key} value={r.value}>{t(`fines.reasons.${r.key}`)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="enforcement-page__form-label">{t('fines.amountLabel')} *</Label>
-              <Input
-                className="mt-1"
-                type="number"
-                min="0"
-                step="100"
-                placeholder={t('fines.amountPlaceholder')}
-                value={fineForm.amount}
-                onChange={(e) => setFineForm((f) => ({ ...f, amount: e.target.value }))}
-              />
-            </div>
-            <div>
-              <Label className="enforcement-page__form-label">{t('fines.locationLabel')} *</Label>
-              <Select
-                value={fineForm.location || undefined}
-                onValueChange={(v) => setFineForm((f) => ({ ...f, location: v }))}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder={t('fines.locationPlaceholder')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {CAMBODIA_LOCATIONS.map((loc) => (
-                    <SelectItem key={loc} value={loc}>{loc}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Input
-                className="mt-2"
-                placeholder={t('fines.locationCustomHint')}
-                value={(CAMBODIA_LOCATIONS as readonly string[]).includes(fineForm.location) ? '' : fineForm.location}
-                onChange={(e) => setFineForm((f) => ({ ...f, location: e.target.value }))}
-              />
+
+              <div className="fines-issue-dialog__panel">
+                <p className="fines-issue-dialog__panel-title">{t('fines.violationSection')}</p>
+                <div className="fines-issue-dialog__field">
+                  <Label className="enforcement-page__form-label">{t('fines.violationLabel')} *</Label>
+                  <Select
+                    value={fineForm.reason || undefined}
+                    onValueChange={(v) => {
+                      issueErrors.clearField('reason');
+                      setFineForm((f) => ({ ...f, reason: v }));
+                    }}
+                  >
+                    <SelectTrigger
+                      className={issueErrors.errors.reason ? 'ct-field--invalid' : undefined}
+                      aria-invalid={Boolean(issueErrors.errors.reason)}
+                    >
+                      <SelectValue placeholder={t('fines.selectViolation')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {VIOLATION_REASONS.map((r) => (
+                        <SelectItem key={r.key} value={r.value}>{t(`fines.reasons.${r.key}`)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FieldError message={issueErrors.errors.reason} />
+                </div>
+                <div className="fines-issue-dialog__field">
+                  <Label className="enforcement-page__form-label">{t('fines.amountLabel')} *</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="100"
+                    placeholder={t('fines.amountPlaceholder')}
+                    value={fineForm.amount}
+                    className={issueErrors.errors.amount ? 'ct-field--invalid' : undefined}
+                    aria-invalid={Boolean(issueErrors.errors.amount)}
+                    onChange={(e) => {
+                      issueErrors.clearField('amount');
+                      setFineForm((f) => ({ ...f, amount: e.target.value }));
+                    }}
+                  />
+                  <FieldError message={issueErrors.errors.amount} />
+                </div>
+                <div className="fines-issue-dialog__field">
+                  <Label className="enforcement-page__form-label">{t('fines.locationLabel')} *</Label>
+                  <Select
+                    value={locationCustom ? '__custom__' : (fineForm.location || undefined)}
+                    onValueChange={(v) => {
+                      issueErrors.clearField('location');
+                      if (v === '__custom__') {
+                        setLocationCustom(true);
+                        setFineForm((f) => ({
+                          ...f,
+                          location: (CAMBODIA_LOCATIONS as readonly string[]).includes(f.location) ? '' : f.location,
+                        }));
+                        return;
+                      }
+                      setLocationCustom(false);
+                      setFineForm((f) => ({ ...f, location: v }));
+                    }}
+                  >
+                    <SelectTrigger
+                      className={issueErrors.errors.location && !locationCustom ? 'ct-field--invalid' : undefined}
+                      aria-invalid={Boolean(issueErrors.errors.location)}
+                    >
+                      <SelectValue placeholder={t('fines.locationPlaceholder')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CAMBODIA_LOCATIONS.map((loc) => (
+                        <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                      ))}
+                      <SelectItem value="__custom__">{t('fines.locationCustomOption')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {locationCustom ? (
+                    <Input
+                      className={`mt-2${issueErrors.errors.location ? ' ct-field--invalid' : ''}`}
+                      placeholder={t('fines.locationCustomHint')}
+                      value={fineForm.location}
+                      aria-invalid={Boolean(issueErrors.errors.location)}
+                      onChange={(e) => {
+                        issueErrors.clearField('location');
+                        setFineForm((f) => ({ ...f, location: e.target.value }));
+                      }}
+                    />
+                  ) : null}
+                  <FieldError message={issueErrors.errors.location} />
+                </div>
+              </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIssueFineOpen(false)}>{t('fines.cancel')}</Button>
+            <Button variant="outline" onClick={() => handleIssueFineOpenChange(false)}>{t('fines.cancel')}</Button>
             <button
               type="button"
               onClick={handleIssueFine}
               disabled={issuing}
-              className="enforcement-page__hero-btn disabled:opacity-60"
+              className="enforcement-page__btn-primary enforcement-page__btn-teal disabled:opacity-60"
             >
               {issuing
                 ? <><span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />{t('fines.issuing')}</>

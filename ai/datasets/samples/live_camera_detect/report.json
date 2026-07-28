@@ -1,24 +1,34 @@
 {
   "cameras": [
     {
+      "code": "CAM-PP-1012",
+      "capture": true,
+      "filename": "webcam-street-camera-CAM-PP-1012.jpg",
+      "vehicles": 1,
+      "vehicle_conf_max": 82.3,
+      "plate_boxes": 0,
+      "sign_confidence": 0.0,
+      "annotated": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\samples\\live_camera_detect\\CAM-PP-1012_annotated.jpg"
+    },
+    {
+      "code": "CAM-MON-001",
+      "capture": true,
+      "filename": "webcam-street-camera-CAM-MON-001.jpg",
+      "vehicles": 1,
+      "vehicle_conf_max": 86.0,
+      "plate_boxes": 0,
+      "sign_confidence": 0.0,
+      "annotated": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\samples\\live_camera_detect\\CAM-MON-001_annotated.jpg"
+    },
+    {
       "code": "CAM-KD-001",
       "capture": true,
       "filename": "webcam-street-camera-CAM-KD-001.jpg",
-      "vehicles": 1,
-      "vehicle_conf_max": 34.1,
+      "vehicles": 2,
+      "vehicle_conf_max": 84.4,
       "plate_boxes": 0,
       "sign_confidence": 0.0,
       "annotated": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\samples\\live_camera_detect\\CAM-KD-001_annotated.jpg"
-    },
-    {
-      "code": "CAM-PP-001",
-      "capture": true,
-      "filename": "webcam-street-camera-CAM-PP-001.jpg",
-      "vehicles": 8,
-      "vehicle_conf_max": 74.8,
-      "plate_boxes": 0,
-      "sign_confidence": 0.0,
-      "annotated": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\samples\\live_camera_detect\\CAM-PP-001_annotated.jpg"
     }
   ],
   "ok": true,

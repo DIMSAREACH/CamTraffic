@@ -398,12 +398,13 @@ html.dark .enforcement-page__stat-card .enforcement-page__stat-label {
   border-spacing: 0;
 }
 
-.enforcement-page--appeals .appeals-table__col--driver { width: 20%; }
-.enforcement-page--appeals .appeals-table__col--violation { width: 20%; }
+.enforcement-page--appeals .appeals-table__col--driver { width: 13%; }
+.enforcement-page--appeals .appeals-table__col--license-plate { width: 12%; min-width: 8.5rem; }
+.enforcement-page--appeals .appeals-table__col--violation { width: 24%; }
 .enforcement-page--appeals .appeals-table__col--reason { width: 24%; }
-.enforcement-page--appeals .appeals-table__col--date { width: 12%; }
-.enforcement-page--appeals .appeals-table__col--status { width: 12%; }
-.enforcement-page--appeals .appeals-table__col--actions { width: 12%; }
+.enforcement-page--appeals .appeals-table__col--date { width: 9%; }
+.enforcement-page--appeals .appeals-table__col--status { width: 10%; }
+.enforcement-page--appeals .appeals-table__col--actions { width: 8%; }
 
 .enforcement-page--appeals .appeals-table__grid .enforcement-page__table-head {
   background: linear-gradient(135deg, rgba(124, 58, 237, 0.16) 0%, rgba(99, 102, 241, 0.1) 100%);
@@ -429,15 +430,27 @@ html.dark .enforcement-page--appeals .appeals-table__th {
   color: #ddd6fe !important;
 }
 
+/* Force left alignment for Driver + License (and all appeal cells) */
+.enforcement-page--appeals .appeals-table__grid [data-slot='table-head'],
+.enforcement-page--appeals .appeals-table__grid [data-slot='table-cell'],
+.enforcement-page--appeals .appeals-table__th,
+.enforcement-page--appeals .appeals-table__td,
+.enforcement-page--appeals .appeals-table__th--driver,
+.enforcement-page--appeals .appeals-table__td--driver,
+.enforcement-page--appeals .appeals-table__th--license-plate,
+.enforcement-page--appeals .appeals-table__td--license-plate {
+  text-align: left !important;
+}
+
 .enforcement-page--appeals .appeals-table__grid [data-slot='table-head']:first-child,
 .enforcement-page--appeals .appeals-table__grid [data-slot='table-cell']:first-child,
 .enforcement-page--appeals .appeals-table__th--driver,
 .enforcement-page--appeals .appeals-table__td--driver {
-  padding-left: 2rem !important;
+  padding-left: 1.25rem !important;
 }
 
 .enforcement-page--appeals .appeals-table__grid [data-slot='table-cell']:last-child {
-  padding-right: 2rem !important;
+  padding-right: 1.25rem !important;
 }
 
 .enforcement-page--appeals .appeals-table__row:hover {
@@ -455,17 +468,24 @@ html.dark .enforcement-page--appeals .appeals-table__th {
 }
 
 .enforcement-page--appeals .appeals-table__driver {
-  display: flex;
+  display: flex !important;
   align-items: center;
+  justify-content: flex-start !important;
   gap: 0.625rem;
+  width: 100%;
   min-width: 0;
 }
 
-.enforcement-page--appeals .appeals-table__avatar {
-  flex-shrink: 0;
-  width: 2.25rem;
-  height: 2.25rem;
-  font-size: 0.6875rem;
+.enforcement-page--appeals .appeals-table__avatar,
+.enforcement-page--appeals .enforcement-page__avatar--driver {
+  background: linear-gradient(135deg, #7c3aed, #6366f1) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.28);
+}
+
+.enforcement-page--appeals .appeals-table__driver-copy {
+  min-width: 0;
+  text-align: left;
 }
 
 .enforcement-page--appeals .appeals-table__driver-name {
@@ -477,6 +497,14 @@ html.dark .enforcement-page--appeals .appeals-table__th {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: left;
+}
+
+.enforcement-page--appeals .appeals-table__td--license-plate .enforcement-page__code-pill {
+  display: inline-flex !important;
+  justify-content: flex-start;
+  margin: 0;
+  max-width: 100%;
 }
 
 .enforcement-page--appeals .appeals-table__driver-license {
@@ -496,15 +524,59 @@ html.dark .enforcement-page--appeals .appeals-table__driver-license { color: #94
 .enforcement-page--appeals .appeals-table__violation {
   display: flex;
   flex-direction: column;
-  gap: 0.3125rem;
+  gap: 0.5rem;
   min-width: 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.85rem;
+  background: linear-gradient(145deg, rgba(99, 102, 241, 0.1) 0%, rgba(255, 255, 255, 0.95) 55%);
+  border: 1px solid rgba(99, 102, 241, 0.22);
+  box-shadow: 0 2px 10px rgba(79, 70, 229, 0.06);
+}
+
+html.dark .enforcement-page--appeals .appeals-table__violation {
+  background: linear-gradient(145deg, rgba(99, 102, 241, 0.18) 0%, rgba(30, 41, 59, 0.92) 60%);
+  border-color: rgba(129, 140, 248, 0.28);
+}
+
+.enforcement-page--appeals .appeals-table__violation-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 100%;
+  margin: 0;
+  padding: 0.28rem 0.55rem;
+  border-radius: 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #4338ca;
+  background: rgba(99, 102, 241, 0.14);
+  border: 1px solid rgba(99, 102, 241, 0.22);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.enforcement-page--appeals .appeals-table__violation-badge svg {
+  flex-shrink: 0;
+  color: #6366f1;
+}
+
+html.dark .enforcement-page--appeals .appeals-table__violation-badge {
+  color: #c7d2fe;
+  background: rgba(99, 102, 241, 0.22);
+  border-color: rgba(165, 180, 252, 0.28);
 }
 
 .enforcement-page--appeals .appeals-table__violation-title {
   margin: 0;
   font-size: 0.875rem;
-  font-weight: 700;
+  font-weight: 800;
   line-height: 1.4;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
   color: #0f172a;
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -512,56 +584,120 @@ html.dark .enforcement-page--appeals .appeals-table__driver-license { color: #94
   overflow: hidden;
 }
 
+.enforcement-page--appeals .appeals-table__license-plate {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
 .enforcement-page--appeals .appeals-table__violation-location {
   display: flex;
   align-items: flex-start;
-  gap: 0.3125rem;
+  gap: 0.35rem;
   margin: 0;
   font-size: 0.75rem;
-  font-weight: 500;
-  color: #64748b;
-}
-
-.enforcement-page--appeals .appeals-table__violation-location svg {
-  flex-shrink: 0;
-  margin-top: 0.125rem;
-  color: #8b5cf6;
-}
-
-html.dark .enforcement-page--appeals .appeals-table__violation-title { color: #f1f5f9; }
-
-.enforcement-page--appeals .appeals-table__reason {
-  margin: 0;
-  font-size: 0.8125rem;
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1.4;
-  color: #334155;
+  color: #475569;
+}
+
+.enforcement-page--appeals .appeals-table__violation-location span {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
+}
+
+.enforcement-page--appeals .appeals-table__violation-location svg {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+  color: #a855f7;
+}
+
+html.dark .enforcement-page--appeals .appeals-table__violation-title { color: #f1f5f9; }
+html.dark .enforcement-page--appeals .appeals-table__violation-location { color: #cbd5e1; }
+
+.enforcement-page--appeals .appeals-table__reason-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.85rem;
+  background: linear-gradient(145deg, rgba(14, 165, 233, 0.1) 0%, rgba(255, 255, 255, 0.95) 55%);
+  border: 1px solid rgba(14, 165, 233, 0.22);
+  box-shadow: 0 2px 10px rgba(14, 165, 233, 0.06);
+}
+
+html.dark .enforcement-page--appeals .appeals-table__reason-card {
+  background: linear-gradient(145deg, rgba(14, 165, 233, 0.16) 0%, rgba(30, 41, 59, 0.92) 60%);
+  border-color: rgba(56, 189, 248, 0.28);
+}
+
+.enforcement-page--appeals .appeals-table__reason-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #0284c7;
+}
+
+.enforcement-page--appeals .appeals-table__reason-label svg {
+  color: #0ea5e9;
+}
+
+html.dark .enforcement-page--appeals .appeals-table__reason-label {
+  color: #7dd3fc;
+}
+
+.enforcement-page--appeals .appeals-table__reason {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: #1e293b;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
   word-break: break-word;
 }
 
-html.dark .enforcement-page--appeals .appeals-table__reason { color: #cbd5e1; }
+html.dark .enforcement-page--appeals .appeals-table__reason { color: #e2e8f0; }
 
 .enforcement-page--appeals .appeals-table__date {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: #475569;
+  display: inline-flex;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #7c3aed;
+  background: rgba(124, 58, 237, 0.1);
+  border: 1px solid rgba(124, 58, 237, 0.18);
   white-space: nowrap;
 }
 
-html.dark .enforcement-page--appeals .appeals-table__date { color: #94a3b8; }
+html.dark .enforcement-page--appeals .appeals-table__date {
+  color: #c4b5fd;
+  background: rgba(124, 58, 237, 0.18);
+  border-color: rgba(167, 139, 250, 0.28);
+}
 
 .enforcement-page--appeals .appeals-table__status {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.3125rem 0.625rem !important;
+  gap: 0.3rem;
+  padding: 0.375rem 0.7rem !important;
+  border-radius: 9999px !important;
   font-size: 0.6875rem !important;
-  font-weight: 700 !important;
+  font-weight: 750 !important;
   white-space: nowrap;
+  border: 1px solid transparent;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06);
 }
 
 .enforcement-page--appeals .appeals-table__actions {

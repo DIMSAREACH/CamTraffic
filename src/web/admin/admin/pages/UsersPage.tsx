@@ -13,13 +13,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@shared/components/ui/table';
 import { TableEmptyState } from '@shared/components/ui/TableEmptyState';
 import { EntityDetailField, EntityViewDialog } from '@shared/components/admin/EntityViewDialog';
+import { CambodiaLicenseField } from '@shared/components/admin/CambodiaLicenseField';
+import { formatCambodiaPlate } from '@shared/components/admin/CambodiaPlateField';
+import {
+  isValidCambodiaPlate,
+  LICENSE_FORMAT_EXAMPLE,
+} from '@shared/utils/cambodiaIdentity';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { usersAPI } from '@shared/services/api';
 import { getPasswordValidationError, isStrongPassword, PASSWORD_REQUIREMENTS } from '@shared/utils/passwordPolicy';
 import { getProfileImageSrc } from '@shared/utils/profileImage';
+import { useFieldErrors } from '@shared/hooks/useFieldErrors';
+import { FieldError, FormErrorBanner } from '@shared/components/ui/FieldError';
 import { toast } from 'sonner';
 import type { User, UserRole } from '@shared/types';
+
+type UserFormField = 'full_name' | 'email' | 'password';
 
 const ROLE_META: Record<UserRole, { labelKey: string; icon: React.ReactNode; color: string; bg: string; gradient: string }> = {
   admin: { labelKey: 'users.roleAdmin', icon: <Shield size={11} />, color: '#7C3AED', bg: 'rgba(139,92,246,0.12)', gradient: 'linear-gradient(135deg, #8B5CF6, #7C3AED)' },
@@ -34,7 +44,7 @@ const USER_TABLE_COLUMNS = [
   { labelKey: 'users.colEmail', className: 'users-page__col--email' },
   { labelKey: 'users.colRole', className: '' },
   { labelKey: 'users.colPhone', className: '' },
-  { labelKey: 'users.colLicense', className: '' },
+  { labelKey: 'users.colLicense', className: 'users-page__col--license-plate' },
   { labelKey: 'users.colJoined', className: '' },
   { labelKey: 'users.colStatus', className: '' },
   { labelKey: 'users.colActions', className: 'users-page__col--actions' },
@@ -48,7 +58,17 @@ const STAT_CARDS = [
   { key: 'driver', labelKey: 'users.statDriver', icon: Car, variant: 'teal' },
 ] as const;
 
-const emptyForm = { full_name: '', email: '', password: '', role: 'driver' as UserRole, phone: '', address: '', license_no: '' };
+const emptyForm = {
+  full_name: '',
+  email: '',
+  password: '',
+  role: 'driver' as UserRole,
+  phone: '',
+  address: '',
+  license_no: '',
+  plate_number: '',
+  plate_province: '12',
+};
 
 function initials(name: string) {
   return name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'U';
@@ -104,6 +124,7 @@ export function UsersPage() {
   const [saving, setSaving] = useState(false);
   const [deleteUser, setDeleteUser] = useState<User | null>(null);
   const [viewUser, setViewUser] = useState<User | null>(null);
+  const formErrors = useFieldErrors<UserFormField>();
 
   const isSelf = (u: User) => Boolean(currentUser?.id) && String(u.id) === String(currentUser.id);
   const isSuperAdmin = Boolean(currentUser?.is_superuser);
@@ -136,6 +157,7 @@ export function UsersPage() {
         (u.full_name ?? '').toLowerCase().includes(q)
         || (u.email ?? '').toLowerCase().includes(q)
         || (u.license_no || '').toLowerCase().includes(q)
+        || (u.plate_number || '').toLowerCase().includes(q)
         || (u.phone ?? '').toLowerCase().includes(q),
       );
     }
@@ -157,13 +179,19 @@ export function UsersPage() {
 
   const roleLabel = (role: UserRole) => t(ROLE_META[role].labelKey);
 
-  const openAdd = () => { setEditUser(null); setForm(emptyForm); setModalOpen(true); };
+  const openAdd = () => {
+    setEditUser(null);
+    setForm(emptyForm);
+    formErrors.clearErrors();
+    setModalOpen(true);
+  };
   const openEdit = (u: User) => {
     if (cannotEditUser(u)) {
       toast.error('Only a super administrator can edit other administrator accounts.');
       return;
     }
     setEditUser(u);
+    formErrors.clearErrors();
     setForm({
       full_name: u.full_name ?? '',
       email: u.email ?? '',
@@ -171,20 +199,51 @@ export function UsersPage() {
       role: u.role,
       phone: u.phone ?? '',
       address: u.address ?? '',
-      license_no: u.license_no || '',
+      license_no: formatCambodiaPlate(u.plate_number || u.license_no || ''),
+      plate_number: formatCambodiaPlate(u.plate_number || u.license_no || ''),
+      plate_province: '12',
     });
     setModalOpen(true);
   };
 
+  const handleModalOpenChange = (open: boolean) => {
+    setModalOpen(open);
+    if (!open) formErrors.clearErrors();
+  };
+
   const handleSave = async () => {
-    if (!form.full_name || !form.email) { toast.error('Name and email are required'); return; }
-    if (!editUser && !form.password) { toast.error('Password required for new user'); return; }
+    const messages: Partial<Record<UserFormField, string>> = {
+      full_name: t('common.fieldRequired'),
+      email: t('common.fieldRequired'),
+    };
+    if (!editUser) messages.password = t('common.fieldRequired');
+    const ok = formErrors.validateRequired(
+      {
+        full_name: form.full_name,
+        email: form.email,
+        password: editUser ? 'ok' : form.password,
+      },
+      messages,
+    );
+    if (!ok) {
+      toast.error(t('common.formIncomplete'));
+      return;
+    }
     if (!editUser) {
       const pwdError = getPasswordValidationError(form.password);
       if (pwdError || !isStrongPassword(form.password)) {
+        formErrors.setFieldError('password', pwdError ?? 'Password must meet all strength requirements.');
         toast.error(pwdError ?? 'Password must meet all strength requirements.');
         return;
       }
+    }
+    // License uses the same numbered form as plates (e.g. 2TE-1507).
+    const license = formatCambodiaPlate(form.license_no || form.plate_number);
+    if (form.role === 'driver' && license && !isValidCambodiaPlate(license)) {
+      toast.error(t('users.licenseInvalid') !== 'users.licenseInvalid'
+        ? t('users.licenseInvalid')
+        : `Use license format ${LICENSE_FORMAT_EXAMPLE}`);
+      return;
     }
     setSaving(true);
     try {
@@ -195,14 +254,21 @@ export function UsersPage() {
           role: form.role,
           phone: form.phone,
           address: form.address,
-          license_no: form.license_no.trim(),
+          license_no: form.role === 'driver' ? license : '',
+          plate_number: form.role === 'driver' ? license : '',
         });
         toast.success('User updated');
       } else {
-        await usersAPI.create({ ...form, role: form.role });
+        await usersAPI.create({
+          ...form,
+          role: form.role,
+          license_no: form.role === 'driver' ? license : '',
+          plate_number: form.role === 'driver' ? license : '',
+        });
         toast.success('User created');
       }
       setModalOpen(false);
+      formErrors.clearErrors();
       loadUsers();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to save user');
@@ -412,10 +478,17 @@ export function UsersPage() {
                       </span>
                     </TableCell>
                     <TableCell><span className="enforcement-page__cell-body">{u.phone || '—'}</span></TableCell>
-                    <TableCell>
-                      {u.license_no
-                        ? <span className="enforcement-page__code-pill">{u.license_no}</span>
-                        : <span className="enforcement-page__cell-secondary">—</span>}
+                    <TableCell className="users-page__col--license-plate">
+                      {(() => {
+                        const license = formatCambodiaPlate(u.plate_number || u.license_no || '');
+                        return license ? (
+                          <span className="enforcement-page__code-pill" title={t('users.colLicense')}>
+                            {license}
+                          </span>
+                        ) : (
+                          <span className="enforcement-page__cell-secondary">—</span>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell><span className="enforcement-page__cell-secondary">{new Date(u.created_at).toLocaleDateString()}</span></TableCell>
                     <TableCell>
@@ -502,8 +575,8 @@ export function UsersPage() {
         <TablePagination pagination={pagination} labelKey="pagination.label.users" />
       </div>
 
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent accent="violet" className="max-w-md sm:max-w-lg">
+      <Dialog open={modalOpen} onOpenChange={handleModalOpenChange}>
+        <DialogContent accent="violet" className="ct-form-dialog">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2.5">
               <div className="enforcement-page__dialog-icon enforcement-page__dialog-icon--violet">
@@ -516,23 +589,49 @@ export function UsersPage() {
           </DialogHeader>
 
           <div className="ct-dialog-form">
+            <FormErrorBanner message={formErrors.hasErrors ? t('common.formIncomplete') : null} />
             <div className="ct-dialog-field">
               <Label className="enforcement-page__form-label">{t('users.fullName')} *</Label>
-              <Input value={form.full_name} onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))} />
+              <Input
+                className={formErrors.errors.full_name ? 'ct-field--invalid' : undefined}
+                aria-invalid={Boolean(formErrors.errors.full_name)}
+                value={form.full_name}
+                onChange={(e) => {
+                  formErrors.clearField('full_name');
+                  setForm((f) => ({ ...f, full_name: e.target.value }));
+                }}
+              />
+              <FieldError message={formErrors.errors.full_name} />
             </div>
             <div className="ct-dialog-field">
               <Label className="enforcement-page__form-label">{t('users.email')} *</Label>
-              <Input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
+              <Input
+                type="email"
+                className={formErrors.errors.email ? 'ct-field--invalid' : undefined}
+                aria-invalid={Boolean(formErrors.errors.email)}
+                value={form.email}
+                onChange={(e) => {
+                  formErrors.clearField('email');
+                  setForm((f) => ({ ...f, email: e.target.value }));
+                }}
+              />
+              <FieldError message={formErrors.errors.email} />
             </div>
             {!editUser && (
               <div className="ct-dialog-field">
                 <Label className="enforcement-page__form-label">{t('users.password')} *</Label>
                 <Input
                   type="password"
+                  className={formErrors.errors.password ? 'ct-field--invalid' : undefined}
+                  aria-invalid={Boolean(formErrors.errors.password)}
                   value={form.password}
-                  onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                  onChange={(e) => {
+                    formErrors.clearField('password');
+                    setForm((f) => ({ ...f, password: e.target.value }));
+                  }}
                   placeholder={t('users.passwordHint')}
                 />
+                <FieldError message={formErrors.errors.password} />
                 {form.password.length > 0 && (
                   <ul className="ct-dialog-hint-list">
                     {PASSWORD_REQUIREMENTS.map((r) => (
@@ -570,10 +669,24 @@ export function UsersPage() {
                 <Label className="enforcement-page__form-label">{t('users.phone')}</Label>
                 <Input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} />
               </div>
-              <div className="ct-dialog-field">
-                <Label className="enforcement-page__form-label">{t('users.licenseNo')}</Label>
-                <Input value={form.license_no} onChange={(e) => setForm((f) => ({ ...f, license_no: e.target.value }))} />
-              </div>
+              {form.role === 'driver' ? (
+                <div className="ct-dialog-field">
+                  <Label className="enforcement-page__form-label">{t('users.colLicense')}</Label>
+                  <CambodiaLicenseField
+                    value={form.license_no}
+                    onChange={(license_no) => setForm((f) => ({
+                      ...f,
+                      license_no,
+                      plate_number: license_no,
+                    }))}
+                  />
+                  <p className="enforcement-page__cell-secondary" style={{ marginTop: '0.35rem' }}>
+                    {t('users.plateHint') !== 'users.plateHint'
+                      ? t('users.plateHint')
+                      : `Cambodia format e.g. ${LICENSE_FORMAT_EXAMPLE}`}
+                  </p>
+                </div>
+              ) : null}
             </div>
             <div className="ct-dialog-field">
               <Label className="enforcement-page__form-label">{t('users.address')}</Label>
@@ -626,7 +739,12 @@ export function UsersPage() {
             <EntityDetailField label={t('users.email')} value={viewUser.email} />
             <EntityDetailField label={t('users.role')} value={roleLabel(viewUser.role)} />
             <EntityDetailField label={t('users.phone')} value={viewUser.phone || '—'} />
-            <EntityDetailField label={t('users.licenseNo')} value={viewUser.license_no || '—'} />
+            {viewUser.role === 'driver' ? (
+              <EntityDetailField
+                label={t('users.colLicense')}
+                value={formatCambodiaPlate(viewUser.plate_number || viewUser.license_no || '') || '—'}
+              />
+            ) : null}
             <EntityDetailField label={t('users.address')} value={viewUser.address || '—'} />
             <EntityDetailField label={t('users.colJoined')} value={new Date(viewUser.created_at).toLocaleDateString()} />
             <EntityDetailField label={t('users.colStatus')} value={viewUser.is_active ? t('users.active') : t('users.inactive')} />

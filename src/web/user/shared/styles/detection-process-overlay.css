@@ -1,0 +1,294 @@
+/* ═══════════════════════════════════════════════════════════════
+   AI Detection Process Overlay
+   ═══════════════════════════════════════════════════════════════ */
+
+.detection-process-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  animation: detection-overlay-fade-in 0.3s ease;
+}
+
+@keyframes detection-overlay-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.detection-process-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 2.5rem 3rem;
+  border-radius: 1.5rem;
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow:
+    0 0 0 1px rgba(148, 163, 184, 0.1),
+    0 24px 60px rgba(0, 0, 0, 0.25);
+  min-width: 420px;
+  max-width: 90vw;
+  animation: detection-card-slide-up 0.4s ease;
+}
+
+html.dark .detection-process-card {
+  background: linear-gradient(145deg, rgba(30, 41, 59, 0.98) 0%, rgba(15, 23, 42, 0.98) 100%);
+  box-shadow:
+    0 0 0 1px rgba(148, 163, 184, 0.2),
+    0 24px 60px rgba(0, 0, 0, 0.6);
+}
+
+@keyframes detection-card-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Animated Spinner */
+.detection-process-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+  box-shadow: 0 8px 24px rgba(139, 92, 246, 0.4);
+  color: #ffffff;
+}
+
+.detection-process-spinner svg {
+  width: 48px;
+  height: 48px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Title */
+.detection-process-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+html.dark .detection-process-title {
+  color: #f1f5f9;
+}
+
+/* Status Text */
+.detection-process-status {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+html.dark .detection-process-status {
+  color: #94a3b8;
+}
+
+/* Progress Container */
+.detection-progress-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+/* Progress Bar */
+.detection-progress-bar {
+  position: relative;
+  width: 100%;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.2);
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+html.dark .detection-progress-bar {
+  background: rgba(148, 163, 184, 0.15);
+}
+
+.detection-progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #8b5cf6 0%, #6366f1 25%, #06b6d4 50%, #10b981 75%, #f59e0b 100%);
+  background-size: 200% 100%;
+  transition: width 0.1s linear;
+  animation: detection-bar-shine 1.4s ease-in-out infinite;
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.6);
+  will-change: width;
+}
+
+@keyframes detection-bar-shine {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+
+/* Progress Percentage */
+.detection-progress-percent {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+}
+
+/* Process Steps */
+.detection-steps {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.detection-step {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: rgba(148, 163, 184, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  transition: all 0.3s ease;
+}
+
+html.dark .detection-step {
+  background: rgba(148, 163, 184, 0.06);
+  border-color: rgba(148, 163, 184, 0.15);
+}
+
+.detection-step--completed {
+  background: linear-gradient(145deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+html.dark .detection-step--completed {
+  background: linear-gradient(145deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.08) 100%);
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+.detection-step-icon {
+  flex-shrink: 0;
+  color: #94a3b8;
+  transition: all 0.3s ease;
+}
+
+html.dark .detection-step-icon {
+  color: #64748b;
+}
+
+.detection-step-icon--completed {
+  color: #10b981;
+  animation: detection-check-bounce 0.5s ease;
+}
+
+@keyframes detection-check-bounce {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.detection-step-label {
+  flex: 1;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155;
+  line-height: 1.4;
+}
+
+html.dark .detection-step-label {
+  color: #e2e8f0;
+}
+
+.detection-step--completed .detection-step-label {
+  color: #059669;
+}
+
+html.dark .detection-step--completed .detection-step-label {
+  color: #6ee7b7;
+}
+
+/* Wait Message */
+.detection-process-wait {
+  margin: 0.5rem 0 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #64748b;
+  text-align: center;
+}
+
+html.dark .detection-process-wait {
+  color: #94a3b8;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .detection-process-card {
+    padding: 2rem 1.5rem;
+    min-width: 0;
+    width: 90%;
+  }
+
+  .detection-process-title {
+    font-size: 1.25rem;
+  }
+
+  .detection-progress-percent {
+    font-size: 1.75rem;
+  }
+
+  .detection-process-spinner {
+    width: 64px;
+    height: 64px;
+  }
+
+  .detection-process-spinner svg {
+    width: 40px;
+    height: 40px;
+  }
+}

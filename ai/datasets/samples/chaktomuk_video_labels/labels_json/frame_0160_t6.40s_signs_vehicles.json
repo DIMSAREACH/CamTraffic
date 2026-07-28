@@ -1,0 +1,118 @@
+{
+  "source": "stock-footage-phnom-penh-cambodia-th-january-busy-traffic-on-chaktomuk-walk-street-in-phnom-penh.webm",
+  "video_key": "chaktomuk",
+  "frame_index": 160,
+  "frame_file": "frame_0160_t6.40s.jpg",
+  "timestamp_sec": 6.4,
+  "image_size": {
+    "width": 898,
+    "height": 506
+  },
+  "tracking": true,
+  "annotations": [
+    {
+      "kind": "sign",
+      "class_key": "NO_U_TURN",
+      "class_id": 7,
+      "label_en": "No U Turn",
+      "confidence": 53.6,
+      "track_id": 1200,
+      "bbox_norm": {
+        "x1": 0.577202558517456,
+        "y1": 0.27104151248931885,
+        "x2": 0.6147282719612122,
+        "y2": 0.34078648686408997
+      },
+      "bbox_px": {
+        "x1": 518,
+        "y1": 137,
+        "x2": 552,
+        "y2": 172
+      },
+      "bbox_yolo": {
+        "x_center": 0.595965,
+        "y_center": 0.305914,
+        "width": 0.037526,
+        "height": 0.069745
+      }
+    },
+    {
+      "kind": "sign",
+      "class_key": "NO_HORN",
+      "class_id": 6,
+      "label_en": "No Horn",
+      "confidence": 40.2,
+      "track_id": 1203,
+      "bbox_norm": {
+        "x1": 0.5771664977073669,
+        "y1": 0.2709587812423706,
+        "x2": 0.6145384311676025,
+        "y2": 0.34067946672439575
+      },
+      "bbox_px": {
+        "x1": 518,
+        "y1": 137,
+        "x2": 552,
+        "y2": 172
+      },
+      "bbox_yolo": {
+        "x_center": 0.595852,
+        "y_center": 0.305819,
+        "width": 0.037372,
+        "height": 0.069721
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "motorcycle",
+      "class_id": 2,
+      "label_en": "Motorcycle",
+      "confidence": 94.3,
+      "track_id": 74,
+      "bbox_norm": {
+        "x1": 0.719,
+        "y1": 0.5741,
+        "x2": 1.0,
+        "y2": 1.0
+      },
+      "bbox_px": {
+        "x1": 646,
+        "y1": 290,
+        "x2": 898,
+        "y2": 506
+      },
+      "bbox_yolo": {
+        "x_center": 0.8595,
+        "y_center": 0.78705,
+        "width": 0.281,
+        "height": 0.4259
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "tuk_tuk",
+      "class_id": 4,
+      "label_en": "Tuk Tuk",
+      "confidence": 88.0,
+      "track_id": 90,
+      "bbox_norm": {
+        "x1": 0.4433,
+        "y1": 0.4122,
+        "x2": 0.5224,
+        "y2": 0.5735
+      },
+      "bbox_px": {
+        "x1": 398,
+        "y1": 209,
+        "x2": 469,
+        "y2": 290
+      },
+      "bbox_yolo": {
+        "x_center": 0.48285,
+        "y_center": 0.49285,
+        "width": 0.0791,
+        "height": 0.1613
+      }
+    }
+  ]
+}

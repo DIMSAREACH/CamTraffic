@@ -16,6 +16,9 @@ export default defineConfig({
       '@user': path.resolve(__dirname, 'user'),
       '@officer': path.resolve(__dirname, 'officer'),
       '@citizen': path.resolve(__dirname, 'citizen'),
+      '@camtraffic/store': path.resolve(__dirname, '../../../packages/store/src'),
+      '@camtraffic/query': path.resolve(__dirname, '../../../packages/query/src'),
+      '@camtraffic/types': path.resolve(__dirname, '../../../packages/types/src'),
     },
   },
   define: {

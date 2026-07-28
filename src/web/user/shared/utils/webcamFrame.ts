@@ -83,13 +83,18 @@ export async function captureSignRegionFrame(
   }
 
   const quality = options?.quality ?? 0.97;
-  const blob = await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob(
-      (b) => (b ? resolve(b) : reject(new Error('Could not encode frame'))),
-      'image/jpeg',
-      quality,
-    );
-  });
+  let blob: Blob;
+  try {
+    blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (b) => (b ? resolve(b) : reject(new Error('Could not encode frame'))),
+        'image/jpeg',
+        quality,
+      );
+    });
+  } catch {
+    return null;
+  }
   const prefix = options?.filenamePrefix ?? 'webcam';
   const file = new File([blob], `${prefix}-${Date.now()}.jpg`, { type: 'image/jpeg' });
   return { file, previewUrl: URL.createObjectURL(blob), blob };
@@ -121,13 +126,18 @@ export async function captureFullFrame(
   });
 
   const quality = options?.quality ?? 0.92;
-  const blob = await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob(
-      (b) => (b ? resolve(b) : reject(new Error('Could not encode frame'))),
-      'image/jpeg',
-      quality,
-    );
-  });
+  let blob: Blob;
+  try {
+    blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (b) => (b ? resolve(b) : reject(new Error('Could not encode frame'))),
+        'image/jpeg',
+        quality,
+      );
+    });
+  } catch {
+    return null;
+  }
   const prefix = options?.filenamePrefix ?? 'webcam-street';
   const file = new File([blob], `${prefix}-${Date.now()}.jpg`, { type: 'image/jpeg' });
   return { file, previewUrl: URL.createObjectURL(blob), blob };
@@ -166,38 +176,56 @@ export async function drawAnnotatedDetectionFrame(
     const y = item.bbox.y1 * h;
     const bw = (item.bbox.x2 - item.bbox.x1) * w;
     const bh = (item.bbox.y2 - item.bbox.y1) * h;
+    const lineW = Math.max(2, Math.round(w / 180));
 
-    ctx.strokeStyle = item.color;
-    ctx.lineWidth = Math.max(2, Math.round(w / 180));
-    ctx.fillStyle = `${item.color}22`;
+    ctx.fillStyle = `${item.color}1A`;
     ctx.fillRect(x, y, bw, bh);
+    ctx.strokeStyle = item.color;
+    ctx.lineWidth = lineW;
     ctx.strokeRect(x, y, bw, bh);
 
-    const cx = x + bw / 2;
-    const cy = y + bh / 2;
-    const radius = Math.max(3, Math.min(6, Math.min(bw, bh) / 20));
+    // Corner ticks for a clearer live/evidence look
+    const tick = Math.max(8, Math.min(bw, bh) * 0.18);
     ctx.beginPath();
-    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-    ctx.fillStyle = item.color;
-    ctx.fill();
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1.5;
+    ctx.moveTo(x, y + tick); ctx.lineTo(x, y); ctx.lineTo(x + tick, y);
+    ctx.moveTo(x + bw - tick, y); ctx.lineTo(x + bw, y); ctx.lineTo(x + bw, y + tick);
+    ctx.moveTo(x, y + bh - tick); ctx.lineTo(x, y + bh); ctx.lineTo(x + tick, y + bh);
+    ctx.moveTo(x + bw - tick, y + bh); ctx.lineTo(x + bw, y + bh); ctx.lineTo(x + bw, y + bh - tick);
     ctx.stroke();
-    ctx.strokeStyle = item.color;
-    ctx.lineWidth = Math.max(2, Math.round(w / 180));
 
+    if (item.kind === 'sign') {
+      const cx = x + bw / 2;
+      const cy = y + bh / 2;
+      const arm = Math.max(6, Math.min(bw, bh) * 0.16);
+      ctx.beginPath();
+      ctx.moveTo(cx - arm, cy); ctx.lineTo(cx + arm, cy);
+      ctx.moveTo(cx, cy - arm); ctx.lineTo(cx, cy + arm);
+      ctx.stroke();
+      const radius = Math.max(3, Math.min(6, Math.min(bw, bh) / 20));
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.fillStyle = item.color;
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.strokeStyle = item.color;
+      ctx.lineWidth = lineW;
+    }
+
+    const conf01 = item.confidence > 1.5 ? item.confidence / 100 : item.confidence;
     const label = item.confidence > 0
-      ? `${item.label} ${item.confidence.toFixed(0)}%`
+      ? `${item.label} ${Math.min(1, Math.max(0, conf01)).toFixed(2)}`
       : item.label;
     const fontSize = Math.max(11, Math.round(w / 28));
-    ctx.font = `bold ${fontSize}px system-ui, sans-serif`;
+    ctx.font = `600 ${fontSize}px "Segoe UI", system-ui, sans-serif`;
     const textW = ctx.measureText(label).width;
     const pad = 4;
     const labelH = fontSize + pad * 2;
     const labelY = y >= labelH + 2 ? y - labelH - 2 : y + 2;
     ctx.fillStyle = item.color;
     ctx.fillRect(x, labelY, textW + pad * 2, labelH);
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = '#111111';
     ctx.fillText(label, x + pad, labelY + fontSize);
   }
 }

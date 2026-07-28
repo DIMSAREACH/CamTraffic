@@ -22,6 +22,29 @@ function resolveMediaPath(path: string): string {
   return normalized;
 }
 
+/**
+ * Rewrite absolute storage hosts (R2/S3 public URL) down to Vite-friendly `/media/...`.
+ * Private/public R2 hosts often 404/403 in local DEBUG; local MEDIA_ROOT + proxy works.
+ */
+function rewriteRemoteMediaUrl(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    const path = parsed.pathname || '';
+    if (path.startsWith('/media/')) {
+      return resolveMediaPath(path);
+    }
+    const locationMatch = path.match(
+      /\/(?:media\/)?((?:ai|fines|violations|signs|cctv|users|vehicles|profiles)\/.+)$/i,
+    );
+    if (locationMatch?.[1]) {
+      return resolveMediaPath(`/media/${locationMatch[1]}`);
+    }
+  } catch {
+    /* keep original */
+  }
+  return null;
+}
+
 /** Resolve profile_image or API media fields to a browser-loadable URL. */
 export function getProfileImageUrl(profileImage?: string | null): string | null {
   if (!profileImage) return null;
@@ -30,7 +53,7 @@ export function getProfileImageUrl(profileImage?: string | null): string | null 
   }
 
   if (/^https?:\/\//i.test(profileImage)) {
-    return profileImage;
+    return rewriteRemoteMediaUrl(profileImage) || profileImage;
   }
 
   return resolveMediaPath(profileImage);
@@ -49,7 +72,7 @@ const DETECTION_MEDIA_FIELDS = [
 
 /** Rewrite Django media URLs on detection API payloads for the SPA origin. */
 export function normalizeDetectionMedia<T extends Record<string, unknown>>(result: T): T {
-  const next = { ...result } as T & Record<string, unknown>;
+  const next: Record<string, unknown> = { ...result };
   for (const key of DETECTION_MEDIA_FIELDS) {
     const value = next[key];
     if (typeof value === 'string' && value) {

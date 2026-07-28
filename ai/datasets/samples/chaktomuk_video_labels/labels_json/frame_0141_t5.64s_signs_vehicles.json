@@ -1,0 +1,66 @@
+{
+  "source": "stock-footage-phnom-penh-cambodia-th-january-busy-traffic-on-chaktomuk-walk-street-in-phnom-penh.webm",
+  "video_key": "chaktomuk",
+  "frame_index": 141,
+  "frame_file": "frame_0141_t5.64s.jpg",
+  "timestamp_sec": 5.64,
+  "image_size": {
+    "width": 898,
+    "height": 506
+  },
+  "tracking": true,
+  "annotations": [
+    {
+      "kind": "sign",
+      "class_key": "NO_U_TURN",
+      "class_id": 7,
+      "label_en": "No U Turn",
+      "confidence": 40.9,
+      "track_id": 1200,
+      "bbox_norm": {
+        "x1": 0.5709779858589172,
+        "y1": 0.2773544192314148,
+        "x2": 0.6064729690551758,
+        "y2": 0.342276006937027
+      },
+      "bbox_px": {
+        "x1": 513,
+        "y1": 140,
+        "x2": 545,
+        "y2": 173
+      },
+      "bbox_yolo": {
+        "x_center": 0.588725,
+        "y_center": 0.309815,
+        "width": 0.035495,
+        "height": 0.064922
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "motorcycle",
+      "class_id": 2,
+      "label_en": "Motorcycle",
+      "confidence": 89.0,
+      "track_id": 74,
+      "bbox_norm": {
+        "x1": 0.3609,
+        "y1": 0.4954,
+        "x2": 0.4673,
+        "y2": 0.7843
+      },
+      "bbox_px": {
+        "x1": 324,
+        "y1": 251,
+        "x2": 420,
+        "y2": 397
+      },
+      "bbox_yolo": {
+        "x_center": 0.4141,
+        "y_center": 0.63985,
+        "width": 0.1064,
+        "height": 0.2889
+      }
+    }
+  ]
+}

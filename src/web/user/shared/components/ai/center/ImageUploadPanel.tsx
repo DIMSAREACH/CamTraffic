@@ -7,11 +7,10 @@ import { useLanguage } from '@shared/context/LanguageContext';
 import { buildDemoViolationOptions } from '@shared/constants/observedActions';
 import { aiAPI } from '@shared/services/api';
 import { convertImageToJpeg } from '@shared/utils/convertImageToJpeg';
+import { ensureDetectionWarm, kickDetectionWarm } from '@shared/utils/detectionWarmup';
 import { toast } from 'sonner';
 import type { CenterDetectionResult } from '@shared/components/ai/center/DetectionCenterResultsPanel';
 import { cn } from '@shared/components/ui/utils';
-
-const MAX_IMAGE_MB = 10;
 
 interface ImageUploadPanelProps {
   demoObservedAction: string;
@@ -51,19 +50,17 @@ export function ImageUploadPanel({
       toast.error(t('aiCenter.imageRequired'));
       return;
     }
-    if (file.size > MAX_IMAGE_MB * 1024 * 1024) {
-      toast.error(t('aiCenter.imageTooLarge', { mb: MAX_IMAGE_MB }));
-      return;
-    }
     setDetecting(true);
     onDetectingChange(true);
     try {
-      // Warm models first so Detect stays under ~3s (skips ~30s cold load).
-      await aiAPI.warmup().catch(() => undefined);
-      const jpeg = await convertImageToJpeg(file);
+      // Warm in parallel with JPEG prep — do not block Detect twice.
+      kickDetectionWarm();
+      const [, jpeg] = await Promise.all([
+        ensureDetectionWarm(),
+        convertImageToJpeg(file),
+      ]);
       const result = await aiAPI.detect(jpeg, {
         ...buildDemoViolationOptions(demoObservedAction),
-        // Fast path + OCR so OCR Result shows plate number and province.
         full_frame: true,
         live_fast: true,
         enable_ocr: true,
@@ -74,18 +71,21 @@ export function ImageUploadPanel({
       if (evalResult?.is_violation) {
         toast.message(t('aiCenter.violationFoundToast') !== 'aiCenter.violationFoundToast'
           ? t('aiCenter.violationFoundToast')
-          : 'Violation matched for demo driver action');
-      } else if (demoObservedAction?.trim() && evalResult && !evalResult.is_violation) {
+          : 'Violation auto-matched from detected sign');
+      } else if (evalResult && !evalResult.is_violation && evalResult.reason !== 'no_sign_class') {
         toast.message(t('aiCenter.noViolation'));
       }
       if ((result as CenterDetectionResult).violation_error) {
         toast.message(String((result as CenterDetectionResult).violation_error));
       }
-    } catch {
-      toast.error(t('aiCenter.detectFailed'));
-    } finally {
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(msg || t('aiCenter.detectFailed'));
       setDetecting(false);
       onDetectingChange(false);
+    } finally {
+      // Success path: parent finishes overlay → results; only clear local button state.
+      setDetecting(false);
     }
   };
 

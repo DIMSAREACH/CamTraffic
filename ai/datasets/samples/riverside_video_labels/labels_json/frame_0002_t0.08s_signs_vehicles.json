@@ -1,0 +1,118 @@
+{
+  "source": "stock-footage-phnom-penh-cambodia-vehicles-and-motorbikes-move-along-the-riverside-road-near-a.webm",
+  "video_key": "riverside",
+  "frame_index": 2,
+  "frame_file": "frame_0002_t0.08s.jpg",
+  "timestamp_sec": 0.083,
+  "image_size": {
+    "width": 898,
+    "height": 506
+  },
+  "tracking": true,
+  "annotations": [
+    {
+      "kind": "sign",
+      "class_key": "PEDESTRIAN_AREA",
+      "class_id": 6,
+      "label_en": "Pedestrian Area",
+      "confidence": 65.1,
+      "track_id": 1200,
+      "bbox_norm": {
+        "x1": 0.44383734464645386,
+        "y1": 0.42808398604393005,
+        "x2": 0.4788514971733093,
+        "y2": 0.4897964894771576
+      },
+      "bbox_px": {
+        "x1": 399,
+        "y1": 217,
+        "x2": 430,
+        "y2": 248
+      },
+      "bbox_yolo": {
+        "x_center": 0.461344,
+        "y_center": 0.45894,
+        "width": 0.035014,
+        "height": 0.061713
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "car",
+      "class_id": 1,
+      "label_en": "Car",
+      "confidence": 85.5,
+      "track_id": 1,
+      "bbox_norm": {
+        "x1": 0.0,
+        "y1": 0.5183,
+        "x2": 0.0849,
+        "y2": 0.7009
+      },
+      "bbox_px": {
+        "x1": 0,
+        "y1": 262,
+        "x2": 76,
+        "y2": 355
+      },
+      "bbox_yolo": {
+        "x_center": 0.04245,
+        "y_center": 0.6096,
+        "width": 0.0849,
+        "height": 0.1826
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "motorcycle",
+      "class_id": 2,
+      "label_en": "Motorcycle",
+      "confidence": 78.2,
+      "track_id": 3,
+      "bbox_norm": {
+        "x1": 0.3373,
+        "y1": 0.613,
+        "x2": 0.4456,
+        "y2": 0.8599
+      },
+      "bbox_px": {
+        "x1": 303,
+        "y1": 310,
+        "x2": 400,
+        "y2": 435
+      },
+      "bbox_yolo": {
+        "x_center": 0.39145,
+        "y_center": 0.73645,
+        "width": 0.1083,
+        "height": 0.2469
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "car",
+      "class_id": 1,
+      "label_en": "Car",
+      "confidence": 74.2,
+      "track_id": 2,
+      "bbox_norm": {
+        "x1": 0.1385,
+        "y1": 0.4959,
+        "x2": 0.3426,
+        "y2": 0.7604
+      },
+      "bbox_px": {
+        "x1": 124,
+        "y1": 251,
+        "x2": 308,
+        "y2": 385
+      },
+      "bbox_yolo": {
+        "x_center": 0.24055,
+        "y_center": 0.62815,
+        "width": 0.2041,
+        "height": 0.2645
+      }
+    }
+  ]
+}

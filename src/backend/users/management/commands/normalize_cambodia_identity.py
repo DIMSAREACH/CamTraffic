@@ -11,7 +11,7 @@ import uuid
 
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
-from django.db import transaction
+from django.db import models, transaction
 
 User = get_user_model()
 
@@ -21,6 +21,9 @@ PRESERVE_EMAILS = {
     'officer@camtraffic.demo',
     'driver@camtraffic.demo',
     'driver2@camtraffic.demo',
+    'admin@camtraffic.gov.kh',
+    'officer@camtraffic.gov.kh',
+    'driver@example.com',
 }
 
 PLATE_LETTERS = [c for c in 'ABCDEFGHJKLMNPQRSTUVWXYZ']  # skip I/O
@@ -37,8 +40,8 @@ VEHICLE_CATEGORY = {
 # Common .com mail providers used in Cambodia.
 EMAIL_DOMAINS = ('gmail.com', 'yahoo.com', 'outlook.com')
 
-LICENSE_RE = re.compile(r'^DL-KH-\d{4}-\d{6}$')
-PLATE_RE = re.compile(r'^[1-4][A-Z]{2} \d{4}$')
+LICENSE_RE = re.compile(r'^[1-9]\d?[A-Z]{1,2}-\d{4}$')
+PLATE_RE = re.compile(r'^[1-9]\d?[A-Z]{1,2}-\d{4}$')
 PHONE_RE = re.compile(
     r'^\+855 (?:12|15|16|17|61|67|68|69|70|71|76|77|78|79|81|85|87|89|92|95|96|97|98) \d{3} \d{3}$',
 )
@@ -104,13 +107,8 @@ def _build_email(full_name: str, role: str, seed: str, used: set[str]) -> str:
 
 
 def _build_license(seed: str, used: set[str]) -> str:
-    year = 2022 + _stable_int(f'{seed}:licyear', 5)
-    for attempt in range(200):
-        num = 100000 + _stable_int(f'{seed}:licnum:{attempt}', 900000)
-        lic = f'DL-KH-{year}-{num:06d}'
-        if lic not in used:
-            return lic
-    return f'DL-KH-{year}-{uuid.uuid4().hex[:6].upper()}'
+    """License uses the same numbered form as plates (e.g. 2TE-1507)."""
+    return _build_plate(seed, 'car', used)
 
 
 def _build_plate(seed: str, vehicle_type: str, used: set[str]) -> str:
@@ -119,10 +117,10 @@ def _build_plate(seed: str, vehicle_type: str, used: set[str]) -> str:
         a = PLATE_LETTERS[_stable_int(f'{seed}:pa:{attempt}', len(PLATE_LETTERS))]
         b = PLATE_LETTERS[_stable_int(f'{seed}:pb:{attempt}', len(PLATE_LETTERS))]
         num = 1000 + _stable_int(f'{seed}:pn:{attempt}', 9000)
-        plate = f'{cat}{a}{b} {num}'
+        plate = f'{cat}{a}{b}-{num}'
         if plate not in used:
             return plate
-    return f'{cat}ZZ {1000 + _stable_int(seed, 9000)}'
+    return f'{cat}ZZ-{1000 + _stable_int(seed, 9000)}'
 
 
 def _cascade_plate(old: str, new: str) -> dict[str, int]:
@@ -212,15 +210,50 @@ class Command(BaseCommand):
                         user.save(update_fields=list(changes.keys()))
 
         used_licenses: set[str] = set()
+        # Normalize plates first so driver licenses can mirror vehicle plates.
+        from core.cambodia_identity import normalize_plate as _norm_plate
+
+        used_plates = {(v.plate_number or '').strip() for v in Vehicle.objects.all()}
+        for vehicle in Vehicle.objects.all().order_by('id'):
+            old = (vehicle.plate_number or '').strip()
+            seed = str(vehicle.pk)
+            converted = _norm_plate(old)
+            if PLATE_RE.match(old):
+                continue
+            if converted and PLATE_RE.match(converted) and converted != old:
+                new = converted
+            else:
+                used_plates.discard(old)
+                new = _build_plate(seed, vehicle.vehicle_type, used_plates)
+            if new == old:
+                continue
+            used_plates.discard(old)
+            used_plates.add(new)
+            plate_updates += 1
+            self.stdout.write(f'  plate {old!r} → {new!r} ({vehicle.vehicle_type})')
+            if not dry:
+                vehicle.plate_number = f'TMP{uuid.uuid4().hex[:8].upper()}'
+                vehicle.save(update_fields=['plate_number'])
+                vehicle.plate_number = new
+                vehicle.save(update_fields=['plate_number'])
+                cascaded = _cascade_plate(old, new)
+                if any(cascaded.values()):
+                    self.stdout.write(f'    cascaded {cascaded}')
+
         for driver in Driver.objects.select_related('user').all():
             seed = str(driver.user_id)
             current = (driver.license_no or '').strip()
             email = (driver.user.email or '').strip().lower()
+            owned = (
+                Vehicle.objects.filter(models.Q(owner_id=driver.user_id) | models.Q(driver_id=driver.pk))
+                .order_by('id')
+                .values_list('plate_number', flat=True)
+                .first()
+            )
+            owned_plate = _norm_plate(owned) if owned else ''
 
-            if email == 'driver@camtraffic.demo':
-                new_lic = 'DL-KH-2024-001234'
-            elif email == 'driver2@camtraffic.demo':
-                new_lic = 'DL-KH-2024-002345'
+            if owned_plate and PLATE_RE.match(owned_plate) and owned_plate not in used_licenses:
+                new_lic = owned_plate
             elif LICENSE_RE.match(current) and current not in used_licenses:
                 new_lic = current
             else:
@@ -244,26 +277,6 @@ class Command(BaseCommand):
             )
             if cleared:
                 self.stdout.write(f'  cleared license_no on {cleared} non-driver users')
-
-        used_plates = {(v.plate_number or '').strip() for v in Vehicle.objects.all()}
-        for vehicle in Vehicle.objects.all().order_by('id'):
-            old = (vehicle.plate_number or '').strip()
-            seed = str(vehicle.pk)
-            if PLATE_RE.match(old):
-                continue
-            used_plates.discard(old)
-            new = _build_plate(seed, vehicle.vehicle_type, used_plates)
-            used_plates.add(new)
-            plate_updates += 1
-            self.stdout.write(f'  plate {old!r} → {new!r} ({vehicle.vehicle_type})')
-            if not dry:
-                vehicle.plate_number = f'TMP{uuid.uuid4().hex[:8].upper()}'
-                vehicle.save(update_fields=['plate_number'])
-                vehicle.plate_number = new
-                vehicle.save(update_fields=['plate_number'])
-                cascaded = _cascade_plate(old, new)
-                if any(cascaded.values()):
-                    self.stdout.write(f'    cascaded {cascaded}')
 
         mode = 'DRY-RUN' if dry else 'APPLIED'
         self.stdout.write('')

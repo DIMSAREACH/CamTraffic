@@ -3,6 +3,7 @@ from django.urls import path
 from .views import (
     DriverLookupView,
     FineDetailView,
+    FineKhqrConfirmView,
     FineKhqrSessionView,
     FineListCreateView,
     FinePaymentView,
@@ -38,6 +39,7 @@ urlpatterns = [
     path('<uuid:pk>/verify-payment/', FineVerifyPaymentView.as_view(), name='fine-verify-payment'),
     path('<uuid:pk>/checkout/stripe/', FineStripeCheckoutView.as_view(), name='fine-stripe-checkout'),
     path('<uuid:pk>/checkout/khqr/', FineKhqrSessionView.as_view(), name='fine-khqr-session'),
+    path('<uuid:pk>/checkout/khqr/confirm/', FineKhqrConfirmView.as_view(), name='fine-khqr-confirm'),
     path('<uuid:pk>/pdf/', FinePDFExportView.as_view(), name='fine-pdf'),
     
     # PDF receipt download

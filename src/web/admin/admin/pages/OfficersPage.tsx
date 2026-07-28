@@ -14,9 +14,13 @@ import { TableEmptyState } from '@shared/components/ui/TableEmptyState';
 import { CrudRowActions } from '@shared/components/admin/CrudRowActions';
 import { EntityDetailField, EntityViewDialog } from '@shared/components/admin/EntityViewDialog';
 import { useLanguage } from '@shared/context/LanguageContext';
+import { useFieldErrors } from '@shared/hooks/useFieldErrors';
+import { FieldError, FormErrorBanner } from '@shared/components/ui/FieldError';
 import { officersAPI } from '@shared/services/api';
 import { toast } from 'sonner';
 import type { OfficerProfile, PoliceStation } from '@shared/types';
+
+type OfficerFormField = 'full_name' | 'email' | 'password' | 'badge_no' | 'name' | 'code';
 
 type Tab = 'officers' | 'stations';
 
@@ -75,6 +79,7 @@ export function OfficersPage() {
   const [deleteStation, setDeleteStation] = useState<PoliceStation | null>(null);
   const [viewOfficer, setViewOfficer] = useState<OfficerProfile | null>(null);
   const [viewStation, setViewStation] = useState<PoliceStation | null>(null);
+  const formErrors = useFieldErrors<OfficerFormField>();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -129,8 +134,22 @@ export function OfficersPage() {
   }), [officers, stations]);
 
   const createOfficer = async () => {
-    if (!officerForm.full_name.trim() || !officerForm.email.trim() || !officerForm.badge_no.trim()) {
-      toast.error(t('officers.toastFillRequired'));
+    const ok = formErrors.validateRequired(
+      {
+        full_name: officerForm.full_name,
+        email: officerForm.email,
+        password: officerForm.password,
+        badge_no: officerForm.badge_no,
+      },
+      {
+        full_name: t('common.fieldRequired'),
+        email: t('common.fieldRequired'),
+        password: t('common.fieldRequired'),
+        badge_no: t('common.fieldRequired'),
+      },
+    );
+    if (!ok) {
+      toast.error(t('common.formIncomplete'));
       return;
     }
     setSaving(true);
@@ -148,6 +167,7 @@ export function OfficersPage() {
       toast.success(t('officers.created'));
       setOpen(false);
       setOfficerForm(emptyOfficerForm);
+      formErrors.clearErrors();
       load();
     } catch {
       toast.error(t('officers.createFailed'));
@@ -157,8 +177,13 @@ export function OfficersPage() {
   };
 
   const saveOfficerEdit = async () => {
-    if (!editOfficer || !officerEditForm.badge_no.trim()) {
-      toast.error(t('officers.toastFillRequired'));
+    if (!editOfficer) return;
+    const ok = formErrors.validateRequired(
+      { badge_no: officerEditForm.badge_no },
+      { badge_no: t('common.fieldRequired') },
+    );
+    if (!ok) {
+      toast.error(t('common.formIncomplete'));
       return;
     }
     setSaving(true);
@@ -173,6 +198,7 @@ export function OfficersPage() {
       toast.success(t('officers.updated'));
       setOpen(false);
       setEditOfficer(null);
+      formErrors.clearErrors();
       load();
     } catch {
       toast.error(t('officers.updateFailed'));
@@ -182,8 +208,15 @@ export function OfficersPage() {
   };
 
   const createStation = async () => {
-    if (!stationForm.name.trim() || !stationForm.code.trim()) {
-      toast.error(t('stations.toastFillRequired'));
+    const ok = formErrors.validateRequired(
+      { name: stationForm.name, code: stationForm.code },
+      {
+        name: t('common.fieldRequired'),
+        code: t('common.fieldRequired'),
+      },
+    );
+    if (!ok) {
+      toast.error(t('common.formIncomplete'));
       return;
     }
     setSaving(true);
@@ -198,6 +231,7 @@ export function OfficersPage() {
       toast.success(t('stations.created'));
       setOpen(false);
       setStationForm(emptyStationForm);
+      formErrors.clearErrors();
       load();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : t('stations.createFailed'));
@@ -207,8 +241,16 @@ export function OfficersPage() {
   };
 
   const saveStationEdit = async () => {
-    if (!editStation || !stationForm.name.trim() || !stationForm.code.trim()) {
-      toast.error(t('stations.toastFillRequired'));
+    if (!editStation) return;
+    const ok = formErrors.validateRequired(
+      { name: stationForm.name, code: stationForm.code },
+      {
+        name: t('common.fieldRequired'),
+        code: t('common.fieldRequired'),
+      },
+    );
+    if (!ok) {
+      toast.error(t('common.formIncomplete'));
       return;
     }
     setSaving(true);
@@ -223,6 +265,7 @@ export function OfficersPage() {
       toast.success(t('stations.updated'));
       setOpen(false);
       setEditStation(null);
+      formErrors.clearErrors();
       load();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : t('stations.updateFailed'));
@@ -258,6 +301,7 @@ export function OfficersPage() {
   const openCreate = () => {
     setEditOfficer(null);
     setEditStation(null);
+    formErrors.clearErrors();
     if (tab === 'officers') setOfficerForm(emptyOfficerForm);
     else setStationForm({ ...emptyStationForm });
     setOpen(true);
@@ -266,6 +310,7 @@ export function OfficersPage() {
   const openEditOfficer = (officer: OfficerProfile) => {
     setEditOfficer(officer);
     setEditStation(null);
+    formErrors.clearErrors();
     setOfficerEditForm({
       badge_no: officer.badge_no,
       phone: officer.phone || '',
@@ -280,6 +325,7 @@ export function OfficersPage() {
   const openEditStation = (station: PoliceStation) => {
     setEditStation(station);
     setEditOfficer(null);
+    formErrors.clearErrors();
     setStationForm({
       name: station.name,
       code: station.code,
@@ -288,6 +334,11 @@ export function OfficersPage() {
       status: station.status,
     });
     setOpen(true);
+  };
+
+  const handleOpenChange = (next: boolean) => {
+    setOpen(next);
+    if (!next) formErrors.clearErrors();
   };
 
   const officerColumns = [
@@ -576,10 +627,10 @@ export function OfficersPage() {
         />
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent
           accent={tab === 'officers' ? 'blue' : 'amber'}
-          className="max-w-md sm:max-w-lg"
+          className="ct-form-dialog"
         >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2.5">
@@ -600,11 +651,21 @@ export function OfficersPage() {
 
           {editOfficer ? (
             <div className="space-y-3 py-1">
+              <FormErrorBanner message={formErrors.hasErrors ? t('common.formIncomplete') : null} />
               <p className="text-sm text-muted-foreground">{editOfficer.full_name} · {editOfficer.email}</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="enforcement-page__form-label">{t('officers.badge')} *</Label>
-                  <Input className="mt-1" value={officerEditForm.badge_no} onChange={(e) => setOfficerEditForm((f) => ({ ...f, badge_no: e.target.value }))} />
+                  <Input
+                    className={`mt-1${formErrors.errors.badge_no ? ' ct-field--invalid' : ''}`}
+                    aria-invalid={Boolean(formErrors.errors.badge_no)}
+                    value={officerEditForm.badge_no}
+                    onChange={(e) => {
+                      formErrors.clearField('badge_no');
+                      setOfficerEditForm((f) => ({ ...f, badge_no: e.target.value }));
+                    }}
+                  />
+                  <FieldError message={formErrors.errors.badge_no} />
                 </div>
                 <div>
                   <Label className="enforcement-page__form-label">{t('users.colStatus')}</Label>
@@ -645,14 +706,33 @@ export function OfficersPage() {
             </div>
           ) : editStation ? (
             <div className="space-y-3 py-1">
+              <FormErrorBanner message={formErrors.hasErrors ? t('common.formIncomplete') : null} />
               <div>
                 <Label className="enforcement-page__form-label">{t('stations.name')} *</Label>
-                <Input className="mt-1" value={stationForm.name} onChange={(e) => setStationForm((f) => ({ ...f, name: e.target.value }))} />
+                <Input
+                  className={`mt-1${formErrors.errors.name ? ' ct-field--invalid' : ''}`}
+                  aria-invalid={Boolean(formErrors.errors.name)}
+                  value={stationForm.name}
+                  onChange={(e) => {
+                    formErrors.clearField('name');
+                    setStationForm((f) => ({ ...f, name: e.target.value }));
+                  }}
+                />
+                <FieldError message={formErrors.errors.name} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="enforcement-page__form-label">{t('stations.code')} *</Label>
-                  <Input className="mt-1" value={stationForm.code} onChange={(e) => setStationForm((f) => ({ ...f, code: e.target.value }))} />
+                  <Input
+                    className={`mt-1${formErrors.errors.code ? ' ct-field--invalid' : ''}`}
+                    aria-invalid={Boolean(formErrors.errors.code)}
+                    value={stationForm.code}
+                    onChange={(e) => {
+                      formErrors.clearField('code');
+                      setStationForm((f) => ({ ...f, code: e.target.value }));
+                    }}
+                  />
+                  <FieldError message={formErrors.errors.code} />
                 </div>
                 <div>
                   <Label className="enforcement-page__form-label">{t('stations.city')}</Label>
@@ -678,18 +758,47 @@ export function OfficersPage() {
             </div>
           ) : tab === 'officers' ? (
             <div className="space-y-3 py-1">
+              <FormErrorBanner message={formErrors.hasErrors ? t('common.formIncomplete') : null} />
               <div>
                 <Label className="enforcement-page__form-label">{t('officers.name')} *</Label>
-                <Input className="mt-1" value={officerForm.full_name} onChange={(e) => setOfficerForm((f) => ({ ...f, full_name: e.target.value }))} />
+                <Input
+                  className={`mt-1${formErrors.errors.full_name ? ' ct-field--invalid' : ''}`}
+                  aria-invalid={Boolean(formErrors.errors.full_name)}
+                  value={officerForm.full_name}
+                  onChange={(e) => {
+                    formErrors.clearField('full_name');
+                    setOfficerForm((f) => ({ ...f, full_name: e.target.value }));
+                  }}
+                />
+                <FieldError message={formErrors.errors.full_name} />
               </div>
               <div>
                 <Label className="enforcement-page__form-label">{t('users.email')} *</Label>
-                <Input className="mt-1" type="email" value={officerForm.email} onChange={(e) => setOfficerForm((f) => ({ ...f, email: e.target.value }))} />
+                <Input
+                  className={`mt-1${formErrors.errors.email ? ' ct-field--invalid' : ''}`}
+                  type="email"
+                  aria-invalid={Boolean(formErrors.errors.email)}
+                  value={officerForm.email}
+                  onChange={(e) => {
+                    formErrors.clearField('email');
+                    setOfficerForm((f) => ({ ...f, email: e.target.value }));
+                  }}
+                />
+                <FieldError message={formErrors.errors.email} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="enforcement-page__form-label">{t('officers.badge')} *</Label>
-                  <Input className="mt-1" value={officerForm.badge_no} onChange={(e) => setOfficerForm((f) => ({ ...f, badge_no: e.target.value }))} />
+                  <Input
+                    className={`mt-1${formErrors.errors.badge_no ? ' ct-field--invalid' : ''}`}
+                    aria-invalid={Boolean(formErrors.errors.badge_no)}
+                    value={officerForm.badge_no}
+                    onChange={(e) => {
+                      formErrors.clearField('badge_no');
+                      setOfficerForm((f) => ({ ...f, badge_no: e.target.value }));
+                    }}
+                  />
+                  <FieldError message={formErrors.errors.badge_no} />
                 </div>
                 <div>
                   <Label className="enforcement-page__form-label">{t('officers.phone')}</Label>
@@ -722,19 +831,48 @@ export function OfficersPage() {
               )}
               <div>
                 <Label className="enforcement-page__form-label">{t('officers.password')} *</Label>
-                <Input className="mt-1" type="password" value={officerForm.password} onChange={(e) => setOfficerForm((f) => ({ ...f, password: e.target.value }))} />
+                <Input
+                  className={`mt-1${formErrors.errors.password ? ' ct-field--invalid' : ''}`}
+                  type="password"
+                  aria-invalid={Boolean(formErrors.errors.password)}
+                  value={officerForm.password}
+                  onChange={(e) => {
+                    formErrors.clearField('password');
+                    setOfficerForm((f) => ({ ...f, password: e.target.value }));
+                  }}
+                />
+                <FieldError message={formErrors.errors.password} />
               </div>
             </div>
           ) : (
             <div className="space-y-3 py-1">
+              <FormErrorBanner message={formErrors.hasErrors ? t('common.formIncomplete') : null} />
               <div>
                 <Label className="enforcement-page__form-label">{t('stations.name')} *</Label>
-                <Input className="mt-1" value={stationForm.name} onChange={(e) => setStationForm((f) => ({ ...f, name: e.target.value }))} />
+                <Input
+                  className={`mt-1${formErrors.errors.name ? ' ct-field--invalid' : ''}`}
+                  aria-invalid={Boolean(formErrors.errors.name)}
+                  value={stationForm.name}
+                  onChange={(e) => {
+                    formErrors.clearField('name');
+                    setStationForm((f) => ({ ...f, name: e.target.value }));
+                  }}
+                />
+                <FieldError message={formErrors.errors.name} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="enforcement-page__form-label">{t('stations.code')} *</Label>
-                  <Input className="mt-1" value={stationForm.code} onChange={(e) => setStationForm((f) => ({ ...f, code: e.target.value }))} />
+                  <Input
+                    className={`mt-1${formErrors.errors.code ? ' ct-field--invalid' : ''}`}
+                    aria-invalid={Boolean(formErrors.errors.code)}
+                    value={stationForm.code}
+                    onChange={(e) => {
+                      formErrors.clearField('code');
+                      setStationForm((f) => ({ ...f, code: e.target.value }));
+                    }}
+                  />
+                  <FieldError message={formErrors.errors.code} />
                 </div>
                 <div>
                   <Label className="enforcement-page__form-label">{t('stations.city')}</Label>

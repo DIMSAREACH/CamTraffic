@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { usePagination } from '@shared/hooks/usePagination';
 import { TablePagination } from '@shared/components/ui/TablePagination';
 import {
@@ -14,13 +15,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { TableEmptyState } from '@shared/components/ui/TableEmptyState';
 import { CrudRowActions } from '@shared/components/admin/CrudRowActions';
 import { EntityDetailField, EntityViewDialog } from '@shared/components/admin/EntityViewDialog';
+import { formatCambodiaPlate } from '@shared/components/admin/CambodiaPlateField';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { formatAppDate } from '@shared/i18n/localeFormat';
 import { useLiveData } from '@shared/hooks/useLiveData';
+import { useFieldErrors } from '@shared/hooks/useFieldErrors';
+import { FieldError, FormErrorBanner } from '@shared/components/ui/FieldError';
 import { appealsAPI, violationsAPI } from '@shared/services/api';
 import { toast } from 'sonner';
 import type { TrafficViolation, ViolationAppeal } from '@shared/types';
+
+type AppealFormField = 'violation_id' | 'reason';
 
 const STATUS_TABS = ['all', 'pending', 'upheld', 'dismissed'] as const;
 type StatusTab = typeof STATUS_TABS[number];
@@ -73,8 +79,15 @@ export function AppealsPage() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [reviewing, setReviewing] = useState(false);
-  const [form, setForm] = useState({ violation_id: '', reason: '', evidence: null as File | null });
+  const [form, setForm] = useState({
+    violation_id: '',
+    fine_id: '',
+    reason: '',
+    evidence: null as File | null,
+  });
   const [reviewForm, setReviewForm] = useState({ status: 'dismissed' as 'upheld' | 'dismissed', officer_comments: '' });
+  const formErrors = useFieldErrors<AppealFormField>();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const statusLabel = (s: string) => t(`appeals.status.${s}`);
 
@@ -106,6 +119,7 @@ export function AppealsPage() {
         || (a.driver_license || '').toLowerCase().includes(q)
         || a.reason.toLowerCase().includes(q)
         || (a.violation_type || '').toLowerCase().includes(q)
+        || (a.vehicle_plate || '').toLowerCase().includes(q)
         || (a.violation_location || '').toLowerCase().includes(q),
       );
     }
@@ -122,13 +136,46 @@ export function AppealsPage() {
   }), [appeals]);
 
   const appealableViolations = useMemo(() => {
-    const appealed = new Set(appeals.filter((a) => a.status === 'pending').map((a) => a.violation_id));
-    return violations.filter((v) => v.status === 'confirmed' && !appealed.has(String(v.id)));
+    const alreadyAppealed = new Set(appeals.map((a) => String(a.violation_id)));
+    return violations.filter((v) => {
+      if (v.status !== 'confirmed') return false;
+      if (alreadyAppealed.has(String(v.id))) return false;
+      // Closed cases cannot be appealed again.
+      // fine_id alone does not mean paid — allow unless we know it's closed via prior appeal.
+      return true;
+    });
   }, [violations, appeals]);
 
+  // Deep-link from FineManagement: /citizen/appeals?violationId=&fineId=
+  useEffect(() => {
+    if (!canSubmit || loading) return;
+    const violationId = searchParams.get('violationId') || '';
+    const fineId = searchParams.get('fineId') || '';
+    if (!violationId) return;
+    const canAppeal = appealableViolations.some((v) => String(v.id) === violationId);
+    if (!canAppeal) return;
+    setForm((f) => ({
+      ...f,
+      violation_id: violationId,
+      fine_id: fineId || f.fine_id,
+    }));
+    setSubmitOpen(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete('violationId');
+    next.delete('fineId');
+    setSearchParams(next, { replace: true });
+  }, [canSubmit, loading, searchParams, setSearchParams, appealableViolations]);
+
   const handleSubmit = async () => {
-    if (!form.violation_id || !form.reason.trim()) {
-      toast.error(t('appeals.toastFillRequired'));
+    const ok = formErrors.validateRequired(
+      { violation_id: form.violation_id, reason: form.reason },
+      {
+        violation_id: t('common.fieldRequired'),
+        reason: t('common.fieldRequired'),
+      },
+    );
+    if (!ok) {
+      toast.error(t('common.formIncomplete'));
       return;
     }
     setSubmitting(true);
@@ -136,11 +183,13 @@ export function AppealsPage() {
       const fd = new FormData();
       fd.append('violation_id', form.violation_id);
       fd.append('reason', form.reason.trim());
+      if (form.fine_id) fd.append('fine_id', form.fine_id);
       if (form.evidence) fd.append('evidence_image', form.evidence);
       await appealsAPI.create(fd);
       toast.success(t('appeals.toastSubmitted'));
       setSubmitOpen(false);
-      setForm({ violation_id: '', reason: '', evidence: null });
+      setForm({ violation_id: '', fine_id: '', reason: '', evidence: null });
+      formErrors.clearErrors();
       void load();
     } catch {
       toast.error(t('appeals.toastSubmitFail'));
@@ -186,7 +235,7 @@ export function AppealsPage() {
             <p className="enforcement-page__subtitle">{t('pages.appeals.subtitle')}</p>
           </div>
           {canSubmit && (
-            <button type="button" className="enforcement-page__hero-btn enforcement-page__hero-btn--teal" onClick={() => setSubmitOpen(true)}>
+            <button type="button" className="enforcement-page__hero-btn enforcement-page__hero-btn--teal" onClick={() => { formErrors.clearErrors(); setSubmitOpen(true); }}>
               <Plus size={16} /> {t('appeals.submitAppeal')}
             </button>
           )}
@@ -259,6 +308,7 @@ export function AppealsPage() {
           <Table className="enforcement-page__table mgmt-table__grid appeals-table__grid">
             <colgroup>
               <col className="appeals-table__col appeals-table__col--driver" />
+              <col className="appeals-table__col appeals-table__col--license-plate" />
               <col className="appeals-table__col appeals-table__col--violation" />
               <col className="appeals-table__col appeals-table__col--reason" />
               <col className="appeals-table__col appeals-table__col--date" />
@@ -268,6 +318,7 @@ export function AppealsPage() {
             <TableHeader>
               <TableRow className="enforcement-page__table-head">
                 <TableHead className="enforcement-page__th appeals-table__th appeals-table__th--driver text-left">{t('appeals.colDriver')}</TableHead>
+                <TableHead className="enforcement-page__th appeals-table__th appeals-table__th--license-plate text-left">{t('users.colLicense')}</TableHead>
                 <TableHead className="enforcement-page__th appeals-table__th appeals-table__th--violation text-left">{t('appeals.colViolation')}</TableHead>
                 <TableHead className="enforcement-page__th appeals-table__th appeals-table__th--reason text-left">{t('appeals.colReason')}</TableHead>
                 <TableHead className="enforcement-page__th appeals-table__th appeals-table__th--date text-left">{t('appeals.colSubmitted')}</TableHead>
@@ -279,14 +330,14 @@ export function AppealsPage() {
               {loading ? (
                 [...Array(5)].map((_, i) => (
                   <TableRow key={i}>
-                    {[...Array(6)].map((__, j) => (
+                    {[...Array(7)].map((__, j) => (
                       <TableCell key={j}><div className="enforcement-page__skeleton" /></TableCell>
                     ))}
                   </TableRow>
                 ))
               ) : pagination.pageItems.length === 0 ? (
                 <TableEmptyState
-                  colSpan={6}
+                  colSpan={7}
                   tone="appeals"
                   icon={<Scale size={28} strokeWidth={1.75} />}
                   title={isFilteredEmpty ? t('appeals.emptyFilter') : t('appeals.empty')}
@@ -305,6 +356,7 @@ export function AppealsPage() {
                 />
               ) : pagination.pageItems.map((row) => {
                 const st = STATUS_STYLE[row.status] ?? STATUS_STYLE.pending;
+                const license = formatCambodiaPlate(row.vehicle_plate || row.driver_license || '');
                 return (
                   <TableRow key={row.id} className="enforcement-page__table-row appeals-table__row">
                     <TableCell className="appeals-table__td appeals-table__td--driver">
@@ -314,23 +366,38 @@ export function AppealsPage() {
                         </div>
                         <div className="appeals-table__driver-copy min-w-0">
                           <p className="appeals-table__driver-name">{row.driver_name}</p>
-                          <p className="appeals-table__driver-license">{row.driver_license || '—'}</p>
                         </div>
                       </div>
                     </TableCell>
+                    <TableCell className="appeals-table__td appeals-table__td--license-plate">
+                      {license ? (
+                        <span className="enforcement-page__code-pill" title={t('users.colLicense')}>
+                          {license}
+                        </span>
+                      ) : (
+                        <span className="enforcement-page__cell-secondary">—</span>
+                      )}
+                    </TableCell>
                     <TableCell className="appeals-table__td appeals-table__td--violation">
                       <div className="appeals-table__violation">
-                        <p className="appeals-table__violation-title" title={row.violation_type || undefined}>
-                          {row.violation_type || '—'}
-                        </p>
+                        <span className="appeals-table__violation-badge" title={row.violation_type || undefined}>
+                          <Scale size={12} aria-hidden />
+                          {(row.violation_type || '—').replace(/_/g, ' ')}
+                        </span>
                         <p className="appeals-table__violation-location" title={row.violation_location || undefined}>
-                          <MapPin size={11} strokeWidth={2.25} aria-hidden />
+                          <MapPin size={12} strokeWidth={2.25} aria-hidden />
                           <span>{row.violation_location || '—'}</span>
                         </p>
                       </div>
                     </TableCell>
                     <TableCell className="appeals-table__td appeals-table__td--reason">
-                      <p className="appeals-table__reason" title={row.reason}>{row.reason}</p>
+                      <div className="appeals-table__reason-card" title={row.reason}>
+                        <span className="appeals-table__reason-label">
+                          <FileText size={11} aria-hidden />
+                          {t('appeals.colReason')}
+                        </span>
+                        <p className="appeals-table__reason">{row.reason}</p>
+                      </div>
                     </TableCell>
                     <TableCell className="appeals-table__td appeals-table__td--date">
                       <time className="appeals-table__date" dateTime={row.submitted_at}>
@@ -368,8 +435,11 @@ export function AppealsPage() {
         <TablePagination pagination={pagination} labelKey="pagination.label.appeals" />
       </div>
 
-      <Dialog open={submitOpen} onOpenChange={setSubmitOpen}>
-        <DialogContent accent="violet" className="max-w-md">
+      <Dialog open={submitOpen} onOpenChange={(open) => {
+        setSubmitOpen(open);
+        if (!open) formErrors.clearErrors();
+      }}>
+        <DialogContent accent="violet" className="ct-form-dialog">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <span className="enforcement-page__dialog-icon enforcement-page__dialog-icon--violet">
@@ -379,10 +449,22 @@ export function AppealsPage() {
             </DialogTitle>
           </DialogHeader>
           <div className="ct-dialog-form">
+            <FormErrorBanner message={formErrors.hasErrors ? t('common.formIncomplete') : null} />
             <div className="ct-dialog-field">
-              <Label className="enforcement-page__form-label">{t('appeals.selectViolation')}</Label>
-              <Select value={form.violation_id} onValueChange={(v) => setForm((f) => ({ ...f, violation_id: v }))}>
-                <SelectTrigger><SelectValue placeholder={t('appeals.selectViolation')} /></SelectTrigger>
+              <Label className="enforcement-page__form-label">{t('appeals.selectViolation')} *</Label>
+              <Select
+                value={form.violation_id}
+                onValueChange={(v) => {
+                  formErrors.clearField('violation_id');
+                  setForm((f) => ({ ...f, violation_id: v }));
+                }}
+              >
+                <SelectTrigger
+                  className={formErrors.errors.violation_id ? 'ct-field--invalid' : undefined}
+                  aria-invalid={Boolean(formErrors.errors.violation_id)}
+                >
+                  <SelectValue placeholder={t('appeals.selectViolation')} />
+                </SelectTrigger>
                 <SelectContent>
                   {appealableViolations.map((v) => (
                     <SelectItem key={v.id} value={String(v.id)}>
@@ -391,10 +473,21 @@ export function AppealsPage() {
                   ))}
                 </SelectContent>
               </Select>
+              <FieldError message={formErrors.errors.violation_id} />
             </div>
             <div className="ct-dialog-field">
-              <Label className="enforcement-page__form-label">{t('appeals.reason')}</Label>
-              <Textarea value={form.reason} onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))} rows={4} />
+              <Label className="enforcement-page__form-label">{t('appeals.reason')} *</Label>
+              <Textarea
+                className={formErrors.errors.reason ? 'ct-field--invalid' : undefined}
+                aria-invalid={Boolean(formErrors.errors.reason)}
+                value={form.reason}
+                onChange={(e) => {
+                  formErrors.clearField('reason');
+                  setForm((f) => ({ ...f, reason: e.target.value }));
+                }}
+                rows={4}
+              />
+              <FieldError message={formErrors.errors.reason} />
             </div>
             <div className="ct-dialog-field">
               <Label className="enforcement-page__form-label">{t('appeals.evidenceOptional')}</Label>
@@ -449,8 +542,12 @@ export function AppealsPage() {
       >
         {selected && (
           <>
-            <EntityDetailField label={t('appeals.colDriver')} value={`${selected.driver_name} (${selected.driver_license || '—'})`} />
-            <EntityDetailField label={t('appeals.colViolation')} value={selected.violation_type || '—'} />
+            <EntityDetailField label={t('appeals.colDriver')} value={selected.driver_name} />
+            <EntityDetailField
+              label={t('users.colLicense')}
+              value={formatCambodiaPlate(selected.vehicle_plate || selected.driver_license || '') || '—'}
+            />
+            <EntityDetailField label={t('appeals.colViolation')} value={(selected.violation_type || '—').replace(/_/g, ' ')} />
             <EntityDetailField label={t('appeals.colSubmitted')} value={formatAppDate(locale, selected.submitted_at)} />
             <EntityDetailField label={t('appeals.colStatus')} value={statusLabel(selected.status)} />
             <EntityDetailField label={t('appeals.reason')} value={selected.reason} />

@@ -22,7 +22,7 @@ CAMERA_FLEET = [
         'brand': 'Hikvision',
         'camera_type': 'fixed',
         'status': 'active',
-        'frame_source_url': '/media/cctv/monivong-intersection.jpg',
+        'frame_source_url': '/media/cctv/pp-riverside-traffic.webm',
         'lat': 11.5685000,
         'lng': 104.9312000,
         'province': 'Phnom Penh',
@@ -38,7 +38,7 @@ CAMERA_FLEET = [
         'brand': 'Dahua',
         'camera_type': 'ptz',
         'status': 'active',
-        'frame_source_url': '/media/cctv/monivong-ptz.jpg',
+        'frame_source_url': '/media/cctv/pp-chaktomuk-traffic.webm',
         'lat': 11.5698000,
         'lng': 104.9305000,
         'province': 'Phnom Penh',
@@ -54,7 +54,7 @@ CAMERA_FLEET = [
         'brand': 'Hikvision',
         'camera_type': 'fixed',
         'status': 'active',
-        'frame_source_url': '/media/cctv/monivong-intersection.jpg',
+        'frame_source_url': '/media/cctv/pp-riverside-traffic.webm',
         'lat': 11.5620000,
         'lng': 104.9280000,
         'province': 'Phnom Penh',
@@ -70,7 +70,7 @@ CAMERA_FLEET = [
         'brand': 'Axis',
         'camera_type': 'fixed',
         'status': 'active',
-        'frame_source_url': '/media/cctv/nr6-highway.jpg',
+        'frame_source_url': '/media/cctv/m2-res_360p.mp4',
         'lat': 11.5685000,
         'lng': 104.8882000,
         'province': 'Phnom Penh',
@@ -86,7 +86,7 @@ CAMERA_FLEET = [
         'brand': 'Hikvision',
         'camera_type': 'ptz',
         'status': 'active',
-        'frame_source_url': '/media/cctv/monivong-ptz.jpg',
+        'frame_source_url': '/media/cctv/pp-chaktomuk-traffic.webm',
         'lat': 11.5488000,
         'lng': 104.9172000,
         'province': 'Phnom Penh',
@@ -102,7 +102,7 @@ CAMERA_FLEET = [
         'brand': 'Dahua',
         'camera_type': 'fixed',
         'status': 'active',
-        'frame_source_url': '/media/cctv/monivong-intersection.jpg',
+        'frame_source_url': '/media/cctv/pp-riverside-traffic.webm',
         'lat': 11.5564000,
         'lng': 104.9280000,
         'province': 'Phnom Penh',
@@ -118,7 +118,7 @@ CAMERA_FLEET = [
         'brand': 'Hikvision',
         'camera_type': 'fixed',
         'status': 'active',
-        'frame_source_url': '/media/cctv/monivong-intersection.jpg',
+        'frame_source_url': '/media/cctv/pp-riverside-traffic.webm',
         'lat': 11.5632000,
         'lng': 104.9045000,
         'province': 'Phnom Penh',
@@ -134,7 +134,7 @@ CAMERA_FLEET = [
         'brand': 'Axis',
         'camera_type': 'fixed',
         'status': 'active',
-        'frame_source_url': '/media/cctv/monivong-ptz.jpg',
+        'frame_source_url': '/media/cctv/pp-chaktomuk-traffic.webm',
         'lat': 11.5698000,
         'lng': 104.9305000,
         'province': 'Phnom Penh',
@@ -150,7 +150,7 @@ CAMERA_FLEET = [
         'brand': 'Hikvision',
         'camera_type': 'fixed',
         'status': 'maintenance',
-        'frame_source_url': '/media/cctv/monivong-intersection.jpg',
+        'frame_source_url': '/media/cctv/pp-riverside-traffic.webm',
         'lat': 11.5365000,
         'lng': 104.9210000,
         'province': 'Phnom Penh',
@@ -166,7 +166,7 @@ CAMERA_FLEET = [
         'brand': 'Dahua',
         'camera_type': 'speed',
         'status': 'active',
-        'frame_source_url': '/media/cctv/nr6-highway.jpg',
+        'frame_source_url': '/media/cctv/m2-res_360p.mp4',
         'lat': 11.5128000,
         'lng': 104.9102000,
         'province': 'Phnom Penh',
@@ -182,7 +182,7 @@ CAMERA_FLEET = [
         'brand': 'Axis',
         'camera_type': 'speed',
         'status': 'active',
-        'frame_source_url': '/media/cctv/nr6-highway.jpg',
+        'frame_source_url': '/media/cctv/m2-res_360p.mp4',
         'lat': 11.5220000,
         'lng': 104.8470000,
         'province': 'Phnom Penh',
@@ -198,7 +198,7 @@ CAMERA_FLEET = [
         'brand': 'Hikvision',
         'camera_type': 'fixed',
         'status': 'active',
-        'frame_source_url': '/media/cctv/monivong-intersection.jpg',
+        'frame_source_url': '/media/cctv/pp-riverside-traffic.webm',
         'lat': 11.5305000,
         'lng': 104.9458000,
         'province': 'Phnom Penh',
@@ -215,7 +215,7 @@ CAMERA_FLEET = [
         'brand': 'Axis',
         'camera_type': 'speed',
         'status': 'active',
-        'frame_source_url': '/media/cctv/nr6-highway.jpg',
+        'frame_source_url': '/media/cctv/m2-res_360p.mp4',
         'lat': 11.4835000,
         'lng': 104.9502000,
         'province': 'Kandal',
@@ -247,7 +247,7 @@ CAMERA_FLEET = [
         'brand': 'Hikvision',
         'camera_type': 'speed',
         'status': 'active',
-        'frame_source_url': '/media/cctv/nr6-highway.jpg',
+        'frame_source_url': '/media/cctv/m2-res_360p.mp4',
         'lat': 11.4500000,
         'lng': 105.0200000,
         'province': 'Kandal',
@@ -264,7 +264,7 @@ CAMERA_FLEET = [
         'brand': 'Dahua',
         'camera_type': 'fixed',
         'status': 'active',
-        'frame_source_url': '/media/cctv/monivong-intersection.jpg',
+        'frame_source_url': '/media/cctv/pp-riverside-traffic.webm',
         'lat': 13.3618000,
         'lng': 103.8600000,
         'province': 'Siem Reap',
@@ -280,7 +280,7 @@ CAMERA_FLEET = [
         'brand': 'Axis',
         'camera_type': 'speed',
         'status': 'active',
-        'frame_source_url': '/media/cctv/nr6-highway.jpg',
+        'frame_source_url': '/media/cctv/m2-res_360p.mp4',
         'lat': 13.3400000,
         'lng': 103.8800000,
         'province': 'Siem Reap',
@@ -297,7 +297,7 @@ CAMERA_FLEET = [
         'brand': 'Hikvision',
         'camera_type': 'fixed',
         'status': 'active',
-        'frame_source_url': '/media/cctv/monivong-ptz.jpg',
+        'frame_source_url': '/media/cctv/pp-chaktomuk-traffic.webm',
         'lat': 13.0957000,
         'lng': 103.2022000,
         'province': 'Battambang',
@@ -314,7 +314,7 @@ CAMERA_FLEET = [
         'brand': 'Dahua',
         'camera_type': 'fixed',
         'status': 'active',
-        'frame_source_url': '/media/cctv/monivong-intersection.jpg',
+        'frame_source_url': '/media/cctv/pp-riverside-traffic.webm',
         'lat': 10.6093000,
         'lng': 103.5296000,
         'province': 'Preah Sihanouk',
@@ -330,7 +330,7 @@ CAMERA_FLEET = [
         'brand': 'Axis',
         'camera_type': 'speed',
         'status': 'active',
-        'frame_source_url': '/media/cctv/nr6-highway.jpg',
+        'frame_source_url': '/media/cctv/m2-res_360p.mp4',
         'lat': 10.6500000,
         'lng': 103.5600000,
         'province': 'Preah Sihanouk',
@@ -347,7 +347,7 @@ CAMERA_FLEET = [
         'brand': 'Hikvision',
         'camera_type': 'ptz',
         'status': 'active',
-        'frame_source_url': '/media/cctv/monivong-ptz.jpg',
+        'frame_source_url': '/media/cctv/pp-chaktomuk-traffic.webm',
         'lat': 11.5580000,
         'lng': 104.9120000,
         'province': 'Phnom Penh',
@@ -363,7 +363,7 @@ CAMERA_FLEET = [
         'brand': 'Axis',
         'camera_type': 'fixed',
         'status': 'active',
-        'frame_source_url': '/media/cctv/monivong-intersection.jpg',
+        'frame_source_url': '/media/cctv/pp-riverside-traffic.webm',
         'lat': 11.5450000,
         'lng': 104.9285000,
         'province': 'Phnom Penh',
@@ -379,7 +379,7 @@ CAMERA_FLEET = [
         'brand': 'Dahua',
         'camera_type': 'fixed',
         'status': 'active',
-        'frame_source_url': '/media/cctv/monivong-intersection.jpg',
+        'frame_source_url': '/media/cctv/pp-riverside-traffic.webm',
         'lat': 11.5455000,
         'lng': 104.9380000,
         'province': 'Phnom Penh',
@@ -427,7 +427,14 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        self._sync_cctv_media()
+        synced = self._sync_cctv_media()
+        if options.get('sync_media') and not (options['force'] or options['clear']):
+            self.stdout.write(self.style.SUCCESS(
+                f'Synced {synced} CCTV media file(s) → {Path(settings.MEDIA_ROOT) / "cctv"}',
+            ))
+            if Camera.objects.exists():
+                self.stdout.write(f'  Roads: {Road.objects.count()}, Cameras: {Camera.objects.count()}')
+            return
 
         if options['clear']:
             Camera.objects.all().delete()
@@ -439,7 +446,8 @@ class Command(BaseCommand):
             return
 
         self.stdout.write(self.style.WARNING(
-            'Cameras already exist — skipping. Use --force to refresh CCTV frame URLs, or --clear to replace.',
+            'Cameras already exist — skipping. Use --force to refresh CCTV frame URLs, '
+            '--sync-media to copy preview videos, or --clear to replace.',
         ))
         self.stdout.write(f'  Roads: {Road.objects.count()}, Cameras: {Camera.objects.count()}')
 
@@ -479,7 +487,7 @@ class Command(BaseCommand):
                 road_cache[road_key] = road
             road = road_cache[road_key]
 
-            # Production fleet uses /media/cctv/ stills (or RTSP/HTTP). Never seed demo-cameras paths.
+            # Production fleet uses /media/cctv/ video preview (or RTSP/HTTP). Never seed demo-cameras paths.
             frame_url = (spec.get('frame_source_url') or '').strip()
             if 'demo-cameras' in frame_url or frame_url.startswith('/demo-'):
                 frame_url = ''
@@ -528,31 +536,48 @@ class Command(BaseCommand):
             '(+ STREAM_GATEWAY_URL for RTSP).',
         )
 
-    def _sync_cctv_media(self) -> None:
-        """Copy Phnom Penh street stills into MEDIA_ROOT/cctv for live YOLO capture."""
+    def _sync_cctv_media(self) -> int:
+        """Copy Phnom Penh street videos/stills into MEDIA_ROOT/cctv for live preview + YOLO."""
         repo = Path(getattr(settings, 'REPO_ROOT', Path(settings.BASE_DIR).resolve().parents[1]))
         sources = [
             repo / 'ai' / 'datasets' / 'samples' / 'live_camera_frames',
+            repo / 'ai' / 'datasets' / 'samples' / 'reference_video',
             repo / 'src' / 'web' / 'admin' / 'public' / 'demo-cameras',
             repo / 'src' / 'web' / 'user' / 'public' / 'demo-cameras',
+            Path(settings.MEDIA_ROOT) / 'cctv',
         ]
         dest = Path(settings.MEDIA_ROOT) / 'cctv'
         dest.mkdir(parents=True, exist_ok=True)
-        names = ('monivong-intersection.jpg', 'monivong-ptz.jpg', 'nr6-highway.jpg')
+        names = (
+            'monivong-intersection.jpg',
+            'monivong-ptz.jpg',
+            'nr6-highway.jpg',
+            'pp-chaktomuk-traffic.webm',
+            'pp-riverside-traffic.webm',
+            'm2-res_360p.mp4',
+        )
+        copied = 0
         for name in names:
             target = dest / name
             for src_dir in sources:
                 src = src_dir / name
-                if src.is_file():
+                if src.is_file() and src.resolve() != target.resolve():
                     if not target.exists() or target.stat().st_mtime < src.stat().st_mtime:
                         shutil.copy2(src, target)
+                        copied += 1
+                        self.stdout.write(f'  CCTV media: {name}')
                     break
+            else:
+                if not target.is_file():
+                    self.stdout.write(self.style.WARNING(f'  CCTV media missing (no source): {name}'))
         # Also keep legacy demo-cameras copies for older absolute paths during transition.
         legacy = Path(settings.MEDIA_ROOT) / 'demo-cameras'
-        if legacy.is_dir() or any((s / names[0]).is_file() for s in sources):
+        still_names = ('monivong-intersection.jpg', 'monivong-ptz.jpg', 'nr6-highway.jpg')
+        if legacy.is_dir() or any((s / still_names[0]).is_file() for s in sources):
             legacy.mkdir(parents=True, exist_ok=True)
-            for name in names:
+            for name in still_names:
                 target = legacy / name
                 src = dest / name
                 if src.is_file() and (not target.exists() or target.stat().st_mtime < src.stat().st_mtime):
                     shutil.copy2(src, target)
+        return copied

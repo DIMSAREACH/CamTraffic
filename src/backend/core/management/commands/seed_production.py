@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import io
 import random
+import re
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -136,20 +137,20 @@ class Command(BaseCommand):
         parser.add_argument(
             '--count',
             type=int,
-            default=450,
-            help='Base volume for enforcement records (default: 450 — government demo scale)',
+            default=100,
+            help='Base volume for enforcement records (default: 100)',
         )
         parser.add_argument(
             '--drivers',
             type=int,
-            default=160,
-            help='Number of driver accounts to ensure (default: 160)',
+            default=100,
+            help='Number of driver accounts to ensure (default: 100)',
         )
         parser.add_argument(
             '--officers',
             type=int,
-            default=32,
-            help='Number of officer accounts to ensure (default: 32)',
+            default=20,
+            help='Number of officer accounts to ensure (default: 20)',
         )
         parser.add_argument(
             '--import-signs',
@@ -191,8 +192,12 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING('  Need at least 1 police and 1 driver account'))
             return
 
-        count = max(50, options['count'])
+        count = max(1, min(100, options['count']))
         self._seed_production_data(police_officers, drivers, count)
+
+        # Real Cambodia-looking names, emails (first.last@gmail.com), licenses (2TE-1507).
+        call_command('normalize_cambodia_users', force_all_names=True)
+        call_command('normalize_cambodia_identity')
 
         self.stdout.write('')
         self.stdout.write(self.style.SUCCESS('Government-scale seed complete'))
@@ -232,26 +237,67 @@ class Command(BaseCommand):
         if created:
             self.stdout.write(self.style.SUCCESS(f'  Extra violation rules: {created}'))
 
+    def _unique_person_email(self, full_name: str, used: set[str]) -> str:
+        """Match thesis form: korbkimheang18@gmail.com → firstnamelastnameNN@gmail.com."""
+        parts = [p for p in (full_name or '').split() if p]
+        first = re.sub(r'[^a-z]', '', (parts[0] if parts else 'citizen').lower()) or 'citizen'
+        last = re.sub(r'[^a-z]', '', (parts[-1] if len(parts) > 1 else 'kh').lower()) or 'kh'
+        base = f'{first}{last}'
+        # Stable-ish two-digit suffix like …18@gmail.com
+        n = 10 + (sum(ord(c) for c in base) % 90)
+        candidate = f'{base}{n}@gmail.com'
+        while candidate in used or User.objects.filter(email__iexact=candidate).exists():
+            n += 1
+            if n > 99:
+                n = 10
+                base = f'{base}x'
+            candidate = f'{base}{n}@gmail.com'
+        used.add(candidate)
+        return candidate
+
+    def _unique_license(self, used: set[str]) -> str:
+        """License uses the same numbered form as plates (e.g. 2TE-1507)."""
+        letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
+        for _ in range(50):
+            cat = random.choice(['1', '2', '3', '4'])
+            a = random.choice(letters)
+            b = random.choice(letters)
+            num = random.randint(1000, 9999)
+            lic = f'{cat}{a}{b}-{num}'
+            if lic not in used and not Driver.objects.filter(license_no=lic).exists():
+                used.add(lic)
+                return lic
+        lic = f'2ZZ-{random.randint(1000, 9999)}'
+        used.add(lic)
+        return lic
+
+    def _kh_phone(self) -> str:
+        prefix = random.choice([
+            '12', '15', '16', '17', '61', '67', '68', '69', '70', '71',
+            '76', '77', '78', '79', '81', '85', '87', '89', '92', '95', '96', '97', '98',
+        ])
+        return f'+855 {prefix} {random.randint(100, 999):03d} {random.randint(100, 999):03d}'
+
     def _ensure_officers(self, target: int) -> list:
         from infrastructure.models import PoliceStation
 
         station = PoliceStation.objects.filter(code='PP-HQ').first() or PoliceStation.objects.first()
-        existing = list(User.objects.filter(role='police', is_active=True))
+        existing = list(User.objects.filter(role='police', is_active=True, deleted_at__isnull=True))
         need = max(0, target - len(existing))
         created = 0
+        used_emails = {u.email.lower() for u in User.objects.all() if u.email}
         for i in range(need):
             n = len(existing) + i + 1
-            email = f'officer{n:03d}@camtraffic.demo'
-            if User.objects.filter(email=email).exists():
-                continue
+            full_name = f'{random.choice(KH_FIRST)} {random.choice(KH_LAST)}'
+            email = self._unique_person_email(full_name, used_emails)
             user = User.objects.create_user(
                 email=email,
                 password='CamTraffic@2026!',
-                full_name=f'{random.choice(KH_FIRST)} {random.choice(KH_LAST)}',
+                full_name=full_name,
                 role='police',
                 is_active=True,
                 email_verified=True,
-                phone=f'+8551{random.randint(10000000, 99999999)}',
+                phone=self._kh_phone(),
                 address=random.choice([
                     'Phnom Penh Traffic Police HQ, Monivong Blvd, Phnom Penh',
                     'Traffic Police Unit, Toul Kork, Phnom Penh',
@@ -273,32 +319,40 @@ class Command(BaseCommand):
             created += 1
         if created:
             self.stdout.write(self.style.SUCCESS(f'  Officers created: {created}'))
-        self.stdout.write(self.style.SUCCESS(f'  Officers total: {User.objects.filter(role="police").count()}'))
-        return list(User.objects.filter(role='police', is_active=True))
+        self.stdout.write(self.style.SUCCESS(
+            f'  Officers total: {User.objects.filter(role="police", deleted_at__isnull=True).count()}'
+        ))
+        return list(User.objects.filter(role='police', is_active=True, deleted_at__isnull=True))
 
     def _ensure_drivers(self, target: int) -> list:
-        existing = list(User.objects.filter(role='driver', is_active=True))
+        existing = list(User.objects.filter(role='driver', is_active=True, deleted_at__isnull=True))
         need = max(0, target - len(existing))
         created = 0
-        for i in range(need):
-            n = len(existing) + i + 1
-            email = f'driver{n:03d}@camtraffic.demo'
-            if User.objects.filter(email=email).exists():
-                continue
+        used_emails = {u.email.lower() for u in User.objects.all() if u.email}
+        used_licenses = {
+            (d.license_no or '').strip()
+            for d in Driver.objects.all()
+            if (d.license_no or '').strip()
+        }
+        for _i in range(need):
+            full_name = f'{random.choice(KH_FIRST)} {random.choice(KH_LAST)}'
+            email = self._unique_person_email(full_name, used_emails)
+            license_no = self._unique_license(used_licenses)
             user = User.objects.create_user(
                 email=email,
                 password='CamTraffic@2026!',
-                full_name=f'{random.choice(KH_FIRST)} {random.choice(KH_LAST)}',
+                full_name=full_name,
                 role='driver',
                 is_active=True,
                 email_verified=True,
-                phone=f'+8551{random.randint(10000000, 99999999)}',
+                phone=self._kh_phone(),
                 address=random.choice(PP_LOCATIONS[:12]),
+                license_no=license_no,
             )
             Driver.objects.get_or_create(
                 user=user,
                 defaults={
-                    'license_no': f'DL-KH-2026-{n:05d}',
+                    'license_no': license_no,
                     'license_expiry': date.today() + timedelta(days=365 * random.randint(1, 4)),
                     'kyc_status': 'approved',
                     'status': 'active',
@@ -308,8 +362,10 @@ class Command(BaseCommand):
             created += 1
         if created:
             self.stdout.write(self.style.SUCCESS(f'  Drivers created: {created}'))
-        self.stdout.write(self.style.SUCCESS(f'  Drivers total: {User.objects.filter(role="driver").count()}'))
-        return list(User.objects.filter(role='driver', is_active=True))
+        self.stdout.write(self.style.SUCCESS(
+            f'  Drivers total: {User.objects.filter(role="driver", deleted_at__isnull=True).count()}'
+        ))
+        return list(User.objects.filter(role='driver', is_active=True, deleted_at__isnull=True))
 
     def _backdate(self, model, pk, field: str, when):
         model.objects.filter(pk=pk).update(**{field: when})
@@ -545,7 +601,7 @@ class Command(BaseCommand):
         except ImportError:
             Image = None
 
-        detection_target = max(count, int(count * 2.2))
+        detection_target = min(100, max(count, int(count * 1.0)))
         for i in range(detection_target):
             user = random.choice(police_officers)
             sign = random.choice(SIGN_NAMES)
@@ -612,7 +668,7 @@ class Command(BaseCommand):
         created = 0
         admin_users = list(User.objects.filter(role='admin', is_active=True))
         recipients = drivers + police_officers + admin_users
-        target = max(120, int(count * 0.55))
+        target = min(100, max(20, int(count * 0.55)))
         for _ in range(target):
             ntype, title, body_tpl = random.choice(NOTIFICATION_TEMPLATES)
             location = random.choice(PP_LOCATIONS)
@@ -644,7 +700,7 @@ class Command(BaseCommand):
     def _seed_audit_logs(self, police_officers, count: int) -> int:
         created = 0
         actors = list(User.objects.filter(role__in=['admin', 'police'], is_active=True)) or police_officers
-        target = max(180, int(count * 0.7))
+        target = min(100, max(20, int(count * 0.7)))
         ips = [f'203.189.{random.randint(1, 254)}.{random.randint(1, 254)}' for _ in range(12)]
         for _ in range(target):
             resource, actions = random.choice(AUDIT_RESOURCES)

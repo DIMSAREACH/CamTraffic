@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { usePagination } from '@shared/hooks/usePagination';
+import { useFieldErrors } from '@shared/hooks/useFieldErrors';
 import { TablePagination } from '@shared/components/ui/TablePagination';
 import {
   MapPin, Plus, Search, Pencil, Trash2, Route, Cctv, CheckCircle, XCircle, Wrench,
@@ -8,6 +9,7 @@ import {
 import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
 import { Label } from '@shared/components/ui/label';
+import { FieldError, FormErrorBanner } from '@shared/components/ui/FieldError';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@shared/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@shared/components/ui/table';
@@ -18,6 +20,8 @@ import { useLanguage } from '@shared/context/LanguageContext';
 import { roadsAPI } from '@shared/services/api';
 import { toast } from 'sonner';
 import type { Road, RoadStatus, RoadType } from '@shared/types';
+
+type RoadFormField = 'name' | 'city';
 
 const ROAD_TYPES: RoadType[] = ['highway', 'urban', 'rural', 'intersection'];
 const ROAD_STATUSES: RoadStatus[] = ['active', 'inactive', 'maintenance'];
@@ -63,8 +67,9 @@ export function RoadsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const formErrors = useFieldErrors<RoadFormField>();
+  const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState<Road | null>(null);
   const [deleteRoad, setDeleteRoad] = useState<Road | null>(null);
   const [viewRoad, setViewRoad] = useState<Road | null>(null);
@@ -117,18 +122,24 @@ export function RoadsPage() {
   const openCreate = () => {
     setEditing(null);
     setForm(emptyForm);
+    formErrors.clearErrors();
     setOpen(true);
   };
 
   const openEdit = (road: Road) => {
     setEditing(road);
     setForm(roadToForm(road));
+    formErrors.clearErrors();
     setOpen(true);
   };
 
   const handleSave = async () => {
-    if (!form.name.trim() || !form.city.trim()) {
-      toast.error(t('roads.toastFillRequired'));
+    const ok = formErrors.validateRequired(
+      { name: form.name, city: form.city },
+      { name: t('common.fieldRequired'), city: t('common.fieldRequired') },
+    );
+    if (!ok) {
+      toast.error(t('common.formIncomplete'));
       return;
     }
     const payload = {
@@ -345,8 +356,11 @@ export function RoadsPage() {
         <TablePagination pagination={pagination} labelKey="pagination.label.roads" />
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent accent="blue" className="max-w-md sm:max-w-lg">
+      <Dialog open={open} onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) formErrors.clearErrors();
+      }}>
+        <DialogContent accent="blue" className="ct-form-dialog">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2.5">
               <div className="enforcement-page__dialog-icon enforcement-page__dialog-icon--slate">
@@ -355,34 +369,53 @@ export function RoadsPage() {
               <span className="enforcement-page__dialog-title">{editing ? t('roads.edit') : t('roads.add')}</span>
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 py-1">
-            <div>
+          <div className="ct-dialog-form">
+            <FormErrorBanner message={formErrors.hasErrors ? t('common.formIncomplete') : null} />
+            <div className="ct-dialog-field">
               <Label className="enforcement-page__form-label">{t('roads.name')} *</Label>
-              <Input className="mt-1" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+              <Input
+                className={formErrors.errors.name ? 'ct-field--invalid' : undefined}
+                aria-invalid={Boolean(formErrors.errors.name)}
+                value={form.name}
+                onChange={(e) => {
+                  formErrors.clearField('name');
+                  setForm((f) => ({ ...f, name: e.target.value }));
+                }}
+              />
+              <FieldError message={formErrors.errors.name} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
+            <div className="ct-dialog-field-grid">
+              <div className="ct-dialog-field">
                 <Label className="enforcement-page__form-label">{t('roads.type')}</Label>
                 <Select value={form.road_type} onValueChange={(v) => setForm((f) => ({ ...f, road_type: v as RoadType }))}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {ROAD_TYPES.map((rt) => <SelectItem key={rt} value={rt}>{typeLabel(rt)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-              <div>
+              <div className="ct-dialog-field">
                 <Label className="enforcement-page__form-label">{t('roads.speedLimit')}</Label>
-                <Input className="mt-1" type="number" value={form.speed_limit} onChange={(e) => setForm((f) => ({ ...f, speed_limit: e.target.value }))} />
+                <Input type="number" value={form.speed_limit} onChange={(e) => setForm((f) => ({ ...f, speed_limit: e.target.value }))} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
+            <div className="ct-dialog-field-grid">
+              <div className="ct-dialog-field">
                 <Label className="enforcement-page__form-label">{t('stations.city')} *</Label>
-                <Input className="mt-1" value={form.city} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))} />
+                <Input
+                  className={formErrors.errors.city ? 'ct-field--invalid' : undefined}
+                  aria-invalid={Boolean(formErrors.errors.city)}
+                  value={form.city}
+                  onChange={(e) => {
+                    formErrors.clearField('city');
+                    setForm((f) => ({ ...f, city: e.target.value }));
+                  }}
+                />
+                <FieldError message={formErrors.errors.city} />
               </div>
-              <div>
+              <div className="ct-dialog-field">
                 <Label className="enforcement-page__form-label">{t('stations.region')}</Label>
-                <Input className="mt-1" value={form.region} onChange={(e) => setForm((f) => ({ ...f, region: e.target.value }))} />
+                <Input value={form.region} onChange={(e) => setForm((f) => ({ ...f, region: e.target.value }))} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">

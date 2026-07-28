@@ -21,6 +21,16 @@ const DEMO_FRAMES_BY_ID: Record<string, string> = {
   '3': '/demo-cameras/nr6-highway.jpg',
 };
 
+/** Files shipped under /public/demo-cameras — DEV fallback when MEDIA_ROOT/cctv is empty. */
+const BUNDLED_CCTV_NAMES = new Set([
+  'pp-chaktomuk-traffic.webm',
+  'pp-riverside-traffic.webm',
+  'monivong-intersection.jpg',
+  'monivong-ptz.jpg',
+  'nr6-highway.jpg',
+  'm2-res_360p.mp4',
+]);
+
 const ALLOW_DEMO_ASSETS =
   import.meta.env.DEV === true && import.meta.env.VITE_ALLOW_DEMO_ASSETS === 'true';
 
@@ -34,6 +44,17 @@ function resolvePublicPath(path: string): string {
     return `${window.location.origin}${prefix}${normalized}`;
   }
   return normalized;
+}
+
+/** In DEV, rewrite /media/cctv/<bundled> → /demo-cameras/<bundled> so missing MEDIA_ROOT sync does not 404. */
+function rewriteBundledCctvMedia(raw: string): string | null {
+  if (!import.meta.env.DEV) return null;
+  const path = raw.split('?')[0].split('#')[0];
+  const m = path.match(/^\/?media\/cctv\/([^/?#]+)$/i);
+  if (m && BUNDLED_CCTV_NAMES.has(m[1])) {
+    return `/demo-cameras/${m[1]}`;
+  }
+  return null;
 }
 
 export function demoCameraFramePath(camera: Pick<Camera, 'id' | 'code'>): string | null {
@@ -73,6 +94,10 @@ export function resolveCameraFrameUrl(
   }
   if (raw.startsWith('http') || raw.startsWith('blob:') || raw.startsWith('data:')) {
     return raw;
+  }
+  const bundled = rewriteBundledCctvMedia(raw);
+  if (bundled) {
+    return resolvePublicPath(bundled);
   }
   return resolvePublicPath(raw);
 }

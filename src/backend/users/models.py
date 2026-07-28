@@ -136,10 +136,11 @@ class Driver(UUIDPrimaryKeyModel):
 
     class Meta:
         db_table = 'drivers'
-        ordering = ['license_no']
+        ordering = ['-created_at']  # Newest drivers first
         indexes = [
             models.Index(fields=['status', 'kyc_status'], name='idx_driver_status_kyc'),
             models.Index(fields=['license_no'], name='idx_driver_license'),
+            models.Index(fields=['-created_at'], name='idx_driver_created'),
         ]
 
     def __str__(self):

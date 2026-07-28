@@ -4,21 +4,26 @@ from __future__ import annotations
 from django.db.models import Q
 
 from ai_detection.models import AIDetectionLog
+from core.media_urls import api_media_url
 from fines.models import Fine
 from violations.models import TrafficViolation
 
 
 def _media_url(request, field) -> str | None:
-    if field and getattr(field, 'name', None):
-        try:
-            return request.build_absolute_uri(field.url)
-        except (ValueError, AttributeError):
-            return None
-    return None
+    """Resolve a browser-loadable URL, or None when the file is no longer stored.
+
+    Uses the shared helper so records never carry URLs that 404 in the client.
+    """
+    if not field or not getattr(field, 'name', None):
+        return None
+    return api_media_url(request, field) or None
 
 
 def _append_detection(records: list, log: AIDetectionLog, request) -> None:
-    if not (log.uploaded_image or log.vehicle_snapshot or log.plate_snapshot):
+    image_url = _media_url(request, log.uploaded_image)
+    vehicle_url = _media_url(request, log.vehicle_snapshot)
+    plate_url = _media_url(request, log.plate_snapshot)
+    if not (image_url or vehicle_url or plate_url):
         return
     records.append({
         'id': f'detection:{log.id}',
@@ -27,9 +32,9 @@ def _append_detection(records: list, log: AIDetectionLog, request) -> None:
         'title': log.detected_sign or 'AI Detection',
         'plate': log.detected_plate or '',
         'location': '',
-        'image_url': _media_url(request, log.uploaded_image),
-        'vehicle_image_url': _media_url(request, log.vehicle_snapshot),
-        'plate_image_url': _media_url(request, log.plate_snapshot),
+        'image_url': image_url,
+        'vehicle_image_url': vehicle_url,
+        'plate_image_url': plate_url,
         'created_at': log.created_at.isoformat(),
     })
 
@@ -49,7 +54,10 @@ def _append_violation(records: list, row: TrafficViolation, request) -> None:
     plate_img = row.plate_evidence_image or (
         row.ai_detection_log.plate_snapshot if row.ai_detection_log_id else None
     )
-    if not (image or vehicle_img or plate_img):
+    image_url = _media_url(request, image)
+    vehicle_url = _media_url(request, vehicle_img)
+    plate_url = _media_url(request, plate_img)
+    if not (image_url or vehicle_url or plate_url):
         return
     records.append({
         'id': f'violation:{row.id}',
@@ -58,15 +66,16 @@ def _append_violation(records: list, row: TrafficViolation, request) -> None:
         'title': row.violation_type or row.description or 'Traffic Violation',
         'plate': plate,
         'location': row.location or '',
-        'image_url': _media_url(request, image),
-        'vehicle_image_url': _media_url(request, vehicle_img),
-        'plate_image_url': _media_url(request, plate_img),
+        'image_url': image_url,
+        'vehicle_image_url': vehicle_url,
+        'plate_image_url': plate_url,
         'created_at': row.violation_date.isoformat(),
     })
 
 
 def _append_fine(records: list, fine: Fine, request) -> None:
-    if not fine.evidence_image:
+    image_url = _media_url(request, fine.evidence_image)
+    if not image_url:
         return
     records.append({
         'id': f'fine:{fine.id}',
@@ -75,7 +84,7 @@ def _append_fine(records: list, fine: Fine, request) -> None:
         'title': fine.reason or 'Fine Evidence',
         'plate': fine.vehicle_plate or '',
         'location': fine.location or '',
-        'image_url': _media_url(request, fine.evidence_image),
+        'image_url': image_url,
         'vehicle_image_url': None,
         'plate_image_url': None,
         'created_at': fine.created_at.isoformat(),

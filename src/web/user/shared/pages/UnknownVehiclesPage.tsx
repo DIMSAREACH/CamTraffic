@@ -1,23 +1,34 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router';
 import { usePagination } from '@shared/hooks/usePagination';
 import { TablePagination } from '@shared/components/ui/TablePagination';
 import { CrudRowActions } from '@shared/components/admin/CrudRowActions';
-import { EntityDetailField, EntityViewDialog } from '@shared/components/admin/EntityViewDialog';
-import { Car, CheckCircle, Clock, Link2, Search } from 'lucide-react';
+import {
+  Car, CheckCircle, Clock, Link2, Plus, Search, AlertTriangle, DollarSign,
+  Eye, Camera, Sparkles, FileText, Hash, Activity,
+} from 'lucide-react';
 import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
 import { Label } from '@shared/components/ui/label';
+import { Switch } from '@shared/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@shared/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@shared/components/ui/table';
 import { TableEmptyState } from '@shared/components/ui/TableEmptyState';
+import { FieldError, FormErrorBanner } from '@shared/components/ui/FieldError';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { useLiveData } from '@shared/hooks/useLiveData';
-import { unknownVehiclesAPI, vehiclesAPI } from '@shared/services/api';
+import { useFieldErrors } from '@shared/hooks/useFieldErrors';
+import { khrToUsd, usdToKhr } from '@shared/i18n/localeFormat';
+import {
+  driversAPI, finesAPI, unknownVehiclesAPI, vehiclesAPI, violationsAPI,
+} from '@shared/services/api';
 import { toast } from 'sonner';
-import type { UnknownVehicleRecord } from '@shared/types';
+import type { DriverProfile, UnknownVehicleRecord, Vehicle } from '@shared/types';
 
 type StatusFilter = 'all' | 'pending' | 'resolved';
+type ResolveMode = 'link' | 'register';
 
 const STATUS_STYLE: Record<Exclude<StatusFilter, 'all'>, { gradient: string }> = {
   pending: { gradient: 'linear-gradient(135deg, #F59E0B, #D97706)' },
@@ -31,11 +42,20 @@ const STAT_CARDS = [
   { key: 'linked', labelKey: 'unknown.statLinked', icon: Link2, variant: 'blue', filterable: false as const },
 ] as const;
 
+function formatConfidence(score: number | null | undefined): string {
+  if (score == null || Number.isNaN(Number(score))) return '—';
+  const n = Number(score);
+  const pct = n <= 1 ? Math.round(n * 100) : Math.round(n);
+  return `${pct}%`;
+}
+
 export function UnknownVehiclesPage() {
   const { t } = useLanguage();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const canManage = user?.role === 'admin' || user?.role === 'police';
   const [rows, setRows] = useState<UnknownVehicleRecord[]>([]);
+  const [drivers, setDrivers] = useState<DriverProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -43,13 +63,28 @@ export function UnknownVehiclesPage() {
   const [viewRow, setViewRow] = useState<UnknownVehicleRecord | null>(null);
   const [note, setNote] = useState('');
   const [linkedPlate, setLinkedPlate] = useState('');
+  const [resolveMode, setResolveMode] = useState<ResolveMode>('link');
+  const [createViolation, setCreateViolation] = useState(true);
+  const [ownerUserId, setOwnerUserId] = useState('');
+  const [vehicleType, setVehicleType] = useState<Vehicle['vehicle_type']>('motorcycle');
+  const [vehicleModel, setVehicleModel] = useState('');
+  const [vehicleColor, setVehicleColor] = useState('');
   const [resolving, setResolving] = useState(false);
+  const [fineTarget, setFineTarget] = useState<{ violationId: string; plate: string } | null>(null);
+  const [fineAmount, setFineAmount] = useState(String(usdToKhr(15)));
+  const [issuingFine, setIssuingFine] = useState(false);
+  const resolveErrors = useFieldErrors<'link' | 'owner'>();
 
   const load = useCallback(async (silent = false) => {
     if (!canManage) return;
     if (!silent) setLoading(true);
     try {
-      setRows(await unknownVehiclesAPI.getAll());
+      const [unknownRows, driverRows] = await Promise.all([
+        unknownVehiclesAPI.getAll(),
+        driversAPI.getAll().catch(() => [] as DriverProfile[]),
+      ]);
+      setRows(unknownRows);
+      setDrivers(driverRows.filter((d) => d.status === 'active'));
     } finally {
       if (!silent) setLoading(false);
     }
@@ -74,7 +109,8 @@ export function UnknownVehiclesPage() {
       list = list.filter((r) =>
         r.plate_detected.toLowerCase().includes(q)
         || (r.camera_name || '').toLowerCase().includes(q)
-        || (r.linked_vehicle_plate || '').toLowerCase().includes(q),
+        || (r.linked_vehicle_plate || '').toLowerCase().includes(q)
+        || (r.violation_type || '').toLowerCase().includes(q),
       );
     }
     return list;
@@ -91,33 +127,113 @@ export function UnknownVehiclesPage() {
   const openResolve = (row: UnknownVehicleRecord) => {
     setResolveTarget(row);
     setNote('');
-    setLinkedPlate('');
+    setLinkedPlate(row.plate_detected || '');
+    setResolveMode('link');
+    setCreateViolation(true);
+    setOwnerUserId('');
+    setVehicleType('motorcycle');
+    setVehicleModel('');
+    setVehicleColor('');
+    resolveErrors.clearErrors();
   };
 
   const handleResolve = async () => {
     if (!resolveTarget) return;
+    resolveErrors.clearErrors();
+
     setResolving(true);
     try {
       let linked_vehicle_id: string | undefined;
-      if (linkedPlate.trim()) {
+
+      if (resolveMode === 'link') {
+        if (!linkedPlate.trim()) {
+          resolveErrors.setErrors({ link: t('common.fieldRequired') });
+          toast.error(t('common.formIncomplete'));
+          return;
+        }
         const vehicle = await vehiclesAPI.searchByPlate(linkedPlate.trim());
         if (!vehicle) {
+          resolveErrors.setErrors({ link: t('unknown.linkNotFound') });
           toast.error(t('unknown.linkNotFound'));
-          setResolving(false);
           return;
         }
         linked_vehicle_id = String(vehicle.id);
+      } else {
+        if (!ownerUserId) {
+          resolveErrors.setErrors({ owner: t('common.lookupRequired') });
+          toast.error(t('common.formIncomplete'));
+          return;
+        }
+        const plate = (linkedPlate.trim() || resolveTarget.plate_detected).toUpperCase();
+        const created = await vehiclesAPI.create({
+          owner_id: ownerUserId,
+          plate_number: plate,
+          vehicle_type: vehicleType,
+          model: vehicleModel.trim() || 'Unknown',
+          color: vehicleColor.trim() || 'Unknown',
+          year: new Date().getFullYear(),
+        });
+        linked_vehicle_id = String(created.id);
       }
-      await unknownVehiclesAPI.resolve(resolveTarget.id, { officer_note: note, linked_vehicle_id });
-      toast.success(t('unknown.toastResolved'));
+
+      const result = await unknownVehiclesAPI.resolve(resolveTarget.id, {
+        officer_note: note,
+        linked_vehicle_id,
+        create_violation: createViolation,
+      });
+
+      const violationId = result.created_violation_id || result.linked_violation_id || result.linked_violation;
+      toast.success(
+        createViolation && violationId
+          ? t('unknown.toastResolvedWithViolation')
+          : t('unknown.toastResolved'),
+      );
       setResolveTarget(null);
-      setNote('');
-      setLinkedPlate('');
+
+      if (createViolation && violationId) {
+        setFineTarget({ violationId: String(violationId), plate: resolveTarget.plate_detected });
+        try {
+          const rules = await violationsAPI.getRules();
+          const match = (rules || []).find((r) =>
+            String(r.violation_type || '').toUpperCase() === String(resolveTarget.violation_type || 'NO_ENTRY').toUpperCase()
+            || String(r.sign_class_key || '').toUpperCase() === String(resolveTarget.detected_class_key || 'NO_ENTRY').toUpperCase(),
+          );
+          if (match) setFineAmount(String(usdToKhr(Number(match.default_fine_amount) || 15)));
+        } catch {
+          /* keep default */
+        }
+      }
       load();
-    } catch {
-      toast.error(t('unknown.toastResolveFail'));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('unknown.toastResolveFail'));
     } finally {
       setResolving(false);
+    }
+  };
+
+  const handleIssueFine = async () => {
+    if (!fineTarget) return;
+    const amount = parseFloat(fineAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error(t('common.fieldRequired'));
+      return;
+    }
+    setIssuingFine(true);
+    try {
+      await finesAPI.create({
+        violation_id: fineTarget.violationId,
+        amount: khrToUsd(amount),
+        reason: `No Entry / wrong-way enforcement · ${fineTarget.plate}`,
+        vehicle_plate: fineTarget.plate,
+        location: '',
+      });
+      toast.success(t('unknown.toastFineIssued'));
+      setFineTarget(null);
+      navigate('/dashboard/fines');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('unknown.toastFineFail'));
+    } finally {
+      setIssuingFine(false);
     }
   };
 
@@ -127,6 +243,7 @@ export function UnknownVehiclesPage() {
 
   const tableHeaders = [
     t('unknown.colPlate'),
+    t('unknown.colViolation'),
     t('unknown.colCamera'),
     t('unknown.colDetected'),
     t('unknown.colStatus'),
@@ -148,9 +265,7 @@ export function UnknownVehiclesPage() {
             </div>
             <h1 className="enforcement-page__title">{t('pages.unknown.title')}</h1>
             <p className="enforcement-page__subtitle">
-              {rows.length === 1
-                ? t('pages.unknown.subtitle')
-                : `${t('pages.unknown.subtitle')} · ${rows.length} ${t('unknown.filterAll').toLowerCase()}`}
+              {t('unknown.flowHint')}
             </p>
           </div>
         </div>
@@ -258,7 +373,24 @@ export function UnknownVehiclesPage() {
               ) : pagination.pageItems.map((row) => (
                 <TableRow key={row.id} className="enforcement-page__table-row">
                   <TableCell>
-                    <span className="enforcement-page__code-pill unknown-page__plate">{row.plate_detected}</span>
+                    <div className="flex items-center gap-2">
+                      {row.evidence_photo ? (
+                        <img
+                          src={row.evidence_photo}
+                          alt=""
+                          className="h-9 w-9 rounded-md object-cover border border-slate-200"
+                        />
+                      ) : null}
+                      <span className="enforcement-page__code-pill unknown-page__plate">{row.plate_detected}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <p className="enforcement-page__cell-primary">
+                      {row.violation_type || '—'}
+                    </p>
+                    {row.observed_action ? (
+                      <p className="enforcement-page__cell-secondary">{row.observed_action}</p>
+                    ) : null}
                   </TableCell>
                   <TableCell>
                     <p className="enforcement-page__cell-primary">{row.camera_name || '—'}</p>
@@ -298,67 +430,350 @@ export function UnknownVehiclesPage() {
         <TablePagination pagination={pagination} labelKey="pagination.label.unknown" />
       </div>
 
-      <EntityViewDialog
-        open={!!viewRow}
-        onOpenChange={(open) => !open && setViewRow(null)}
-        title={t('unknown.viewTitle')}
-        accent="teal"
-      >
-        {viewRow ? (
-          <>
-            <EntityDetailField label={t('unknown.colPlate')} value={viewRow.plate_detected} />
-            <EntityDetailField label={t('unknown.colCamera')} value={viewRow.camera_name || '—'} />
-            <EntityDetailField label={t('unknown.colDetected')} value={new Date(viewRow.detected_at).toLocaleString()} />
-            <EntityDetailField
-              label={t('unknown.colStatus')}
-              value={viewRow.is_resolved ? t('unknown.resolved') : t('unknown.pending')}
-            />
-            {viewRow.ai_confidence_score != null ? (
-              <EntityDetailField
-                label={t('unknown.confidence')}
-                value={`${Math.round(viewRow.ai_confidence_score * 100)}%`}
-              />
-            ) : null}
-            {viewRow.linked_vehicle_plate ? (
-              <EntityDetailField label={t('unknown.linkedVehicle')} value={viewRow.linked_vehicle_plate} />
-            ) : null}
-            {viewRow.officer_note ? (
-              <EntityDetailField label={t('unknown.officerNote')} value={viewRow.officer_note} wide />
-            ) : null}
-            {viewRow.resolved_by_name ? (
-              <EntityDetailField label={t('unknown.resolvedBy')} value={viewRow.resolved_by_name} />
-            ) : null}
-            {viewRow.resolved_at ? (
-              <EntityDetailField label={t('unknown.resolvedAt')} value={new Date(viewRow.resolved_at).toLocaleString()} />
-            ) : null}
-          </>
-        ) : null}
-      </EntityViewDialog>
+      <Dialog open={!!viewRow} onOpenChange={(open) => !open && setViewRow(null)}>
+        <DialogContent
+          accent="teal"
+          accessibleTitle={t('unknown.viewTitle')}
+          className="unknown-view-dialog max-w-3xl sm:max-w-3xl p-0 gap-0 overflow-hidden"
+        >
+          {viewRow ? (
+            <div className="unknown-view-dialog__shell">
+              <div className="unknown-view-dialog__topbar">
+                <div className="unknown-view-dialog__topbar-left">
+                  <div className="unknown-view-dialog__header-icon">
+                    <Eye size={18} aria-hidden />
+                  </div>
+                  <div className="unknown-view-dialog__header-copy">
+                    <h2 className="unknown-view-dialog__header-title">{t('unknown.viewTitle')}</h2>
+                    <p className="unknown-view-dialog__header-meta">
+                      {new Date(viewRow.detected_at).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                <span
+                  className={`unknown-view-dialog__status-badge ${
+                    viewRow.is_resolved
+                      ? 'unknown-view-dialog__status-badge--resolved'
+                      : 'unknown-view-dialog__status-badge--pending'
+                  }`}
+                >
+                  {viewRow.is_resolved ? <CheckCircle size={13} aria-hidden /> : <Clock size={13} aria-hidden />}
+                  {viewRow.is_resolved ? t('unknown.resolved') : t('unknown.pending')}
+                </span>
+              </div>
+
+              <div className="unknown-view-dialog__layout">
+                <aside className="unknown-view-dialog__media">
+                  <div className="unknown-view-dialog__hero">
+                    {viewRow.evidence_photo ? (
+                      <img
+                        src={viewRow.evidence_photo}
+                        alt={viewRow.plate_detected}
+                        className="unknown-view-dialog__hero-photo"
+                      />
+                    ) : (
+                      <div className="unknown-view-dialog__hero-empty">
+                        <Car size={36} aria-hidden />
+                        <span>{t('unknown.colPlate')}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="unknown-view-dialog__plate">
+                    <span className="unknown-view-dialog__plate-label">{t('unknown.colPlate')}</span>
+                    <span className="unknown-view-dialog__plate-value">{viewRow.plate_detected || '—'}</span>
+                  </div>
+                </aside>
+
+                <section className="unknown-view-dialog__info">
+                  <div className="unknown-view-dialog__cards">
+                    <div className="unknown-view-dialog__card unknown-view-dialog__card--violation">
+                      <div className="unknown-view-dialog__card-icon unknown-view-dialog__card-icon--violation">
+                        <AlertTriangle size={15} aria-hidden />
+                      </div>
+                      <div className="unknown-view-dialog__card-copy">
+                        <span className="unknown-view-dialog__card-label">{t('unknown.colViolation')}</span>
+                        <span className="unknown-view-dialog__card-value">
+                          {(viewRow.violation_type || '—').replace(/_/g, ' ')}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="unknown-view-dialog__card unknown-view-dialog__card--action">
+                      <div className="unknown-view-dialog__card-icon unknown-view-dialog__card-icon--action">
+                        <Activity size={15} aria-hidden />
+                      </div>
+                      <div className="unknown-view-dialog__card-copy">
+                        <span className="unknown-view-dialog__card-label">{t('unknown.colAction')}</span>
+                        <span className="unknown-view-dialog__card-value">{viewRow.observed_action || '—'}</span>
+                      </div>
+                    </div>
+
+                    <div className="unknown-view-dialog__card unknown-view-dialog__card--camera">
+                      <div className="unknown-view-dialog__card-icon unknown-view-dialog__card-icon--camera">
+                        <Camera size={15} aria-hidden />
+                      </div>
+                      <div className="unknown-view-dialog__card-copy">
+                        <span className="unknown-view-dialog__card-label">{t('unknown.colCamera')}</span>
+                        <span className="unknown-view-dialog__card-value">{viewRow.camera_name || '—'}</span>
+                      </div>
+                    </div>
+
+                    <div className="unknown-view-dialog__card unknown-view-dialog__card--detected">
+                      <div className="unknown-view-dialog__card-icon unknown-view-dialog__card-icon--detected">
+                        <Clock size={15} aria-hidden />
+                      </div>
+                      <div className="unknown-view-dialog__card-copy">
+                        <span className="unknown-view-dialog__card-label">{t('unknown.colDetected')}</span>
+                        <span className="unknown-view-dialog__card-value">
+                          {new Date(viewRow.detected_at).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="unknown-view-dialog__card unknown-view-dialog__card--confidence">
+                      <div className="unknown-view-dialog__card-icon unknown-view-dialog__card-icon--confidence">
+                        <Sparkles size={15} aria-hidden />
+                      </div>
+                      <div className="unknown-view-dialog__card-copy">
+                        <span className="unknown-view-dialog__card-label">{t('unknown.confidence')}</span>
+                        <span className="unknown-view-dialog__card-value unknown-view-dialog__card-value--accent">
+                          {formatConfidence(viewRow.ai_confidence_score)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {viewRow.linked_vehicle_plate ? (
+                      <div className="unknown-view-dialog__card unknown-view-dialog__card--linked">
+                        <div className="unknown-view-dialog__card-icon unknown-view-dialog__card-icon--linked">
+                          <Link2 size={15} aria-hidden />
+                        </div>
+                        <div className="unknown-view-dialog__card-copy">
+                          <span className="unknown-view-dialog__card-label">{t('unknown.linkedVehicle')}</span>
+                          <span className="unknown-view-dialog__card-value unknown-view-dialog__card-value--mono">
+                            {viewRow.linked_vehicle_plate}
+                          </span>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {viewRow.linked_violation_id || viewRow.linked_violation ? (
+                      <div className="unknown-view-dialog__card unknown-view-dialog__card--linked">
+                        <div className="unknown-view-dialog__card-icon unknown-view-dialog__card-icon--linked">
+                          <Hash size={15} aria-hidden />
+                        </div>
+                        <div className="unknown-view-dialog__card-copy">
+                          <span className="unknown-view-dialog__card-label">{t('unknown.linkedViolation')}</span>
+                          <span className="unknown-view-dialog__card-value unknown-view-dialog__card-value--mono">
+                            {String(viewRow.linked_violation_id || viewRow.linked_violation)}
+                          </span>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {viewRow.officer_note ? (
+                      <div className="unknown-view-dialog__card unknown-view-dialog__card--note unknown-view-dialog__card--wide">
+                        <div className="unknown-view-dialog__card-icon unknown-view-dialog__card-icon--note">
+                          <FileText size={15} aria-hidden />
+                        </div>
+                        <div className="unknown-view-dialog__card-copy">
+                          <span className="unknown-view-dialog__card-label">{t('unknown.officerNote')}</span>
+                          <span className="unknown-view-dialog__card-value">{viewRow.officer_note}</span>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                </section>
+              </div>
+
+              <div className="unknown-view-dialog__footer">
+                <Button
+                  variant="outline"
+                  className="unknown-view-dialog__close-btn"
+                  onClick={() => setViewRow(null)}
+                >
+                  {t('common.close')}
+                </Button>
+                {!viewRow.is_resolved ? (
+                  <Button
+                    className="unknown-view-dialog__resolve-btn"
+                    onClick={() => {
+                      const row = viewRow;
+                      setViewRow(null);
+                      openResolve(row);
+                    }}
+                  >
+                    <CheckCircle size={14} aria-hidden />
+                    {t('unknown.resolve')}
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!resolveTarget} onOpenChange={(open) => !open && setResolveTarget(null)}>
-        <DialogContent accent="teal" className="max-w-md">
+        <DialogContent accent="teal" className="ct-form-dialog max-w-lg sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="users-page__dialog-header">
               <div className="enforcement-page__dialog-icon enforcement-page__dialog-icon--teal">
-                <CheckCircle size={15} aria-hidden />
+                <AlertTriangle size={15} aria-hidden />
               </div>
               <span className="enforcement-page__dialog-title">{t('unknown.resolveTitle')}</span>
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label>{t('unknown.linkVehicle')}</Label>
-              <Input value={linkedPlate} onChange={(e) => setLinkedPlate(e.target.value)} placeholder={resolveTarget?.plate_detected || ''} />
-              <p className="text-xs text-muted-foreground mt-1">{t('unknown.linkVehicleHint')}</p>
+          <div className="ct-dialog-form space-y-3">
+            <FormErrorBanner message={resolveErrors.hasErrors ? t('common.formIncomplete') : null} />
+            <p className="text-sm text-muted-foreground">
+              {t('unknown.resolveIntro').replace('{plate}', resolveTarget?.plate_detected || '')}
+              {resolveTarget?.violation_type ? ` · ${resolveTarget.violation_type}` : ''}
+            </p>
+            {resolveTarget?.evidence_photo ? (
+              <img
+                src={resolveTarget.evidence_photo}
+                alt=""
+                className="h-28 w-full rounded-md object-cover border border-slate-200"
+              />
+            ) : null}
+
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant={resolveMode === 'link' ? 'default' : 'outline'}
+                onClick={() => setResolveMode('link')}
+              >
+                <Link2 size={14} /> {t('unknown.modeLink')}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={resolveMode === 'register' ? 'default' : 'outline'}
+                onClick={() => setResolveMode('register')}
+              >
+                <Plus size={14} /> {t('unknown.modeRegister')}
+              </Button>
             </div>
-            <div>
+
+            {resolveMode === 'link' ? (
+              <div className="ct-dialog-field">
+                <Label>{t('unknown.linkVehicle')} *</Label>
+                <Input
+                  className={resolveErrors.errors.link ? 'ct-field--invalid' : undefined}
+                  value={linkedPlate}
+                  onChange={(e) => {
+                    setLinkedPlate(e.target.value);
+                    resolveErrors.clearField('link');
+                  }}
+                  placeholder={resolveTarget?.plate_detected || ''}
+                />
+                <p className="text-xs text-muted-foreground mt-1">{t('unknown.linkVehicleHint')}</p>
+                <FieldError message={resolveErrors.errors.link} />
+              </div>
+            ) : (
+              <>
+                <div className="ct-dialog-field">
+                  <Label>{t('unknown.registerPlate')}</Label>
+                  <Input
+                    value={linkedPlate || resolveTarget?.plate_detected || ''}
+                    onChange={(e) => setLinkedPlate(e.target.value)}
+                  />
+                </div>
+                <div className="ct-dialog-field">
+                  <Label>{t('unknown.selectDriver')} *</Label>
+                  <Select value={ownerUserId} onValueChange={(v) => { setOwnerUserId(v); resolveErrors.clearField('owner'); }}>
+                    <SelectTrigger className={resolveErrors.errors.owner ? 'ct-field--invalid' : undefined}>
+                      <SelectValue placeholder={t('unknown.selectDriverPlaceholder')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {drivers.map((d) => (
+                        <SelectItem key={d.id} value={d.user_id}>
+                          {d.full_name} · {d.license_no}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FieldError message={resolveErrors.errors.owner} />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="ct-dialog-field">
+                    <Label>{t('vehicles.colType')}</Label>
+                    <Select value={vehicleType} onValueChange={(v) => setVehicleType(v as Vehicle['vehicle_type'])}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="motorcycle">Motorcycle</SelectItem>
+                        <SelectItem value="car">Car</SelectItem>
+                        <SelectItem value="tuk-tuk">Tuk-tuk</SelectItem>
+                        <SelectItem value="truck">Truck</SelectItem>
+                        <SelectItem value="bus">Bus</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="ct-dialog-field">
+                    <Label>{t('vehicles.colColor')}</Label>
+                    <Input value={vehicleColor} onChange={(e) => setVehicleColor(e.target.value)} placeholder="Red" />
+                  </div>
+                </div>
+                <div className="ct-dialog-field">
+                  <Label>{t('vehicles.colModel')}</Label>
+                  <Input value={vehicleModel} onChange={(e) => setVehicleModel(e.target.value)} placeholder="Honda Wave" />
+                </div>
+              </>
+            )}
+
+            <div className="ct-dialog-field">
               <Label>{t('unknown.officerNote')}</Label>
               <Input value={note} onChange={(e) => setNote(e.target.value)} />
             </div>
+
+            <label className="rule-popup__toggle flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2">
+              <div>
+                <span className="text-sm font-semibold">{t('unknown.createViolation')}</span>
+                <p className="text-xs text-muted-foreground">{t('unknown.createViolationHint')}</p>
+              </div>
+              <Switch checked={createViolation} onCheckedChange={setCreateViolation} />
+            </label>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setResolveTarget(null)}>{t('profile.cancel')}</Button>
-            <Button onClick={handleResolve} disabled={resolving}>{t('unknown.resolve')}</Button>
+            <Button onClick={() => void handleResolve()} disabled={resolving}>
+              {resolving ? t('common.saving') : t('unknown.resolveAndContinue')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!fineTarget} onOpenChange={(open) => !open && setFineTarget(null)}>
+        <DialogContent accent="amber" className="ct-form-dialog max-w-md">
+          <DialogHeader>
+            <DialogTitle className="users-page__dialog-header">
+              <div className="enforcement-page__dialog-icon enforcement-page__dialog-icon--amber">
+                <DollarSign size={15} aria-hidden />
+              </div>
+              <span className="enforcement-page__dialog-title">{t('unknown.issueFineTitle')}</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">{t('unknown.issueFineHint')}</p>
+            <div>
+              <Label>{t('fines.amountKhr') !== 'fines.amountKhr' ? t('fines.amountKhr') : 'Fine amount (KHR)'}</Label>
+              <Input
+                className="mt-1"
+                type="number"
+                min={0}
+                step={100}
+                value={fineAmount}
+                onChange={(e) => setFineAmount(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setFineTarget(null); navigate('/dashboard/violations'); }}>
+              {t('unknown.skipFine')}
+            </Button>
+            <Button onClick={() => void handleIssueFine()} disabled={issuingFine}>
+              <DollarSign size={14} /> {issuingFine ? t('common.saving') : t('violations.issueFine')}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -245,10 +245,12 @@ if USE_S3_MEDIA:
     # Vite can proxy /media → API. Public R2 URLs are built in api_media_url / api_media_path.
     MEDIA_URL = '/media/'
 
-# Large AI video uploads (default 500 MB; override with AI_VIDEO_MAX_MB).
+# Large AI image/video uploads (default 500 MB; override with AI_VIDEO_MAX_MB).
+# Images have no separate frontend size cap; request body limit matches this value.
 _AI_VIDEO_MAX_MB = max(1, int(os.getenv('AI_VIDEO_MAX_MB', '500')))
-DATA_UPLOAD_MAX_MEMORY_SIZE = min(10 * 1024 * 1024, _AI_VIDEO_MAX_MB * 1024 * 1024)
-FILE_UPLOAD_MAX_MEMORY_SIZE = DATA_UPLOAD_MAX_MEMORY_SIZE
+DATA_UPLOAD_MAX_MEMORY_SIZE = _AI_VIDEO_MAX_MB * 1024 * 1024
+# Keep small uploads in memory; stream larger files to temp disk.
+FILE_UPLOAD_MAX_MEMORY_SIZE = min(10 * 1024 * 1024, DATA_UPLOAD_MAX_MEMORY_SIZE)
 BACKUP_ROOT = BASE_DIR / 'backups'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -346,6 +348,10 @@ AI_LIVE_YOLO_TRUST = float(os.getenv('AI_LIVE_YOLO_TRUST', '50'))
 AI_LIVE_YOLO_CATALOG_MIN = float(os.getenv('AI_LIVE_YOLO_CATALOG_MIN', '45'))
 AI_LIVE_IMGSZ = int(os.getenv('AI_LIVE_IMGSZ', '416'))
 AI_LIVE_TRY_ENHANCE = os.getenv('AI_LIVE_TRY_ENHANCE', 'False').lower() == 'true'
+# OpenCV RTSP / video capture (frame_capture.py + video_utils.py)
+AI_CAPTURE_ENHANCE = os.getenv('AI_CAPTURE_ENHANCE', 'True').lower() == 'true'
+AI_CAPTURE_MAX_SIDE = int(os.getenv('AI_CAPTURE_MAX_SIDE', '1920'))
+AI_RTSP_WARMUP_FRAMES = int(os.getenv('AI_RTSP_WARMUP_FRAMES', '4'))
 AI_CATALOG_VISUAL_MATCH_ENABLED = os.getenv('AI_CATALOG_VISUAL_MATCH_ENABLED', 'True').lower() == 'true'
 AI_CATALOG_VISUAL_MIN_SCORE = float(os.getenv('AI_CATALOG_VISUAL_MIN_SCORE', '0.58'))
 AI_CATALOG_VISUAL_LIVE_MIN_SCORE = float(os.getenv('AI_CATALOG_VISUAL_LIVE_MIN_SCORE', '0.62'))
@@ -365,13 +371,19 @@ AI_GEMINI_LIVE_MIN_INTERVAL = float(os.getenv('AI_GEMINI_LIVE_MIN_INTERVAL', '0.
 AI_UPLOAD_MAX_EDGE = int(os.getenv('AI_UPLOAD_MAX_EDGE', '960'))
 AI_WARMUP_MODELS = os.getenv('AI_WARMUP_MODELS', 'True').lower() == 'true'
 
-# Vehicle detection (YOLOv8 COCO pretrained — separate from sign model)
+# Vehicle detection — Cambodia-trained preferred; COCO yolov8n.pt is fallback only
 AI_VEHICLE_ENABLED = os.getenv('AI_VEHICLE_ENABLED', 'True').lower() == 'true'
-AI_VEHICLE_MODEL = os.getenv('AI_VEHICLE_MODEL', 'yolov8n.pt')
+AI_VEHICLE_MODEL = os.getenv('AI_VEHICLE_MODEL', 'best_cambodia_vehicles.pt')
 AI_VEHICLE_CONFIDENCE_THRESHOLD = float(os.getenv('AI_VEHICLE_CONFIDENCE_THRESHOLD', '0.35'))
 AI_VEHICLE_TRACKING_ENABLED = os.getenv('AI_VEHICLE_TRACKING_ENABLED', 'True').lower() == 'true'
+# Crowded street footage: supplement Cambodia weights with COCO so distant
+# motorcycles still get a box (Cambodia model is tuned for close-ups).
+AI_VEHICLE_COCO_SUPPLEMENT = os.getenv('AI_VEHICLE_COCO_SUPPLEMENT', 'True').lower() == 'true'
+AI_VEHICLE_COCO_SUPPLEMENT_FLOOR = int(os.getenv('AI_VEHICLE_COCO_SUPPLEMENT_FLOOR', '10'))
 AI_VEHICLE_TRACK_SESSION_TTL = int(os.getenv('AI_VEHICLE_TRACK_SESSION_TTL', '300'))
 AI_VEHICLE_TRACK_MAX_SESSIONS = int(os.getenv('AI_VEHICLE_TRACK_MAX_SESSIONS', '12'))
+# Live/continuous scan: suppress duplicate violations within this window (seconds)
+AI_VIOLATION_DEDUP_SECONDS = int(os.getenv('AI_VIOLATION_DEDUP_SECONDS', '120'))
 
 # License plate OCR (EasyOCR — Latin/Khmer-style Cambodia plates)
 AI_PLATE_OCR_ENABLED = os.getenv('AI_PLATE_OCR_ENABLED', 'True').lower() == 'true'
@@ -383,10 +395,20 @@ AI_PLATE_OCR_LANGUAGES = [
 ]
 AI_PLATE_OCR_FAST_MODE = os.getenv('AI_PLATE_OCR_FAST_MODE', 'True').lower() == 'true'
 AI_PLATE_OCR_EARLY_EXIT_CONF = float(os.getenv('AI_PLATE_OCR_EARLY_EXIT_CONF', '0.82'))
+# Longest edge handed to EasyOCR. Whole-frame fallback scans cost seconds per
+# pass at native resolution without reading anything a downscaled pass misses.
+AI_PLATE_OCR_MAX_SIDE_PLATE = int(os.getenv('AI_PLATE_OCR_MAX_SIDE_PLATE', '960'))
+AI_PLATE_OCR_MAX_SIDE_FRAME = int(os.getenv('AI_PLATE_OCR_MAX_SIDE_FRAME', '640'))
 # YOLO plate region detector (then EasyOCR on crop) — Cambodia plates
 AI_PLATE_DETECT_ENABLED = os.getenv('AI_PLATE_DETECT_ENABLED', 'True').lower() == 'true'
 AI_PLATE_DETECT_MODEL = os.getenv('AI_PLATE_DETECT_MODEL', 'best_cambodia_plates.pt')
 AI_PLATE_DETECT_CONFIDENCE = float(os.getenv('AI_PLATE_DETECT_CONFIDENCE', '0.25'))
+
+# Motorcycle helmet violation detector (Cambodia helmet dataset)
+AI_HELMET_ENABLED = os.getenv('AI_HELMET_ENABLED', 'True').lower() == 'true'
+AI_HELMET_MODEL = os.getenv('AI_HELMET_MODEL', 'best_cambodia_helmet.pt')
+AI_HELMET_CONFIDENCE_THRESHOLD = float(os.getenv('AI_HELMET_CONFIDENCE_THRESHOLD', '0.40'))
+AI_HELMET_LIVE_CONFIDENCE = float(os.getenv('AI_HELMET_LIVE_CONFIDENCE', '0.32'))
 
 # Full pipeline: auto-evaluate violations on detect (defense demo)
 AI_PIPELINE_DEMO_VIOLATION = os.getenv('AI_PIPELINE_DEMO_VIOLATION', 'False').lower() == 'true'
@@ -429,7 +451,9 @@ FRONTEND_EMAIL_VERIFY_URL = os.getenv(
 )
 
 # Login brute-force protection (SecurityHardeningMiddleware)
-LOGIN_RATE_LIMIT_MAX = int(os.getenv('LOGIN_RATE_LIMIT_MAX', '10'))
+# Higher ceiling in DEBUG so thesis demos are not locked out by wrong-tab tries.
+_LOGIN_RATE_DEFAULT = '50' if DEBUG else '10'
+LOGIN_RATE_LIMIT_MAX = int(os.getenv('LOGIN_RATE_LIMIT_MAX', _LOGIN_RATE_DEFAULT))
 LOGIN_RATE_LIMIT_WINDOW = int(os.getenv('LOGIN_RATE_LIMIT_WINDOW', '300'))
 
 # OpenAPI / Swagger (enable in production with ENABLE_API_DOCS=true)
@@ -463,11 +487,16 @@ SPECTACULAR_SETTINGS = {
     ],
 }
 
-# Secure cookies in production
+# Secure cookies and headers in production
 SESSION_COOKIE_SECURE = os.getenv('SESSION_COOKIE_SECURE', 'False' if DEBUG else 'True').lower() == 'true'
 CSRF_COOKIE_SECURE = os.getenv('CSRF_COOKIE_SECURE', 'False' if DEBUG else 'True').lower() == 'true'
+CSRF_COOKIE_HTTPONLY = True
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0  # 1 year in production
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True if not DEBUG else False
+SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'False' if DEBUG else 'True').lower() == 'true'
 
 # Resend (https://resend.com) — preferred for password reset / resend emails
 RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')

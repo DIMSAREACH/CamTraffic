@@ -141,6 +141,9 @@ type TrafficConfig = {
 
 type VehicleConfig = {
   plate_format: string;
+  plate_format_example: string;
+  license_format: string;
+  license_format_example: string;
   require_owner_link: boolean;
   unknown_vehicle_alert: boolean;
   retention_days: string;
@@ -242,10 +245,13 @@ const DEFAULT_TRAFFIC: TrafficConfig = {
 };
 
 const DEFAULT_VEHICLE: VehicleConfig = {
-  plate_format: '',
+  plate_format: 'NLL-NNNN',
+  plate_format_example: '2TE-1507',
+  license_format: 'NLL-NNNN',
+  license_format_example: '2TE-1507',
   require_owner_link: true,
   unknown_vehicle_alert: true,
-  retention_days: '',
+  retention_days: '365',
 };
 
 const DEFAULT_EMAIL: EmailConfig = {
@@ -1166,13 +1172,38 @@ export function AdminSystemSettingsPage() {
         return (
           <ConfigPanel
             title={tr('systemSettings.vehicleTitle', 'Vehicle Configuration')}
-            description={tr('systemSettings.vehicleHint', 'Plate format and registry behaviour')}
+            description={tr(
+              'systemSettings.vehicleHint',
+              'Plate and driver-license number formats used across Users, Drivers, Vehicles, Fines, and Violations',
+            )}
           >
             <FieldGrid>
               <Field label={tr('systemSettings.plateFormat', 'Plate format')}>
                 <Input
                   value={vehicleConfig.plate_format}
                   onChange={(e) => setVehicleConfig((c) => ({ ...c, plate_format: e.target.value }))}
+                  placeholder="NLL-NNNN"
+                />
+              </Field>
+              <Field label={tr('systemSettings.plateFormatExample', 'Plate example')}>
+                <Input
+                  value={vehicleConfig.plate_format_example}
+                  onChange={(e) => setVehicleConfig((c) => ({ ...c, plate_format_example: e.target.value }))}
+                  placeholder="2TE-1507"
+                />
+              </Field>
+              <Field label={tr('systemSettings.licenseFormat', 'License format')}>
+                <Input
+                  value={vehicleConfig.license_format}
+                  onChange={(e) => setVehicleConfig((c) => ({ ...c, license_format: e.target.value }))}
+                  placeholder="NLL-NNNN"
+                />
+              </Field>
+              <Field label={tr('systemSettings.licenseFormatExample', 'License example')}>
+                <Input
+                  value={vehicleConfig.license_format_example}
+                  onChange={(e) => setVehicleConfig((c) => ({ ...c, license_format_example: e.target.value }))}
+                  placeholder="2TE-1507"
                 />
               </Field>
               <Field label={tr('systemSettings.retentionDays', 'Evidence retention (days)')}>
@@ -1182,6 +1213,12 @@ export function AdminSystemSettingsPage() {
                 />
               </Field>
             </FieldGrid>
+            <p className="settings-shell__hint enforcement-page__cell-secondary">
+              {tr(
+                'systemSettings.identityFormatHint',
+                'License and plate use the same numbered form (NLL-NNNN · 2TE-1507). All modules format and validate against this pattern.',
+              )}
+            </p>
             <div className="settings-shell__toggles">
               <ToggleRow
                 label={tr('systemSettings.requireOwner', 'Require owner link')}

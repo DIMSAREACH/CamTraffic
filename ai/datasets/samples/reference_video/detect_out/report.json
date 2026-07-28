@@ -1,0 +1,35 @@
+{
+  "video": "..\\..\\ai\\datasets\\samples\\reference_video\\m2-res_360p.mp4",
+  "frames_processed": 4,
+  "detections": [
+    {
+      "timestamp": 0.0,
+      "vehicles": 0,
+      "has_sign": false,
+      "has_plate": false,
+      "objects": 0
+    },
+    {
+      "timestamp": 3.1666666666666665,
+      "vehicles": 0,
+      "has_sign": false,
+      "has_plate": false,
+      "objects": 0
+    },
+    {
+      "timestamp": 6.366666666666666,
+      "vehicles": 0,
+      "has_sign": false,
+      "has_plate": false,
+      "objects": 0
+    },
+    {
+      "timestamp": 9.533333333333333,
+      "vehicles": 0,
+      "has_sign": false,
+      "has_plate": false,
+      "objects": 0
+    }
+  ],
+  "preview_video": "..\\..\\ai\\datasets\\samples\\reference_video\\detect_out\\annotated_preview.mp4"
+}

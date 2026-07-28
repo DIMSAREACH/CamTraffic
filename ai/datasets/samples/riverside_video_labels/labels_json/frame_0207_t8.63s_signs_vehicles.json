@@ -1,0 +1,118 @@
+{
+  "source": "stock-footage-phnom-penh-cambodia-vehicles-and-motorbikes-move-along-the-riverside-road-near-a.webm",
+  "video_key": "riverside",
+  "frame_index": 207,
+  "frame_file": "frame_0207_t8.63s.jpg",
+  "timestamp_sec": 8.634,
+  "image_size": {
+    "width": 898,
+    "height": 506
+  },
+  "tracking": true,
+  "annotations": [
+    {
+      "kind": "vehicle",
+      "class_key": "tuk_tuk",
+      "class_id": 4,
+      "label_en": "Tuk Tuk",
+      "confidence": 77.7,
+      "track_id": 87,
+      "bbox_norm": {
+        "x1": 0.5207,
+        "y1": 0.5482,
+        "x2": 0.6509,
+        "y2": 0.7687
+      },
+      "bbox_px": {
+        "x1": 468,
+        "y1": 277,
+        "x2": 585,
+        "y2": 389
+      },
+      "bbox_yolo": {
+        "x_center": 0.5858,
+        "y_center": 0.65845,
+        "width": 0.1302,
+        "height": 0.2205
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "truck",
+      "class_id": 3,
+      "label_en": "Truck",
+      "confidence": 70.0,
+      "track_id": 89,
+      "bbox_norm": {
+        "x1": 0.2413,
+        "y1": 0.5269,
+        "x2": 0.479,
+        "y2": 0.8095
+      },
+      "bbox_px": {
+        "x1": 217,
+        "y1": 267,
+        "x2": 430,
+        "y2": 410
+      },
+      "bbox_yolo": {
+        "x_center": 0.36015,
+        "y_center": 0.6682,
+        "width": 0.2377,
+        "height": 0.2826
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "motorcycle",
+      "class_id": 2,
+      "label_en": "Motorcycle",
+      "confidence": 70.0,
+      "track_id": 88,
+      "bbox_norm": {
+        "x1": 0.1695,
+        "y1": 0.6655,
+        "x2": 0.2531,
+        "y2": 0.9874
+      },
+      "bbox_px": {
+        "x1": 152,
+        "y1": 337,
+        "x2": 227,
+        "y2": 500
+      },
+      "bbox_yolo": {
+        "x_center": 0.2113,
+        "y_center": 0.82645,
+        "width": 0.0836,
+        "height": 0.3219
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "motorcycle",
+      "class_id": 2,
+      "label_en": "Motorcycle",
+      "confidence": 70.0,
+      "track_id": 86,
+      "bbox_norm": {
+        "x1": 0.0012,
+        "y1": 0.5252,
+        "x2": 0.1155,
+        "y2": 0.7461
+      },
+      "bbox_px": {
+        "x1": 1,
+        "y1": 266,
+        "x2": 104,
+        "y2": 378
+      },
+      "bbox_yolo": {
+        "x_center": 0.05835,
+        "y_center": 0.63565,
+        "width": 0.1143,
+        "height": 0.2209
+      }
+    }
+  ]
+}

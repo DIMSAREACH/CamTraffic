@@ -73,7 +73,9 @@ class SecurityHardeningMiddleware:
 
         if request.method == 'POST' and request.path == LOGIN_PATH:
             try:
-                if response.status_code in (401, 403):
+                # Count only invalid credentials (401). Portal/role mismatches and
+                # deactivated accounts return 403 and must not lock demos out.
+                if response.status_code == 401:
                     self._record_failed_attempt(request)
                 elif response.status_code == 200:
                     self._clear_attempts(request)

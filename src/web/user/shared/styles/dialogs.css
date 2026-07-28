@@ -235,6 +235,53 @@
   gap: 1rem;
 }
 
+/* Wider default for create/edit form dialogs */
+.ct-form-dialog.ct-dialog-panel {
+  width: min(40rem, calc(100% - 2rem)) !important;
+  max-width: min(40rem, calc(100% - 2rem)) !important;
+}
+
+.ct-form-banner {
+  margin: 0 0 0.25rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 0.625rem;
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  background: rgba(254, 242, 242, 0.95);
+  color: #b91c1c;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.ct-field-error {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #dc2626;
+}
+
+.ct-field--invalid,
+.ct-field--invalid input,
+.ct-field--invalid textarea,
+.ct-field--invalid [data-slot='select-trigger'],
+input.ct-field--invalid,
+textarea.ct-field--invalid,
+[data-slot='select-trigger'].ct-field--invalid {
+  border-color: rgba(239, 68, 68, 0.55) !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12) !important;
+}
+
+html.dark .ct-form-banner {
+  background: rgba(127, 29, 29, 0.35);
+  border-color: rgba(248, 113, 113, 0.35);
+  color: #fecaca;
+}
+
+html.dark .ct-field-error {
+  color: #f87171;
+}
+
 .ct-dialog-field {
   display: flex;
   flex-direction: column;
@@ -517,9 +564,268 @@ button.ct-dialog-close,
 .ai-log-dialog.ct-dialog-panel,
 .signs-form-dialog.ct-dialog-panel,
 .vehicles-view-dialog.ct-dialog-panel,
+.unknown-view-dialog.ct-dialog-panel,
 .violations-view-dialog.ct-dialog-panel,
-.fines-view-dialog.ct-dialog-panel {
+.fines-view-dialog.ct-dialog-panel,
+.fines-issue-dialog.ct-dialog-panel {
   border-radius: 1rem !important;
+}
+
+/* Issue New Fine — wide two-panel layout */
+.fines-issue-dialog.ct-dialog-panel {
+  width: min(46rem, calc(100% - 2rem)) !important;
+  max-width: min(46rem, calc(100% - 2rem)) !important;
+}
+
+.fines-issue-dialog__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 1.15rem 1.35rem 1.25rem;
+  overflow-y: auto;
+  background: #f8fafc;
+}
+
+.fines-issue-dialog__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.fines-issue-dialog__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.95rem;
+  min-width: 0;
+  padding: 1rem 1.1rem;
+  border-radius: 0.75rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.fines-issue-dialog__panel-title {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #0f766e;
+}
+
+.fines-issue-dialog[data-dialog-accent='blue'] .fines-issue-dialog__panel-title {
+  color: #1d4ed8;
+}
+
+.fines-issue-dialog__panel-title::before {
+  content: '';
+  display: inline-block;
+  width: 0.25rem;
+  height: 0.8rem;
+  margin-right: 0.45rem;
+  border-radius: 999px;
+  vertical-align: -0.1rem;
+  background: linear-gradient(180deg, #14b8a6, #0d9488);
+}
+
+.fines-issue-dialog[data-dialog-accent='blue'] .fines-issue-dialog__panel-title::before {
+  background: linear-gradient(180deg, #3b82f6, #2563eb);
+}
+
+.fines-issue-dialog__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.fines-issue-dialog__lookup {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.fines-issue-dialog__lookup input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.fines-issue-dialog__lookup button {
+  flex-shrink: 0;
+  min-height: 2.5rem;
+  padding-inline: 0.9rem;
+  font-weight: 600;
+}
+
+.fines-issue-dialog__success {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #059669;
+}
+
+@media (max-width: 720px) {
+  .fines-issue-dialog__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+html.dark .fines-issue-dialog__body {
+  background: #0f172a;
+}
+
+html.dark .fines-issue-dialog__panel {
+  background: rgba(15, 23, 42, 0.72);
+  border-color: rgba(148, 163, 184, 0.18);
+  box-shadow: none;
+}
+
+html.dark .fines-issue-dialog__panel-title {
+  color: #5eead4;
+}
+
+html.dark .fines-issue-dialog[data-dialog-accent='blue'] .fines-issue-dialog__panel-title {
+  color: #93c5fd;
+}
+
+/* Issue Fine from Violation */
+.issue-fine-dialog.ct-dialog-panel {
+  width: min(32rem, calc(100% - 2rem)) !important;
+  max-width: min(32rem, calc(100% - 2rem)) !important;
+}
+
+.issue-fine-dialog__body {
+  gap: 1rem;
+}
+
+.issue-fine-dialog__context {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.85rem 1rem;
+  border-radius: 0.75rem;
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+}
+
+.issue-fine-dialog__context-row {
+  display: grid;
+  grid-template-columns: 7.25rem minmax(0, 1fr);
+  gap: 0.65rem;
+  align-items: baseline;
+}
+
+.issue-fine-dialog__context-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #9a3412;
+}
+
+.issue-fine-dialog__context-label::after {
+  content: ':';
+}
+
+.issue-fine-dialog__context-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.issue-fine-dialog__context-value--mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.04em;
+}
+
+.issue-fine-dialog__amount {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.625rem;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.issue-fine-dialog__amount-unit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.25rem;
+  padding: 0 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #92400e;
+  background: #ffedd5;
+  border-right: 1px solid #fdba74;
+}
+
+.issue-fine-dialog__amount-input {
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.issue-fine-dialog__textarea {
+  width: 100%;
+  min-height: 4.5rem;
+  resize: vertical;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.625rem;
+  padding: 0.65rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.issue-fine-dialog__textarea:focus {
+  outline: none;
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
+}
+
+.issue-fine-dialog__plate {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.issue-fine-dialog__submit {
+  background: #2563eb !important;
+  color: #ffffff !important;
+}
+
+html.dark .issue-fine-dialog__context {
+  background: rgba(120, 53, 15, 0.28);
+  border-color: rgba(251, 146, 60, 0.35);
+}
+
+html.dark .issue-fine-dialog__context-label {
+  color: #fdba74;
+}
+
+html.dark .issue-fine-dialog__context-value {
+  color: #f8fafc;
+}
+
+html.dark .issue-fine-dialog__amount {
+  background: rgba(15, 23, 42, 0.72);
+  border-color: rgba(148, 163, 184, 0.28);
+}
+
+html.dark .issue-fine-dialog__amount-unit {
+  color: #fed7aa;
+  background: rgba(120, 53, 15, 0.45);
+  border-right-color: rgba(251, 146, 60, 0.35);
+}
+
+html.dark .issue-fine-dialog__textarea {
+  background: rgba(15, 23, 42, 0.72);
+  border-color: rgba(148, 163, 184, 0.28);
+  color: #f8fafc;
 }
 
 .cameras-form-dialog.ct-dialog-panel {
@@ -530,6 +836,7 @@ button.ct-dialog-close,
 .ai-log-dialog.ct-dialog-panel > :not([data-slot='dialog-close']),
 .signs-form-dialog.ct-dialog-panel > :not([data-slot='dialog-close']),
 .vehicles-view-dialog.ct-dialog-panel > :not([data-slot='dialog-close']),
+.unknown-view-dialog.ct-dialog-panel > :not([data-slot='dialog-close']),
 .violations-view-dialog.ct-dialog-panel > :not([data-slot='dialog-close']),
 .fines-view-dialog.ct-dialog-panel > :not([data-slot='dialog-close']),
 .cameras-form-dialog.ct-dialog-panel > :not([data-slot='dialog-close']) {

@@ -1,0 +1,118 @@
+{
+  "source": "stock-footage-phnom-penh-cambodia-vehicles-and-motorbikes-move-along-the-riverside-road-near-a.webm",
+  "video_key": "riverside",
+  "frame_index": 236,
+  "frame_file": "frame_0236_t9.84s.jpg",
+  "timestamp_sec": 9.843,
+  "image_size": {
+    "width": 898,
+    "height": 506
+  },
+  "tracking": true,
+  "annotations": [
+    {
+      "kind": "vehicle",
+      "class_key": "tuk_tuk",
+      "class_id": 4,
+      "label_en": "Tuk Tuk",
+      "confidence": 97.8,
+      "track_id": 107,
+      "bbox_norm": {
+        "x1": 0.363,
+        "y1": 0.55,
+        "x2": 0.4585,
+        "y2": 0.7252
+      },
+      "bbox_px": {
+        "x1": 326,
+        "y1": 278,
+        "x2": 412,
+        "y2": 367
+      },
+      "bbox_yolo": {
+        "x_center": 0.41075,
+        "y_center": 0.6376,
+        "width": 0.0955,
+        "height": 0.1752
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "tuk_tuk",
+      "class_id": 4,
+      "label_en": "Tuk Tuk",
+      "confidence": 93.0,
+      "track_id": 110,
+      "bbox_norm": {
+        "x1": 0.1289,
+        "y1": 0.514,
+        "x2": 0.2835,
+        "y2": 0.7818
+      },
+      "bbox_px": {
+        "x1": 116,
+        "y1": 260,
+        "x2": 255,
+        "y2": 396
+      },
+      "bbox_yolo": {
+        "x_center": 0.2062,
+        "y_center": 0.6479,
+        "width": 0.1546,
+        "height": 0.2678
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "truck",
+      "class_id": 3,
+      "label_en": "Truck",
+      "confidence": 80.2,
+      "track_id": 103,
+      "bbox_norm": {
+        "x1": 0.4237,
+        "y1": 0.5184,
+        "x2": 0.8256,
+        "y2": 0.8936
+      },
+      "bbox_px": {
+        "x1": 380,
+        "y1": 262,
+        "x2": 741,
+        "y2": 452
+      },
+      "bbox_yolo": {
+        "x_center": 0.62465,
+        "y_center": 0.706,
+        "width": 0.4019,
+        "height": 0.3752
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "truck",
+      "class_id": 3,
+      "label_en": "Truck",
+      "confidence": 70.0,
+      "track_id": 109,
+      "bbox_norm": {
+        "x1": 0.0564,
+        "y1": 0.5504,
+        "x2": 0.1437,
+        "y2": 0.7456
+      },
+      "bbox_px": {
+        "x1": 51,
+        "y1": 279,
+        "x2": 129,
+        "y2": 377
+      },
+      "bbox_yolo": {
+        "x_center": 0.10005,
+        "y_center": 0.648,
+        "width": 0.0873,
+        "height": 0.1952
+      }
+    }
+  ]
+}

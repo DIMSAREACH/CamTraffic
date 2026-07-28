@@ -1,0 +1,118 @@
+{
+  "source": "stock-footage-phnom-penh-cambodia-vehicles-and-motorbikes-move-along-the-riverside-road-near-a.webm",
+  "video_key": "riverside",
+  "frame_index": 210,
+  "frame_file": "frame_0210_t8.76s.jpg",
+  "timestamp_sec": 8.759,
+  "image_size": {
+    "width": 898,
+    "height": 506
+  },
+  "tracking": true,
+  "annotations": [
+    {
+      "kind": "vehicle",
+      "class_key": "truck",
+      "class_id": 3,
+      "label_en": "Truck",
+      "confidence": 73.3,
+      "track_id": 89,
+      "bbox_norm": {
+        "x1": 0.2318,
+        "y1": 0.5327,
+        "x2": 0.5105,
+        "y2": 0.8319
+      },
+      "bbox_px": {
+        "x1": 208,
+        "y1": 270,
+        "x2": 458,
+        "y2": 421
+      },
+      "bbox_yolo": {
+        "x_center": 0.37115,
+        "y_center": 0.6823,
+        "width": 0.2787,
+        "height": 0.2992
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "motorcycle",
+      "class_id": 2,
+      "label_en": "Motorcycle",
+      "confidence": 70.0,
+      "track_id": 91,
+      "bbox_norm": {
+        "x1": 0.1517,
+        "y1": 0.6643,
+        "x2": 0.241,
+        "y2": 0.986
+      },
+      "bbox_px": {
+        "x1": 136,
+        "y1": 336,
+        "x2": 216,
+        "y2": 499
+      },
+      "bbox_yolo": {
+        "x_center": 0.19635,
+        "y_center": 0.82515,
+        "width": 0.0893,
+        "height": 0.3217
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "tuk_tuk",
+      "class_id": 4,
+      "label_en": "Tuk Tuk",
+      "confidence": 70.0,
+      "track_id": 86,
+      "bbox_norm": {
+        "x1": 0.0002,
+        "y1": 0.527,
+        "x2": 0.1269,
+        "y2": 0.7534
+      },
+      "bbox_px": {
+        "x1": 0,
+        "y1": 267,
+        "x2": 114,
+        "y2": 381
+      },
+      "bbox_yolo": {
+        "x_center": 0.06355,
+        "y_center": 0.6402,
+        "width": 0.1267,
+        "height": 0.2264
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "tuk_tuk",
+      "class_id": 4,
+      "label_en": "Tuk Tuk",
+      "confidence": 70.0,
+      "track_id": 87,
+      "bbox_norm": {
+        "x1": 0.5014,
+        "y1": 0.5448,
+        "x2": 0.6311,
+        "y2": 0.7632
+      },
+      "bbox_px": {
+        "x1": 450,
+        "y1": 276,
+        "x2": 567,
+        "y2": 386
+      },
+      "bbox_yolo": {
+        "x_center": 0.56625,
+        "y_center": 0.654,
+        "width": 0.1297,
+        "height": 0.2184
+      }
+    }
+  ]
+}

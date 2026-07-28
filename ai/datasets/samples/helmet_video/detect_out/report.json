@@ -1,0 +1,77 @@
+{
+  "video": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\samples\\helmet_video\\phnom_penh_street_traffic.webm",
+  "frames_processed": 10,
+  "detections": [
+    {
+      "timestamp": 0.0,
+      "vehicles": 2,
+      "has_sign": false,
+      "has_plate": false,
+      "objects": 2
+    },
+    {
+      "timestamp": 1.04,
+      "vehicles": 1,
+      "has_sign": false,
+      "has_plate": false,
+      "objects": 1
+    },
+    {
+      "timestamp": 2.04,
+      "vehicles": 1,
+      "has_sign": false,
+      "has_plate": false,
+      "objects": 1
+    },
+    {
+      "timestamp": 3.08,
+      "vehicles": 1,
+      "has_sign": false,
+      "has_plate": false,
+      "objects": 1
+    },
+    {
+      "timestamp": 4.12,
+      "vehicles": 2,
+      "has_sign": false,
+      "has_plate": false,
+      "objects": 3
+    },
+    {
+      "timestamp": 5.12,
+      "vehicles": 1,
+      "has_sign": false,
+      "has_plate": false,
+      "objects": 2
+    },
+    {
+      "timestamp": 6.16,
+      "vehicles": 1,
+      "has_sign": false,
+      "has_plate": false,
+      "objects": 2
+    },
+    {
+      "timestamp": 7.2,
+      "vehicles": 1,
+      "has_sign": false,
+      "has_plate": false,
+      "objects": 2
+    },
+    {
+      "timestamp": 8.2,
+      "vehicles": 2,
+      "has_sign": false,
+      "has_plate": false,
+      "objects": 3
+    },
+    {
+      "timestamp": 9.24,
+      "vehicles": 3,
+      "has_sign": false,
+      "has_plate": false,
+      "objects": 4
+    }
+  ],
+  "preview_video": "D:\\Year4\\Project Thesis\\Expert System\\Project\\CamTraffic\\ai\\datasets\\samples\\helmet_video\\detect_out\\annotated_preview.mp4"
+}

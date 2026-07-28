@@ -12,6 +12,48 @@ from core.responses import error_response, success_response
 
 from .models import Camera, Road
 from .serializers import CameraSerializer, RoadSerializer
+from .camera_models import CAMERA_MODELS, get_hikvision_traffic_camera
+
+
+def _spec_to_dict(key: str, spec) -> dict:
+    return {
+        'key': key,
+        'model_code': spec.model_code,
+        'manufacturer': spec.manufacturer,
+        'model_name': spec.model_name,
+        'description': spec.description,
+        'has_radar': spec.has_radar,
+        'radar_frequency_ghz': spec.radar_frequency_ghz,
+        'radar_range_m': list(spec.radar_range_m) if spec.radar_range_m else None,
+        'capture_rate_percent': spec.capture_rate_percent,
+        'max_targets': spec.max_targets,
+        'speed_range_kmh': list(spec.speed_range_kmh) if spec.speed_range_kmh else None,
+        'speed_accuracy_kmh': spec.speed_accuracy_kmh,
+        'lane_coverage': spec.lane_coverage,
+        'detection_distance_m': spec.detection_distance_m,
+        'vehicle_types_supported': list(spec.vehicle_types_supported),
+        'ip_rating': spec.ip_rating,
+        'supports_virtual_coils': spec.supports_virtual_coils,
+        'supports_anpr': spec.supports_anpr,
+        'supports_traffic_flow': spec.supports_traffic_flow,
+        'supports_incident_detection': spec.supports_incident_detection,
+        'resolution': spec.resolution,
+        'frame_rate': spec.frame_rate,
+    }
+
+
+class CameraModelsCatalogView(APIView):
+    """List available camera hardware models (Hikvision iDS-TCD402, etc.)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        models = [_spec_to_dict(key, spec) for key, spec in CAMERA_MODELS.items()]
+        hik = get_hikvision_traffic_camera()
+        return success_response({
+            'models': models,
+            'default_traffic_model': hik.model_code,
+        })
 
 
 # Tables that reference cameras but are not fully covered by Django CASCADE/SET_NULL
@@ -95,10 +137,16 @@ class CameraLiveStatusView(APIView):
             for c in qs[:100]
         ]
         active = sum(1 for c in cameras if c['status'] == 'active')
-        offline = sum(1 for c in cameras if c['status'] in ('offline', 'inactive'))
+        # Everything not live counts as offline for the dashboard KPI subtitle
+        offline = sum(1 for c in cameras if c['status'] != 'active')
         return success_response({
             'cameras': cameras,
-            'summary': {'total': len(cameras), 'active': active, 'offline': offline},
+            'summary': {
+                'total': len(cameras),
+                'active': active,
+                'offline': offline,
+                'maintenance': sum(1 for c in cameras if c['status'] == 'maintenance'),
+            },
             'polled_at': timezone.now().isoformat(),
         })
 
@@ -111,7 +159,7 @@ class RoadListCreateView(generics.ListCreateAPIView):
     filterset_fields = ['road_type', 'status', 'city']
     search_fields = ['name', 'city', 'region']
     ordering_fields = ['name', 'city', 'created_at']
-    ordering = ['name']
+    ordering = ['-created_at']
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -170,7 +218,7 @@ class CameraListCreateView(generics.ListCreateAPIView):
     filterset_fields = ['road', 'camera_type', 'status', 'road__city']
     search_fields = ['name', 'code', 'model', 'road__name']
     ordering_fields = ['name', 'created_at', 'status']
-    ordering = ['road__name', 'name']
+    ordering = ['-created_at']
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())

@@ -19,6 +19,7 @@ class UserListCreateView(generics.ListCreateAPIView):
     filterset_fields = ['role', 'is_active']
     search_fields = ['full_name', 'email', 'license_no', 'phone']
     ordering_fields = ['created_at', 'full_name']
+    ordering = ['-created_at']
 
     def get_serializer_class(self):
         if self.request.method == 'POST':

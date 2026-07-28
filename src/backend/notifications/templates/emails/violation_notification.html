@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Violation Notice</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #dc2626; color: white; padding: 20px; text-align: center; }
+        .content { background-color: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; }
+        .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 12px; }
+        .button { display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin-top: 20px; }
+        .details { background-color: white; padding: 15px; border-radius: 4px; margin: 15px 0; }
+        .label { font-weight: bold; color: #374151; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚦 Traffic Violation Notice</h1>
+        </div>
+        <div class="content">
+            <p>Dear {{ driver_name }},</p>
+            
+            <p>This is to inform you that a traffic violation has been recorded against you.</p>
+            
+            <div class="details">
+                <p><span class="label">Violation Type:</span> {{ violation_type }}</p>
+                <p><span class="label">Date:</span> {{ violation_date|date:"F d, Y" }} at {{ violation_date|time:"h:i A" }}</p>
+                <p><span class="label">Location:</span> {{ location }}</p>
+                <p><span class="label">Description:</span> {{ description }}</p>
+            </div>
+            
+            <p>This violation is currently under review by traffic authorities. You will be notified once it has been processed.</p>
+            
+            <a href="{{ view_url }}" class="button">View Violation Details</a>
+            
+            <p style="margin-top: 30px; color: #6b7280; font-size: 14px;">
+                If you believe this violation was issued in error, you may file an appeal through your driver portal within 14 days.
+            </p>
+        </div>
+        <div class="footer">
+            <p>CamTraffic - AI-Based Traffic Enforcement System</p>
+            <p>This is an automated notification. Please do not reply to this email.</p>
+        </div>
+    </div>
+</body>
+</html>

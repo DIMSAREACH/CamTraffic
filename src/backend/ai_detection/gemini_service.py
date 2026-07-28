@@ -69,6 +69,12 @@ _CATALOG_CLASS_ALIASES: dict[str, str] = {
     'yield': 'i_yield_give_way',
     'm_yield_give_way': 'i_yield_give_way',
     'no_entry': 'i_no_entry',
+    'keep_right': 'i_keep_right',
+    'm_keep_right': 'i_keep_right',
+    'keep_left': 'i_keep_left',
+    'm_keep_left': 'i_keep_left',
+    'keep_right_arrow': 'i_keep_right_arrow',
+    'keep_left_arrow': 'i_keep_left_arrow',
 }
 
 
@@ -329,7 +335,7 @@ def _gemini_generate(path: Path, prompt: str) -> dict | None:
         else:
             continue
         if attempt == 0:
-            time.sleep(1.5)
+            time.sleep(0.3)  # Reduced delay for faster fallback
             continue
         break
     if last_exc:

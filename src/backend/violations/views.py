@@ -1,4 +1,5 @@
 from django_filters.rest_framework import DjangoFilterBackend
+from django.utils import timezone
 from rest_framework import filters, generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
@@ -22,15 +23,62 @@ from .serializers import (
 from .services import create_violation_record, evaluate_violation, get_violation_stats, seed_default_rules
 
 
-class ViolationRuleListView(generics.ListAPIView):
-    permission_classes = [IsAuthenticated]
+class ViolationRuleListView(generics.ListCreateAPIView):
+    """List active rules for all authenticated users; admins can list all and create."""
+
     serializer_class = ViolationRuleSerializer
-    queryset = ViolationRule.objects.filter(is_active=True).order_by('sign_class_key')
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsAuthenticated(), IsAdmin()]
+        return [IsAuthenticated()]
+
+    def get_queryset(self):
+        qs = ViolationRule.objects.all().order_by('sign_class_key', 'prohibited_action')
+        user = self.request.user
+        include_inactive = (
+            getattr(user, 'role', None) == 'admin'
+            and str(self.request.query_params.get('all', '')).lower() in ('1', 'true', 'yes')
+        )
+        if not include_inactive:
+            qs = qs.filter(is_active=True)
+        return qs
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
         serializer = self.get_serializer(queryset, many=True)
         return success_response(serializer.data)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return success_response(serializer.data, message='Violation rule created', status_code=status.HTTP_201_CREATED)
+
+
+class ViolationRuleDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Admin-only retrieve / update / delete for a single violation rule."""
+
+    permission_classes = [IsAuthenticated, IsAdmin]
+    serializer_class = ViolationRuleSerializer
+    queryset = ViolationRule.objects.all()
+
+    def retrieve(self, request, *args, **kwargs):
+        serializer = self.get_serializer(self.get_object())
+        return success_response(serializer.data)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return success_response(serializer.data, message='Violation rule updated')
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.delete()
+        return success_response(message='Violation rule deleted')
 
 
 class ViolationEvaluateView(APIView):
@@ -64,6 +112,7 @@ class ViolationListCreateView(generics.ListCreateAPIView):
         'driver__license_no', 'driver__user__full_name',
     ]
     ordering_fields = ['violation_date', 'created_at']
+    ordering = ['-created_at']
 
     def get_queryset(self):
         user = self.request.user
@@ -194,6 +243,27 @@ class ViolationListCreateView(generics.ListCreateAPIView):
             camera=camera,
             road=road,
             ai_detection_log=detection_log,
+            evidence_image=(
+                detection_log.uploaded_image
+                if detection_log and detection_log.uploaded_image
+                else None
+            ),
+            vehicle_evidence_image=(
+                detection_log.vehicle_snapshot
+                if detection_log and detection_log.vehicle_snapshot
+                else None
+            ),
+            plate_evidence_image=(
+                detection_log.plate_snapshot
+                if detection_log and detection_log.plate_snapshot
+                else None
+            ),
+            plate_detected=(
+                data.get('plate_number')
+                or data.get('plate_detected')
+                or (getattr(detection_log, 'detected_plate', None) if detection_log else '')
+                or ''
+            ),
             status=data.get('status', 'pending_review'),
         )
         return success_response(
@@ -236,12 +306,11 @@ class ViolationDetailView(generics.RetrieveUpdateDestroyAPIView):
         )
 
     def patch(self, request, *args, **kwargs):
-        # Status transitions (approve/reject) are Traffic Operations only.
-        # Admins may update metadata but not confirm/reject enforcement cases.
+        # Status transitions: traffic officers and admins (demo / ops oversight).
         new_status = request.data.get('status')
-        if new_status in ('confirmed', 'rejected') and request.user.role != 'police':
+        if new_status in ('confirmed', 'rejected') and request.user.role not in ('police', 'admin'):
             return error_response(
-                'Only traffic officers can approve or reject violations',
+                'Only traffic officers or admins can approve or reject violations',
                 status_code=status.HTTP_403_FORBIDDEN,
             )
         if request.user.role not in ('police', 'admin'):
@@ -276,3 +345,113 @@ class ViolationSeedRulesView(APIView):
     def post(self, request):
         created = seed_default_rules()
         return success_response({'created': created}, message='Violation rules seeded')
+
+
+class BulkViolationApprovalView(APIView):
+    """POST /api/violations/bulk-approve/ - Approve multiple violations at once"""
+    permission_classes = [IsAuthenticated, IsPoliceOrAdmin]
+    
+    def post(self, request):
+        from django.db import transaction
+        
+        violation_ids = request.data.get('violation_ids', [])
+        officer_note = request.data.get('officer_note', '')
+        
+        if not violation_ids:
+            return error_response('No violations selected', status_code=status.HTTP_400_BAD_REQUEST)
+        
+        if not isinstance(violation_ids, list):
+            return error_response('violation_ids must be a list', status_code=status.HTTP_400_BAD_REQUEST)
+        
+        # Bulk update with transaction
+        with transaction.atomic():
+            violations = TrafficViolation.objects.select_for_update().filter(
+                id__in=violation_ids,
+                status='pending_review',
+            )
+            
+            count = violations.count()
+            if count == 0:
+                return error_response('No pending violations found with the provided IDs', status_code=status.HTTP_404_NOT_FOUND)
+            
+            # Get or create officer profile for police users
+            officer = None
+            if request.user.role == 'police':
+                officer, _ = Officer.objects.get_or_create(
+                    user=request.user,
+                    defaults={
+                        'badge_no': f'BADGE-{request.user.id}',
+                        'rank': 'Officer',
+                        'department': 'Traffic Police',
+                    },
+                )
+            
+            updated = violations.update(
+                status='confirmed',
+                officer=officer,
+                officer_note=officer_note,
+                updated_at=timezone.now(),
+            )
+        
+        # Clear cache
+        from django.core.cache import cache
+        cache.delete('violation_stats_summary')
+        
+        return success_response({
+            'approved_count': updated,
+            'message': f'{updated} violation(s) approved',
+        })
+
+
+class BulkViolationRejectionView(APIView):
+    """POST /api/violations/bulk-reject/ - Reject multiple violations at once"""
+    permission_classes = [IsAuthenticated, IsPoliceOrAdmin]
+    
+    def post(self, request):
+        from django.db import transaction
+        
+        violation_ids = request.data.get('violation_ids', [])
+        officer_note = request.data.get('officer_note', 'Bulk rejection')
+        
+        if not violation_ids:
+            return error_response('No violations selected', status_code=status.HTTP_400_BAD_REQUEST)
+        
+        if not isinstance(violation_ids, list):
+            return error_response('violation_ids must be a list', status_code=status.HTTP_400_BAD_REQUEST)
+        
+        with transaction.atomic():
+            violations = TrafficViolation.objects.select_for_update().filter(
+                id__in=violation_ids,
+                status='pending_review',
+            )
+            
+            count = violations.count()
+            if count == 0:
+                return error_response('No pending violations found with the provided IDs', status_code=status.HTTP_404_NOT_FOUND)
+            
+            officer = None
+            if request.user.role == 'police':
+                officer, _ = Officer.objects.get_or_create(
+                    user=request.user,
+                    defaults={
+                        'badge_no': f'BADGE-{request.user.id}',
+                        'rank': 'Officer',
+                        'department': 'Traffic Police',
+                    },
+                )
+            
+            updated = violations.update(
+                status='rejected',
+                officer=officer,
+                officer_note=officer_note,
+                updated_at=timezone.now(),
+            )
+        
+        # Clear cache
+        from django.core.cache import cache
+        cache.delete('violation_stats_summary')
+        
+        return success_response({
+            'rejected_count': updated,
+            'message': f'{updated} violation(s) rejected',
+        })

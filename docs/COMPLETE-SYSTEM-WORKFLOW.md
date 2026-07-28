@@ -505,7 +505,18 @@ flowchart TD
 4. **Police** (if appeal) — approve/reject → notify driver  
 5. **Admin** — reports PDF/Excel + audit log  
 
-**Flags:** `AI_USE_MOCK=False`, all `VITE_*` demo/mock flags `false`.
+**Flags:** `AI_USE_MOCK=False`, `AI_PIPELINE_AUTO_CREATE_VIOLATION=False`, all `VITE_*` demo/mock flags `false`.
+
+**Demo plate:** `2A-1234` linked to `driver@camtraffic.demo` (ensure with `python manage.py ensure_workflow_demo_plate`).
+
+**Automated check** (Django on `:8000`):
+
+```powershell
+cd "d:\Year4\Project Thesis\Expert System\Project\CamTraffic"
+src\backend\venv\Scripts\python.exe scripts\verify_complete_system_workflow.py
+```
+
+Expected: `WORKFLOW RESULT: COMPLETE SUCCESS` covering detect → violation → fine → appeal review notify → admin exports.
 
 ---
 

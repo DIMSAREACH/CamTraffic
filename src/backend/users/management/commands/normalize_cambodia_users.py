@@ -63,7 +63,17 @@ FIXED_PROFILES = {
         'phone': '+855 12 200 001',
         'address': 'Ministry of Public Works and Transport, Phnom Penh',
     },
+    'admin@camtraffic.gov.kh': {
+        'full_name': 'Sokha Meas',
+        'phone': '+855 12 200 001',
+        'address': 'Ministry of Public Works and Transport, Phnom Penh',
+    },
     'officer@camtraffic.demo': {
+        'full_name': 'Dara Chan',
+        'phone': '+855 12 111 222',
+        'address': 'Phnom Penh Traffic Police HQ, Monivong Blvd, Phnom Penh',
+    },
+    'officer@camtraffic.gov.kh': {
         'full_name': 'Dara Chan',
         'phone': '+855 12 111 222',
         'address': 'Phnom Penh Traffic Police HQ, Monivong Blvd, Phnom Penh',
@@ -73,15 +83,25 @@ FIXED_PROFILES = {
         'phone': '+855 16 555 666',
         'address': 'Sen Sok, Phnom Penh',
     },
+    'driver@example.com': {
+        'full_name': 'Kosal Pich',
+        'phone': '+855 16 555 666',
+        'address': 'Sen Sok, Phnom Penh',
+    },
     'driver2@camtraffic.demo': {
         'full_name': 'Vanna Sok',
         'phone': '+855 77 777 888',
         'address': 'Russei Keo, Phnom Penh',
     },
+    'korbkimheang18@gmail.com': {
+        'full_name': 'Korb Kimheang',
+        'phone': '+855 12 675 733',
+        'address': 'Street 271, Sangkat Phnom Penh Thmey, Khan Sen Sok, Phnom Penh',
+    },
 }
 
 BAD_NAME_RE = re.compile(
-    r'(demo|sample|test|admin system|system administrator|john doe|jane smith)',
+    r'(demo|sample|test|admin system|system administrator|^administrator$|john doe|jane smith)',
     re.I,
 )
 HAS_DIGIT_RE = re.compile(r'\d')

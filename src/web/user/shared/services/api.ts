@@ -13,7 +13,7 @@ import type {
 } from '../types';
 import { getAccessToken, getRefreshToken } from '@shared/utils/authStorage';
 import { normalizeDetectionMedia } from '@shared/utils/profileImage';
-import { apiClient, fetchAllPages, unwrap, unwrapList } from './axiosClient';
+import { apiClient, fetchAllPages, fetchPage, unwrap, unwrapList } from './axiosClient';
 import { API_CATALOG, DETECTION_API } from './detectionEndpoints';
 import * as mockApi from './mockApi';
 import * as sample from './sampleDataFallback';
@@ -339,6 +339,15 @@ export const finesAPI = USE_MOCK ? mockApi.finesAPI : {
       : '/fines';
     return unwrap(await apiClient.post(`${finesBase}/${fineId}/checkout/khqr/`, {}));
   },
+  /** Driver confirms KHQR scan success → fine paid + violation closed. */
+  async confirmKhqrPayment(fineId: string, billReference?: string): Promise<Fine> {
+    const finesBase = apiDomainFromPath() === 'citizen'
+      ? CITIZEN_API.fines.replace(/\/$/, '')
+      : '/fines';
+    return unwrap<Fine>(await apiClient.post(`${finesBase}/${fineId}/checkout/khqr/confirm/`, {
+      bill_reference: billReference || '',
+    }));
+  },
   async getById(id: string): Promise<Fine> {
     const base = finesListPath().replace(/\/$/, '');
     return unwrap<Fine>(await apiClient.get(`${base}/${id}/`));
@@ -438,7 +447,8 @@ export const appealsAPI = USE_MOCK ? mockApi.appealsAPI : {
 
 export const auditAPI = USE_MOCK ? mockApi.auditAPI : {
   async getAll(): Promise<AuditLogEntry[]> {
-    return unwrapList<AuditLogEntry>(await apiClient.get('/audit/', { params: { page_size: 200 } }));
+    const path = apiDomainFromPath() === 'officer' ? OFFICER_API.audit : '/audit/';
+    return unwrapList<AuditLogEntry>(await apiClient.get(path, { params: { page_size: 500 } }));
   },
 };
 
@@ -448,8 +458,26 @@ export const unknownVehiclesAPI = USE_MOCK ? mockApi.unknownVehiclesAPI : {
       await apiClient.get('/unknown-vehicles/', { params: { page_size: 100 } }),
     );
   },
-  async resolve(id: string, data: { linked_vehicle_id?: string; officer_note?: string }) {
-    return unwrap<UnknownVehicleRecord>(
+  async queueFromDetection(data: {
+    plate_detected?: string;
+    plate_number?: string;
+    ai_detection_log_id?: string;
+    class_key?: string;
+    detected_class_key?: string;
+    observed_action?: string;
+    violation_type?: string;
+    ai_confidence_score?: number;
+    camera_id?: string;
+  }): Promise<UnknownVehicleRecord> {
+    return unwrap<UnknownVehicleRecord>(await apiClient.post('/unknown-vehicles/queue/', data));
+  },
+  async resolve(id: string, data: {
+    linked_vehicle_id?: string;
+    officer_note?: string;
+    create_violation?: boolean;
+    location?: string;
+  }) {
+    return unwrap<UnknownVehicleRecord & { created_violation_id?: string }>(
       await apiClient.patch(`/unknown-vehicles/${id}/resolve/`, data),
     );
   },
@@ -472,6 +500,12 @@ export const violationsAPI = USE_MOCK ? mockApi.violationsAPI : {
   async getAll(): Promise<TrafficViolation[]> {
     const live = await fetchAllPages<TrafficViolation>(violationsListPath());
     return sample.withListFallback(live, sample.SAMPLE_VIOLATIONS);
+  },
+  /** Newest slice only — keeps first paint cheap on installs with thousands of rows. */
+  async getRecent(limit = 200): Promise<{ rows: TrafficViolation[]; total: number }> {
+    const page = await fetchPage<TrafficViolation>(violationsListPath(), {}, { pageSize: limit });
+    const rows = sample.withListFallback(page.results, sample.SAMPLE_VIOLATIONS);
+    return { rows, total: page.count || rows.length };
   },
   async getById(id: string): Promise<TrafficViolation> {
     const base = violationsListPath().replace(/\/$/, '');
@@ -672,6 +706,17 @@ export const aiAPI = USE_MOCK ? mockApi.aiAPI : {
       detected_plate?: string;
       plate_confidence?: number;
       plate_type?: string;
+      plate_province_code?: string;
+      plate_province_en?: string;
+      plate_province_km?: string;
+      plate_province_source?: string;
+      plate_ocr_details?: Array<{
+        text?: string;
+        raw_text?: string;
+        confidence?: number;
+        region?: string;
+        is_province_line?: boolean;
+      }>;
       matched_vehicle?: {
         id: number;
         plate_number: string;
@@ -753,8 +798,10 @@ export const aiAPI = USE_MOCK ? mockApi.aiAPI : {
       timeout: 120000,
     })));
   },
-  async getLogs(userId?: number): Promise<AIDetectionLog[]> {
-    const live = unwrapList<AIDetectionLog>(await apiClient.get(DETECTION_API.logs, { params: { page_size: 200 } }));
+  async getLogs(userId?: number, options?: { pageSize?: number }): Promise<AIDetectionLog[]> {
+    // Keep list small for AI Center first paint; AI Logs page can request more.
+    const pageSize = options?.pageSize ?? 40;
+    const live = unwrapList<AIDetectionLog>(await apiClient.get(DETECTION_API.logs, { params: { page_size: pageSize } }));
     const logs = sample.withListFallback(live, sample.sampleAiLogs()).map((log) =>
       normalizeDetectionMedia(log as unknown as Record<string, unknown>) as unknown as AIDetectionLog,
     );
@@ -916,6 +963,9 @@ export const camerasAPI = USE_MOCK ? mockApi.camerasAPI : {
   },
   async getById(id: string | number): Promise<Camera> {
     return unwrap<Camera>(await apiClient.get(`/cameras/${id}/`));
+  },
+  async getModels(): Promise<{ models: Array<Record<string, unknown>>; default_traffic_model: string }> {
+    return unwrap(await apiClient.get('/cameras/models/'));
   },
   async create(data: Partial<Camera> & { road: string | number }): Promise<Camera> {
     return unwrap<Camera>(await apiClient.post('/cameras/', data));

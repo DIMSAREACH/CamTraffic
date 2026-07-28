@@ -6,15 +6,18 @@ import {
 import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
 import { Label } from '@shared/components/ui/label';
+import { FieldError, FormErrorBanner } from '@shared/components/ui/FieldError';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@shared/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@shared/components/ui/table';
 import { TableEmptyState } from '@shared/components/ui/TableEmptyState';
 import { CrudRowActions } from '@shared/components/admin/CrudRowActions';
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
+import { useFieldErrors } from '@shared/hooks/useFieldErrors';
 import { aiAPI, aiModelsAPI } from '@shared/services/api';
 import { toast } from 'sonner';
 import { AIMlopsHero } from '@shared/components/admin/AIMlopsHero';
+import { FilterSelect } from '@shared/components/ui/FilterSelect';
 import {
   enrichAIModels,
   formatPct,
@@ -24,6 +27,8 @@ import {
   type ModelUiStatus,
 } from '@shared/utils/aiModelUi';
 
+type ModelFormField = 'version' | 'model_file';
+
 export function AIModelsPage() {
   const { t } = useLanguage();
   const { user } = useAuth();
@@ -31,9 +36,10 @@ export function AIModelsPage() {
   const [models, setModels] = useState<EnrichedAIModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const formErrors = useFieldErrors<ModelFormField>();
+  const [form, setForm] = useState({ version: '', model_file: 'best.pt', description: '', accuracy: '' });
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | ModelUiStatus>('all');
-  const [form, setForm] = useState({ version: '', model_file: 'best.pt', description: '', accuracy: '' });
   const [publishedNote, setPublishedNote] = useState('');
 
   const tr = (key: string, fb: string) => {
@@ -83,6 +89,14 @@ export function AIModelsPage() {
   }, [models, search, statusFilter]);
 
   const handleCreate = async () => {
+    const ok = formErrors.validateRequired(
+      { version: form.version, model_file: form.model_file },
+      { version: t('common.fieldRequired'), model_file: t('common.fieldRequired') },
+    );
+    if (!ok) {
+      toast.error(t('common.formIncomplete'));
+      return;
+    }
     try {
       await aiModelsAPI.create({
         version: form.version,
@@ -93,6 +107,7 @@ export function AIModelsPage() {
       });
       toast.success(tr('aiModels.toastCreated', 'Model registered'));
       setOpen(false);
+      formErrors.clearErrors();
       setForm({ version: '', model_file: 'best.pt', description: '', accuracy: '' });
       void load();
     } catch {
@@ -155,18 +170,19 @@ export function AIModelsPage() {
             placeholder={tr('aiMlops.searchPlaceholder', 'Search models by name, version, or dataset…')}
           />
         </div>
-        <select
-          className="ai-mlops-toolbar__select"
+        <FilterSelect
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-          aria-label={tr('aiMlops.filterStatus', 'Filter status')}
-        >
-          <option value="all">{tr('aiMlops.filterAll', 'All status')}</option>
-          <option value="active">{tr('aiMlops.statusActive', 'Active')}</option>
-          <option value="draft">{tr('aiMlops.statusDraft', 'Draft')}</option>
-          <option value="archive">{tr('aiMlops.statusArchive', 'Archive')}</option>
-          <option value="training">{tr('aiMlops.statusTraining', 'Training')}</option>
-        </select>
+          onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}
+          ariaLabel={tr('aiMlops.filterStatus', 'Filter status')}
+          tone="purple"
+          options={[
+            { value: 'all', label: tr('aiMlops.filterAll', 'All status') },
+            { value: 'active', label: tr('aiMlops.statusActive', 'Active') },
+            { value: 'draft', label: tr('aiMlops.statusDraft', 'Draft') },
+            { value: 'archive', label: tr('aiMlops.statusArchive', 'Archive') },
+            { value: 'training', label: tr('aiMlops.statusTraining', 'Training') },
+          ]}
+        />
       </div>
 
       <div className="enforcement-page__panel">
@@ -251,8 +267,11 @@ export function AIModelsPage() {
         </div>
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent accent="violet" className="max-w-md">
+      <Dialog open={open} onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) formErrors.clearErrors();
+      }}>
+        <DialogContent accent="violet" className="ct-form-dialog">
           <DialogHeader>
             <DialogTitle className="users-page__dialog-header">
               <div className="enforcement-page__dialog-icon enforcement-page__dialog-icon--violet">
@@ -261,14 +280,45 @@ export function AIModelsPage() {
               <span className="enforcement-page__dialog-title">{tr('aiModels.register', 'Register Model')}</span>
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <div><Label>{tr('aiModels.version', 'Version')}</Label><Input value={form.version} onChange={(e) => setForm((f) => ({ ...f, version: e.target.value }))} /></div>
-            <div><Label>{tr('aiModels.modelFile', 'Weights file path')}</Label><Input value={form.model_file} onChange={(e) => setForm((f) => ({ ...f, model_file: e.target.value }))} /></div>
-            <div><Label>{tr('aiModels.description', 'Description')}</Label><Input value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} /></div>
-            <div><Label>{tr('aiModels.accuracy', 'Accuracy (%)')}</Label><Input value={form.accuracy} onChange={(e) => setForm((f) => ({ ...f, accuracy: e.target.value }))} /></div>
+          <div className="ct-dialog-form">
+            <FormErrorBanner message={formErrors.hasErrors ? t('common.formIncomplete') : null} />
+            <div className="ct-dialog-field">
+              <Label>{tr('aiModels.version', 'Version')} *</Label>
+              <Input
+                className={formErrors.errors.version ? 'ct-field--invalid' : undefined}
+                aria-invalid={Boolean(formErrors.errors.version)}
+                value={form.version}
+                onChange={(e) => {
+                  formErrors.clearField('version');
+                  setForm((f) => ({ ...f, version: e.target.value }));
+                }}
+              />
+              <FieldError message={formErrors.errors.version} />
+            </div>
+            <div className="ct-dialog-field">
+              <Label>{tr('aiModels.modelFile', 'Weights file path')} *</Label>
+              <Input
+                className={formErrors.errors.model_file ? 'ct-field--invalid' : undefined}
+                aria-invalid={Boolean(formErrors.errors.model_file)}
+                value={form.model_file}
+                onChange={(e) => {
+                  formErrors.clearField('model_file');
+                  setForm((f) => ({ ...f, model_file: e.target.value }));
+                }}
+              />
+              <FieldError message={formErrors.errors.model_file} />
+            </div>
+            <div className="ct-dialog-field">
+              <Label>{tr('aiModels.description', 'Description')}</Label>
+              <Input value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
+            </div>
+            <div className="ct-dialog-field">
+              <Label>{tr('aiModels.accuracy', 'Accuracy (%)')}</Label>
+              <Input value={form.accuracy} onChange={(e) => setForm((f) => ({ ...f, accuracy: e.target.value }))} />
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>{tr('profile.cancel', 'Cancel')}</Button>
+            <Button variant="outline" onClick={() => { setOpen(false); formErrors.clearErrors(); }}>{tr('profile.cancel', 'Cancel')}</Button>
             <Button onClick={() => void handleCreate()}><Zap size={14} className="mr-1" /> {tr('aiModels.register', 'Register Model')}</Button>
           </DialogFooter>
         </DialogContent>

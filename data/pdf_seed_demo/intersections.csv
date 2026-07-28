@@ -1,0 +1,51 @@
+id,name,anchor_road_id,khan,city,source
+INT-001,Monivong / Russian,c0d5c361-e4b2-4904-a539-e83a9a67ce7e,Chbar Ampov,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-002,Russian / Monivong,54f26c92-a002-4ca9-8444-058947517efe,Chroy Changvar,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-003,Monivong / Charles de Gaulle,03b28b95-1279-4cf4-ba13-755929a63ed1,Sen Sok,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-004,Sihanouk / Monivong,4c58fa6f-7dc0-4603-8780-566ce92f9b8f,Dangkao,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-005,Monireth / Charles de Gaulle,8f620d49-30df-4be5-861f-90dbdf5a04d9,Chroy Changvar,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-006,Monivong / Sihanouk,7aa99d7d-c1fb-4321-9fb8-83494a5a691c,Daun Penh,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-007,Norodom / Mao Tse Toung,e208de88-616f-4088-bd0e-64afdd5855de,Chamkar Mon,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-008,Mao Tse Toung / Monivong,f0611c4e-c6a9-4148-829b-f2e58fb270fa,Chbar Ampov,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-009,Russian / Toul Kok,89882834-b82c-4a38-b38c-bcceb2f51619,Por Sen Chey,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-010,Street 221 / Russian Boulevard,8f620d49-30df-4be5-861f-90dbdf5a04d9,Mean Chey,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-011,Monivong / Street 214,e3b1c929-b5b3-4964-800e-95a5189c97fe,Chamkar Mon,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-012,Norodom / Street 240,cf44d2fa-e134-44b3-9145-6bd21db4dfbb,Chroy Changvar,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-013,Sihanouk / Street 163,bc5390b1-3223-4058-96f1-35b3cc6b814b,Sen Sok,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-014,Street 51 / Street 240,8f946d1b-07a1-47c8-b82e-0ab8d929f5f9,Chbar Ampov,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-015,Street 271 / Monivong,9ebabe79-f720-4597-9785-d75deb5e248b,Chroy Changvar,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-016,Street 178 / Norodom,55098c9f-4608-411e-9d42-5814e2cb6f88,Prampir Makara,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-017,Street 240 / Russian Boulevard,8f620d49-30df-4be5-861f-90dbdf5a04d9,Sen Sok,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-018,Monireth / Mao Tse Toung,b4287d6d-0359-4dc9-9a2a-2ebd1b7121ac,Russey Keo,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-019,Monivong / Kbal Thanol Flyover,9479a649-083f-4bd5-ab87-f8779814ab0f,Por Sen Chey,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-020,Pet Lok Sang Junction,a0baf562-69fd-4eae-a75c-0e431d52e123,Por Sen Chey,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-021,Chaom Chao Road / NR4,756d6b4a-0ee8-467e-9904-bd27b718aad6,Mean Chey,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-022,Chaom Chao Road / Hanoi Road,756d6b4a-0ee8-467e-9904-bd27b718aad6,Prampir Makara,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-023,Kob Srov Road / NR6,f03d7caa-f26a-4bff-8c92-592f861809f8,Sen Sok,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-024,Kob Srov Road / NR4,f03d7caa-f26a-4bff-8c92-592f861809f8,Por Sen Chey,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-025,Cheung Aek Bypass / NR2,509b9252-df0e-45ab-a43b-493989e7c8b2,Daun Penh,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-026,Russei Kaev Bypass / NR5,a02c6cb6-0ada-476f-84f6-87f09022cb4e,Mean Chey,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-027,C2 / NR1,83a517f5-2368-43d0-b8a9-19356067fe08,Chbar Ampov,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-028,C3 / NR6,7763fab0-bd6c-4d57-ba0f-126096660cda,Daun Penh,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-029,C3 / NR4,9719a275-5a9f-42dc-a455-9f23d7c4d174,Daun Penh,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-030,NR1 / Phnom Penh East Gate,323f9c0b-f8e6-4909-ba23-9998c21f74db,Russey Keo,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-031,NR2 / Kbal Thanol South,8f946d1b-07a1-47c8-b82e-0ab8d929f5f9,Daun Penh,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-032,NR3 / Southwest Radial,8747a56f-3592-44d0-8faf-cd129d0bb425,Por Sen Chey,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-033,NR4 / West Industrial Gate,e75d5f29-321b-4196-b809-9fffdb94a940,Daun Penh,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-034,NR5 / Northwest Radial,bc5390b1-3223-4058-96f1-35b3cc6b814b,Por Sen Chey,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-035,NR6 / North Radial,55098c9f-4608-411e-9d42-5814e2cb6f88,Sen Sok,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-036,NR20 / Eastern Connector,9c87dc28-7a5a-498e-b077-5e6e9d092adc,Chbar Ampov,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-037,NR21 / Southern Connector,e3b1c929-b5b3-4964-800e-95a5189c97fe,Daun Penh,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-038,Hanoi Road / C3,70a63383-a231-4894-a8e0-fdc0bde57b01,Daun Penh,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-039,Monivong Bridge / C1,41ff06b1-83c3-409a-8c08-c0cf844b6434,Daun Penh,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-040,Japanese Bridge / NR6 Side,cf44d2fa-e134-44b3-9145-6bd21db4dfbb,Chbar Ampov,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-041,Chroy Changvar Bridge / River Bank Road,3502d083-f80b-4439-9c3f-93cd3aa04378,Chamkar Mon,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-042,Sisowath Quay / Riverside Access,9ebabe79-f720-4597-9785-d75deb5e248b,Chroy Changvar,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-043,Sothearos / Riverside Connector,e206a9b0-b199-418a-a9f0-77421d2b2567,Dangkao,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-044,Turnpum Dike Road / C1,9ec4dcb4-d0c3-4524-abf0-7d5c5098c719,Chroy Changvar,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-045,Street 360 / City Block,b1034c62-5840-437e-9a76-22aa2f46aad2,Chroy Changvar,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-046,Street 608 / City Block,4ef9b268-10f0-4f7e-9be8-512c87fa626b,Chbar Ampov,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-047,Street 178 / Tourism Corridor,55098c9f-4608-411e-9d42-5814e2cb6f88,Chbar Ampov,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-048,Street 240 / Tourism Corridor,cf44d2fa-e134-44b3-9145-6bd21db4dfbb,Russey Keo,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-049,Russian Boulevard / C1 Edge,8f620d49-30df-4be5-861f-90dbdf5a04d9,Chroy Changvar,Phnom Penh,JICA/MPWT PPUTMP PDF
+INT-050,Monivong / C1 Edge,b9827e64-6139-4147-9968-b8fc67f77502,Dangkao,Phnom Penh,JICA/MPWT PPUTMP PDF

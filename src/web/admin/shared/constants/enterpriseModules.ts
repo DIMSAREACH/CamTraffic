@@ -101,9 +101,10 @@ export const ADMIN_ENTERPRISE_MODULES: EnterpriseModule[] = [
     id: 'violations',
     labelKey: 'sidebar.modules.violations',
     path: `${ADMIN_BASE}/violations`,
-    matchPrefixes: [`${ADMIN_BASE}/violations`, `${ADMIN_BASE}/evidence`],
+    matchPrefixes: [`${ADMIN_BASE}/violations`, `${ADMIN_BASE}/violation-rules`, `${ADMIN_BASE}/evidence`],
     subNav: [
       { labelKey: 'sidebar.subNav.violations', path: `${ADMIN_BASE}/violations` },
+      { labelKey: 'sidebar.subNav.violationRules', path: `${ADMIN_BASE}/violation-rules` },
       { labelKey: 'sidebar.subNav.evidenceViewer', path: `${ADMIN_BASE}/evidence` },
     ],
   },

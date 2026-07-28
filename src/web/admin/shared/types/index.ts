@@ -11,6 +11,8 @@ export interface User {
   phone: string;
   address: string;
   license_no?: string;
+  /** Primary registered vehicle plate (drivers only). */
+  plate_number?: string;
   profile_image?: string;
   created_at: string;
   updated_at?: string;
@@ -88,6 +90,7 @@ export interface Vehicle {
   owner_name: string;
   plate_number: string;
   vehicle_type: 'car' | 'motorcycle' | 'truck' | 'bus' | 'tuk-tuk';
+  make?: string;
   model: string;
   color: string;
   year: number;
@@ -141,6 +144,8 @@ export interface ViolationAppeal {
   driver_id: string;
   driver_name: string;
   driver_license: string;
+  /** Vehicle plate linked to the appealed violation (Cambodia NLL-NNNN). */
+  vehicle_plate?: string;
   reason: string;
   evidence_image?: string | null;
   status: AppealStatus;
@@ -175,14 +180,19 @@ export interface UnknownVehicleRecord {
   camera_id?: string | null;
   camera_name?: string | null;
   violation_type?: string;
+  observed_action?: string;
+  detected_class_key?: string;
   evidence_photo?: string | null;
   ai_confidence_score?: number | null;
+  ai_detection_log_id?: string | null;
   is_resolved: boolean;
   resolved_by?: string | null;
   resolved_by_name?: string | null;
   linked_vehicle?: string | null;
   linked_vehicle_plate?: string | null;
   linked_violation?: string | null;
+  linked_violation_id?: string | null;
+  created_violation_id?: string | null;
   officer_note?: string;
   detected_at: string;
   resolved_at?: string | null;
@@ -375,6 +385,30 @@ export interface Road {
   updated_at: string;
 }
 
+export interface CameraModelSpecs {
+  model_code: string;
+  manufacturer: string;
+  model_name: string;
+  description: string;
+  has_radar: boolean;
+  radar_frequency_ghz?: number | null;
+  radar_range_m?: [number, number] | number[] | null;
+  capture_rate_percent: number;
+  max_targets: number;
+  speed_range_kmh?: [number, number] | number[] | null;
+  speed_accuracy_kmh?: number;
+  lane_coverage: number;
+  detection_distance_m: number;
+  vehicle_types_supported: string[];
+  ip_rating: string;
+  low_light_capable?: boolean;
+  weather_resistant?: boolean;
+  supports_virtual_coils: boolean;
+  supports_anpr: boolean;
+  supports_traffic_flow: boolean;
+  supports_incident_detection: boolean;
+}
+
 export interface Camera {
   id: string;
   road_id: string;
@@ -383,12 +417,15 @@ export interface Camera {
   name: string;
   code: string;
   model: string;
+  brand?: string;
   camera_type: CameraType;
   installed_date?: string | null;
   latitude?: number | null;
   longitude?: number | null;
   status: CameraStatus;
   frame_source_url: string;
+  model_specs?: CameraModelSpecs | null;
+  is_hikvision_traffic?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -400,6 +437,7 @@ export interface TrafficViolation {
   driver_license: string;
   officer_name?: string | null;
   vehicle_plate?: string | null;
+  plate_detected?: string | null;
   violation_type: string;
   observed_action: string;
   detected_sign_code: string;
@@ -420,6 +458,10 @@ export interface TrafficViolation {
 
 export interface ViolationRule {
   id: string;
+  rule_code?: string;
+  category?: string;
+  detection_type?: string;
+  priority?: number;
   sign_class_key: string;
   prohibited_action: string;
   violation_type: string;
@@ -428,7 +470,11 @@ export interface ViolationRule {
   default_fine_amount: number;
   demerit_points?: number;
   legal_reference?: string;
+  warning_only?: boolean;
+  auto_generate_fine?: boolean;
+  config?: Record<string, unknown>;
   is_active: boolean;
+  created_at?: string;
 }
 
 export interface EvidenceArchiveItem {
@@ -487,6 +533,8 @@ export interface DashboardActivityItem {
   meta?: string;
   status?: string;
   amount?: number;
+  /** Evidence / detection thumbnail URL when available. */
+  image?: string;
   href?: string;
   created_at: string;
 }

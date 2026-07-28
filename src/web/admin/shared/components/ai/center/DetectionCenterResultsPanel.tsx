@@ -65,6 +65,14 @@ export type CenterDetectionResult = WebcamDetectionResult & {
       enable_ocr?: boolean;
       enable_tracking?: boolean;
     };
+    helmet_summary?: {
+      enabled?: boolean;
+      no_helmet_detections?: number;
+      helmet_detections?: number;
+      head_detections?: number;
+      has_no_helmet_violation?: boolean;
+      violation_type?: string;
+    };
     frame_summaries?: Array<{
       timestamp_sec: number;
       confidence: number;
@@ -74,6 +82,7 @@ export type CenterDetectionResult = WebcamDetectionResult & {
       plate_bbox?: { x1: number; y1: number; x2: number; y2: number };
       plate_boxes?: Array<{ bbox?: { x1: number; y1: number; x2: number; y2: number }; confidence?: number }>;
       vehicle_count?: number;
+      no_helmet_count?: number;
       above_threshold?: boolean;
       vehicles?: Array<{
         vehicle_type?: string;
@@ -90,6 +99,8 @@ export type CenterDetectionResult = WebcamDetectionResult & {
     }>;
   };
   annotated_preview_video?: string;
+  manual_gt?: boolean;
+  video_gt?: boolean;
 };
 
 function confTier(c: number) {
@@ -426,7 +437,12 @@ export function DetectionCenterResultsPanel({
   }
 
   const displaySrc = result.annotated_processed_image || result.uploaded_image || originalSrc || '';
+  const showCssOverlay = !result.annotated_processed_image || activeCategory !== 'all';
   const originalImage = originalSrc || result.uploaded_image || '';
+  // When filtering categories on a baked annotated frame, prefer the original so CSS overlay is the only boxes.
+  const overlayImageSrc = showCssOverlay && result.annotated_processed_image && activeCategory !== 'all'
+    ? (originalImage || displaySrc)
+    : displaySrc;
   const speechText = detectionSpeechText(result as Parameters<typeof detectionSpeechText>[0], locale);
   const { km, en } = signDisplayNames(result as Parameters<typeof signDisplayNames>[0]);
   const signLabel = locale === 'km' ? (km || en) : (en || km);
@@ -603,11 +619,12 @@ export function DetectionCenterResultsPanel({
               </header>
               <div className="ai-center-results__image-body">
                 <AnnotatedDetectionImage
-                  src={displaySrc}
+                  src={overlayImageSrc}
                   alt={t('aiCenter.detectionImage')}
                   result={result as OverlayDetectionInput}
                   hero
                   filterKind={overlayFilter}
+                  showOverlay={!result.annotated_processed_image || activeCategory !== 'all'}
                 />
               </div>
             </article>

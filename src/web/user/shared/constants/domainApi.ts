@@ -52,6 +52,7 @@ export const OFFICER_API = {
   cameras: '/officer/cameras/',
   reports: '/officer/reports/',
   assignedCases: '/officer/assigned-cases/',
+  audit: '/officer/audit/',
 } as const;
 
 export const CITIZEN_API = {

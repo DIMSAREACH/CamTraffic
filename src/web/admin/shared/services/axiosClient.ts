@@ -49,17 +49,6 @@ async function refreshAccessToken(): Promise<string | null> {
   return refreshPromise;
 }
 
-apiClient.interceptors.request.use((config) => {
-  const token = getAccessToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  if (config.data instanceof FormData) {
-    delete config.headers['Content-Type'];
-  }
-  return config;
-});
-
 function isCredentialAuthRequest(config?: { url?: string }): boolean {
   const url = config?.url ?? '';
   return (
@@ -69,6 +58,23 @@ function isCredentialAuthRequest(config?: { url?: string }): boolean {
     || url.includes('/auth/oauth/')
   );
 }
+
+apiClient.interceptors.request.use((config) => {
+  // Login/register must not send a stale Bearer token — some JWT stacks 401 before
+  // the credential view runs when Authorization is present but invalid.
+  if (!isCredentialAuthRequest(config)) {
+    const token = getAccessToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  } else if (config.headers) {
+    delete config.headers.Authorization;
+  }
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type'];
+  }
+  return config;
+});
 
 apiClient.interceptors.response.use(
   (response) => response,
@@ -203,4 +209,49 @@ export async function fetchAllPages<T>(
   }
 
   return all;
+}
+
+export type ListPage<T> = { results: T[]; count: number; hasNext: boolean };
+
+/**
+ * Fetch a single page so large tables can paint from a bounded slice instead of
+ * pulling every row up front. Mirrors the shapes `fetchAllPages` understands.
+ */
+export async function fetchPage<T>(
+  path: string,
+  params: ListParams = {},
+  opts?: { page?: number; pageSize?: number },
+): Promise<ListPage<T>> {
+  const page = opts?.page ?? 1;
+  const pageSize = opts?.pageSize ?? 100;
+  const baseParams = { ...params };
+  delete baseParams.page;
+  delete baseParams.page_size;
+
+  const res = await apiClient.get(path, {
+    params: { ...baseParams, page, page_size: pageSize },
+  });
+  const body = res.data as Record<string, unknown> | unknown[];
+
+  const pageObj = (
+    body && typeof body === 'object' && !Array.isArray(body) && Array.isArray(body.results)
+      ? body
+      : body && typeof body === 'object' && !Array.isArray(body) && body.data
+        && typeof body.data === 'object' && !Array.isArray(body.data)
+        && Array.isArray((body.data as { results?: unknown }).results)
+        ? (body.data as Record<string, unknown>)
+        : null
+  );
+
+  if (pageObj) {
+    const results = (pageObj.results as T[]) ?? [];
+    return {
+      results,
+      count: typeof pageObj.count === 'number' ? pageObj.count : results.length,
+      hasNext: Boolean(pageObj.next),
+    };
+  }
+
+  const results = unwrapList<T>(res);
+  return { results, count: results.length, hasNext: false };
 }

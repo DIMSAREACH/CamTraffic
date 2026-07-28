@@ -15,6 +15,7 @@ from fines.installment_views import (
 from fines.pdf_views import DownloadFineReceiptView
 from fines.views import (
     FineDetailView,
+    FineKhqrConfirmView,
     FineKhqrSessionView,
     FineListCreateView,
     FinePaymentView,
@@ -43,6 +44,7 @@ urlpatterns = [
     path('fines/<uuid:pk>/pay/', FinePaymentView.as_view(), name='domain-citizen-fine-pay'),
     path('fines/<uuid:pk>/checkout/stripe/', FineStripeCheckoutView.as_view(), name='domain-citizen-fine-stripe'),
     path('fines/<uuid:pk>/checkout/khqr/', FineKhqrSessionView.as_view(), name='domain-citizen-fine-khqr'),
+    path('fines/<uuid:pk>/checkout/khqr/confirm/', FineKhqrConfirmView.as_view(), name='domain-citizen-fine-khqr-confirm'),
     path('fines/<uuid:fine_id>/receipt/pdf/', DownloadFineReceiptView.as_view(), name='domain-citizen-fine-receipt'),
     path('fines/<uuid:fine_id>/installments/quote/', CalculateInstallmentQuoteView.as_view(), name='domain-citizen-installment-quote'),
     path('fines/<uuid:fine_id>/installments/create/', CreateInstallmentPlanView.as_view(), name='domain-citizen-installment-create'),

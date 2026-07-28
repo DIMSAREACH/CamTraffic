@@ -132,17 +132,27 @@ def _override_labels(sign_code: str) -> dict[str, str] | None:
 
 def category_for_code(code: str) -> str:
     if not code:
-        return 'warning'
-    prefix = code[0].upper()
-    if prefix == 'R' or code.upper().startswith('PW'):
+        return 'informative'
+    raw = (code or '').strip()
+    upper = raw.upper().replace('_', '-')
+    # YOLO / slug tokens (keep-right) are not Cambodia code prefixes
+    slug = re.sub(r'[^A-Z0-9]+', '_', upper).strip('_').lower()
+    if slug.startswith('keep_'):
+        return 'mandatory'
+    if slug.startswith('no_') or slug in {'stop', 'yield', 'give_way'}:
+        return 'prohibitory' if slug != 'stop' else 'mandatory'
+    prefix = upper[0]
+    if prefix == 'R' or upper.startswith('PW'):
         return 'prohibitory'
     if prefix == 'W':
         return 'warning'
-    if prefix == 'S':
+    if prefix in ('S', 'M') or upper.startswith('MAN-'):
         return 'mandatory'
-    if prefix in ('G', 'P'):
+    if prefix in ('G', 'P', 'I'):
         return 'informative'
-    return 'warning'
+    # Prefer informative over warning for unknown non-W codes (avoids
+    # "សញ្ញាព្រមាន keep-right" style labels).
+    return 'informative'
 
 
 def _catalog_row(sign_code: str = '', class_key: str = '') -> dict | None:

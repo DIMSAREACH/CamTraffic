@@ -27,7 +27,7 @@ interface LiveCameraDetectionPanelProps {
   disabled?: boolean;
 }
 
-const INTERVAL_OPTIONS = [1500, 2000, 3000] as const;
+const INTERVAL_OPTIONS = [2500, 3000, 5000] as const;
 
 function frameUrl(base: string, tick: number) {
   const sep = base.includes('?') ? '&' : '?';
@@ -57,7 +57,7 @@ export function LiveCameraDetectionPanel({
   const [scanning, setScanning] = useState(false);
   const [connected, setConnected] = useState(false);
   const [paused, setPaused] = useState(false);
-  const [intervalMs, setIntervalMs] = useState<number>(1500);
+  const [intervalMs, setIntervalMs] = useState<number>(3000);
   const [autoSave, setAutoSave] = useState(false);
   const [lastPingAt, setLastPingAt] = useState<number | null>(null);
   const [failStreak, setFailStreak] = useState(0);
@@ -74,8 +74,11 @@ export function LiveCameraDetectionPanel({
     try {
       const data = await camerasAPI.getAll();
       const active = data.filter((c) => c.status === 'active');
+      // Prefer local /media/cctv test feeds (work without hardware) over broken RTSP/demo paths.
       const preferred =
-        active.find((c) => c.code === 'CAM-PP-001')
+        active.find((c) => String(c.code || '').startsWith('TEST-HIK'))
+        ?? active.find((c) => String(c.frame_source_url || '').includes('/media/cctv/'))
+        ?? active.find((c) => c.code === 'CAM-PP-001')
         ?? active.find((c) => c.code === 'CAM-PP-002')
         ?? active[0]
         ?? data[0];
@@ -147,7 +150,7 @@ export function LiveCameraDetectionPanel({
     setScanning(true);
     if (!opts?.silent) {
       setDetecting(true);
-      // Do not flip parent detecting — keeps live theater mounted for instant overlay updates.
+      onDetectingChange?.(true);
     }
     const persist = Boolean(autoSave || !opts?.silent);
     const silent = Boolean(opts?.silent);
@@ -160,7 +163,7 @@ export function LiveCameraDetectionPanel({
       live_fast: 'true',
     };
     const demoOpts = buildDemoViolationOptions(demoObservedAction, {
-      autoCreate: persist && Boolean(demoObservedAction?.trim()),
+      autoCreate: persist,
     });
     if (demoOpts.observed_action) extra.observed_action = demoOpts.observed_action;
     if (demoOpts.demo_violation) extra.demo_violation = 'true';
@@ -178,7 +181,7 @@ export function LiveCameraDetectionPanel({
       );
       if (useClientFrame) {
         const file = await captureMediaFrame(mediaEl as HTMLVideoElement, {
-          maxEdge: silent ? 640 : 960,
+          maxEdge: silent ? 960 : 1280,
           filenamePrefix: `webcam-street-${selected?.code || 'cam'}`,
         });
         if (!file) throw new Error('Could not capture live camera frame');
@@ -194,8 +197,10 @@ export function LiveCameraDetectionPanel({
           camera_id: Number(selected?.id) || undefined,
         })) as CenterDetectionResult;
       } else if (useAdhocStream) {
+        // Ad-hoc RTSP/HTTP URL always wins over a leftover catalog selection.
         res = (await camerasAPI.processStreamUrl(frameUrlRaw, extra)) as CenterDetectionResult;
       } else {
+        // Catalog cameras (incl. Hikvision TEST-HIK /media/cctv feeds): use camera_id.
         res = (await camerasAPI.processFrame(String(selected!.id), extra)) as CenterDetectionResult;
       }
       const preview =
@@ -246,9 +251,10 @@ export function LiveCameraDetectionPanel({
       setScanning(false);
       if (!opts?.silent) {
         setDetecting(false);
+        onDetectingChange?.(false);
       }
     }
-  }, [selected, src, demoObservedAction, autoSave, onResult, t, isVideoFeed, useAdhocStream, streamUrl]);
+  }, [selected, src, demoObservedAction, autoSave, onResult, onDetectingChange, t, isVideoFeed, useAdhocStream, streamUrl]);
 
   useEffect(() => {
     if (!connected || paused || disabled) return undefined;
@@ -259,7 +265,7 @@ export function LiveCameraDetectionPanel({
     return () => window.clearInterval(id);
   }, [connected, paused, disabled, intervalMs, runDetection]);
 
-  const handleConnect = () => {
+  const handleConnect = async () => {
     if (!useAdhocStream && !selected) {
       toast.error(t('aiCenter.selectCamera'));
       return;
@@ -268,15 +274,31 @@ export function LiveCameraDetectionPanel({
       toast.error(label(t, 'aiCenter.streamUrlRequired', 'Enter RTSP or HTTP stream URL'));
       return;
     }
+    if (useAdhocStream && /^rtsp/i.test(streamUrl.trim())) {
+      toast.message(
+        label(
+          t,
+          'aiCenter.rtspBrowserHint',
+          'Browsers cannot play RTSP directly — CamTraffic will capture frames on the server.',
+        ),
+      );
+    }
     if (!useAdhocStream && !cameraOnline && selected?.status === 'inactive') {
       toast.error(label(t, 'aiCenter.cameraOffline', 'Selected camera is offline'));
       return;
     }
-    setConnected(true);
-    setPaused(false);
     setFailStreak(0);
     backoffUntil.current = 0;
-    toast.success(label(t, 'aiCenter.cameraConnected', 'Live camera connected'));
+    setPaused(false);
+    setConnected(true);
+    // Verify one capture before claiming LIVE.
+    try {
+      await runDetection({ silent: true });
+      toast.success(label(t, 'aiCenter.cameraConnected', 'Live camera connected'));
+    } catch {
+      setConnected(false);
+      toast.error(label(t, 'aiCenter.cameraOffline', 'Camera offline or frame capture failed'));
+    }
   };
 
   const handleDisconnect = () => {
@@ -356,9 +378,12 @@ export function LiveCameraDetectionPanel({
             value={protocol}
             onValueChange={(v) => {
               if (connected) return;
-              setProtocol(v as 'catalog' | 'rtsp' | 'http');
+              const next = v as 'catalog' | 'rtsp' | 'http';
+              setProtocol(next);
               setLiveResult(null);
               setLastPreview(null);
+              // Avoid catalog camera leaking into ad-hoc URL detection.
+              if (next !== 'catalog') setSelectedId(null);
             }}
             disabled={detecting || disabled || connected}
             ariaLabel={label(t, 'aiCenter.sourceProtocol', 'Source')}
@@ -401,7 +426,11 @@ export function LiveCameraDetectionPanel({
             <input
               type="url"
               className="ai-center-camera-toolbar__url-input"
-              placeholder={protocol === 'rtsp' ? 'rtsp://user:pass@ip:554/stream' : 'http://ip/snapshot.jpg'}
+              placeholder={
+                protocol === 'rtsp'
+                  ? 'rtsp://user:pass@ip:554/stream'
+                  : 'https://…/snapshot.jpg or …/preview.mp4 (direct media URL)'
+              }
               value={streamUrl}
               onChange={(e) => setStreamUrl(e.target.value)}
               disabled={detecting || disabled || connected}

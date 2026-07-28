@@ -1,0 +1,66 @@
+{
+  "source": "stock-footage-phnom-penh-cambodia-vehicles-and-motorbikes-move-along-the-riverside-road-near-a.webm",
+  "video_key": "riverside",
+  "frame_index": 228,
+  "frame_file": "frame_0228_t9.51s.jpg",
+  "timestamp_sec": 9.509,
+  "image_size": {
+    "width": 898,
+    "height": 506
+  },
+  "tracking": true,
+  "annotations": [
+    {
+      "kind": "vehicle",
+      "class_key": "tuk_tuk",
+      "class_id": 4,
+      "label_en": "Tuk Tuk",
+      "confidence": 86.9,
+      "track_id": 105,
+      "bbox_norm": {
+        "x1": 0.0953,
+        "y1": 0.5228,
+        "x2": 0.2266,
+        "y2": 0.7713
+      },
+      "bbox_px": {
+        "x1": 86,
+        "y1": 265,
+        "x2": 203,
+        "y2": 390
+      },
+      "bbox_yolo": {
+        "x_center": 0.16095,
+        "y_center": 0.64705,
+        "width": 0.1313,
+        "height": 0.2485
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "truck",
+      "class_id": 3,
+      "label_en": "Truck",
+      "confidence": 77.0,
+      "track_id": 103,
+      "bbox_norm": {
+        "x1": 0.3554,
+        "y1": 0.5178,
+        "x2": 0.7085,
+        "y2": 0.8636
+      },
+      "bbox_px": {
+        "x1": 319,
+        "y1": 262,
+        "x2": 636,
+        "y2": 437
+      },
+      "bbox_yolo": {
+        "x_center": 0.53195,
+        "y_center": 0.6907,
+        "width": 0.3531,
+        "height": 0.3458
+      }
+    }
+  ]
+}

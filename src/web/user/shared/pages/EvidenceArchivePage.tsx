@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Archive, Search, ImageIcon, Car, Hash, MapPin, RefreshCw, Loader2,
@@ -14,7 +14,7 @@ import { cn } from '@shared/components/ui/utils';
 import { toast } from 'sonner';
 import type { EvidenceArchiveItem } from '@shared/types';
 import { resolveEvidenceDisplayImage } from '@shared/utils/evidenceDisplayImage';
-import { EvidenceSignImage } from '@shared/components/evidence/EvidenceSignImage';
+import { EvidenceSignImage, EvidenceCropThumb } from '@shared/components/evidence/EvidenceSignImage';
 
 type TypeTab = 'all' | EvidenceArchiveItem['source_type'];
 
@@ -58,11 +58,6 @@ function formatWhen(iso: string, locale: Locale) {
   } catch {
     return iso;
   }
-}
-
-function shortSourceId(id: string): string {
-  if (id.length <= 10) return id;
-  return `${id.slice(0, 8)}…`;
 }
 
 function EvidenceFullImageLightbox({
@@ -120,6 +115,34 @@ function EvidenceFullImageLightbox({
   );
 }
 
+/** Dialog crop tile that disappears instead of rendering a broken-image icon. */
+function DialogCrop({
+  src,
+  label,
+  icon,
+  onOpen,
+}: {
+  src: string;
+  label: string;
+  icon: ReactNode;
+  onOpen: () => void;
+}) {
+  const [broken, setBroken] = useState(false);
+
+  useEffect(() => { setBroken(false); }, [src]);
+
+  if (broken) return null;
+
+  return (
+    <button type="button" onClick={onOpen} className="evidence-archive-dialog__crop">
+      <span className="evidence-archive-dialog__crop-label">
+        {icon} {label}
+      </span>
+      <img src={src} alt="" onError={() => setBroken(true)} />
+    </button>
+  );
+}
+
 function EvidenceDetailDialog({
   item,
   open,
@@ -142,7 +165,7 @@ function EvidenceDetailDialog({
   if (!item) return null;
   const meta = TYPE_META[item.source_type];
   const displayImageUrl = resolveEvidenceDisplayImage(item);
-  const fullImageUrl = item.image_url || displayImageUrl;
+  const fullImageUrl = item.image_url || displayImageUrl || '';
 
   const openFullImage = (src: string) => setLightboxSrc(src);
 
@@ -163,8 +186,6 @@ function EvidenceDetailDialog({
                 <p className="evidence-archive-dialog__header-meta">
                   {t(`evidenceArchive.type.${item.source_type}`)}
                   <span aria-hidden> · </span>
-                  #{item.source_id}
-                  <span aria-hidden> · </span>
                   {formatWhen(item.created_at, locale)}
                 </p>
               </div>
@@ -183,6 +204,7 @@ function EvidenceDetailDialog({
                     alt={item.title}
                     sourceType={item.source_type}
                     imgClassName="evidence-archive-dialog__hero-img"
+                    missingLabel={t('evidenceArchive.noImage')}
                   />
                   <span className="evidence-archive-dialog__hero-zoom">
                     <Maximize2 size={16} />
@@ -221,28 +243,20 @@ function EvidenceDetailDialog({
                   <p className="evidence-archive-dialog__crops-label">{t('evidenceArchive.relatedCrops')}</p>
                   <div className="evidence-archive-dialog__crops-row">
                     {item.vehicle_image_url ? (
-                      <button
-                        type="button"
-                        onClick={() => openFullImage(item.vehicle_image_url!)}
-                        className="evidence-archive-dialog__crop"
-                      >
-                        <span className="evidence-archive-dialog__crop-label">
-                          <Car size={14} /> {t('evidenceArchive.vehicleCrop')}
-                        </span>
-                        <img src={item.vehicle_image_url} alt="" />
-                      </button>
+                      <DialogCrop
+                        src={item.vehicle_image_url}
+                        label={t('evidenceArchive.vehicleCrop')}
+                        icon={<Car size={14} />}
+                        onOpen={() => openFullImage(item.vehicle_image_url!)}
+                      />
                     ) : null}
                     {item.plate_image_url ? (
-                      <button
-                        type="button"
-                        onClick={() => openFullImage(item.plate_image_url!)}
-                        className="evidence-archive-dialog__crop"
-                      >
-                        <span className="evidence-archive-dialog__crop-label">
-                          <Hash size={14} /> {t('evidenceArchive.plateCrop')}
-                        </span>
-                        <img src={item.plate_image_url} alt="" />
-                      </button>
+                      <DialogCrop
+                        src={item.plate_image_url}
+                        label={t('evidenceArchive.plateCrop')}
+                        icon={<Hash size={14} />}
+                        onOpen={() => openFullImage(item.plate_image_url!)}
+                      />
                     ) : null}
                   </div>
                 </div>
@@ -493,17 +507,22 @@ export function EvidenceArchivePage() {
                 >
                   <div className="evidence-archive-card__media">
                     {displayImageUrl ? (
-                      <div className="evidence-archive-card__img-stage">
+                      <div className="evidence-archive-card__img-stage evidence-archive-card__img-stage--full">
                         <EvidenceSignImage
                           src={displayImageUrl}
                           alt={row.title}
                           sourceType={row.source_type}
-                          imgClassName="evidence-archive-card__img"
+                          plain
+                          imgClassName="evidence-archive-card__img evidence-archive-card__img--cover"
                           loading="lazy"
+                          missingLabel={t('evidenceArchive.noImage')}
                         />
                       </div>
                     ) : (
-                      <div className="evidence-archive-card__placeholder"><ImageIcon size={28} /></div>
+                      <div className="evidence-archive-card__placeholder">
+                        <ImageIcon size={26} aria-hidden />
+                        <span>{t('evidenceArchive.noImage')}</span>
+                      </div>
                     )}
                     <span
                       className={`evidence-archive-card__badge evidence-archive-card__badge--${row.source_type}`}
@@ -512,9 +531,27 @@ export function EvidenceArchivePage() {
                       <Icon size={11} aria-hidden />
                       {t(`evidenceArchive.type.${row.source_type}`)}
                     </span>
+                    {(row.vehicle_image_url || row.plate_image_url) ? (
+                      <div className="evidence-archive-card__thumbs evidence-archive-card__thumbs--overlay">
+                        {row.vehicle_image_url ? (
+                          <EvidenceCropThumb
+                            src={row.vehicle_image_url}
+                            label={t('evidenceArchive.vehicleCrop')}
+                            icon={<Car size={11} />}
+                          />
+                        ) : null}
+                        {row.plate_image_url ? (
+                          <EvidenceCropThumb
+                            src={row.plate_image_url}
+                            label={t('evidenceArchive.plateCrop')}
+                            icon={<Hash size={11} />}
+                          />
+                        ) : null}
+                      </div>
+                    ) : null}
                     <div className="evidence-archive-card__overlay">
                       <Eye size={18} aria-hidden />
-                      {t('evidenceArchive.viewEvidence')}
+                      {t('evidenceArchive.viewFullPreview')}
                     </div>
                   </div>
                   <div className="evidence-archive-card__body">
@@ -524,12 +561,6 @@ export function EvidenceArchivePage() {
                       {formatWhen(row.created_at, locale)}
                     </p>
                     <div className="evidence-archive-card__chips">
-                      <span
-                        className="evidence-archive-card__chip evidence-archive-card__chip--ref"
-                        title={row.source_id}
-                      >
-                        {t('evidenceArchive.sourceRef', { id: shortSourceId(row.source_id) })}
-                      </span>
                       {row.plate ? (
                         <span className="evidence-archive-card__chip">
                           <Hash size={12} aria-hidden /> {row.plate}
@@ -541,22 +572,6 @@ export function EvidenceArchivePage() {
                         </span>
                       ) : null}
                     </div>
-                    {(row.vehicle_image_url || row.plate_image_url) ? (
-                      <div className="evidence-archive-card__thumbs">
-                        {row.vehicle_image_url ? (
-                          <div className="evidence-archive-card__thumb" title={t('evidenceArchive.vehicleCrop')}>
-                            <Car size={11} aria-hidden />
-                            <img src={row.vehicle_image_url} alt="" />
-                          </div>
-                        ) : null}
-                        {row.plate_image_url ? (
-                          <div className="evidence-archive-card__thumb" title={t('evidenceArchive.plateCrop')}>
-                            <Hash size={11} aria-hidden />
-                            <img src={row.plate_image_url} alt="" />
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : null}
                   </div>
                 </article>
               );

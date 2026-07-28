@@ -32,10 +32,29 @@ def check_media_writable() -> dict:
 
 
 def check_ai_weights() -> dict:
-    weights = Path(settings.BASE_DIR).parent / 'ai' / 'weights' / 'best.pt'
-    if weights.is_file():
-        return {'status': 'ok', 'path': str(weights), 'size_mb': round(weights.stat().st_size / 1_048_576, 2)}
-    return {'status': 'missing', 'path': str(weights)}
+    # Prefer configured live model path; fall back to canonical catalog weights under AI_ROOT.
+    candidates: list[Path] = []
+    configured = getattr(settings, 'AI_MODEL_PATH', '') or ''
+    if configured:
+        candidates.append(Path(configured))
+    ai_root = Path(getattr(settings, 'AI_ROOT', Path(settings.BASE_DIR).parent.parent / 'ai'))
+    candidates.append(ai_root / 'weights' / 'best.pt')
+    candidates.append(ai_root / 'weights' / 'best_b2_named.pt')
+    candidates.append(ai_root / 'weights' / 'best_v2.pt')
+
+    seen: set[str] = set()
+    for weights in candidates:
+        key = str(weights.resolve()) if weights.exists() else str(weights)
+        if key in seen:
+            continue
+        seen.add(key)
+        if weights.is_file():
+            return {
+                'status': 'ok',
+                'path': str(weights),
+                'size_mb': round(weights.stat().st_size / 1_048_576, 2),
+            }
+    return {'status': 'missing', 'path': str(candidates[0] if candidates else ai_root / 'weights' / 'best.pt')}
 
 
 def check_ai_vision_service() -> dict:

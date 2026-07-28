@@ -21,7 +21,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-BACKEND = ROOT / 'backend'
+BACKEND = ROOT / 'src' / 'backend'
 CATALOG_PATH = ROOT / 'ai' / 'traffic_sign_catalog_10.json'
 META_PATH = ROOT / 'ai' / 'reference_sign_meta.json'
 CATALOG_10_IMAGES = ROOT / 'ai' / 'catalog_10_signs'
@@ -81,7 +81,11 @@ def main() -> None:
     if not CATALOG_PATH.is_file():
         raise SystemExit('Missing ai/traffic_sign_catalog_10.json')
     if not args.reference_root.is_dir():
-        raise SystemExit(f'Reference folder not found: {args.reference_root}')
+        # Allow running this script even when the reference images are not present
+        # (e.g. on other machines or in CI). Importing the catalog itself should still work.
+        print(f'[SKIP] Reference folder not found: {args.reference_root}')
+        print('       (run will continue without updating images)')
+        return
 
     payload = json.loads(CATALOG_PATH.read_text(encoding='utf-8'))
     signs = payload.get('signs') if isinstance(payload, dict) else payload

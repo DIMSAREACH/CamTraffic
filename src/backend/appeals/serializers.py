@@ -1,4 +1,6 @@
-from rest_framework import serializers
+﻿from rest_framework import serializers
+
+from core.cambodia_identity import normalize_license, normalize_plate
 
 from .models import ViolationAppeal
 
@@ -8,7 +10,8 @@ class ViolationAppealSerializer(serializers.ModelSerializer):
     fine_id = serializers.UUIDField(source='fine.id', read_only=True, allow_null=True)
     driver_id = serializers.UUIDField(source='driver.id', read_only=True)
     driver_name = serializers.CharField(source='driver.user.full_name', read_only=True)
-    driver_license = serializers.CharField(source='driver.license_no', read_only=True)
+    driver_license = serializers.SerializerMethodField()
+    vehicle_plate = serializers.SerializerMethodField()
     reviewed_by_name = serializers.CharField(source='reviewed_by.full_name', read_only=True, allow_null=True)
     evidence_image = serializers.SerializerMethodField()
     violation_type = serializers.CharField(source='violation.violation_type', read_only=True)
@@ -18,6 +21,7 @@ class ViolationAppealSerializer(serializers.ModelSerializer):
         model = ViolationAppeal
         fields = (
             'id', 'violation_id', 'fine_id', 'driver_id', 'driver_name', 'driver_license',
+            'vehicle_plate',
             'reason', 'evidence_image', 'status', 'submitted_at', 'review_date',
             'reviewed_by', 'reviewed_by_name', 'officer_comments', 'updated_at',
             'violation_type', 'violation_location',
@@ -26,6 +30,21 @@ class ViolationAppealSerializer(serializers.ModelSerializer):
             'id', 'status', 'submitted_at', 'review_date', 'reviewed_by',
             'reviewed_by_name', 'officer_comments', 'updated_at',
         )
+
+    def get_driver_license(self, obj):
+        lic = getattr(getattr(obj, 'driver', None), 'license_no', None) or ''
+        return normalize_license(lic) if lic else ''
+
+    def get_vehicle_plate(self, obj):
+        violation = getattr(obj, 'violation', None)
+        if not violation:
+            return ''
+        plate = (
+            getattr(violation, 'plate_detected', None)
+            or getattr(getattr(violation, 'vehicle', None), 'plate_number', None)
+            or ''
+        )
+        return normalize_plate(str(plate)) if plate else ''
 
     def get_evidence_image(self, obj):
         if not obj.evidence_image:

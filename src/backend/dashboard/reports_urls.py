@@ -163,6 +163,8 @@ class ReportsExportPdfView(APIView):
 
 
 urlpatterns = [
+    # Root alias so GET /api/admin/reports/ matches ADMIN_API.reports (same payload as dashboard/)
+    path('', ReportsDashboardView.as_view(), name='reports-root'),
     path('dashboard/', ReportsDashboardView.as_view(), name='reports-dashboard'),
     path('violations/', ReportsViolationsView.as_view(), name='reports-violations'),
     path('fines/', ReportsFinesView.as_view(), name='reports-fines'),

@@ -24,14 +24,29 @@ class PlateNormalizeTest(SimpleTestCase):
         self.assertIsNone(normalize_plate_text('hello world'))
         self.assertIsNone(normalize_plate_text(''))
 
+    def test_leading_digit_lookalike_letter(self):
+        # EasyOCR reads the province digit 1 as I/L/T/J and drops the dash on
+        # motorbike plates, e.g. white-on-dark '1LK-9540' -> 'ILK 9540'.
+        self.assertEqual(normalize_plate_text('ILK 9540'), '1LK-9540')
+        self.assertEqual(normalize_plate_text('ILK9540'), '1LK-9540')
+        # Close-up moto plates: leading 1→A and ghost trailing digit.
+        self.assertEqual(normalize_plate_text('ALK 95401'), '1LK-9540')
+        self.assertEqual(normalize_plate_text('ALK95401'), '1LK-9540')
+        self.assertEqual(normalize_plate_text('ALK-9540'), '1LK-9540')
+
+    def test_series_letter_m_preferred_over_o(self):
+        # EasyOCR often reads M as O/0 (2CM-1679 → 2C0-1679 / 2CO-1679).
+        self.assertEqual(normalize_plate_text('2C0-1679'), '2CM-1679')
+        self.assertEqual(normalize_plate_text('2CO-1679'), '2CM-1679')
+        self.assertEqual(normalize_plate_text('2CM-1679'), '2CM-1679')
+
     def test_classify_private(self):
         self.assertEqual(classify_plate_type('2A-1234'), 'private')
 
-    def test_province_lookup_single_digit(self):
-        province = lookup_plate_province('2A-1234')
-        self.assertIsNotNone(province)
-        self.assertEqual(province['code'], '2')
-        self.assertEqual(province['name_en'], 'Battambang')
+    def test_province_lookup_single_digit_is_vehicle_class_not_province(self):
+        # Modern plates: leading digit is vehicle class (2=car), not Battambang.
+        self.assertIsNone(lookup_plate_province('2A-1234'))
+        self.assertIsNone(lookup_plate_province('2CM-1679'))
 
     def test_province_lookup_two_digit_phnom_penh(self):
         province = lookup_plate_province('12A-5678')
@@ -58,13 +73,30 @@ class PlateNormalizeTest(SimpleTestCase):
         self.assertEqual(result['plate_province_en'], 'Phnom Penh')
         self.assertEqual(result['plate_province_code'], '12')
         self.assertEqual(result.get('plate_text', '2U-3108'), '2U-3108')
-        self.assertTrue(result.get('digit_province_mismatch'))
-        self.assertEqual(result.get('plate_text_canonical_candidate'), '12U-3108')
+        # Class digit is not a province code, so no digit mismatch flag.
+        self.assertFalse(result.get('digit_province_mismatch'))
+
+    def test_khmer_phnom_penh_beats_class_digit(self):
+        """2CM-1679 + ភ្នំពេញ → Phnom Penh (not Battambang from digit 2)."""
+        result = enrich_plate_result('2CM-1679', {
+            'raw_reads': [
+                {'text': '2CM-1679', 'raw_text': '2CM-1679', 'confidence': 99.0},
+                {
+                    'text': 'ភ្នំពេញ',
+                    'raw_text': 'ភ្នំពេញ',
+                    'confidence': 70.0,
+                    'is_province_line': True,
+                },
+            ],
+        })
+        self.assertEqual(result['plate_province_en'], 'Phnom Penh')
+        self.assertEqual(result['plate_province_km'], 'ភ្នំពេញ')
+        self.assertEqual(result['plate_province_code'], '12')
 
     def test_garbled_phnom_penh_ocr_hint(self):
         from ai_detection.plate_ocr import detect_province_from_ocr_text
-        for garbled in ('PRYOM PZN', 'PSORPIVE', 'PAOMPN', 'PKIOM PIN'):
-            hit = detect_province_from_ocr_text(garbled, '2U-3108')
+        for garbled in ('PRYOM PZN', 'PSORPIVE', 'PAOMPN', 'PKIOM PIN', 'onm', 'jnm', 'dnm'):
+            hit = detect_province_from_ocr_text(garbled, '2CM-1679')
             self.assertIsNotNone(hit, garbled)
             self.assertEqual(hit['code'], '12', garbled)
             self.assertEqual(hit['name_en'], 'Phnom Penh', garbled)
@@ -104,7 +136,8 @@ class PlateOCRServiceTest(SimpleTestCase):
         self.assertEqual(result['plate_text'], '2A-1234')
         self.assertGreaterEqual(result['plate_confidence'], 88.0)
         self.assertEqual(result['plate_type'], 'private')
-        self.assertEqual(result['plate_province_en'], 'Battambang')
+        # Leading 2 is vehicle class, not Battambang — no printed province → empty.
+        self.assertEqual(result.get('plate_province_en') or '', '')
         self.assertEqual(result['ocr_engine'], 'easyocr')
 
     @override_settings(AI_PLATE_OCR_ENABLED=True)

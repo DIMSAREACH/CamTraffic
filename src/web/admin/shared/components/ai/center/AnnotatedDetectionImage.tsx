@@ -14,6 +14,8 @@ interface AnnotatedDetectionImageProps {
   filterKind?: 'all' | 'sign' | 'vehicle' | 'plate';
   /** When false, show the image only (e.g. already baked OpenCV annotations). */
   showOverlay?: boolean;
+  /** Emphasize this overlay box id (from Detection Objects → View). */
+  highlightId?: string;
 }
 
 export function AnnotatedDetectionImage({
@@ -24,6 +26,7 @@ export function AnnotatedDetectionImage({
   hero = false,
   filterKind = 'all',
   showOverlay = true,
+  highlightId,
 }: AnnotatedDetectionImageProps) {
   const { locale, t } = useLanguage();
   const imgRef = useRef<HTMLImageElement>(null);
@@ -42,6 +45,7 @@ export function AnnotatedDetectionImage({
         'ai-center-annotated-image',
         hero && 'ai-center-annotated-image--hero',
         filterKind !== 'all' && `ai-center-annotated-image--filter-${filterKind}`,
+        highlightId && 'ai-center-annotated-image--focus',
         className,
       )}
     >
@@ -66,9 +70,12 @@ export function AnnotatedDetectionImage({
           >
             <LiveDetectionOverlay
               items={overlayItems}
+              highlightId={highlightId}
               legendSign={t('aiCenter.legendSign')}
               legendVehicle={t('aiCenter.legendVehicle')}
               legendPlate={t('aiCenter.legendPlate')}
+              legendHelmet={t('aiCenter.legendHelmet')}
+              legendNoHelmet={t('aiCenter.legendNoHelmet')}
             />
           </div>
         ) : null}

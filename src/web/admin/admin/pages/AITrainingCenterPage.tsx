@@ -9,6 +9,7 @@ import { useAuth } from '@shared/context/AuthContext';
 import { datasetsAPI } from '@shared/services/api';
 import { toast } from 'sonner';
 import { AIMlopsHero } from '@shared/components/admin/AIMlopsHero';
+import { FilterSelect } from '@shared/components/ui/FilterSelect';
 import {
   buildTrainCommand,
   normalizeDataset,
@@ -202,23 +203,25 @@ export function AITrainingCenterPage() {
               </div>
               <div className="ai-mlops-field">
                 <label htmlFor="train-dataset">{tr('aiMlops.dataset', 'Dataset')}</label>
-                <select
-                  id="train-dataset"
+                <FilterSelect
+                  block
+                  tone="purple"
                   value={form.datasetId}
                   disabled={loadingDatasets || datasets.length === 0}
-                  onChange={(e) => {
+                  onValueChange={(v) => {
                     setCliReady(false);
-                    setForm((f) => ({ ...f, datasetId: e.target.value }));
+                    setForm((f) => ({ ...f, datasetId: v }));
                   }}
-                >
-                  {datasets.length === 0 ? (
-                    <option value="">{tr('aiMlops.noDatasetsSynced', 'No real datasets — click Sync')}</option>
-                  ) : datasets.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name} · {d.image_count.toLocaleString()} img · {d.class_count} cls
-                    </option>
-                  ))}
-                </select>
+                  ariaLabel={tr('aiMlops.dataset', 'Dataset')}
+                  options={
+                    datasets.length === 0
+                      ? [{ value: '', label: tr('aiMlops.noDatasetsSynced', 'No real datasets — click Sync') }]
+                      : datasets.map((d) => ({
+                          value: d.id,
+                          label: `${d.name} · ${d.image_count.toLocaleString()} img · ${d.class_count} cls`,
+                        }))
+                  }
+                />
               </div>
               <div className="ai-mlops-field">
                 <label htmlFor="train-epochs">{tr('aiMlops.epoch', 'Epoch')}</label>
@@ -238,9 +241,14 @@ export function AITrainingCenterPage() {
               </div>
               <div className="ai-mlops-field">
                 <label htmlFor="train-gpu">{tr('aiMlops.device', 'Device')}</label>
-                <select id="train-gpu" value={form.gpu} onChange={(e) => setForm((f) => ({ ...f, gpu: e.target.value }))}>
-                  {GPUS.map((g) => <option key={g} value={g}>{g}</option>)}
-                </select>
+                <FilterSelect
+                  block
+                  tone="purple"
+                  value={form.gpu}
+                  onValueChange={(v) => setForm((f) => ({ ...f, gpu: v }))}
+                  ariaLabel={tr('aiMlops.device', 'Device')}
+                  options={GPUS.map((g) => ({ value: g, label: g }))}
+                />
               </div>
             </div>
 

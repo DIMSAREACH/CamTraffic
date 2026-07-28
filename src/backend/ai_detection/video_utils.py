@@ -13,7 +13,7 @@ ALLOWED_VIDEO_EXTENSIONS = {'.mp4', '.webm', '.mov', '.avi', '.mkv', '.m4v'}
 # Keep in sync with frontend VideoUploadPanel MAX_VIDEO_MB (default 500).
 MAX_VIDEO_UPLOAD_MB = max(1, int(os.getenv('AI_VIDEO_MAX_MB', '500')))
 MAX_VIDEO_UPLOAD_BYTES = MAX_VIDEO_UPLOAD_MB * 1024 * 1024
-DEFAULT_VIDEO_MAX_FRAMES = max(2, min(24, int(os.getenv('AI_VIDEO_MAX_FRAMES', '3'))))
+DEFAULT_VIDEO_MAX_FRAMES = max(2, min(24, int(os.getenv('AI_VIDEO_MAX_FRAMES', '20'))))
 
 
 def extract_video_frames(video_path: str, max_frames: int = 12) -> list[tuple[str, float]]:
@@ -27,7 +27,9 @@ def extract_video_frames(video_path: str, max_frames: int = 12) -> list[tuple[st
     except ImportError as exc:
         raise ValueError('OpenCV is required for video detection') from exc
 
-    cap = cv2.VideoCapture(video_path)
+    from .opencv_utils import open_video_capture, write_jpeg
+
+    cap = open_video_capture(video_path, live=False)
     if not cap.isOpened():
         raise ValueError('Could not open video file')
 
@@ -51,7 +53,7 @@ def extract_video_frames(video_path: str, max_frames: int = 12) -> list[tuple[st
                     tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.jpg')
                     tmp_path = tmp.name
                     tmp.close()
-                    if cv2.imwrite(tmp_path, frame):
+                    if write_jpeg(tmp_path, frame, enhance=True):
                         frames.append((tmp_path, idx / fps))
                     else:
                         Path(tmp_path).unlink(missing_ok=True)
@@ -85,7 +87,7 @@ def extract_video_frames(video_path: str, max_frames: int = 12) -> list[tuple[st
             tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.jpg')
             tmp_path = tmp.name
             tmp.close()
-            if not cv2.imwrite(tmp_path, frame):
+            if not write_jpeg(tmp_path, frame, enhance=True):
                 Path(tmp_path).unlink(missing_ok=True)
                 continue
             timestamp = frame_idx / fps

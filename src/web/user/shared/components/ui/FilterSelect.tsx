@@ -26,11 +26,14 @@ type FilterSelectProps = {
   tone?: FilterSelectTone;
   size?: 'sm' | 'default';
   disabled?: boolean;
+  /** Full-width trigger for forms / dialogs */
+  block?: boolean;
 };
 
+const EMPTY = '__empty';
+
 /**
- * Styled Radix select for toolbars/filters — same polished menu as
- * AI Detection “Auto (match sign rule)” instead of OS-native dropdowns.
+ * Styled Radix select for toolbars/filters/forms — polished menu instead of OS-native dropdowns.
  */
 export function FilterSelect({
   value,
@@ -44,10 +47,24 @@ export function FilterSelect({
   tone = 'default',
   size = 'default',
   disabled = false,
+  block = false,
 }: FilterSelectProps) {
+  const selectValue = value || EMPTY;
+
   return (
-    <div className={cn('ct-filter-select', `ct-filter-select--${tone}`, className)}>
-      <Select value={value} onValueChange={onValueChange} disabled={disabled}>
+    <div
+      className={cn(
+        'ct-filter-select',
+        `ct-filter-select--${tone}`,
+        block && 'ct-filter-select--block',
+        className,
+      )}
+    >
+      <Select
+        value={selectValue}
+        onValueChange={(next) => onValueChange(next === EMPTY ? '' : next)}
+        disabled={disabled}
+      >
         <SelectTrigger
           size={size}
           aria-label={ariaLabel}
@@ -56,15 +73,18 @@ export function FilterSelect({
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent className={cn('ct-filter-select__menu', contentClassName)}>
-          {options.map((opt) => (
-            <SelectItem 
-              key={opt.value || '__empty'} 
-              value={opt.value || '__empty'} 
-              className="ct-filter-select__item"
-            >
-              {opt.label}
-            </SelectItem>
-          ))}
+          {options.map((opt) => {
+            const itemValue = opt.value || EMPTY;
+            return (
+              <SelectItem
+                key={itemValue}
+                value={itemValue}
+                className="ct-filter-select__item"
+              >
+                {opt.label}
+              </SelectItem>
+            );
+          })}
         </SelectContent>
       </Select>
     </div>

@@ -96,9 +96,17 @@ def get_top_locations():
     return rows[:8]
 
 
-def get_recent_activity(limit: int = 12):
+def get_recent_activity(limit: int = 12, request=None):
     """Unified recent enforcement feed for admin dashboard (Cambodia production view)."""
+    from core.media_urls import api_media_url
+
     items: list[dict] = []
+
+    def _img(field) -> str:
+        try:
+            return api_media_url(request, field) if field else ''
+        except Exception:
+            return ''
 
     for v in (
         TrafficViolation.objects.select_related('driver__user', 'vehicle')
@@ -114,6 +122,12 @@ def get_recent_activity(limit: int = 12):
             title = raw_type.replace('_', ' ').title()
         else:
             title = (v.description or 'Traffic Violation').split(':')[-1].strip()[:60] or 'Traffic Violation'
+        # Prefer vehicle/plate crops for activity thumbs when present.
+        image = (
+            _img(getattr(v, 'vehicle_evidence_image', None))
+            or _img(getattr(v, 'plate_evidence_image', None))
+            or _img(getattr(v, 'evidence_image', None))
+        )
         items.append({
             'id': f'violation-{v.id}',
             'kind': 'violation',
@@ -121,11 +135,21 @@ def get_recent_activity(limit: int = 12):
             'subtitle': v.location or 'Cambodia road network',
             'meta': plate or (v.driver.user.full_name if v.driver_id and v.driver.user_id else 'Unknown driver'),
             'status': v.status,
+            'image': image,
             'href': '/admin/violations',
             'created_at': (v.created_at or timezone.now()).isoformat(),
         })
 
-    for f in Fine.objects.select_related('driver', 'police').order_by('-created_at')[:limit]:
+    for f in Fine.objects.select_related('driver', 'police', 'violation').order_by('-created_at')[:limit]:
+        fine_image = _img(getattr(f, 'evidence_image', None))
+        if not fine_image and getattr(f, 'violation_id', None):
+            viol = getattr(f, 'violation', None)
+            if viol is not None:
+                fine_image = (
+                    _img(getattr(viol, 'evidence_image', None))
+                    or _img(getattr(viol, 'vehicle_evidence_image', None))
+                    or _img(getattr(viol, 'plate_evidence_image', None))
+                )
         items.append({
             'id': f'fine-{f.id}',
             'kind': 'fine',
@@ -134,11 +158,18 @@ def get_recent_activity(limit: int = 12):
             'meta': f.vehicle_plate or (f.driver.full_name if f.driver_id else ''),
             'status': f.status,
             'amount': float(f.amount),
+            'image': fine_image,
             'href': '/admin/fines',
             'created_at': (f.created_at or timezone.now()).isoformat(),
         })
 
     for d in AIDetectionLog.objects.select_related('user').order_by('-created_at')[:limit]:
+        # Prefer vehicle/plate crops for activity thumbs when present; else full frame.
+        image = (
+            _img(getattr(d, 'vehicle_snapshot', None))
+            or _img(getattr(d, 'plate_snapshot', None))
+            or _img(d.uploaded_image)
+        )
         items.append({
             'id': f'detection-{d.id}',
             'kind': 'detection',
@@ -146,6 +177,7 @@ def get_recent_activity(limit: int = 12):
             'subtitle': f"Confidence {float(d.confidence or 0):.1f}%",
             'meta': d.detected_plate or (d.user.full_name if d.user_id else 'Officer'),
             'status': 'logged',
+            'image': image,
             'href': '/admin/ai-logs',
             'created_at': (d.created_at or timezone.now()).isoformat(),
         })

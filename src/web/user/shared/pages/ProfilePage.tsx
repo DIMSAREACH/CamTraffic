@@ -483,7 +483,7 @@ export function ProfilePage() {
           <div className="profile-page__content-stack profile-page__content-stack--overview">
             <section className="profile-page__section profile-page__section--glass profile-page__section--welcome profile-page__section--span-full">
               <div className="profile-page__welcome-copy">
-                <h2 className="profile-page__welcome-title">{t('profile.overviewWelcome', { name: user.full_name.split(' ')[0] || user.full_name })}</h2>
+                <h2 className="profile-page__welcome-title">{t('profile.overviewWelcome', { name: user.full_name?.trim() || user.full_name })}</h2>
                 <p className="profile-page__welcome-desc">{t('profile.overviewDesc')}</p>
               </div>
               <div className="profile-page__welcome-stats">

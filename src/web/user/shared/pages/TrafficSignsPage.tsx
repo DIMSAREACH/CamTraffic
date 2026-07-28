@@ -216,26 +216,30 @@ function SignImage({
         onLoad={e => {
           const el = e.currentTarget;
           const url = el.currentSrc || el.src;
+          // Always reject fully transparent / empty artwork (common after failed bg-removal).
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = 32;
+            canvas.height = 32;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(el, 0, 0, 32, 32);
+              const { data } = ctx.getImageData(0, 0, 32, 32);
+              let visible = 0;
+              for (let i = 3; i < data.length; i += 4) if (data[i] > 24) visible++;
+              if (visible < 24) {
+                tryNext();
+                return;
+              }
+            }
+          } catch { /* tainted canvas — continue */ }
+
           const rejectPlaceholder = strictProbe || candidates.length > 1;
           if (rejectPlaceholder) {
             try {
               if (isPlaceholderSignGraphic(el)) {
                 tryNext();
                 return;
-              }
-            } catch { /* tainted canvas — treat as valid */ }
-          }
-          if (strictProbe) {
-            try {
-              const canvas = document.createElement('canvas');
-              canvas.width = 32; canvas.height = 32;
-              const ctx = canvas.getContext('2d');
-              if (ctx) {
-                ctx.drawImage(el, 0, 0, 32, 32);
-                const { data } = ctx.getImageData(0, 0, 32, 32);
-                let visible = 0;
-                for (let i = 3; i < data.length; i += 4) if (data[i] > 24) visible++;
-                if (visible < 24) { tryNext(); return; }
               }
             } catch { /* tainted canvas — treat as valid */ }
           }
@@ -261,6 +265,16 @@ function SignImage({
     return img;
   }
   if (hideFallback) return null;
+  if (fill || showcase) {
+    return (
+      <div
+        className={`signs-img-stage${fill ? ' signs-img-stage--fill signs-img-stage--fallback' : ''}`}
+        style={fill ? undefined : { width: size, height: size }}
+      >
+        <SignFallback sign={sign} size={fill ? 128 : size} />
+      </div>
+    );
+  }
   return <SignFallback sign={sign} size={size} />;
 }
 

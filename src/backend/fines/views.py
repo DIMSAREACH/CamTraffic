@@ -19,7 +19,12 @@ from .models import Fine
 from .payment_config import payment_config_payload, stripe_enabled, khqr_enabled
 from .khqr_gateway import create_khqr_session
 from .serializers import FineCreateSerializer, FinePaymentSerializer, FineSerializer
-from .services import notify_driver_fine
+from .services import (
+    apply_issue_defaults,
+    mark_fine_paid,
+    notify_driver_fine,
+    submit_cash_for_verification,
+)
 
 try:
     from . import stripe_gateway
@@ -35,6 +40,7 @@ class FineListCreateView(generics.ListCreateAPIView):
     filterset_fields = ['status', 'driver', 'police']
     search_fields = ['reason', 'location', 'vehicle_plate', 'driver__full_name', 'driver__license_no']
     ordering_fields = ['created_at', 'amount']
+    ordering = ['-created_at']
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
@@ -43,7 +49,9 @@ class FineListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        qs = Fine.objects.select_related('driver', 'police', 'violation')
+        qs = Fine.objects.select_related(
+            'driver', 'police', 'violation', 'violation__ai_detection_log',
+        )
         # Admin + officer see all fines (same as violations); drivers see own only.
         if user.role in ('admin', 'police'):
             return qs
@@ -62,6 +70,7 @@ class FineListCreateView(generics.ListCreateAPIView):
         return success_response(serializer.data)
 
     def create(self, request, *args, **kwargs):
+        # Thesis RBAC: only traffic officers may issue fines (admins configure, not enforce).
         if request.user.role != 'police':
             return error_response(
                 'Only traffic officers can issue fines',
@@ -126,6 +135,7 @@ class FineListCreateView(generics.ListCreateAPIView):
             evidence_image=data.get('evidence_image'),
             violation=violation,
         )
+        apply_issue_defaults(fine, violation)
         notify_driver_fine(driver, fine)
         log_audit(
             user=request.user,
@@ -148,7 +158,9 @@ class FineDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        qs = Fine.objects.select_related('driver', 'police', 'violation')
+        qs = Fine.objects.select_related(
+            'driver', 'police', 'violation', 'violation__ai_detection_log',
+        )
         if user.role in ('admin', 'police'):
             return qs
         return qs.filter(driver=user)
@@ -159,13 +171,31 @@ class FineDetailView(generics.RetrieveUpdateDestroyAPIView):
         if user.role not in ('police', 'admin'):
             return error_response('Permission denied', status_code=status.HTTP_403_FORBIDDEN)
 
-        editable = instance.status in ('pending', 'overdue', 'disputed')
+        editable = instance.status in ('pending', 'overdue', 'disputed', 'awaiting_verification')
         new_status = request.data.get('status')
+        if new_status == 'paid':
+            instance, _closed = mark_fine_paid(
+                instance,
+                payment_method=instance.payment_method or 'cash',
+                payment_reference=instance.payment_reference or 'OFFICER-MARK-PAID',
+                officer_note=(request.data.get('officer_note') or '').strip(),
+            )
+            log_audit(
+                user=user,
+                action='update',
+                resource='fine',
+                resource_id=instance.id,
+                request=request,
+                new_value={'status': instance.status, 'violation_closed': _closed},
+            )
+            return success_response(
+                FineSerializer(instance, context={'request': request}).data,
+                message='Fine marked paid and violation closed' if _closed else 'Fine marked paid',
+            )
+
         if new_status:
             instance.status = new_status
-            if new_status == 'paid':
-                instance.paid_at = timezone.now()
-            elif new_status in ('pending', 'overdue', 'disputed'):
+            if new_status in ('pending', 'overdue', 'disputed'):
                 instance.paid_at = None
 
         if editable:
@@ -211,12 +241,12 @@ class FineDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class FinePaymentView(APIView):
-    """Driver submits payment proof (manual bank transfer) or confirms KHQR reference."""
+    """Driver selects payment method: KHQR proof or cash (awaits officer)."""
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
         try:
-            fine = Fine.objects.select_related('driver').get(pk=pk)
+            fine = Fine.objects.select_related('driver', 'violation').get(pk=pk)
         except Fine.DoesNotExist:
             return error_response('Fine not found', status_code=status.HTTP_404_NOT_FOUND)
 
@@ -229,21 +259,42 @@ class FinePaymentView(APIView):
         serializer = FinePaymentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
+        method = data['payment_method']
 
-        fine.payment_method = data['payment_method']
+        # Cash: driver pays officer in person → officer verifies → paid
+        if method == 'cash':
+            fine = submit_cash_for_verification(fine, note=data.get('payment_reference') or '')
+            log_audit(
+                user=request.user,
+                action='update',
+                resource='fine_payment',
+                resource_id=fine.id,
+                request=request,
+                new_value={'payment_method': 'cash', 'status': fine.status},
+            )
+            return success_response(
+                FineSerializer(fine, context={'request': request}).data,
+                message='Cash payment selected — pay the officer, then wait for verification',
+            )
+
+        fine.payment_method = method
         fine.payment_reference = data['payment_reference']
         if data.get('payment_screenshot'):
             fine.payment_screenshot = data['payment_screenshot']
-        # Government workflow: KHQR/manual proof awaits officer verification
-        if data['payment_method'] in ('khqr', 'bank_transfer', 'aba', 'wing'):
+
+        # KHQR / bank proof: await officer verification (unless auto-confirm endpoint used)
+        if method in ('khqr', 'bank_transfer', 'aba', 'wing', 'acleda', 'manual'):
             fine.status = 'awaiting_verification'
             fine.paid_at = None
             message = 'Payment proof submitted — awaiting officer verification'
+            fine.save()
         else:
-            fine.status = 'paid'
-            fine.paid_at = timezone.now()
-            message = 'Payment submitted successfully'
-        fine.save()
+            fine, closed = mark_fine_paid(
+                fine,
+                payment_method=method,
+                payment_reference=data['payment_reference'],
+            )
+            message = 'Payment successful — violation closed' if closed else 'Payment submitted successfully'
 
         log_audit(
             user=request.user,
@@ -317,7 +368,71 @@ class FineKhqrSessionView(APIView):
             return error_response('Only the fined driver can pay this fine', status_code=status.HTTP_403_FORBIDDEN)
         if fine.status not in ('pending', 'overdue', 'disputed'):
             return error_response('This fine cannot be paid in its current status')
-        return success_response(create_khqr_session(fine=fine), message='Payment reference issued')
+        session = create_khqr_session(fine=fine)
+        # Persist bill reference so confirm-success / officer verify can match it.
+        bill_ref = (session.get('bill_reference') or session.get('payment_reference') or '').strip()
+        if bill_ref:
+            fine.payment_method = 'khqr'
+            fine.payment_reference = bill_ref
+            fine.save(update_fields=['payment_method', 'payment_reference', 'updated_at'])
+        return success_response(session, message='Payment reference issued')
+
+
+class FineKhqrConfirmView(APIView):
+    """
+    Driver confirms KHQR payment success after scanning (demo / gateway callback stand-in).
+
+    Workflow: Generate QR → Driver scans → Payment Success → status=PAID → close violation.
+    """
+    permission_classes = [IsAuthenticated]
+
+    @transaction.atomic
+    def post(self, request, pk):
+        try:
+            # Lock Fine only — select_related on nullable violation triggers
+            # "FOR UPDATE cannot be applied to the nullable side of an outer join".
+            fine = (
+                Fine.objects.select_for_update(of=('self',))
+                .select_related('driver', 'violation')
+                .get(pk=pk)
+            )
+        except Fine.DoesNotExist:
+            return error_response('Fine not found', status_code=status.HTTP_404_NOT_FOUND)
+        if request.user.role != 'driver' or fine.driver_id != request.user.id:
+            return error_response('Only the fined driver can confirm this payment', status_code=status.HTTP_403_FORBIDDEN)
+        if fine.status not in ('pending', 'overdue', 'disputed', 'awaiting_verification'):
+            return error_response('This fine cannot be confirmed in its current status')
+
+        bill_ref = (
+            (request.data.get('bill_reference') or request.data.get('payment_reference') or '').strip()
+            or (fine.payment_reference or '').strip()
+        )
+        if not bill_ref:
+            return error_response('Missing KHQR bill reference — generate QR first')
+
+        fine, closed = mark_fine_paid(
+            fine,
+            payment_method='khqr',
+            payment_reference=bill_ref,
+        )
+        try:
+            from notifications.services import notify_driver_payment_result
+            notify_driver_payment_result(fine.driver, fine, approved=True)
+        except Exception:
+            pass
+        log_audit(
+            user=request.user,
+            action='update',
+            resource='fine_khqr_confirm',
+            resource_id=fine.id,
+            request=request,
+            new_value={'status': 'paid', 'violation_closed': closed},
+        )
+        return success_response(
+            FineSerializer(fine, context={'request': request}).data,
+            message='KHQR payment successful — fine paid and violation closed'
+            if closed else 'KHQR payment successful — fine marked paid',
+        )
 
 
 class StripeWebhookView(APIView):
@@ -338,13 +453,13 @@ class StripeWebhookView(APIView):
             fine_id = session.get('metadata', {}).get('fine_id') or session.get('client_reference_id')
             if fine_id:
                 try:
-                    fine = Fine.objects.get(pk=fine_id)
-                    if fine.status in ('pending', 'overdue', 'disputed'):
-                        fine.status = 'paid'
-                        fine.paid_at = timezone.now()
-                        fine.payment_method = 'stripe'
-                        fine.payment_reference = session.get('payment_intent') or session.get('id', '')
-                        fine.save()
+                    fine = Fine.objects.select_related('violation').get(pk=fine_id)
+                    if fine.status in ('pending', 'overdue', 'disputed', 'awaiting_verification'):
+                        mark_fine_paid(
+                            fine,
+                            payment_method='stripe',
+                            payment_reference=session.get('payment_intent') or session.get('id', ''),
+                        )
                 except Fine.DoesNotExist:
                     pass
         return success_response({'received': True})
@@ -357,7 +472,18 @@ class DriverLookupView(APIView):
         license_no = request.query_params.get('license', '').strip()
         if not license_no:
             return error_response('License number required')
-        driver = User.objects.filter(role='driver', license_no__icontains=license_no, is_active=True).first()
+        driver = User.objects.filter(
+            role='driver', license_no__icontains=license_no, is_active=True,
+        ).first()
+        if not driver:
+            # Officers often type a plate (matches UI placeholder); resolve via vehicle owner.
+            vehicle = (
+                Vehicle.objects.filter(plate_number__icontains=license_no)
+                .select_related('owner')
+                .first()
+            )
+            if vehicle and vehicle.owner_id and getattr(vehicle.owner, 'role', None) == 'driver':
+                driver = vehicle.owner
         if not driver:
             return success_response(
                 {'driver': None, 'driver_profile_id': None, 'fines': [], 'vehicles': []},
@@ -425,14 +551,20 @@ class FinePDFExportView(APIView):
 
 
 class FineVerifyPaymentView(APIView):
-    """Officer/admin verifies KHQR or bank-transfer payment proof (government cash desk)."""
+    """Officer verifies cash receipt or KHQR/bank proof → PAID → close violation."""
 
     permission_classes = [IsAuthenticated, IsPoliceOrAdmin]
 
     @transaction.atomic
     def post(self, request, pk):
         try:
-            fine = Fine.objects.select_for_update().select_related('driver').get(pk=pk)
+            # Lock Fine only — select_related on nullable violation triggers
+            # "FOR UPDATE cannot be applied to the nullable side of an outer join".
+            fine = (
+                Fine.objects.select_for_update(of=('self',))
+                .select_related('driver', 'violation')
+                .get(pk=pk)
+            )
         except Fine.DoesNotExist:
             return error_response('Fine not found', status_code=status.HTTP_404_NOT_FOUND)
 
@@ -441,7 +573,11 @@ class FineVerifyPaymentView(APIView):
                 'Fine is not awaiting payment verification',
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
-        if not (fine.payment_reference or '').strip():
+
+        method = (fine.payment_method or '').strip().lower()
+        has_ref = bool((fine.payment_reference or '').strip())
+        # Cash desk: allow verify even if reference is the default CASH-IN-PERSON placeholder.
+        if method != 'cash' and not has_ref:
             return error_response(
                 'No payment reference on file — driver must submit proof first',
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -451,19 +587,30 @@ class FineVerifyPaymentView(APIView):
         note = (request.data.get('officer_note') or '').strip()
         old = {'status': fine.status}
         if approve:
-            fine.status = 'paid'
-            fine.paid_at = timezone.now()
-            if note:
-                fine.officer_note = note
-            message = 'Payment verified and marked paid'
+            fine, closed = mark_fine_paid(
+                fine,
+                payment_method=fine.payment_method or ('cash' if method == 'cash' else fine.payment_method),
+                payment_reference=fine.payment_reference,
+                officer_note=note,
+            )
+            message = (
+                'Payment verified — fine paid and violation closed'
+                if closed else 'Payment verified and marked paid'
+            )
         else:
             fine.status = 'pending'
             fine.paid_at = None
             if note:
                 fine.officer_note = note
+            fine.save()
+            closed = False
             message = 'Payment rejected — fine remains unpaid'
 
-        fine.save()
+        try:
+            from notifications.services import notify_driver_payment_result
+            notify_driver_payment_result(fine.driver, fine, approved=bool(approve))
+        except Exception:
+            pass
         log_audit(
             user=request.user,
             action='update',
@@ -471,7 +618,7 @@ class FineVerifyPaymentView(APIView):
             resource_id=fine.id,
             request=request,
             old_value=old,
-            new_value={'status': fine.status, 'approved': bool(approve)},
+            new_value={'status': fine.status, 'approved': bool(approve), 'violation_closed': closed},
         )
         return success_response(
             FineSerializer(fine, context={'request': request}).data,

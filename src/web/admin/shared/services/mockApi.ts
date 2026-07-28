@@ -373,9 +373,10 @@ export const finesAPI = {
   },
   async searchByLicense(license: string) {
     const driver = users.find((u) => u.license_no?.toLowerCase().includes(license.toLowerCase()));
-    if (!driver) return { driver: null, fines: [], vehicles: [] };
+    if (!driver) return { driver: null, driver_profile_id: null, fines: [], vehicles: [] };
     return {
       driver: { ...driver },
+      driver_profile_id: driver.id,
       fines: fines.filter((f) => f.driver_id === driver.id),
       vehicles: vehicles.filter((v) => v.owner_id === driver.id),
     };
@@ -479,6 +480,25 @@ export const unknownVehiclesAPI = {
       is_resolved: false,
       detected_at: new Date().toISOString(),
     }];
+  },
+  async queueFromDetection(data: {
+    plate_detected?: string;
+    plate_number?: string;
+    ai_detection_log_id?: string;
+    class_key?: string;
+    observed_action?: string;
+    violation_type?: string;
+  }) {
+    await delay(200);
+    return {
+      id: 'uv-queued-1',
+      plate_detected: (data.plate_detected || data.plate_number || 'UNKNOWN').toUpperCase(),
+      is_resolved: false,
+      observed_action: data.observed_action || '',
+      detected_class_key: data.class_key || '',
+      violation_type: data.violation_type || '',
+      detected_at: new Date().toISOString(),
+    } as import('../types').UnknownVehicleRecord;
   },
   async resolve(id: string, data: { officer_note?: string }) {
     return {
@@ -728,6 +748,10 @@ export const aiAPI = {
       ocr: { exact_match_rate: 0, note: 'mock' },
     };
   },
+  async warmup() {
+    await delay(50);
+    return { warm: true, elapsed_sec: 0.05 };
+  },
 };
 
 export const catalogAPI = {
@@ -872,6 +896,9 @@ const mockViolations: TrafficViolation[] = SAMPLE_VIOLATIONS.map((v) => ({ ...v 
 
 export const violationsAPI = {
   async getAll(): Promise<TrafficViolation[]> { return [...mockViolations]; },
+  async getRecent(limit = 200): Promise<{ rows: TrafficViolation[]; total: number }> {
+    return { rows: mockViolations.slice(0, limit), total: mockViolations.length };
+  },
   async getById(id: string): Promise<TrafficViolation> {
     const row = mockViolations.find((v) => v.id === id);
     if (!row) throw new Error('Not found');
@@ -935,8 +962,41 @@ export const violationsAPI = {
     const idx = mockViolations.findIndex((v) => v.id === _id);
     if (idx >= 0) mockViolations.splice(idx, 1);
   },
-  async getRules(): Promise<ViolationRule[]> {
+  async getRules(_opts?: { all?: boolean }): Promise<ViolationRule[]> {
     return [...SAMPLE_VIOLATION_RULES];
+  },
+  async createRule(data: Partial<ViolationRule>): Promise<ViolationRule> {
+    await delay(200);
+    const row: ViolationRule = {
+      id: crypto.randomUUID(),
+      sign_class_key: data.sign_class_key || 'NO_ENTRY',
+      prohibited_action: data.prohibited_action || 'ENTER',
+      violation_type: data.violation_type || 'NO_ENTRY',
+      title: data.title || 'Rule',
+      description: data.description || '',
+      default_fine_amount: Number(data.default_fine_amount ?? 15),
+      demerit_points: data.demerit_points ?? 0,
+      legal_reference: data.legal_reference || '',
+      is_active: data.is_active ?? true,
+    };
+    SAMPLE_VIOLATION_RULES.push(row);
+    return row;
+  },
+  async updateRule(id: string, data: Partial<ViolationRule>): Promise<ViolationRule> {
+    await delay(200);
+    const idx = SAMPLE_VIOLATION_RULES.findIndex((r) => r.id === id);
+    if (idx < 0) throw new Error('Rule not found');
+    SAMPLE_VIOLATION_RULES[idx] = { ...SAMPLE_VIOLATION_RULES[idx], ...data };
+    return SAMPLE_VIOLATION_RULES[idx];
+  },
+  async deleteRule(id: string): Promise<void> {
+    await delay(200);
+    const idx = SAMPLE_VIOLATION_RULES.findIndex((r) => r.id === id);
+    if (idx >= 0) SAMPLE_VIOLATION_RULES.splice(idx, 1);
+  },
+  async seedRules(): Promise<{ created: number }> {
+    await delay(200);
+    return { created: 0 };
   },
   async getStats() {
     return {

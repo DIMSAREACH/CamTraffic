@@ -72,6 +72,13 @@ YOLO_CLASS_ALIASES = {
     'yield': 'i_yield_give_way',
     'm_yield_give_way': 'i_yield_give_way',
     'no_entry': 'i_no_entry',
+    # B2 / 10-class YOLO keys → Cambodia catalog (I_* / M_*)
+    'keep_right': 'i_keep_right',
+    'm_keep_right': 'i_keep_right',
+    'keep_left': 'i_keep_left',
+    'm_keep_left': 'i_keep_left',
+    'keep_right_arrow': 'i_keep_right_arrow',
+    'keep_left_arrow': 'i_keep_left_arrow',
 }
 
 # Cambodia traffic sign knowledge base (used for mock / enrichment)
@@ -762,7 +769,11 @@ def _reference_image_hash_class(image_path) -> str | None:
 
 
 def _refresh_catalog_media_hashes() -> dict[str, str]:
-    """MD5(bytes) → class_key from TrafficSign images in the media store."""
+    """MD5(bytes) → class_key from TrafficSign images in the media store.
+
+    Remote storage errors (R2/S3 403, missing keys) must not abort detection —
+    skip unreadable files and cache whatever hashes we can build.
+    """
     global _CATALOG_MEDIA_HASH_CACHE
     mapping: dict[str, str] = {}
     try:
@@ -771,6 +782,7 @@ def _refresh_catalog_media_hashes() -> dict[str, str]:
         _CATALOG_MEDIA_HASH_CACHE = mapping
         return mapping
 
+    storage_errors = 0
     for sign in TrafficSign.objects.exclude(image='').exclude(image__isnull=True).iterator():
         class_key = _class_key_from_catalog_code(sign.sign_code or '')
         if not class_key:
@@ -779,6 +791,19 @@ def _refresh_catalog_media_hashes() -> dict[str, str]:
             with sign.image.open('rb') as fh:
                 digest = hashlib.md5(fh.read()).hexdigest()
         except OSError:
+            continue
+        except Exception as exc:
+            # boto3 ClientError (403 Forbidden) is not an OSError
+            storage_errors += 1
+            if storage_errors == 1:
+                logger.warning(
+                    'Catalog media hash refresh skipped remote reads (%s). '
+                    'Sign hash matching disabled until storage is readable.',
+                    exc,
+                )
+            # One auth/permission failure usually means the whole bucket is unreadable.
+            if storage_errors >= 3 or '403' in str(exc) or 'Forbidden' in str(exc):
+                break
             continue
         mapping[digest] = class_key
     _CATALOG_MEDIA_HASH_CACHE = mapping
@@ -789,6 +814,8 @@ def _catalog_media_hash_class(digest: str) -> str | None:
     global _CATALOG_MEDIA_HASH_CACHE
     if _CATALOG_MEDIA_HASH_CACHE is None:
         _refresh_catalog_media_hashes()
+    if not _CATALOG_MEDIA_HASH_CACHE:
+        return None
     return _CATALOG_MEDIA_HASH_CACHE.get(digest)
 
 
@@ -1092,15 +1119,19 @@ _VEHICLE_SPECIFIC_NO_ENTRY_KEYS = frozenset({
 })
 
 
-def _generic_no_entry_bar_hint(image_path) -> bool:
+def _no_entry_horizontal_bar_metrics(image_path) -> bool:
     """
-    True for classic No Entry — red circle with a horizontal white bar (no vehicle pictogram).
-    Tolerates wrinkled paper prints and webcam blur.
+    True when a classic No Entry horizontal white bar is visible on a red field.
+    White-field prohibitory signs (No U-Turn / turn arrows) must never match.
     """
     try:
         import cv2
         import numpy as np
     except ImportError:
+        return False
+
+    # U-turn / no-left/right use a white inner disc — never treat as No Entry.
+    if _red_sign_inner_profile(image_path) == 'white_field':
         return False
 
     try:
@@ -1116,7 +1147,8 @@ def _generic_no_entry_bar_hint(image_path) -> bool:
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     cx, cy = w // 2, h // 2
-    radius = int(min(h, w) * 0.38)
+    # Prefer a tighter crop so off-center webcam signs still catch the bar.
+    radius = int(min(h, w) * 0.32)
     patch_g = gray[max(0, cy - radius):cy + radius, max(0, cx - radius):cx + radius]
     patch_h = hsv[max(0, cy - radius):cy + radius, max(0, cx - radius):cx + radius]
     if patch_g.size == 0:
@@ -1142,7 +1174,7 @@ def _generic_no_entry_bar_hint(image_path) -> bool:
     )
     red_ratio = float(np.mean(red_outer))
 
-    has_horizontal_bar = (
+    classic_bar = (
         (white_band >= 0.40 and band_prominence >= 25 and mid_third >= 140)
         or (
             band_prominence >= 10
@@ -1152,13 +1184,46 @@ def _generic_no_entry_bar_hint(image_path) -> bool:
             and dark_ratio < 0.24
         )
     )
-    if not has_horizontal_bar:
+
+    # Webcam / printed signs: find the brightest thin horizontal strip anywhere
+    # in the crop (bar is often off geometric mid when the circle is cropped).
+    win = max(3, ph // 14)
+    best_mean = -1.0
+    best_i = 0
+    for i in range(0, max(1, ph - win)):
+        m = float(np.mean(row_means[i:i + win]))
+        if m > best_mean:
+            best_mean = m
+            best_i = i
+    above = float(np.mean(row_means[max(0, best_i - win): best_i])) if best_i > 0 else best_mean
+    below_slice = row_means[best_i + win: min(ph, best_i + 2 * win)]
+    below = float(np.mean(below_slice)) if below_slice.size else best_mean
+    strip = patch_g[best_i:best_i + win, pw // 8: 7 * pw // 8]
+    strip_white = float(np.mean(strip > 130)) if strip.size else 0.0
+    strip_prominence = best_mean - 0.5 * (above + below)
+    sliding_bar = (
+        strip_white >= 0.45
+        and best_mean >= 140
+        and strip_prominence >= 18
+        and red_ratio >= 0.18
+        and above < best_mean - 12
+        and below < best_mean - 12
+    )
+
+    if not (classic_bar or sliding_bar):
         return False
     if red_ratio < 0.10:
         return False
-    if _no_u_turn_shape_hint(image_path):
-        return False
     return True
+
+
+def _generic_no_entry_bar_hint(image_path) -> bool:
+    """
+    True for classic No Entry — red circle with a horizontal white bar (no vehicle pictogram).
+    Tolerates wrinkled paper prints and webcam blur.
+    Horizontal bar on a red field wins over U-turn arrow guesses.
+    """
+    return _no_entry_horizontal_bar_metrics(image_path)
 
 
 def _prohibitory_inner_arrow_metrics(image_path) -> dict | None:
@@ -1222,6 +1287,12 @@ def _no_u_turn_shape_hint(image_path) -> bool:
     """
     if not _prohibitory_red_ring_hint(image_path):
         return False
+    # No Entry / stop use a red inner field — U-turn never does.
+    if _red_sign_inner_profile(image_path) != 'white_field':
+        return False
+    # Classic No Entry white bar must never be treated as a U-turn arrow.
+    if _no_entry_horizontal_bar_metrics(image_path):
+        return False
     metrics = _prohibitory_inner_arrow_metrics(image_path)
     if not metrics:
         return False
@@ -1252,8 +1323,9 @@ def _sanitize_vehicle_specific_no_entry(image_path, result: dict | None) -> dict
     """Remap weak vehicle-specific no-entry YOLO labels to generic NO_ENTRY when shape matches."""
     if not result:
         return result
+    raw = _norm_class_token(str(result.get('class_key') or ''))
     key = _canonical_class_key(str(result.get('class_key') or ''))
-    if key not in _VEHICLE_SPECIFIC_NO_ENTRY_KEYS:
+    if raw not in _VEHICLE_SPECIFIC_NO_ENTRY_KEYS and key not in _VEHICLE_SPECIFIC_NO_ENTRY_KEYS:
         return result
     conf = float(result.get('confidence') or 0)
     if conf >= 58:
@@ -1265,9 +1337,51 @@ def _sanitize_vehicle_specific_no_entry(image_path, result: dict | None) -> dict
     return corrected
 
 
+def _sanitize_no_entry_mislabel(image_path, result: dict | None) -> dict | None:
+    """Remap false No U-Turn / turn labels to NO_ENTRY when the white bar / red field is visible."""
+    if not result or result.get('detection_mode') == 'no_sign':
+        return result
+    if _is_stop_like_result(result):
+        return result
+
+    key = _canonical_class_key(str(result.get('class_key') or ''))
+    key_u = key.upper().replace('-', '_')
+    code = (result.get('sign_code') or '').upper().replace('_', '-')
+    if key_u in ('NO_ENTRY', 'PW03_R1_04', 'I_NO_ENTRY') or code in ('PW03-R1-04', 'R1-04', 'I-019', 'PROH-001'):
+        return result
+
+    profile = _red_sign_inner_profile(image_path)
+    bar = _generic_no_entry_bar_hint(image_path)
+    # Red-field + prohibitory ring cannot be No U-Turn (U-turn is white-field only).
+    turn_keys = {
+        'NO_U_TURN', 'NO_LEFT_TURN', 'NO_RIGHT_TURN',
+        'PW03_R1_01', 'PW03_R1_02', 'PW03_R1_03',
+        'I_NO_U_TURN', 'I_NO_LEFT_TURN', 'I_NO_RIGHT_TURN',
+    }
+    red_field_forced = (
+        profile == 'red_field'
+        and _prohibitory_red_ring_hint(image_path)
+        and key_u in turn_keys
+    )
+    if not bar and not red_field_forced:
+        return result
+
+    conf = float(result.get('confidence') or 0)
+    corrected = _result_from_class_key('NO_ENTRY', confidence=max(conf, 86.0))
+    corrected['detection_engine'] = (
+        'yolo' if (result.get('detection_engine') or '') in ('yolo', 'catalog_match') else 'shape_hint'
+    )
+    if result.get('sign_bbox'):
+        corrected['sign_bbox'] = result['sign_bbox']
+    return corrected
+
+
 def _sanitize_u_turn_mislabel(image_path, result: dict | None) -> dict | None:
     """Remap any wrong label to NO_U_TURN when the U-arrow shape is visible."""
     if not result or result.get('detection_mode') == 'no_sign':
+        return result
+    # Never override a clear No Entry white bar / red field with U-turn.
+    if _generic_no_entry_bar_hint(image_path) or _red_sign_inner_profile(image_path) == 'red_field':
         return result
     if not _no_u_turn_shape_hint(image_path):
         return result
@@ -1320,6 +1434,12 @@ def _sanitize_live_yolo_result(image_path, result: dict | None) -> dict | None:
     result = _sanitize_stop_false_positive(image_path, result)
     result = _sanitize_vehicle_specific_no_entry(image_path, result)
     result = _sanitize_red_field_yolo_mislabel(image_path, result)
+    return _sanitize_prohibitory_mislabel(image_path, result)
+
+
+def _sanitize_prohibitory_mislabel(image_path, result: dict | None) -> dict | None:
+    """No Entry white bar wins; otherwise correct U-turn arrow mislabels."""
+    result = _sanitize_no_entry_mislabel(image_path, result)
     return _sanitize_u_turn_mislabel(image_path, result)
 
 
@@ -1327,6 +1447,8 @@ def _white_field_prohibitory_hint(image_path) -> str | None:
     """White-inner prohibitory signs (no left/right/U-turn) are never stop signs."""
     if not _prohibitory_red_ring_hint(image_path):
         return None
+    if _generic_no_entry_bar_hint(image_path):
+        return 'NO_ENTRY'
     if _red_sign_inner_profile(image_path) != 'white_field':
         return None
     if _no_u_turn_shape_hint(image_path):
@@ -1464,17 +1586,132 @@ def _normalize_sign_bbox(xyxy, img_w: float, img_h: float) -> dict[str, float]:
     }
 
 
+def _bbox_iou_norm(a: dict, b: dict) -> float:
+    ax1, ay1, ax2, ay2 = float(a['x1']), float(a['y1']), float(a['x2']), float(a['y2'])
+    bx1, by1, bx2, by2 = float(b['x1']), float(b['y1']), float(b['x2']), float(b['y2'])
+    ix1, iy1 = max(ax1, bx1), max(ay1, by1)
+    ix2, iy2 = min(ax2, bx2), min(ay2, by2)
+    inter = max(0.0, ix2 - ix1) * max(0.0, iy2 - iy1)
+    if inter <= 0:
+        return 0.0
+    area_a = max(0.0, ax2 - ax1) * max(0.0, ay2 - ay1)
+    area_b = max(0.0, bx2 - bx1) * max(0.0, by2 - by1)
+    union = area_a + area_b - inter
+    return inter / union if union > 0 else 0.0
+
+
+def _sign_label_from_key(class_key: str) -> str:
+    """Human label for overlay (No Entry, Keep Right, …)."""
+    key = _canonical_class_key(class_key or '')
+    if not key:
+        return 'Sign'
+    try:
+        row = _catalog_row_for_token(key)
+        if row:
+            name = (row.get('sign_name_en') or row.get('sign_name') or '').strip()
+            if name:
+                return name
+    except Exception:
+        pass
+    return key.replace('_', ' ').title()
+
+
+def _collect_yolo_sign_detections(results, min_conf: float = 0.20) -> list[dict]:
+    """
+    Collect every YOLO sign box above min_conf (0–1), with NMS.
+
+    Prefer NO_ENTRY over overlapping NO_PARKING (common confusion on red circles).
+    """
+    if not results or not results[0].boxes or len(results[0].boxes) == 0:
+        return []
+    boxes = results[0].boxes
+    img_h, img_w = (float(v) for v in results[0].orig_shape[:2])
+    names = results[0].names or {}
+    from .yolo_class_mapping import class_key_for_yolo_id
+
+    raw: list[dict] = []
+    for i in range(len(boxes)):
+        conf01 = float(boxes.conf[i])
+        if conf01 < min_conf:
+            continue
+        cls_idx = int(boxes.cls[i])
+        bbox = _normalize_sign_bbox(boxes.xyxy[i].tolist(), img_w, img_h)
+        mapped_key = class_key_for_yolo_id(cls_idx, model_class_count=len(names))
+        if mapped_key:
+            key = _canonical_class_key(mapped_key)
+        else:
+            class_key = names.get(cls_idx, CLASS_NAMES[cls_idx % len(CLASS_NAMES)])
+            key = _canonical_class_key(
+                class_key if isinstance(class_key, str) else CLASS_NAMES[cls_idx % len(CLASS_NAMES)]
+            )
+        raw.append({
+            'class_key': key,
+            'class_id': cls_idx,
+            'confidence': round(conf01 * 100.0, 1),
+            'sign_bbox': bbox,
+            'label': _sign_label_from_key(key),
+        })
+
+    # Rank: higher confidence first; NO_ENTRY preferred over NO_PARKING on ties via sort key.
+    def _is_no_entry(k: str) -> bool:
+        s = (k or '').lower()
+        return 'no_entry' in s and 'park' not in s
+
+    def _is_no_parking(k: str) -> bool:
+        s = (k or '').lower()
+        return 'no_park' in s or s.endswith('noparking') or s == 'no_parking'
+
+    def _rank(d: dict) -> tuple:
+        key = str(d.get('class_key') or '')
+        prefer = 0 if _is_no_entry(key) else (1 if _is_no_parking(key) else 2)
+        return (prefer, -float(d.get('confidence') or 0))
+
+    raw.sort(key=_rank)
+    kept: list[dict] = []
+    for cand in raw:
+        drop = False
+        replaced = False
+        for prev in list(kept):
+            if _bbox_iou_norm(cand['sign_bbox'], prev['sign_bbox']) < 0.40:
+                continue
+            pk, ck = str(prev.get('class_key') or ''), str(cand.get('class_key') or '')
+            # Same spot: keep NO_ENTRY over NO_PARKING even if weaker.
+            if (_is_no_entry(ck) and _is_no_parking(pk)) or (_is_no_entry(pk) and _is_no_parking(ck)):
+                if _is_no_entry(ck) and _is_no_parking(pk):
+                    kept.remove(prev)
+                    kept.append(cand)
+                    replaced = True
+                    break
+                drop = True
+                break
+            # Otherwise higher-priority already kept → drop overlap
+            drop = True
+            break
+        if replaced:
+            continue
+        if not drop:
+            kept.append(cand)
+        if len(kept) >= 8:
+            break
+    return kept
+
+
 def _pick_best_yolo_box(results, min_conf: float = 0.25):
     if not results or not results[0].boxes or len(results[0].boxes) == 0:
         return None, 0.0, None
-    boxes = results[0].boxes
-    best_i = int(boxes.conf.argmax())
-    conf = float(boxes.conf[best_i])
-    if conf < min_conf:
-        return None, conf, None
-    img_h, img_w = (float(v) for v in results[0].orig_shape[:2])
-    bbox = _normalize_sign_bbox(boxes.xyxy[best_i].tolist(), img_w, img_h)
-    return int(boxes.cls[best_i]), conf * 100, bbox
+    # Prefer multi-sign ranking (NO_ENTRY over NO_PARKING) then highest conf.
+    dets = _collect_yolo_sign_detections(results, min_conf=min_conf)
+    if not dets:
+        boxes = results[0].boxes
+        best_i = int(boxes.conf.argmax())
+        conf = float(boxes.conf[best_i])
+        if conf < min_conf:
+            return None, conf, None
+        img_h, img_w = (float(v) for v in results[0].orig_shape[:2])
+        bbox = _normalize_sign_bbox(boxes.xyxy[best_i].tolist(), img_w, img_h)
+        return int(boxes.cls[best_i]), conf * 100, bbox
+    best = max(dets, key=lambda d: float(d.get('confidence') or 0))
+    return int(best['class_id']), float(best['confidence']), best.get('sign_bbox')
 
 
 def _mock_detect(image_path, hint_source: str | None = None):
@@ -1578,7 +1815,8 @@ def _yolo_infer_once(
     else:
         infer_conf = threshold
     imgsz = _infer_imgsz(fast_live=fast_live)
-    results = model(infer_path, conf=infer_conf, imgsz=imgsz, verbose=False)
+    # Use higher IoU threshold (0.7) for stronger NMS → eliminates duplicate overlapping boxes
+    results = model(infer_path, conf=infer_conf, imgsz=imgsz, iou=0.7, verbose=False)
     cls_idx, conf, bbox = _pick_best_yolo_box(results, min_conf=infer_conf)
     if cls_idx is None:
         return None
@@ -1596,6 +1834,11 @@ def _yolo_infer_once(
     out = {'class_key': key, 'confidence': round(float(conf or 0.0), 1), 'class_id': int(cls_idx)}
     if bbox:
         out['sign_bbox'] = bbox
+    # All sign boxes for UI multi-label annotation (No Entry + Keep Right, etc.).
+    multi_floor = min(float(infer_conf), 0.20)
+    sign_detections = _collect_yolo_sign_detections(results, min_conf=multi_floor)
+    if sign_detections:
+        out['sign_detections'] = sign_detections
     return out
 
 
@@ -1779,11 +2022,14 @@ def _build_result_from_yolo_raw(raw: dict) -> dict:
     result['detection_engine'] = 'yolo'
     if raw.get('sign_bbox'):
         result['sign_bbox'] = raw['sign_bbox']
+    if raw.get('sign_detections'):
+        result['sign_detections'] = raw['sign_detections']
     result['yolo_debug'] = {
         'class_key': raw.get('class_key') or '',
         'class_id': raw.get('class_id'),
         'confidence': raw.get('confidence'),
         'sign_bbox': raw.get('sign_bbox'),
+        'sign_detections': raw.get('sign_detections') or [],
     }
     return result
 
@@ -1880,14 +2126,14 @@ def _run_hybrid_detection(
             yolo_result['sign_present'] = True
             return _finish_live(image_path, yolo_result, 'yolo', yolo_raw)
 
-        if sign_present and _no_u_turn_shape_hint(image_path):
-            hint_result = _result_from_class_key('NO_U_TURN', confidence=88.0)
+        if sign_present and _generic_no_entry_bar_hint(image_path):
+            hint_result = _result_from_class_key('NO_ENTRY', confidence=88.0)
             hint_result['detection_engine'] = 'shape_hint'
             hint_result['sign_present'] = True
             return _finish_live(image_path, hint_result, 'shape_hint')
 
-        if sign_present and _generic_no_entry_bar_hint(image_path):
-            hint_result = _result_from_class_key('NO_ENTRY', confidence=82.0)
+        if sign_present and _no_u_turn_shape_hint(image_path):
+            hint_result = _result_from_class_key('NO_U_TURN', confidence=88.0)
             hint_result['detection_engine'] = 'shape_hint'
             hint_result['sign_present'] = True
             return _finish_live(image_path, hint_result, 'shape_hint')
@@ -1940,7 +2186,7 @@ def _run_hybrid_detection(
     if named_upload:
         yolo_key = _canonical_class_key(str((yolo_result or {}).get('class_key') or ''))
         if yolo_key == explicit and yolo_conf >= hybrid_min:
-            yolo_result = _sanitize_u_turn_mislabel(image_path, yolo_result)
+            yolo_result = _sanitize_prohibitory_mislabel(image_path, yolo_result)
             yolo_result['detection_engine'] = 'yolo'
             return _upload_return( yolo_result, 'yolo')
 
@@ -1956,7 +2202,7 @@ def _run_hybrid_detection(
             and cat_score >= _match_min_correlation()
             and cat_margin >= 0.08
         ):
-            catalog_candidate = _sanitize_u_turn_mislabel(image_path, catalog_candidate)
+            catalog_candidate = _sanitize_prohibitory_mislabel(image_path, catalog_candidate)
             catalog_candidate['detection_engine'] = 'catalog_match'
             return _upload_return( catalog_candidate, 'catalog_match')
 
@@ -1968,21 +2214,21 @@ def _run_hybrid_detection(
         return _upload_return( merged, engine)
 
     if yolo_result and yolo_conf >= hybrid_min:
-        yolo_result = _sanitize_u_turn_mislabel(image_path, yolo_result)
+        yolo_result = _sanitize_prohibitory_mislabel(image_path, yolo_result)
         yolo_result['detection_engine'] = 'yolo'
         return _upload_return( yolo_result, 'yolo')
 
     if yolo_result and (
         _upload_yolo_trusted(yolo_conf) or _upload_yolo_catalog_acceptable(yolo_raw)
     ):
-        yolo_result = _sanitize_u_turn_mislabel(image_path, yolo_result)
+        yolo_result = _sanitize_prohibitory_mislabel(image_path, yolo_result)
         yolo_result['detection_engine'] = 'yolo'
         return _upload_return( yolo_result, 'yolo')
 
     # Fast image/live path: skip 247-ref catalog histogram scan (very slow on car photos).
     catalog_result = None
     if not live_fast:
-        catalog_result = _sanitize_u_turn_mislabel(
+        catalog_result = _sanitize_prohibitory_mislabel(
             image_path,
             _sanitize_stop_false_positive(
                 image_path, _try_catalog_visual_match(image_path, live_capture=False),
@@ -2000,42 +2246,40 @@ def _run_hybrid_detection(
         if yolo_result and (
             _upload_yolo_trusted(yolo_conf) or _upload_yolo_catalog_acceptable(yolo_raw)
         ):
-            yolo_result = _sanitize_u_turn_mislabel(image_path, yolo_result)
+            yolo_result = _sanitize_prohibitory_mislabel(image_path, yolo_result)
             yolo_result['detection_engine'] = 'yolo'
             return _upload_return(yolo_result, 'yolo')
         from .live_sign_presence import live_no_sign_result
         return _upload_return(live_no_sign_result(), 'opencv')
 
     if _shape_hints_enabled(upload=True, unified_prep=unified_prep):
+        if _generic_no_entry_bar_hint(image_path):
+            hint_result = _result_from_class_key('NO_ENTRY', confidence=88.0)
+            hint_result['detection_engine'] = 'shape_hint'
+            return _upload_return(hint_result, 'shape_hint')
         if _no_u_turn_shape_hint(image_path):
             hint_result = _result_from_class_key('NO_U_TURN', confidence=88.0)
             hint_result['detection_engine'] = 'shape_hint'
-            return _upload_return( hint_result, 'shape_hint')
+            return _upload_return(hint_result, 'shape_hint')
         profile = _red_sign_inner_profile(image_path)
         if profile == 'white_field' and not _generic_no_entry_bar_hint(image_path):
             shape_hint = _white_field_prohibitory_hint(image_path)
             if shape_hint:
                 hint_result = _result_from_class_key(shape_hint, confidence=88.0)
                 hint_result['detection_engine'] = 'shape_hint'
-                return _upload_return( hint_result, 'shape_hint')
-
-    if _shape_hints_enabled(upload=True, unified_prep=unified_prep):
-        if _generic_no_entry_bar_hint(image_path):
-            hint_result = _result_from_class_key('NO_ENTRY', confidence=82.0)
-            hint_result['detection_engine'] = 'shape_hint'
-            return _upload_return( hint_result, 'shape_hint')
+                return _upload_return(hint_result, 'shape_hint')
         visual = _visual_sign_class_hint(image_path)
         if visual:
             result = _result_from_class_key(visual, confidence=80.0)
             result['detection_engine'] = 'visual'
-            return _upload_return( result, 'visual')
+            return _upload_return(result, 'visual')
 
     # Last-resort YOLO: only when confidence clears upload floors (avoids weak
     # center-crop mislabels on busy street photos).
     if yolo_result and (
         _upload_yolo_trusted(yolo_conf) or _upload_yolo_catalog_acceptable(yolo_raw)
     ):
-        yolo_result = _sanitize_u_turn_mislabel(image_path, yolo_result)
+        yolo_result = _sanitize_prohibitory_mislabel(image_path, yolo_result)
         yolo_result['detection_engine'] = 'yolo'
         return _upload_return(yolo_result, 'yolo')
 
@@ -2195,6 +2439,11 @@ def _resolve_official_sign_labels(result: dict) -> dict:
     return result
 
 
+def _title_from_class_key(key: str) -> str:
+    """Human title from a class token (avoid 'Traffic Sign keep-right')."""
+    return re.sub(r'[_-]+', ' ', key or '').strip().title() or 'Traffic Sign'
+
+
 def _result_from_class_key(class_key: str, confidence: float = 94.0) -> dict:
     key = _canonical_class_key(class_key)
     catalog_row = _catalog_row_for_token(key)
@@ -2202,13 +2451,15 @@ def _result_from_class_key(class_key: str, confidence: float = 94.0) -> dict:
         return _result_from_catalog_row(catalog_row, class_key=key, confidence=confidence)
 
     display = key.replace('_', '-')
+    title = _title_from_class_key(key)
     info = SIGN_KNOWLEDGE.get(key, {
-        'sign_name': f'Traffic Sign {display}',
-        'description': f'Cambodia road sign {display}.',
+        'sign_name': title,
+        'description': f'Cambodia road sign: {title}.',
         'guidance': 'Follow local traffic regulations.',
     })
     result = {
         'sign_name': info['sign_name'],
+        'sign_name_en': info['sign_name'],
         'confidence': confidence,
         'description': info['description'],
         'guidance': info['guidance'],
@@ -2292,7 +2543,7 @@ def _finalize_hybrid_result(
 ) -> tuple[dict | None, str]:
     if not result:
         return result, engine
-    result = _sanitize_u_turn_mislabel(image_path, result)
+    result = _sanitize_prohibitory_mislabel(image_path, result)
     if _stop_false_positive_for_image(image_path, result):
         hint = None
         if not unified_prep:
@@ -2314,7 +2565,10 @@ def _finalize_hybrid_result(
             'class_id': yolo_raw.get('class_id'),
             'confidence': yolo_raw.get('confidence'),
             'sign_bbox': yolo_raw.get('sign_bbox'),
+            'sign_detections': yolo_raw.get('sign_detections') or [],
         }
+        if yolo_raw.get('sign_detections') and not result.get('sign_detections'):
+            result['sign_detections'] = yolo_raw['sign_detections']
     return result, engine
 
 

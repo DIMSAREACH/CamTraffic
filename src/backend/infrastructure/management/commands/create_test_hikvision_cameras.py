@@ -34,25 +34,25 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('🧪 Creating Test Hikvision Cameras'))
         self.stdout.write('=' * 70)
 
-        # Get or create test roads
+        # Get or create test roads (Road model uses road_code, not code)
         test_roads = [
             {
                 'name': 'Monivong Boulevard — Phnom Penh',
-                'code': 'NR1-PP',
+                'road_code': 'NR1-PP',
                 'road_type': 'urban',
                 'speed_limit': 60,
                 'lanes': 4,
             },
             {
                 'name': 'Russian Boulevard — Phnom Penh',
-                'code': 'NR2-PP',
+                'road_code': 'NR2-PP',
                 'road_type': 'urban',
                 'speed_limit': 50,
                 'lanes': 4,
             },
             {
                 'name': 'National Road 6 — Siem Reap',
-                'code': 'NR6-SR',
+                'road_code': 'NR6-SR',
                 'road_type': 'highway',
                 'speed_limit': 90,
                 'lanes': 4,
@@ -61,9 +61,11 @@ class Command(BaseCommand):
 
         roads = []
         for road_data in test_roads:
+            road_code = road_data['road_code']
+            defaults = {k: v for k, v in road_data.items() if k != 'road_code'}
             road, created = Road.objects.get_or_create(
-                road_code=road_data['code'],
-                defaults=road_data,
+                road_code=road_code,
+                defaults=defaults,
             )
             roads.append(road)
             if created:
@@ -101,9 +103,26 @@ class Command(BaseCommand):
         for i, config in enumerate(camera_configs[:count]):
             road = roads[i % len(roads)]
 
-            # Use local test images instead of RTSP
+            # Prefer local CCTV video clips for Live Camera video demos; fall back to stills.
+            local_samples = [
+                '/media/cctv/pp-riverside-traffic.webm',
+                '/media/cctv/pp-chaktomuk-traffic.webm',
+                '/media/cctv/m2-res_360p.mp4',
+            ]
+            local_stills = [
+                '/media/cctv/monivong-intersection.jpg',
+                '/media/cctv/monivong-ptz.jpg',
+                '/media/cctv/nr6-highway.jpg',
+            ]
             if use_local:
-                frame_url = f'/media/cctv/test-hikvision-{i+1}.jpg'
+                from pathlib import Path
+                from django.conf import settings as dj_settings
+
+                media_root = Path(dj_settings.MEDIA_ROOT)
+                candidate = local_samples[i % len(local_samples)]
+                still = local_stills[i % len(local_stills)]
+                rel = candidate[len('/media/'):]
+                frame_url = candidate if (media_root / rel).is_file() else still
             else:
                 # Simulated RTSP URL (won't work without real camera)
                 frame_url = f'http://192.168.1.{100+i}/snapshot.jpg'

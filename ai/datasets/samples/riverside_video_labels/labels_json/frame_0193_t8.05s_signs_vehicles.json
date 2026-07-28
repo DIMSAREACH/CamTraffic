@@ -1,0 +1,170 @@
+{
+  "source": "stock-footage-phnom-penh-cambodia-vehicles-and-motorbikes-move-along-the-riverside-road-near-a.webm",
+  "video_key": "riverside",
+  "frame_index": 193,
+  "frame_file": "frame_0193_t8.05s.jpg",
+  "timestamp_sec": 8.05,
+  "image_size": {
+    "width": 898,
+    "height": 506
+  },
+  "tracking": true,
+  "annotations": [
+    {
+      "kind": "sign",
+      "class_key": "PEDESTRIAN_AREA",
+      "class_id": 6,
+      "label_en": "Pedestrian Area",
+      "confidence": 60.1,
+      "track_id": 1200,
+      "bbox_norm": {
+        "x1": 0.4744725525379181,
+        "y1": 0.44402751326560974,
+        "x2": 0.5078885555267334,
+        "y2": 0.5039858222007751
+      },
+      "bbox_px": {
+        "x1": 426,
+        "y1": 225,
+        "x2": 456,
+        "y2": 255
+      },
+      "bbox_yolo": {
+        "x_center": 0.491181,
+        "y_center": 0.474007,
+        "width": 0.033416,
+        "height": 0.059958
+      }
+    },
+    {
+      "kind": "sign",
+      "class_key": "SLOW_DOWN",
+      "class_id": 7,
+      "label_en": "Slow Down",
+      "confidence": 36.9,
+      "track_id": 1202,
+      "bbox_norm": {
+        "x1": 0.4698924422264099,
+        "y1": 0.3706636428833008,
+        "x2": 0.5089662075042725,
+        "y2": 0.44713687896728516
+      },
+      "bbox_px": {
+        "x1": 422,
+        "y1": 188,
+        "x2": 457,
+        "y2": 226
+      },
+      "bbox_yolo": {
+        "x_center": 0.489429,
+        "y_center": 0.4089,
+        "width": 0.039074,
+        "height": 0.076473
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "tuk_tuk",
+      "class_id": 4,
+      "label_en": "Tuk Tuk",
+      "confidence": 88.2,
+      "track_id": 72,
+      "bbox_norm": {
+        "x1": 0.5878,
+        "y1": 0.5406,
+        "x2": 0.7726,
+        "y2": 0.8126
+      },
+      "bbox_px": {
+        "x1": 528,
+        "y1": 274,
+        "x2": 694,
+        "y2": 411
+      },
+      "bbox_yolo": {
+        "x_center": 0.6802,
+        "y_center": 0.6766,
+        "width": 0.1848,
+        "height": 0.272
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "tuk_tuk",
+      "class_id": 4,
+      "label_en": "Tuk Tuk",
+      "confidence": 81.6,
+      "track_id": 73,
+      "bbox_norm": {
+        "x1": 0.0581,
+        "y1": 0.5602,
+        "x2": 0.1189,
+        "y2": 0.6774
+      },
+      "bbox_px": {
+        "x1": 52,
+        "y1": 283,
+        "x2": 107,
+        "y2": 343
+      },
+      "bbox_yolo": {
+        "x_center": 0.0885,
+        "y_center": 0.6188,
+        "width": 0.0608,
+        "height": 0.1172
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "truck",
+      "class_id": 3,
+      "label_en": "Truck",
+      "confidence": 73.4,
+      "track_id": 76,
+      "bbox_norm": {
+        "x1": 0.1585,
+        "y1": 0.5493,
+        "x2": 0.3235,
+        "y2": 0.7806
+      },
+      "bbox_px": {
+        "x1": 142,
+        "y1": 278,
+        "x2": 291,
+        "y2": 395
+      },
+      "bbox_yolo": {
+        "x_center": 0.241,
+        "y_center": 0.66495,
+        "width": 0.165,
+        "height": 0.2313
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "motorcycle",
+      "class_id": 2,
+      "label_en": "Motorcycle",
+      "confidence": 70.1,
+      "track_id": 77,
+      "bbox_norm": {
+        "x1": 0.3657,
+        "y1": 0.5625,
+        "x2": 0.5023,
+        "y2": 0.8969
+      },
+      "bbox_px": {
+        "x1": 328,
+        "y1": 285,
+        "x2": 451,
+        "y2": 454
+      },
+      "bbox_yolo": {
+        "x_center": 0.434,
+        "y_center": 0.7297,
+        "width": 0.1366,
+        "height": 0.3344
+      }
+    }
+  ]
+}

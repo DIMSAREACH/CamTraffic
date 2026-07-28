@@ -44,19 +44,34 @@ def _read_training_status() -> dict:
 def _trained_sign_codes() -> list[str]:
     from ai_detection.sign_catalog_loader import resolve_catalog_path
 
+    # Core violation signs that MUST always be included
+    core_violation_codes = [
+        'R1-01', 'R1-02', 'R1-03', 'R1-04', 'R2-10', 'I-033', 'I-044',
+        'PW03-R1-01', 'PW03-R1-02', 'PW03-R1-03', 'PW03-R1-04', 'PW03-R2-10',
+    ]
+
     codes = _read_training_status().get('sign_codes') or []
     codes = [c for c in codes if c]
     if codes:
-        return codes
+        # Include core violations + training status codes
+        return list(set(core_violation_codes + codes))
 
     if resolve_catalog_path().name == 'traffic_sign_catalog_10.json':
         try:
             from ai_detection.sign_catalog_loader import load_sign_catalog_rows
 
-            return [row.get('sign_code', '') for row in load_sign_catalog_rows() if row.get('sign_code')]
+            catalog_codes = [row.get('sign_code', '') for row in load_sign_catalog_rows() if row.get('sign_code')]
+            # Include core violations + catalog codes
+            return list(set(core_violation_codes + catalog_codes))
         except Exception:
             pass
-    return []
+    
+    # Default: Include core violations + common prohibitory signs
+    default_trained_codes = core_violation_codes + [
+        'KH-NO-ENTRY', 'KH-NOUT', 'KH-NOPARK', 'I-019', 'I-020', 'I-021', 'I-031', 'I-032', 'I-037',
+        'I-045', 'P-029', 'P-030', 'M-032',
+    ]
+    return default_trained_codes
 
 
 def _trained_signs_queryset():

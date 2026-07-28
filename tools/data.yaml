@@ -1,0 +1,36 @@
+# YOLO Dataset Configuration
+# For use with YOLOv8/YOLOv9/YOLOv10 training
+
+# Paths (relative to this file, or absolute paths)
+path: ../../../Reference(PDF Download)/Dim Sareach/Image Dataset/split  # Root directory
+train: images/train  # Train images (relative to 'path')
+val: images/val      # Validation images (relative to 'path')
+test: images/test    # Test images (optional, relative to 'path')
+
+# Number of classes
+nc: 15
+
+# Class names (index matches class_id in label files)
+names:
+  0: car
+  1: motorcycle
+  2: truck
+  3: bus
+  4: license_plate
+  5: no_entry
+  6: stop
+  7: speed_limit_40
+  8: speed_limit_60
+  9: yield
+  10: pedestrian_crossing
+  11: no_parking
+  12: one_way
+  13: turn_left
+  14: turn_right
+
+# Training hyperparameters (optional, can override in training script)
+# epochs: 100
+# batch: 16
+# imgsz: 640
+# conf: 0.25
+# iou: 0.7

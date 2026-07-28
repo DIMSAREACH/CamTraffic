@@ -10,17 +10,16 @@ import path from 'node:path';
 import { fileURLToPath } from 'url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const backend = path.join(root, 'backend');
 const shell = process.platform === 'win32';
 
 const deployArtifacts = [
-  'deploy/docker/docker-compose.prod.yml',
-  'deploy/docker/Dockerfile.backend.prod',
-  'deploy/docker/Dockerfile.nginx.prod',
-  'deploy/nginx/camtraffic.conf',
-  'deploy/scripts/deploy_production.sh',
-  'deploy/env/.env.production.example',
-  'deploy/ssl/certbot-init.sh',
+  'infrastructure/deploy/docker/docker-compose.prod.yml',
+  'infrastructure/deploy/docker/Dockerfile.backend.prod',
+  'infrastructure/deploy/docker/Dockerfile.nginx.prod',
+  'infrastructure/deploy/nginx/camtraffic.conf',
+  'infrastructure/deploy/scripts/deploy_production.sh',
+  'infrastructure/deploy/env/.env.production.example',
+  'infrastructure/deploy/ssl/certbot-init.sh',
 ];
 
 function run(label, command, args, cwd = root) {
@@ -51,8 +50,8 @@ if (!fs.existsSync(weights)) {
 }
 console.log('OK   ai/weights/best.pt');
 
-if (fs.existsSync(path.join(root, 'apps/citizen/package.json'))) {
-  console.log('OK   apps/citizen (PWA mobile channel)');
+if (fs.existsSync(path.join(root, 'src/web/citizen/package.json'))) {
+  console.log('OK   src/web/citizen (PWA mobile channel)');
 }
 
 run('Production-truth env', 'node', ['scripts/validate-production-data-mode.mjs']);

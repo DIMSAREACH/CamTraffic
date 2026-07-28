@@ -74,8 +74,8 @@ const EMPTY_CAMERA_FORM: CameraFormState = {
   road: '',
   name: '',
   code: '',
-  model: '',
-  camera_type: 'fixed',
+  model: 'iDS-TCD402-CR/12/64G',
+  camera_type: 'speed',
   status: 'active',
   frame_source_url: '',
   installed_date: '',
@@ -105,6 +105,34 @@ const TYPE_STYLE: Record<CameraType, { bg: string; color: string; border: string
   speed: { bg: 'rgba(245, 158, 11, 0.12)', color: '#B45309', border: 'rgba(245, 158, 11, 0.32)' },
 };
 
+/** Catalog models available when creating/editing cameras. */
+const CAMERA_MODEL_OPTIONS = [
+  {
+    code: 'iDS-TCD402-CR/12/64G',
+    label: 'Hikvision iDS-TCD402-CR/12/64G (Radar Traffic)',
+    brand: 'Hikvision',
+    camera_type: 'speed' as CameraType,
+  },
+  {
+    code: 'DS-2CD2xxx',
+    label: 'Hikvision DS-2CD2xxx (Standard IP)',
+    brand: 'Hikvision',
+    camera_type: 'fixed' as CameraType,
+  },
+  {
+    code: 'GENERIC',
+    label: 'Generic CCTV Camera',
+    brand: 'Generic',
+    camera_type: 'fixed' as CameraType,
+  },
+];
+
+const HIKVISION_TRAFFIC_MODEL = 'iDS-TCD402-CR/12/64G';
+
+function isHikvisionTrafficModel(model?: string | null) {
+  return (model || '').trim() === HIKVISION_TRAFFIC_MODEL;
+}
+
 function statusMeta(status: string | undefined) {
   return STATUS_META[(status as CameraStatus) || 'inactive'] ?? STATUS_META.inactive;
 }
@@ -118,11 +146,13 @@ function formatRoadLabel(road: Road) {
 }
 
 function buildCameraPayload(form: CameraFormState) {
+  const preset = CAMERA_MODEL_OPTIONS.find((m) => m.code === form.model.trim());
   return {
     road: form.road.trim(),
     name: form.name.trim(),
     code: form.code.trim(),
     model: form.model.trim(),
+    brand: preset?.brand || (isHikvisionTrafficModel(form.model) ? 'Hikvision' : ''),
     camera_type: form.camera_type,
     status: form.status,
     frame_source_url: form.frame_source_url.trim(),
@@ -230,12 +260,46 @@ function CameraFormDialog({
                 </div>
                 <div className="ct-dialog-field">
                   <Label htmlFor="camera_model" className="cameras-form-dialog__label">{t('pages.cameras.formModel')}</Label>
-                  <Input
-                    id="camera_model"
-                    value={form.model}
-                    onChange={(e) => onChange({ ...form, model: e.target.value })}
-                    placeholder="Hikvision DS-2CD"
-                  />
+                  <Select
+                    value={
+                      CAMERA_MODEL_OPTIONS.some((m) => m.code === form.model)
+                        ? form.model
+                        : (form.model ? '__custom__' : HIKVISION_TRAFFIC_MODEL)
+                    }
+                    onValueChange={(value) => {
+                      if (value === '__custom__') {
+                        onChange({ ...form, model: form.model || '' });
+                        return;
+                      }
+                      const preset = CAMERA_MODEL_OPTIONS.find((m) => m.code === value);
+                      onChange({
+                        ...form,
+                        model: value,
+                        camera_type: preset?.camera_type ?? form.camera_type,
+                      });
+                    }}
+                  >
+                    <SelectTrigger id="camera_model" className="cameras-form-dialog__select">
+                      <SelectValue placeholder="Select camera model" />
+                    </SelectTrigger>
+                    <SelectContent className="cameras-form-dialog__select-menu">
+                      {CAMERA_MODEL_OPTIONS.map((m) => (
+                        <SelectItem key={m.code} value={m.code} className="cameras-form-dialog__select-item">
+                          {m.label}
+                        </SelectItem>
+                      ))}
+                      {form.model && !CAMERA_MODEL_OPTIONS.some((m) => m.code === form.model) && (
+                        <SelectItem value="__custom__" className="cameras-form-dialog__select-item">
+                          Custom: {form.model}
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {isHikvisionTrafficModel(form.model) && (
+                    <p className="mt-1.5 text-xs text-slate-500">
+                      77 GHz radar · ±2 km/h · 18–350 m · 4 lanes · 256 targets · IP67
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -590,6 +654,24 @@ function CameraFeedPreview({
             <TypeIcon size={12} aria-hidden />
             {t(`pages.cameras.type.${camera.camera_type}`)}
           </span>
+          {isHikvisionTrafficModel(camera.model) && (
+            <span
+              className="cameras-tag"
+              style={{
+                background: 'rgba(14, 116, 144, 0.12)',
+                color: '#0E7490',
+                border: '1px solid rgba(14, 116, 144, 0.28)',
+              }}
+              title={camera.model_specs?.description || camera.model}
+            >
+              Hikvision Radar · {camera.model}
+            </span>
+          )}
+          {!isHikvisionTrafficModel(camera.model) && camera.model && (
+            <span className="cameras-tag cameras-tag--code">
+              {camera.brand ? `${camera.brand} · ` : ''}{camera.model}
+            </span>
+          )}
         </div>
         <div className="cameras-preview-toolbar__actions">
           <Button variant="outline" size="sm" onClick={onManualRefresh} className="cameras-action-btn gap-1.5">
@@ -717,7 +799,9 @@ function CameraFeedPreview({
               <span className="cameras-feed-chip cameras-feed-chip--live">
                 <span className="cameras-feed-chip__dot" />
                 {t('pages.cameras.liveBadge')}
-                <span className="cameras-feed-chip__interval">{POLL_INTERVAL_MS / 1000}s</span>
+                {!isVideoFeed && (
+                  <span className="cameras-feed-chip__interval">{POLL_INTERVAL_MS / 1000}s</span>
+                )}
               </span>
             ) : isStreaming ? (
               <span className="cameras-feed-chip cameras-feed-chip--paused">
@@ -807,8 +891,8 @@ export function CamerasPage() {
     [cameras, selectedId],
   );
 
-  const loadCameras = useCallback(async () => {
-    setLoading(true);
+  const loadCameras = useCallback(async (opts?: { soft?: boolean }) => {
+    if (!opts?.soft) setLoading(true);
     try {
       let data: Camera[];
       if (canManage) {
@@ -841,11 +925,11 @@ export function CamerasPage() {
     } catch {
       toast.error(t('pages.cameras.loadFailed'));
     } finally {
-      setLoading(false);
+      if (!opts?.soft) setLoading(false);
     }
   }, [t, canManage]);
 
-  useEffect(() => { loadCameras(); }, [loadCameras]);
+  useEffect(() => { void loadCameras(); }, [loadCameras]);
 
   useEffect(() => {
     if (!canManage) return;
@@ -937,9 +1021,12 @@ export function CamerasPage() {
     if (!resolveCameraFrameUrl(selected.frame_source_url, selected)) return;
     // Looping video streams do not need snapshot polling — polling was resetting the loader forever.
     if (isCameraVideoUrl(selected.frame_source_url)) return;
-    const id = window.setInterval(() => setRefreshTick((n) => n + 1), POLL_INTERVAL_MS);
+    const id = window.setInterval(() => {
+      if (document.visibilityState === 'hidden') return;
+      setRefreshTick((n) => n + 1);
+    }, POLL_INTERVAL_MS);
     return () => window.clearInterval(id);
-  }, [autoRefresh, selected]);
+  }, [autoRefresh, selectedId, selected?.status, selected?.frame_source_url]);
 
   const handleManualRefresh = () => setRefreshTick((n) => n + 1);
 
@@ -1014,7 +1101,7 @@ export function CamerasPage() {
             <button
               type="button"
               className="cameras-tool-btn cameras-tool-btn--primary"
-              onClick={loadCameras}
+              onClick={() => void loadCameras({ soft: true })}
               disabled={loading}
             >
               <span className="cameras-tool-btn__icon">

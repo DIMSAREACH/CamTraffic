@@ -8,11 +8,13 @@ const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 32 });
 /** Proxy /api and /media to Django; return JSON 503 when backend is down (avoids hard proxy crashes). */
 export function createApiProxy(target: string): ProxyOptions {
   const isHttps = target.startsWith('https://');
+  // AI detection (YOLO) can take 60–120s after a Django reload / first warm-up.
+  const AI_PROXY_MS = 180_000;
   return {
     target,
     changeOrigin: true,
-    timeout: 60_000,
-    proxyTimeout: 60_000,
+    timeout: AI_PROXY_MS,
+    proxyTimeout: AI_PROXY_MS,
     agent: isHttps ? httpsAgent : httpAgent,
     configure(proxy) {
       proxy.on('error', (err, _req, res) => {
@@ -34,7 +36,7 @@ export function createApiProxy(target: string): ProxyOptions {
         }
       });
       proxy.on('proxyReq', (proxyReq) => {
-        proxyReq.setTimeout(60_000);
+        proxyReq.setTimeout(AI_PROXY_MS);
       });
     },
   };

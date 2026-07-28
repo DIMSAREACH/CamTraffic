@@ -85,14 +85,16 @@ def _sample_frame_from_video(source: str | Path, dest_jpeg: str) -> bool:
     Grab one JPEG frame from a local/remote video.
     Rotates through the timeline so live detection sees different moments.
     """
-    import cv2
+    from .opencv_utils import grab_frame, open_video_capture, write_jpeg
 
-    cap = cv2.VideoCapture(str(source))
+    cap = open_video_capture(source, live=False)
     if not cap.isOpened():
         logger.warning('Video open failed: %s', source)
         return False
 
     try:
+        import cv2
+
         frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
         fps = float(cap.get(cv2.CAP_PROP_FPS) or 0) or 25.0
         if frame_count > 1:
@@ -100,14 +102,14 @@ def _sample_frame_from_video(source: str | Path, dest_jpeg: str) -> bool:
             idx = int(time.time() * max(1.0, fps * 0.35)) % frame_count
             cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
 
-        ok, frame = cap.read()
-        if (not ok or frame is None) and frame_count > 1:
+        frame = grab_frame(cap, live=False)
+        if frame is None and frame_count > 1:
             # Seek failed on some codecs — fall back to first readable frame
             cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-            ok, frame = cap.read()
-        if not ok or frame is None:
+            frame = grab_frame(cap, live=False)
+        if frame is None:
             return False
-        return bool(cv2.imwrite(dest_jpeg, frame))
+        return write_jpeg(dest_jpeg, frame, enhance=True)
     finally:
         cap.release()
 
@@ -153,20 +155,38 @@ def capture_frame_from_url(
 
         fetch_url = _absolute_http_url(raw)
         if fetch_url.lower().startswith(('rtsp://', 'rtsps://')):
-            import cv2
+            from .opencv_utils import grab_frame, open_video_capture, write_jpeg
 
-            cap = cv2.VideoCapture(fetch_url)
+            cap = open_video_capture(fetch_url, live=True)
             if not cap.isOpened():
                 logger.warning('RTSP open failed for url=%s', fetch_url[:120])
                 Path(tmp_path).unlink(missing_ok=True)
                 return None, None
-            ok, frame = cap.read()
-            cap.release()
-            if not ok or frame is None:
+            try:
+                frame = grab_frame(cap, live=True)
+            finally:
+                cap.release()
+            if frame is None:
                 Path(tmp_path).unlink(missing_ok=True)
                 return None, None
-            cv2.imwrite(tmp_path, frame)
+            if not write_jpeg(tmp_path, frame, enhance=True):
+                Path(tmp_path).unlink(missing_ok=True)
+                return None, None
             return tmp_path, fname
+
+        path_no_q = fetch_url.split('?', 1)[0].lower()
+        looks_like_video = (
+            Path(path_no_q).suffix.lower() in _VIDEO_SUFFIXES
+            or '/videos/' in path_no_q
+            or '/preview/stock-footage' in path_no_q
+            or path_no_q.endswith('/preview')
+            or 'stock-footage' in path_no_q
+        )
+        if looks_like_video and fetch_url.lower().startswith(('http://', 'https://')):
+            # Shutterstock / CDN preview URLs: sample a real video frame (not HTML).
+            if _sample_frame_from_video(fetch_url, tmp_path):
+                return tmp_path, fname
+            logger.warning('Video frame sample failed for url=%s', fetch_url[:120])
 
         if Path(fetch_url.split('?', 1)[0]).suffix.lower() in _VIDEO_SUFFIXES:
             if not _sample_frame_from_video(fetch_url, tmp_path):
@@ -180,9 +200,29 @@ def capture_frame_from_url(
             req = urllib.request.Request(fetch_url, headers={'User-Agent': 'CamTraffic/1.0'})
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 data = resp.read()
+                ctype = (resp.headers.get('Content-Type') or '').lower()
             if not data:
                 Path(tmp_path).unlink(missing_ok=True)
                 return None, None
+            # Reject HTML pages mistaken for snapshots (causes bad detections).
+            if 'text/html' in ctype or data[:15].lstrip().lower().startswith((b'<!doctype', b'<html')):
+                Path(tmp_path).unlink(missing_ok=True)
+                logger.warning('HTTP URL returned HTML, not an image/video: %s', fetch_url[:120])
+                return None, None
+            # Prefer OpenCV decode → optional dark enhance → rewrite JPEG.
+            try:
+                import numpy as np
+
+                from .opencv_utils import write_jpeg
+
+                arr = np.frombuffer(data, dtype=np.uint8)
+                import cv2
+
+                decoded = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+                if decoded is not None and write_jpeg(tmp_path, decoded, enhance=True):
+                    return tmp_path, fname
+            except Exception:
+                logger.debug('OpenCV enhance skipped for HTTP snapshot', exc_info=True)
             Path(tmp_path).write_bytes(data)
             return tmp_path, fname
 

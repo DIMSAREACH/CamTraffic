@@ -1,27 +1,18 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import {
   Brain, ArrowLeft, Activity, Target, Camera as CameraIcon, Zap,
   Loader2, CheckCircle, Signpost, Car, Shield, BarChart3,
 } from 'lucide-react';
-import { LiveWebcamPanel } from '@shared/components/ai/LiveWebcamPanel';
-import { ImageUploadPanel } from '@shared/components/ai/center/ImageUploadPanel';
-import { VideoUploadPanel } from '@shared/components/ai/center/VideoUploadPanel';
-import { LiveCameraDetectionPanel } from '@shared/components/ai/center/LiveCameraDetectionPanel';
 import {
   EnterpriseDetectionInputWorkspace,
   type EnterpriseInputMode,
 } from '@shared/components/ai/center/EnterpriseDetectionInputWorkspace';
-import { EnterpriseDetectionResultsView } from '@shared/components/ai/center/EnterpriseDetectionResultsView';
-import {
-  EnterpriseVideoDetectionResultsView,
-  EnterpriseVideoProcessingPanel,
-} from '@shared/components/ai/center/EnterpriseVideoDetectionResultsView';
 import { RecentDetectionsTable } from '@shared/components/ai/center/RecentDetectionsTable';
 import type { CenterDetectionResult } from '@shared/components/ai/center/DetectionCenterResultsPanel';
 import type { DetectPipelineOptions } from '@shared/constants/observedActions';
 import { toDetectPipelineOptions } from '@shared/constants/observedActions';
-import { isManualScanResult, type WebcamDetectionResult } from '@shared/hooks/useWebcamDetection';
+import { hasStreetDetections, isManualScanResult, type WebcamDetectionResult } from '@shared/hooks/useWebcamDetection';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { useAuth } from '@shared/context/AuthContext';
 import { aiAPI, camerasAPI } from '@shared/services/api';
@@ -38,7 +29,45 @@ import {
 import type { AIDetectionLog, AIDetectionPageStats } from '@shared/types';
 import { cn } from '@shared/components/ui/utils';
 import { FilterSelect } from '@shared/components/ui/FilterSelect';
+import { kickDetectionWarm } from '@shared/utils/detectionWarmup';
 import { toast } from 'sonner';
+
+/** Lazy-load heavy panels so first click to AI Detection paints fast. */
+const ImageUploadPanel = lazy(() =>
+  import('@shared/components/ai/center/ImageUploadPanel').then((m) => ({ default: m.ImageUploadPanel })),
+);
+const VideoUploadPanel = lazy(() =>
+  import('@shared/components/ai/center/VideoUploadPanel').then((m) => ({ default: m.VideoUploadPanel })),
+);
+const LiveCameraDetectionPanel = lazy(() =>
+  import('@shared/components/ai/center/LiveCameraDetectionPanel').then((m) => ({ default: m.LiveCameraDetectionPanel })),
+);
+const LiveWebcamPanel = lazy(() =>
+  import('@shared/components/ai/LiveWebcamPanel').then((m) => ({ default: m.LiveWebcamPanel })),
+);
+const EnterpriseDetectionResultsView = lazy(() =>
+  import('@shared/components/ai/center/EnterpriseDetectionResultsView').then((m) => ({
+    default: m.EnterpriseDetectionResultsView,
+  })),
+);
+const EnterpriseVideoDetectionResultsView = lazy(() =>
+  import('@shared/components/ai/center/EnterpriseVideoDetectionResultsView').then((m) => ({
+    default: m.EnterpriseVideoDetectionResultsView,
+  })),
+);
+const EnterpriseVideoProcessingPanel = lazy(() =>
+  import('@shared/components/ai/center/EnterpriseVideoDetectionResultsView').then((m) => ({
+    default: m.EnterpriseVideoProcessingPanel,
+  })),
+);
+
+function PanelFallback() {
+  return (
+    <div className="enterprise-ai-processing" style={{ minHeight: 180, display: 'grid', placeItems: 'center' }}>
+      <Loader2 size={28} className="enterprise-ai-processing__spinner" />
+    </div>
+  );
+}
 
 const PROCESSING_STEPS = [
   { icon: Signpost, labelKey: 'aiCenter.processSigns' },
@@ -54,39 +83,53 @@ function isToday(iso: string): boolean {
     && d.getDate() === now.getDate();
 }
 
-function EnterpriseProcessingPanel() {
+function EnterpriseProcessingPanel({ finishing = false }: { finishing?: boolean }) {
   const { t } = useLanguage();
-  const [progress, setProgress] = useState(12);
+  const [progress, setProgress] = useState(8);
 
   useEffect(() => {
     const started = performance.now();
-    // Match fast Detect (~0.5–1.5s). Cap at 94% until API clears overlay.
-    const durationMs = 450;
     let frame = 0;
 
     const tick = (now: number) => {
       const elapsed = now - started;
-      const tNorm = Math.min(1, elapsed / durationMs);
-      const eased = 1 - (1 - tNorm) ** 2.4;
-      const next = Math.min(94, Math.round(12 + eased * 82));
-      setProgress(next);
-      if (next < 94) {
+      // Fast rise to ~88%, then soft asymptotic crawl toward 99% (never freezes at 94%).
+      let next: number;
+      if (finishing) {
+        next = 100;
+      } else if (elapsed < 380) {
+        const tNorm = Math.min(1, elapsed / 380);
+        const eased = 1 - (1 - tNorm) ** 2.2;
+        next = 8 + eased * 80;
+      } else {
+        const creep = 1 - Math.exp(-(elapsed - 380) / 2200);
+        next = 88 + creep * 11;
+      }
+      setProgress(Math.min(finishing ? 100 : 99, Math.round(next)));
+      if (!finishing || next < 100) {
         frame = requestAnimationFrame(tick);
       }
     };
 
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, []);
+  }, [finishing]);
 
-  const stepDoneAt = [20, 48, 72];
+  const stepDoneAt = [18, 42, 68];
+  const statusLabel = finishing
+    ? (t('aiCenter.detectSuccess') !== 'aiCenter.detectSuccess' ? t('aiCenter.detectSuccess') : 'Almost done…')
+    : t('aiCenter.analyzingImage');
 
   return (
-    <div className="enterprise-ai-processing">
+    <div className={cn('enterprise-ai-processing', finishing && 'enterprise-ai-processing--done')}>
       <div className="enterprise-ai-processing__head">
-        <Loader2 size={32} className="enterprise-ai-processing__spinner" />
+        {finishing ? (
+          <CheckCircle size={32} className="enterprise-ai-processing__spinner enterprise-ai-processing__spinner--done" />
+        ) : (
+          <Loader2 size={32} className="enterprise-ai-processing__spinner" />
+        )}
         <h3>{t('aiCenter.processingTitle')}</h3>
-        <p>{t('aiCenter.analyzingImage')}</p>
+        <p>{statusLabel}</p>
       </div>
       <div
         className="enterprise-ai-processing__bar"
@@ -94,7 +137,7 @@ function EnterpriseProcessingPanel() {
         aria-valuenow={progress}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-label={t('aiCenter.analyzingImage')}
+        aria-label={statusLabel}
       >
         <div className="enterprise-ai-processing__bar-fill" style={{ width: `${progress}%` }} />
       </div>
@@ -104,7 +147,7 @@ function EnterpriseProcessingPanel() {
       </p>
       <ul className="enterprise-ai-processing__steps">
         {PROCESSING_STEPS.map(({ labelKey }, index) => {
-          const done = progress >= stepDoneAt[index];
+          const done = progress >= stepDoneAt[index] || finishing;
           return (
             <li
               key={labelKey}
@@ -119,7 +162,9 @@ function EnterpriseProcessingPanel() {
           );
         })}
       </ul>
-      <p className="enterprise-ai-processing__wait">{t('aiCenter.pleaseWait')}</p>
+      <p className="enterprise-ai-processing__wait">
+        {finishing ? '' : t('aiCenter.pleaseWait')}
+      </p>
     </div>
   );
 }
@@ -140,6 +185,7 @@ export function EnterpriseAIDetectionCenterPage() {
   const [result, setResult] = useState<CenterDetectionResult | null>(null);
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
   const [detecting, setDetecting] = useState(false);
+  const [finishingDetect, setFinishingDetect] = useState(false);
   const [pageStats, setPageStats] = useState<AIDetectionPageStats>(
     USE_SAMPLE_FALLBACK ? DEFAULT_PAGE_STATS : EMPTY_PAGE_STATS,
   );
@@ -184,11 +230,23 @@ export function EnterpriseAIDetectionCenterPage() {
   }, []);
 
   useEffect(() => {
+    // Fast first paint: stats only. Defer heavy logs / cameras / YOLO warmup.
     void refreshStats();
-    void refreshLogs();
-    void refreshCameras();
-    // Preload YOLO while user picks an image — Detect then finishes in <3s.
-    void aiAPI.warmup().catch(() => undefined);
+
+    const idle = window.setTimeout(() => {
+      void refreshLogs();
+      void refreshCameras();
+    }, 120);
+
+    // Soft warmup after UI is interactive — do not block navigation.
+    const warm = window.setTimeout(() => {
+      kickDetectionWarm();
+    }, 800);
+
+    return () => {
+      window.clearTimeout(idle);
+      window.clearTimeout(warm);
+    };
   }, [refreshStats, refreshLogs, refreshCameras]);
 
   useEffect(() => {
@@ -244,7 +302,7 @@ export function EnterpriseAIDetectionCenterPage() {
   const pipelineOptions: DetectPipelineOptions = toDetectPipelineOptions(demoAction);
 
   const handleResult = (res: CenterDetectionResult, preview: string) => {
-    setResult(res);
+    setFinishingDetect(true);
     setPreviewSrc(
       preview ||
       res.annotated_processed_image ||
@@ -252,16 +310,19 @@ export function EnterpriseAIDetectionCenterPage() {
       res.uploaded_image ||
       null,
     );
-    // Defer history refresh so the result UI paints immediately.
     window.setTimeout(() => {
+      setResult(res);
+      setFinishingDetect(false);
+      setDetecting(false);
       void refreshLogs();
       void refreshStats();
-    }, 0);
+    }, 180);
   };
 
-  /** Webcam: keep live camera mounted for preview/loop; open full results only after Scan & Save. */
+  /** Webcam: keep live camera for preview/loop; open full AI Summary after Scan & Save. */
   const handleWebcamResult = (res: WebcamDetectionResult, opts?: { quiet?: boolean }) => {
-    if (!isManualScanResult(res)) return;
+    const useful = isManualScanResult(res) || hasStreetDetections(res);
+    if (!useful) return;
 
     const preview =
       res.annotated_processed_image ||
@@ -270,23 +331,19 @@ export function EnterpriseAIDetectionCenterPage() {
       res.guide_frame_image ||
       '';
 
-    // Live loop lock or Scan Frame preview — stay on webcam workspace.
-    if (opts?.quiet || !res.log_id) {
+    // Live loop / Scan Frame — stay on webcam workspace (toast handled by panel).
+    if (opts?.quiet) {
       void refreshStats();
       return;
     }
 
+    // Scan & Save — always open complete results when detection succeeded.
     handleResult(res as CenterDetectionResult, preview);
-    toast.success(
-      t('aiDetection.webcam.savedToRecent') !== 'aiDetection.webcam.savedToRecent'
-        ? t('aiDetection.webcam.savedToRecent')
-        : 'Detection saved — see Recent Detection below',
-    );
   };
 
   const sourceLabel = t(`aiCenter.source.${inputMode}`);
-  // Keep results visible as soon as API returns — do not blank the view while re-detecting.
-  const showResults = Boolean(result);
+  const showProcessing = detecting || finishingDetect;
+  const showResults = Boolean(result) && !finishingDetect;
 
   const exportResult = () => {
     if (!result) return;
@@ -306,6 +363,7 @@ export function EnterpriseAIDetectionCenterPage() {
     });
     setResult(null);
     setDetecting(false);
+    setFinishingDetect(false);
   };
 
   const beforeKpi = [
@@ -320,31 +378,43 @@ export function EnterpriseAIDetectionCenterPage() {
     onDemoObservedActionChange: setDemoAction,
     onResult: handleResult,
     onDetectingChange: setDetecting,
-    disabled: detecting,
+    disabled: detecting || finishingDetect,
   };
 
   const renderPreview = () => {
     switch (inputMode) {
       case 'image':
-        return <ImageUploadPanel {...panelProps} layout="enterprise" />;
+        return (
+          <Suspense fallback={<PanelFallback />}>
+            <ImageUploadPanel {...panelProps} layout="enterprise" />
+          </Suspense>
+        );
       case 'video':
         return (
-          <VideoUploadPanel
-            {...panelProps}
-            onPreviewChange={setPreviewSrc}
-            onRegisterAbort={(abort) => { videoAbortRef.current = abort; }}
-          />
+          <Suspense fallback={<PanelFallback />}>
+            <VideoUploadPanel
+              {...panelProps}
+              onPreviewChange={setPreviewSrc}
+              onRegisterAbort={(abort) => { videoAbortRef.current = abort; }}
+            />
+          </Suspense>
         );
       case 'camera':
-        return <LiveCameraDetectionPanel {...panelProps} />;
+        return (
+          <Suspense fallback={<PanelFallback />}>
+            <LiveCameraDetectionPanel {...panelProps} />
+          </Suspense>
+        );
       case 'webcam':
         return (
           <div className="ai-center-webcam-wrap">
-            <LiveWebcamPanel
-              onResult={handleWebcamResult}
-              disabled={detecting}
-              pipelineOptions={pipelineOptions}
-            />
+            <Suspense fallback={<PanelFallback />}>
+              <LiveWebcamPanel
+                onResult={handleWebcamResult}
+                disabled={detecting}
+                pipelineOptions={pipelineOptions}
+              />
+            </Suspense>
           </div>
         );
       default:
@@ -386,7 +456,7 @@ export function EnterpriseAIDetectionCenterPage() {
         </div>
       </div>
 
-      {!showResults && !(detecting && inputMode === 'video') && (
+      {!showResults && !(showProcessing && inputMode === 'video') && (
         <div className="enforcement-page__stat-grid enforcement-page__stat-grid--four enterprise-ai-kpi-grid">
           {beforeKpi.map((card) => {
             const Icon = card.icon;
@@ -408,44 +478,49 @@ export function EnterpriseAIDetectionCenterPage() {
       )}
 
       {showResults && result ? (
-        result.video_analysis || inputMode === 'video' ? (
-          <EnterpriseVideoDetectionResultsView
-            result={result}
-            previewSrc={previewSrc}
-            sourceLabel={sourceLabel}
-            onNewDetection={resetDetection}
-            violationsBasePath="/admin"
-          />
-        ) : (
-          <EnterpriseDetectionResultsView
-            result={result}
-            previewSrc={previewSrc}
-            sourceLabel={sourceLabel}
-            accuracyAvg={pageStats.stats.accuracy_avg}
-            onExport={exportResult}
-            onNewDetection={resetDetection}
-            violationsBasePath="/admin"
-          />
-        )
+        <Suspense fallback={<PanelFallback />}>
+          {result.video_analysis || inputMode === 'video' ? (
+            <EnterpriseVideoDetectionResultsView
+              result={result}
+              previewSrc={previewSrc}
+              sourceLabel={sourceLabel}
+              onNewDetection={resetDetection}
+              violationsBasePath="/admin"
+            />
+          ) : (
+            <EnterpriseDetectionResultsView
+              result={result}
+              previewSrc={previewSrc}
+              sourceLabel={sourceLabel}
+              accuracyAvg={pageStats.stats.accuracy_avg}
+              onExport={exportResult}
+              onNewDetection={resetDetection}
+              violationsBasePath="/admin"
+            />
+          )}
+        </Suspense>
       ) : (
         <EnterpriseDetectionInputWorkspace
           inputMode={inputMode}
           onInputModeChange={selectInputMode}
-          detecting={detecting}
+          detecting={showProcessing}
           sourceControls={null}
           previewContent={renderPreview()}
           processingOverlay={
             inputMode === 'video'
               ? (
-                <EnterpriseVideoProcessingPanel
-                  previewSrc={previewSrc}
-                  onStop={() => {
-                    videoAbortRef.current?.();
-                    setDetecting(false);
-                  }}
-                />
+                <Suspense fallback={<PanelFallback />}>
+                  <EnterpriseVideoProcessingPanel
+                    previewSrc={previewSrc}
+                    onStop={() => {
+                      videoAbortRef.current?.();
+                      setDetecting(false);
+                      setFinishingDetect(false);
+                    }}
+                  />
+                </Suspense>
               )
-              : <EnterpriseProcessingPanel />
+              : <EnterpriseProcessingPanel finishing={finishingDetect} />
           }
         />
       )}

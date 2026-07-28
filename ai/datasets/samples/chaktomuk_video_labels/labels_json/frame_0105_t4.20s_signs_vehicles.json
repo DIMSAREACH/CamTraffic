@@ -1,0 +1,222 @@
+{
+  "source": "stock-footage-phnom-penh-cambodia-th-january-busy-traffic-on-chaktomuk-walk-street-in-phnom-penh.webm",
+  "video_key": "chaktomuk",
+  "frame_index": 105,
+  "frame_file": "frame_0105_t4.20s.jpg",
+  "timestamp_sec": 4.2,
+  "image_size": {
+    "width": 898,
+    "height": 506
+  },
+  "tracking": true,
+  "annotations": [
+    {
+      "kind": "sign",
+      "class_key": "SPEED_LIMIT_40",
+      "class_id": 8,
+      "label_en": "Speed Limit 40",
+      "confidence": 48.3,
+      "track_id": 1201,
+      "bbox_norm": {
+        "x1": 0.5495582818984985,
+        "y1": 0.2786653935909271,
+        "x2": 0.5859414935112,
+        "y2": 0.34283408522605896
+      },
+      "bbox_px": {
+        "x1": 494,
+        "y1": 141,
+        "x2": 526,
+        "y2": 173
+      },
+      "bbox_yolo": {
+        "x_center": 0.56775,
+        "y_center": 0.31075,
+        "width": 0.036383,
+        "height": 0.064169
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "motorcycle",
+      "class_id": 2,
+      "label_en": "Motorcycle",
+      "confidence": 95.3,
+      "track_id": 48,
+      "bbox_norm": {
+        "x1": 0.2774,
+        "y1": 0.501,
+        "x2": 0.3625,
+        "y2": 0.7669
+      },
+      "bbox_px": {
+        "x1": 249,
+        "y1": 254,
+        "x2": 326,
+        "y2": 388
+      },
+      "bbox_yolo": {
+        "x_center": 0.31995,
+        "y_center": 0.63395,
+        "width": 0.0851,
+        "height": 0.2659
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "motorcycle",
+      "class_id": 2,
+      "label_en": "Motorcycle",
+      "confidence": 89.4,
+      "track_id": 57,
+      "bbox_norm": {
+        "x1": 0.457,
+        "y1": 0.4683,
+        "x2": 0.5244,
+        "y2": 0.6708
+      },
+      "bbox_px": {
+        "x1": 410,
+        "y1": 237,
+        "x2": 471,
+        "y2": 339
+      },
+      "bbox_yolo": {
+        "x_center": 0.4907,
+        "y_center": 0.56955,
+        "width": 0.0674,
+        "height": 0.2025
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "tuk_tuk",
+      "class_id": 4,
+      "label_en": "Tuk Tuk",
+      "confidence": 88.0,
+      "track_id": 62,
+      "bbox_norm": {
+        "x1": 0.6645,
+        "y1": 0.3812,
+        "x2": 0.8329,
+        "y2": 0.6496
+      },
+      "bbox_px": {
+        "x1": 597,
+        "y1": 193,
+        "x2": 748,
+        "y2": 329
+      },
+      "bbox_yolo": {
+        "x_center": 0.7487,
+        "y_center": 0.5154,
+        "width": 0.1684,
+        "height": 0.2684
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "car",
+      "class_id": 1,
+      "label_en": "Car",
+      "confidence": 81.4,
+      "track_id": 65,
+      "bbox_norm": {
+        "x1": 0.3601,
+        "y1": 0.4326,
+        "x2": 0.4736,
+        "y2": 0.5693
+      },
+      "bbox_px": {
+        "x1": 323,
+        "y1": 219,
+        "x2": 425,
+        "y2": 288
+      },
+      "bbox_yolo": {
+        "x_center": 0.41685,
+        "y_center": 0.50095,
+        "width": 0.1135,
+        "height": 0.1367
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "motorcycle",
+      "class_id": 2,
+      "label_en": "Motorcycle",
+      "confidence": 79.7,
+      "track_id": 66,
+      "bbox_norm": {
+        "x1": 0.2018,
+        "y1": 0.4628,
+        "x2": 0.2522,
+        "y2": 0.6033
+      },
+      "bbox_px": {
+        "x1": 181,
+        "y1": 234,
+        "x2": 226,
+        "y2": 305
+      },
+      "bbox_yolo": {
+        "x_center": 0.227,
+        "y_center": 0.53305,
+        "width": 0.0504,
+        "height": 0.1405
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "tuk_tuk",
+      "class_id": 4,
+      "label_en": "Tuk Tuk",
+      "confidence": 76.5,
+      "track_id": 67,
+      "bbox_norm": {
+        "x1": 0.1581,
+        "y1": 0.4228,
+        "x2": 0.2212,
+        "y2": 0.5584
+      },
+      "bbox_px": {
+        "x1": 142,
+        "y1": 214,
+        "x2": 199,
+        "y2": 283
+      },
+      "bbox_yolo": {
+        "x_center": 0.18965,
+        "y_center": 0.4906,
+        "width": 0.0631,
+        "height": 0.1356
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "tuk_tuk",
+      "class_id": 4,
+      "label_en": "Tuk Tuk",
+      "confidence": 70.0,
+      "track_id": 61,
+      "bbox_norm": {
+        "x1": 0.5378,
+        "y1": 0.4099,
+        "x2": 0.636,
+        "y2": 0.5724
+      },
+      "bbox_px": {
+        "x1": 483,
+        "y1": 207,
+        "x2": 571,
+        "y2": 290
+      },
+      "bbox_yolo": {
+        "x_center": 0.5869,
+        "y_center": 0.49115,
+        "width": 0.0982,
+        "height": 0.1625
+      }
+    }
+  ]
+}

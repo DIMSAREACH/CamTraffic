@@ -51,39 +51,47 @@ class CameraModelSpec:
 
 # Camera model catalog
 CAMERA_MODELS = {
+    # Official Hikvision radar-assisted traffic flow detection camera
+    # Spec sheet: iDS-TCD402-CR/12/64G (77 GHz narrow beam radar)
     'HIKVISION_IDS_TCD402': CameraModelSpec(
         model_code='iDS-TCD402-CR/12/64G',
         manufacturer='Hikvision',
         model_name='Traffic Flow Detection Camera',
-        description='Radar-assisted traffic flow detection camera with 77 GHz narrow beam radar',
-        
+        description=(
+            'Radar-assisted traffic flow detection camera. '
+            'Professional traffic narrow beam radar (77 GHz). '
+            'Capture rate ≥95%, multi-target tracking up to 256, '
+            'virtual coils, traffic parameters & incident detection. '
+            'All-weather IP67 (low light / storm / fog).'
+        ),
+
         # Radar capabilities
         has_radar=True,
         radar_frequency_ghz=77.0,
-        radar_range_m=(15, 350),
+        radar_range_m=(18, 350),  # Detection distance 18–350 m
         capture_rate_percent=95.0,
         max_targets=256,
-        
+
         # Speed measurement
         speed_range_kmh=(-300, 300),
         speed_accuracy_kmh=2.0,
-        
+
         # Coverage
         lane_coverage=4,
         detection_distance_m=350,
-        
-        # Vehicle types
-        vehicle_types_supported=('car', 'truck', 'motorcycle', 'bus', 'large', 'small'),
-        
+
+        # Vehicle classification (Large / Small / Motorcycle)
+        vehicle_types_supported=('large', 'small', 'motorcycle'),
+
         # Environmental
         ip_rating='IP67',
         low_light_capable=True,
         weather_resistant=True,
-        
+
         # Video
         resolution='1080p',
         frame_rate=25,
-        
+
         # Features
         supports_virtual_coils=True,
         supports_anpr=True,

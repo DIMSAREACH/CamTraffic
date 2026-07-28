@@ -21,6 +21,20 @@ class SignPipelineTest(SimpleTestCase):
         self.assertEqual(out.shape[0], 640)
         self.assertEqual(out.shape[1], 640)
         self.assertEqual(dbg['size'], '640x640')
+        self.assertTrue(dbg.get('used_letterbox'))
+
+    def test_preprocess_letterbox_dark_and_soft(self):
+        import numpy as np
+
+        # Tall dark soft crop — should letterbox, boost contrast, and often sharpen.
+        dark = np.full((240, 120, 3), 28, dtype=np.uint8)
+        soft = cv2.GaussianBlur(dark, (9, 9), 0)
+        out, dbg = preprocess_sign_bgr(soft, size=320)
+        self.assertEqual(out.shape[:2], (320, 320))
+        self.assertTrue(dbg['used_letterbox'])
+        self.assertIn('mean_luma', dbg)
+        self.assertIn('blur_score', dbg)
+        self.assertLess(dbg['mean_luma'], 60)
 
     def test_unified_pipeline_writes_yolo_input(self):
         path = self._sign_path('PW03-R1-01.png')

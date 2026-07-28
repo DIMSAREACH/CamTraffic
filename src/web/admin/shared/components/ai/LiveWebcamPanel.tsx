@@ -8,7 +8,7 @@ import type { DetectPipelineOptions } from '@shared/constants/observedActions';
 import {
   useWebcamDetection,
   isManualScanResult,
-  LIVE_VOTE_MIN_AGREE,
+  hasStreetDetections,
   LIVE_VOTE_WINDOW,
   type WebcamDetectionResult,
 } from '@shared/hooks/useWebcamDetection';
@@ -19,6 +19,7 @@ import { FilterSelect } from '@shared/components/ui/FilterSelect';
 import { cn } from '@shared/components/ui/utils';
 import { buildDetectionOverlay } from '@shared/utils/detectionOverlay';
 import { drawAnnotatedDetectionFrame } from '@shared/utils/webcamFrame';
+import { aiAPI } from '@shared/services/api';
 import { toast } from 'sonner';
 
 interface LiveWebcamPanelProps {
@@ -32,6 +33,12 @@ export function LiveWebcamPanel({ onResult, disabled = false, pipelineOptions }:
   const lastPreviewKeyRef = useRef('');
   const stageRef = useRef<HTMLDivElement>(null);
   const annotatedCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Warm YOLO on tab open so the first Scan is not a cold 503.
+  useEffect(() => {
+    void aiAPI.warmup().catch(() => undefined);
+  }, []);
+
   const {
     videoRef,
     canvasRef,
@@ -52,6 +59,7 @@ export function LiveWebcamPanel({ onResult, disabled = false, pipelineOptions }:
     detectMode,
     setDetectMode,
     startCamera,
+    startDemoCamera,
     stopStream,
     runSingleScan,
     saveEvidenceFrame,
@@ -63,15 +71,24 @@ export function LiveWebcamPanel({ onResult, disabled = false, pipelineOptions }:
     refreshVideoDevices,
   } = useWebcamDetection(pipelineOptions);
 
+  // Real flow: capture → OpenCV prep → YOLO → (sign vote lock | street vehicles/plates) → result
   const pipelineStages = useMemo(
     () => [
       { id: 'webcam' as const, label: t('aiDetection.webcam.pipelineWebcam') },
       { id: 'opencv' as const, label: t('aiDetection.webcam.pipelineOpencv') },
-      { id: 'vote' as const, label: t('aiDetection.webcam.pipelineVote') },
       { id: 'yolo' as const, label: t('aiDetection.webcam.pipelineYolo') },
+      {
+        id: 'vote' as const,
+        label:
+          detectMode === 'street'
+            ? (t('aiDetection.webcam.pipelineStreet') !== 'aiDetection.webcam.pipelineStreet'
+              ? t('aiDetection.webcam.pipelineStreet')
+              : 'Vehicles + plates')
+            : t('aiDetection.webcam.pipelineVote'),
+      },
       { id: 'result' as const, label: t('aiDetection.webcam.pipelineResult') },
     ],
-    [t],
+    [t, detectMode],
   );
   const activePipelineStage = stableResult ? 'result' : pipelineStage;
 
@@ -90,21 +107,17 @@ export function LiveWebcamPanel({ onResult, disabled = false, pipelineOptions }:
   );
 
   const displayResult = [stableResult, frameResult].find(
-    (res) => res && isManualScanResult(res),
+    (res) => res && (isManualScanResult(res) || hasStreetDetections(res)),
   ) ?? null;
 
   const capturePreviewUrl =
-    displayResult?.annotated_processed_image ||
-    displayResult?.processed_image ||
-    displayResult?.uploaded_image ||
-    displayResult?.guide_frame_image ||
-    '';
+    // Prefer raw capture under CSS overlays — annotated JPEGs already bake boxes
+    // and would double-draw "No Entry" on webcam.
+    displayResult?.guide_frame_image
+    || displayResult?.uploaded_image
+    || displayResult?.processed_image
+    || '';
 
-  const lastDescription = displayResult
-    ? (locale === 'en'
-      ? (displayResult.description_en || displayResult.description || displayResult.guidance_en || displayResult.guidance)
-      : (displayResult.description || displayResult.guidance))
-    : '';
   const lastConfidence = displayResult
     ? (displayResult.display_confidence ?? displayResult.confidence ?? 0)
     : 0;
@@ -121,6 +134,13 @@ export function LiveWebcamPanel({ onResult, disabled = false, pipelineOptions }:
       .map((v) => `${v.label || v.vehicle_type} ${Math.round(v.confidence)}%`)
       .join(' · ')
     : '';
+  const helmetSummary = displayResult?.helmet_summary;
+  const noHelmetCount = helmetSummary?.no_helmet_detections
+    ?? displayResult?.helmets?.filter((h) => h.is_violation || h.class_key === 'no_helmet' || h.class_key === 'head').length
+    ?? 0;
+  const helmetOkCount = helmetSummary?.helmet_detections
+    ?? displayResult?.helmets?.filter((h) => h.class_key === 'helmet').length
+    ?? 0;
   const isProvisional = Boolean(!stableResult && displayResult);
 
   useEffect(() => {
@@ -139,8 +159,14 @@ export function LiveWebcamPanel({ onResult, disabled = false, pipelineOptions }:
   }, [guideFramePreview, displayResult, locale]);
 
   useEffect(() => {
-    if (!stableResult || !isManualScanResult(stableResult)) return;
-    const key = (stableResult.sign_code || stableResult.class_key || 'none').toUpperCase();
+    if (!stableResult || !(isManualScanResult(stableResult) || hasStreetDetections(stableResult))) return;
+    const key = (
+      stableResult.sign_code
+      || stableResult.class_key
+      || stableResult.detected_plate
+      || `${stableResult.detection_mode || 'scan'}-${stableResult.vehicle_count ?? stableResult.vehicles?.length ?? 0}`
+      || 'none'
+    ).toUpperCase();
     if (key === lastPreviewKeyRef.current) return;
     lastPreviewKeyRef.current = key;
     onResult?.(stableResult, { quiet: true });
@@ -174,20 +200,31 @@ export function LiveWebcamPanel({ onResult, disabled = false, pipelineOptions }:
     void (async () => {
       stopScanLoop();
       lastPreviewKeyRef.current = '';
-      const preview = await runSingleScan({ saveLog: false });
-      if (preview && isManualScanResult(preview)) {
-        // Keep live camera mounted — preview only (does not write Recent Detection).
-        onResult?.(preview, { quiet: true });
-        toast.success(
-          t('aiDetection.webcam.previewReady') !== 'aiDetection.webcam.previewReady'
-            ? t('aiDetection.webcam.previewReady')
-            : 'Preview ready — use Scan & Save to store in Recent Detection',
+      try {
+        const preview = await runSingleScan({ saveLog: false });
+        const ok = Boolean(
+          preview && (isManualScanResult(preview) || hasStreetDetections(preview)),
         );
-      } else if (preview) {
-        toast.message(
-          t('aiDetection.webcam.noClearDetection') !== 'aiDetection.webcam.noClearDetection'
-            ? t('aiDetection.webcam.noClearDetection')
-            : 'No clear detection yet — hold steady and try again',
+        if (ok && preview) {
+          onResult?.(preview, { quiet: true });
+          toast.success(
+            t('aiDetection.webcam.previewReady') !== 'aiDetection.webcam.previewReady'
+              ? t('aiDetection.webcam.previewReady')
+              : 'Preview ready — use Scan & Save to store in Recent Detection',
+          );
+        } else if (preview) {
+          toast.message(
+            t('aiDetection.webcam.noClearDetection') !== 'aiDetection.webcam.noClearDetection'
+              ? t('aiDetection.webcam.noClearDetection')
+              : 'No clear detection yet — hold steady and try again',
+          );
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Scan failed';
+        toast.error(
+          /503|502|504|busy|timeout|network|cannot reach/i.test(msg)
+            ? 'Server warming up — wait a few seconds and scan again'
+            : msg,
         );
       }
     })();
@@ -197,21 +234,39 @@ export function LiveWebcamPanel({ onResult, disabled = false, pipelineOptions }:
     void (async () => {
       stopScanLoop();
       lastPreviewKeyRef.current = '';
-      const confirmed = await runSingleScan({ saveLog: true });
-      if (confirmed && isManualScanResult(confirmed)) {
-        onResult?.(confirmed, { quiet: false });
-        if (confirmed.log_id) {
-          toast.success(
-            t('aiDetection.webcam.savedToRecent') !== 'aiDetection.webcam.savedToRecent'
-              ? t('aiDetection.webcam.savedToRecent')
-              : 'Saved to Recent Detection',
+      try {
+        const confirmed = await runSingleScan({ saveLog: true });
+        const ok = Boolean(
+          confirmed && (isManualScanResult(confirmed) || hasStreetDetections(confirmed)),
+        );
+        if (ok && confirmed) {
+          onResult?.(confirmed, { quiet: false });
+          if (confirmed.log_id) {
+            toast.success(
+              t('aiDetection.webcam.savedToRecent') !== 'aiDetection.webcam.savedToRecent'
+                ? t('aiDetection.webcam.savedToRecent')
+                : 'Saved to Recent Detection',
+            );
+          } else {
+            toast.success(
+              t('aiDetection.webcam.previewReady') !== 'aiDetection.webcam.previewReady'
+                ? t('aiDetection.webcam.previewReady')
+                : 'Detection complete',
+            );
+          }
+        } else if (confirmed) {
+          toast.message(
+            t('aiDetection.webcam.noClearDetection') !== 'aiDetection.webcam.noClearDetection'
+              ? t('aiDetection.webcam.noClearDetection')
+              : 'No clear detection yet — hold steady and try again',
           );
         }
-      } else if (confirmed) {
-        toast.message(
-          t('aiDetection.webcam.noClearDetection') !== 'aiDetection.webcam.noClearDetection'
-            ? t('aiDetection.webcam.noClearDetection')
-            : 'No clear detection yet — hold steady and try again',
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Scan failed';
+        toast.error(
+          /503|502|504|busy|timeout|network|cannot reach/i.test(msg)
+            ? 'Server warming up — wait a few seconds and scan again'
+            : msg,
         );
       }
     })();
@@ -246,10 +301,10 @@ export function LiveWebcamPanel({ onResult, disabled = false, pipelineOptions }:
   };
 
   return (
-    <div className="flex flex-col gap-3 flex-1 min-h-0 live-webcam-panel">
+    <div className="flex flex-col gap-3 flex-1 min-h-0 live-webcam-panel live-webcam-panel--clean">
       <div
         ref={stageRef}
-        className="relative rounded-2xl overflow-hidden bg-black flex-1 min-h-[280px] border border-violet-500/20 live-webcam-panel__stage"
+        className="relative rounded-xl overflow-hidden bg-black flex-1 min-h-[280px] border border-slate-800 live-webcam-panel__stage"
       >
         {!streaming && !cameraError && (
           <div className="live-webcam-panel__idle absolute inset-0 flex flex-col items-center justify-center text-center px-6 gap-3">
@@ -257,14 +312,20 @@ export function LiveWebcamPanel({ onResult, disabled = false, pipelineOptions }:
               <Camera size={28} strokeWidth={2} />
             </div>
             <p className="live-webcam-panel__idle-title">{t('aiDetection.webcam.startTitle')}</p>
-            <p className="live-webcam-panel__idle-hint">{t('aiDetection.webcam.startHint')}</p>
+            <p className="live-webcam-panel__idle-hint">
+              {detectMode === 'street'
+                ? (t('aiDetection.webcam.streetStartHint') !== 'aiDetection.webcam.streetStartHint'
+                  ? t('aiDetection.webcam.streetStartHint')
+                  : 'Allow camera access, point at traffic, then tap Scan Frame or Scan & Save.')
+                : t('aiDetection.webcam.startHint')}
+            </p>
             {videoDevices.length > 0 ? (
               <label className="flex flex-col gap-1.5 text-left w-full max-w-xs text-[11px] text-muted-foreground">
                 <span>{t('aiDetection.webcam.selectDevice') !== 'aiDetection.webcam.selectDevice'
                   ? t('aiDetection.webcam.selectDevice')
                   : 'Camera device'}</span>
                 <FilterSelect
-                  tone="purple"
+                  tone="teal"
                   size="sm"
                   className="ct-filter-select--block w-full"
                   value={deviceId || videoDevices[0]?.deviceId || 'no_device'}
@@ -290,20 +351,61 @@ export function LiveWebcamPanel({ onResult, disabled = false, pipelineOptions }:
               <Camera size={15} />
               {t('aiDetection.webcam.enableCamera')}
             </button>
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() => void startDemoCamera()}
+              className="px-4 py-2 rounded-xl text-[12px] font-bold border border-white/25 text-white/90 hover:bg-white/10 cursor-pointer disabled:opacity-50"
+            >
+              Use demo street video
+            </button>
           </div>
         )}
 
         {cameraError && (
-          <div className="live-webcam-panel__error absolute inset-0 flex flex-col items-center justify-center text-center px-6 gap-2">
+          <div className="live-webcam-panel__error absolute inset-0 flex flex-col items-center justify-center text-center px-6 gap-3">
             <AlertTriangle size={32} className="live-webcam-panel__error-icon" />
             <p className="live-webcam-panel__error-title">
               {cameraError === 'permission'
                 ? t('aiDetection.webcam.errorPermission')
-                : t('aiDetection.webcam.errorUnavailable')}
+                : cameraError === 'insecure'
+                  ? (t('aiDetection.webcam.errorInsecure') !== 'aiDetection.webcam.errorInsecure'
+                    ? t('aiDetection.webcam.errorInsecure')
+                    : 'Camera needs a secure page')
+                  : cameraError === 'busy'
+                    ? (t('aiDetection.webcam.errorBusy') !== 'aiDetection.webcam.errorBusy'
+                      ? t('aiDetection.webcam.errorBusy')
+                      : 'Camera is busy')
+                    : t('aiDetection.webcam.errorUnavailable')}
             </p>
             <p className="live-webcam-panel__error-hint">
-              {t('aiDetection.webcam.errorHint')}
+              {cameraError === 'insecure'
+                ? 'Open http://127.0.0.1:5173 (or 5174) — not a LAN IP over HTTP.'
+                : cameraError === 'permission'
+                  ? 'Click the camera icon in the address bar → Allow, then retry.'
+                  : cameraError === 'busy'
+                    ? 'Close Zoom/Teams/other apps using the webcam, then retry.'
+                    : t('aiDetection.webcam.errorHint')}
             </p>
+            <div className="flex flex-wrap items-center justify-center gap-2 mt-1">
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={() => void startCamera(deviceId || undefined)}
+                className="live-webcam-panel__idle-btn px-4 py-2 rounded-xl text-white text-[12px] font-bold flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <Camera size={14} />
+                Retry camera
+              </button>
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={() => void startDemoCamera()}
+                className="px-4 py-2 rounded-xl text-[12px] font-bold border border-white/25 text-white/90 hover:bg-white/10 cursor-pointer disabled:opacity-50"
+              >
+                Use demo street video
+              </button>
+            </div>
           </div>
         )}
 
@@ -352,6 +454,8 @@ export function LiveWebcamPanel({ onResult, disabled = false, pipelineOptions }:
                 legendSign={t('aiDetection.webcam.legendSign')}
                 legendVehicle={t('aiDetection.webcam.legendVehicle')}
                 legendPlate={t('aiDetection.webcam.legendPlate')}
+                legendHelmet={t('aiCenter.legendHelmet')}
+                legendNoHelmet={t('aiCenter.legendNoHelmet')}
               />
             </div>
           </div>
@@ -372,6 +476,8 @@ export function LiveWebcamPanel({ onResult, disabled = false, pipelineOptions }:
               legendSign={t('aiDetection.webcam.legendSign')}
               legendVehicle={t('aiDetection.webcam.legendVehicle')}
               legendPlate={t('aiDetection.webcam.legendPlate')}
+              legendHelmet={t('aiCenter.legendHelmet')}
+              legendNoHelmet={t('aiCenter.legendNoHelmet')}
             />
             {scanning && (
               <span className="absolute bottom-2 left-2 right-2 text-center text-[9px] font-bold uppercase tracking-wide text-white px-1.5 py-0.5 rounded bg-cyan-700/90">
@@ -410,7 +516,11 @@ export function LiveWebcamPanel({ onResult, disabled = false, pipelineOptions }:
               {loopActive
                 ? t('aiDetection.webcam.scanning')
                 : stableResult
-                  ? t('aiDetection.webcam.detectedLive')
+                  ? (detectMode === 'street'
+                    ? (t('aiDetection.webcam.streetDetectedLive') !== 'aiDetection.webcam.streetDetectedLive'
+                      ? t('aiDetection.webcam.streetDetectedLive')
+                      : 'Traffic detected')
+                    : t('aiDetection.webcam.detectedLive'))
                   : t('aiDetection.webcam.preview')}
             </span>
             {loopActive && voteProgress.agree > 0 ? (
@@ -433,7 +543,11 @@ export function LiveWebcamPanel({ onResult, disabled = false, pipelineOptions }:
               )}>
                 {isProvisional
                   ? t('aiDetection.webcam.scanningHint')
-                  : t('aiDetection.webcam.detectedLive')}
+                  : (detectMode === 'street'
+                    ? (t('aiDetection.webcam.streetDetectedLive') !== 'aiDetection.webcam.streetDetectedLive'
+                      ? t('aiDetection.webcam.streetDetectedLive')
+                      : 'Traffic detected')
+                    : t('aiDetection.webcam.detectedLive'))}
               </span>
             )}
           </div>
@@ -441,342 +555,241 @@ export function LiveWebcamPanel({ onResult, disabled = false, pipelineOptions }:
       </div>
 
       {streaming && (
-        <div className="live-webcam-panel__info rounded-xl border border-violet-500/20 bg-card px-3.5 py-3 shadow-sm">
-          <p className="text-[11px] font-semibold text-violet-600 dark:text-violet-300 uppercase tracking-wide">
-            {displayResult
-              ? (isProvisional
-                ? t('aiDetection.webcam.scanningHint')
-                : t('aiDetection.webcam.lastDetection'))
-              : loopError
-                ? t('aiDetection.webcam.scanningHint')
-                : loopActive
-                  ? t('aiDetection.webcam.scanning')
-                  : t('aiDetection.webcam.readyToScan')}
-          </p>
-          {displayResult ? (
-            <>
-              <div className="mt-2 flex items-start gap-3">
-                {capturePreviewUrl ? (
-                  <div className="relative flex-shrink-0 w-[5.5rem] h-[5.5rem] rounded-lg overflow-hidden border border-violet-500/30 bg-black/50">
-                    <canvas
-                      ref={annotatedCanvasRef}
-                      className="live-webcam-panel__annotated w-full h-full object-contain"
-                      aria-label={t('aiDetection.analyzedImage')}
-                    />
-                  </div>
-                ) : null}
-                <dl className="min-w-0 flex-1 grid gap-1.5 text-[12px]">
-                  <div>
-                    <dt className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                      {t('aiDetection.webcam.signName')}
-                    </dt>
-                    <dd className="mt-0.5">
-                      <SignNameLabels sign={displayResult} size="sm" />
-                    </dd>
-                  </div>
-                  {displayResult.sign_code ? (
-                    <div>
-                      <dt className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        {t('aiDetection.webcam.signCode')}
-                      </dt>
-                      <dd className="font-mono font-semibold text-foreground">{displayResult.sign_code}</dd>
-                    </div>
-                  ) : null}
-                  <div>
-                    <dt className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                      {t('aiDetection.webcam.confidenceScore')}
-                    </dt>
-                    <dd className="font-semibold text-foreground">{lastConfidence.toFixed(1)}%</dd>
-                  </div>
-                  {displayResult.detected_plate ? (
-                    <div>
-                      <dt className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        Plate
-                      </dt>
-                      <dd className="font-mono font-semibold text-foreground">{displayResult.detected_plate}</dd>
-                    </div>
-                  ) : null}
-                  {vehicleSummary ? (
-                    <div className="col-span-full">
-                      <dt className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        Vehicles
-                      </dt>
-                      <dd className="text-foreground/90">{vehicleSummary}</dd>
-                    </div>
-                  ) : null}
-                </dl>
-              </div>
-              {lastDescription ? (
-                <div className="mt-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    {t('aiDetection.webcam.description')}
-                  </p>
-                  <p className="text-[12px] text-foreground/85 mt-1 leading-relaxed">
-                    {lastDescription}
-                  </p>
-                </div>
-              ) : null}
-              {(debugMode || localizationDebug || signCropPreview) ? (
-                <div className="mt-3 rounded-lg border border-dashed border-violet-500/30 bg-violet-500/5 p-2.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-300">
-                      {t('aiDetection.webcam.debugTitle')}
-                    </p>
-                  </div>
-                  {localizationDebug || displayResult?.crop_size ? (
-                    <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
-                      <div>
-                        <dt className="text-[9px] uppercase text-muted-foreground">{t('aiDetection.webcam.debugCropSize')}</dt>
-                        <dd className="font-mono">{localizationDebug?.crop_size || displayResult?.crop_size || '—'}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-[9px] uppercase text-muted-foreground">{t('aiDetection.webcam.debugMethod')}</dt>
-                        <dd className="font-mono">{localizationDebug?.method || '—'}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-[9px] uppercase text-muted-foreground">{t('aiDetection.webcam.debugYoloClassId')}</dt>
-                        <dd className="font-mono">{localizationDebug?.yolo_class_id ?? '—'}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-[9px] uppercase text-muted-foreground">{t('aiDetection.webcam.debugYoloClassName')}</dt>
-                        <dd className="font-mono truncate">{localizationDebug?.yolo_class_name || localizationDebug?.yolo_class_key || '—'}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-[9px] uppercase text-muted-foreground">{t('aiDetection.webcam.debugYoloConfidence')}</dt>
-                        <dd className="font-mono">
-                          {localizationDebug?.yolo_confidence != null
-                            ? `${Number(localizationDebug.yolo_confidence).toFixed(1)}%`
-                            : '—'}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-[9px] uppercase text-muted-foreground">{t('aiDetection.webcam.signCode')}</dt>
-                        <dd className="font-mono">{localizationDebug?.sign_code || displayResult?.sign_code || '—'}</dd>
-                      </div>
-                    </dl>
-                  ) : debugMode ? (
-                    <p className="mt-2 text-[11px] text-muted-foreground">{t('aiDetection.webcam.debugEmpty')}</p>
-                  ) : null}
-                  {signCropPreview ? (
-                    <div className="mt-2">
-                      <p className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
-                        {t('aiDetection.webcam.debugCropImage')}
-                      </p>
-                      <img
-                        src={signCropPreview}
-                        alt=""
-                        className="w-full max-w-[10rem] rounded border border-violet-500/30 bg-black object-contain"
+        <div className="live-webcam-console">
+          <section className={cn(
+            'live-webcam-console__status',
+            displayResult && !isProvisional && 'is-detected',
+            (scanning || isProvisional || loopActive) && !displayResult && 'is-busy',
+            loopError && 'is-warn',
+          )}>
+            <div className="live-webcam-console__status-copy">
+              <p className="live-webcam-console__eyebrow">
+                {displayResult
+                  ? (isProvisional
+                    ? t('aiDetection.webcam.scanningHint')
+                    : t('aiDetection.webcam.lastDetection'))
+                  : loopError
+                    ? t('aiDetection.webcam.scanningHint')
+                    : loopActive
+                      ? t('aiDetection.webcam.scanning')
+                      : t('aiDetection.webcam.readyToScan')}
+              </p>
+              {displayResult ? (
+                <div className="live-webcam-console__result-row">
+                  {capturePreviewUrl ? (
+                    <div className="live-webcam-console__thumb">
+                      <canvas
+                        ref={annotatedCanvasRef}
+                        className="live-webcam-panel__annotated w-full h-full object-contain"
+                        aria-label={t('aiDetection.analyzedImage')}
                       />
                     </div>
+                  ) : null}
+                  <div className="live-webcam-console__result-facts">
+                    <SignNameLabels sign={displayResult} size="sm" />
+                    <p className="live-webcam-console__result-meta">
+                      {lastConfidence.toFixed(0)}% confidence
+                      {displayResult.sign_code ? ` · ${displayResult.sign_code}` : ''}
+                      {displayResult.detected_plate ? ` · ${displayResult.detected_plate}` : ''}
+                    </p>
+                    {vehicleSummary ? (
+                      <p className="live-webcam-console__result-meta">{vehicleSummary}</p>
+                    ) : null}
+                  </div>
+                </div>
+              ) : loopError ? (
+                <p className="live-webcam-console__hint is-warn">{loopError}</p>
+              ) : (
+                <p className="live-webcam-console__hint">
+                  {detectMode === 'street'
+                    ? (t('aiDetection.webcam.streetTapToScan') !== 'aiDetection.webcam.streetTapToScan'
+                      ? t('aiDetection.webcam.streetTapToScan')
+                      : 'Point at traffic, then tap Scan Frame or Scan & Save.')
+                    : t('aiDetection.webcam.tapToScan')}
+                </p>
+              )}
+            </div>
+          </section>
+
+          {(debugMode && displayResult && (localizationDebug || signCropPreview || processedPreview)) ? (
+            <details className="live-webcam-console__debug">
+              <summary>{t('aiDetection.webcam.debugTitle')}</summary>
+              <div className="live-webcam-console__debug-body">
+                {localizationDebug || displayResult?.crop_size ? (
+                  <dl className="live-webcam-console__debug-grid">
+                    <div>
+                      <dt>{t('aiDetection.webcam.debugCropSize')}</dt>
+                      <dd>{localizationDebug?.crop_size || displayResult?.crop_size || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt>{t('aiDetection.webcam.debugMethod')}</dt>
+                      <dd>{localizationDebug?.method || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt>{t('aiDetection.webcam.debugYoloClassName')}</dt>
+                      <dd>{localizationDebug?.yolo_class_name || localizationDebug?.yolo_class_key || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt>{t('aiDetection.webcam.debugYoloConfidence')}</dt>
+                      <dd>
+                        {localizationDebug?.yolo_confidence != null
+                          ? `${Number(localizationDebug.yolo_confidence).toFixed(1)}%`
+                          : '—'}
+                      </dd>
+                    </div>
+                  </dl>
+                ) : null}
+                <div className="live-webcam-console__debug-previews">
+                  {signCropPreview ? (
+                    <img src={signCropPreview} alt="" />
                   ) : null}
                   {processedPreview ? (
-                    <div className="mt-2">
-                      <p className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
-                        {t('aiDetection.webcam.debugProcessedImage')}
-                      </p>
-                      <img
-                        src={processedPreview}
-                        alt=""
-                        className="w-full max-w-[10rem] rounded border border-amber-500/30 bg-black object-contain"
-                      />
-                    </div>
+                    <img src={processedPreview} alt="" />
                   ) : null}
                 </div>
-              ) : null}
-            </>
-          ) : loopError ? (
-            <>
-              <p className="text-[12px] text-amber-700 dark:text-amber-400 mt-1">{loopError}</p>
-              <p className="text-[11px] text-muted-foreground mt-1">{t('aiDetection.webcam.noSignPrintedHint')}</p>
-            </>
-          ) : (
-            <p className="text-[12px] text-muted-foreground mt-1">{t('aiDetection.webcam.tapToScan')}</p>
-          )}
-        </div>
-      )}
-
-      {streaming && (
-        <div className="flex flex-wrap items-center justify-between gap-2 px-0.5">
-          <div className="flex items-center gap-1 rounded-lg border border-violet-500/25 bg-violet-500/5 p-0.5">
-            <button
-              type="button"
-              className={cn(
-                'px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors',
-                detectMode === 'street'
-                  ? 'bg-cyan-600 text-white shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-              onClick={() => {
-                stopScanLoop();
-                setDetectMode('street');
-              }}
-            >
-              Street
-            </button>
-            <button
-              type="button"
-              className={cn(
-                'px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors',
-                detectMode === 'sign'
-                  ? 'bg-violet-600 text-white shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-              onClick={() => {
-                stopScanLoop();
-                setDetectMode('sign');
-              }}
-            >
-              Sign
-            </button>
-          </div>
-          <label className="flex items-center gap-2 text-[11px] text-muted-foreground cursor-pointer">
-            <input
-              type="checkbox"
-              checked={debugMode}
-              onChange={(e) => setDebugMode(e.target.checked)}
-              className="rounded border-violet-400"
-            />
-            {t('aiDetection.webcam.debugToggle')}
-          </label>
-          {videoDevices.length > 0 ? (
-            <label className="flex items-center gap-2 text-[11px] text-muted-foreground">
-              <span className="shrink-0">
-                {t('aiDetection.webcam.selectDevice') !== 'aiDetection.webcam.selectDevice'
-                  ? t('aiDetection.webcam.selectDevice')
-                  : 'Device'}
-              </span>
-              <FilterSelect
-                tone="purple"
-                size="sm"
-                className="min-w-[12rem] max-w-[16rem]"
-                value={deviceId || videoDevices[0]?.deviceId || 'no_device'}
-                onValueChange={(v) => handleDeviceChange(v)}
-                ariaLabel={t('aiDetection.webcam.selectDevice') !== 'aiDetection.webcam.selectDevice'
-                  ? t('aiDetection.webcam.selectDevice')
-                  : 'Device'}
-                options={videoDevices
-                  .filter(d => d.deviceId && d.deviceId.trim().length > 0)
-                  .map((d, i) => ({
-                    value: d.deviceId,
-                    label: d.label || `Camera ${i + 1}`,
-                  }))}
-              />
-            </label>
+              </div>
+            </details>
           ) : null}
-        </div>
-      )}
 
-      {streaming && (
-        <LiveWebcamPipelineStrip
-          stages={pipelineStages}
-          activeStage={activePipelineStage}
-          voteSlots={loopActive ? voteSlots : []}
-          voteRequired={loopActive ? LIVE_VOTE_WINDOW : 0}
-          className="shrink-0"
-        />
-      )}
+          <section className="live-webcam-console__toolbar">
+            <div className="live-webcam-console__mode" role="group" aria-label="Detect mode">
+              <button
+                type="button"
+                className={cn('live-webcam-console__mode-btn', detectMode === 'street' && 'is-active')}
+                onClick={() => {
+                  stopScanLoop();
+                  setDetectMode('street');
+                }}
+              >
+                Street traffic
+              </button>
+              <button
+                type="button"
+                className={cn('live-webcam-console__mode-btn', detectMode === 'sign' && 'is-active')}
+                onClick={() => {
+                  stopScanLoop();
+                  setDetectMode('sign');
+                }}
+              >
+                Sign only
+              </button>
+            </div>
 
-      {streaming && detectMode === 'sign' && (
-        <div className="flex flex-wrap items-center justify-between gap-2 px-0.5 text-[10px] text-muted-foreground">
-          <span>
-            {t('aiDetection.webcam.voteRule', {
-              min: LIVE_VOTE_MIN_AGREE,
-              total: LIVE_VOTE_WINDOW,
-            })}
-          </span>
-          {loopActive && voteProgress.agree > 0 ? (
-            <span className="font-semibold text-indigo-600 dark:text-indigo-300">
-              {t('aiDetection.webcam.voteProgress', {
-                agree: voteProgress.agree,
-                total: voteProgress.total,
+            {videoDevices.length > 0 ? (
+              <label className="live-webcam-console__device">
+                <span>
+                  {t('aiDetection.webcam.selectDevice') !== 'aiDetection.webcam.selectDevice'
+                    ? t('aiDetection.webcam.selectDevice')
+                    : 'Camera'}
+                </span>
+                <FilterSelect
+                  tone="teal"
+                  size="sm"
+                  className="min-w-[11rem] max-w-[16rem]"
+                  value={deviceId || videoDevices[0]?.deviceId || 'no_device'}
+                  onValueChange={(v) => handleDeviceChange(v)}
+                  ariaLabel={t('aiDetection.webcam.selectDevice') !== 'aiDetection.webcam.selectDevice'
+                    ? t('aiDetection.webcam.selectDevice')
+                    : 'Camera'}
+                  options={videoDevices
+                    .filter(d => d.deviceId && d.deviceId.trim().length > 0)
+                    .map((d, i) => ({
+                      value: d.deviceId,
+                      label: d.label || `Camera ${i + 1}`,
+                    }))}
+                />
+              </label>
+            ) : null}
+
+            <label className="live-webcam-console__debug-toggle">
+              <input
+                type="checkbox"
+                checked={debugMode}
+                onChange={(e) => setDebugMode(e.target.checked)}
+              />
+              <span>{t('aiDetection.webcam.debugToggle')}</span>
+            </label>
+          </section>
+
+          <LiveWebcamPipelineStrip
+            stages={pipelineStages}
+            activeStage={activePipelineStage}
+            voteSlots={loopActive ? voteSlots : []}
+            voteRequired={loopActive ? LIVE_VOTE_WINDOW : 0}
+            className="live-webcam-pipeline--clean shrink-0"
+          />
+
+          <section className="live-webcam-console__actions">
+            <button
+              type="button"
+              onClick={handleScanOnce}
+              disabled={disabled || scanning}
+              className="live-webcam-console__btn live-webcam-console__btn--primary"
+            >
+              <Scan size={15} />
+              <span className="live-webcam-console__btn-label">{t('aiDetection.webcam.scanOnce')}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handlePreviewScan}
+              disabled={disabled || scanning}
+              className="live-webcam-console__btn live-webcam-console__btn--secondary"
+            >
+              <Scan size={15} />
+              <span className="live-webcam-console__btn-label">{t('aiDetection.webcam.scanPreview')}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleCaptureFrame}
+              disabled={disabled || scanning}
+              className="live-webcam-console__btn"
+            >
+              <Download size={15} />
+              <span className="live-webcam-console__btn-label">{t('aiDetection.webcam.captureFrame')}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleToggleLoop}
+              disabled={disabled}
+              className={cn('live-webcam-console__btn', loopActive && 'is-running')}
+            >
+              {loopActive ? <Pause size={15} /> : <Play size={15} />}
+              <span className="live-webcam-console__btn-label">
+                {loopActive ? t('aiDetection.webcam.pauseLoop') : t('aiDetection.webcam.startLoop')}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={handleStop}
+              className="live-webcam-console__btn live-webcam-console__btn--danger"
+            >
+              <VideoOff size={15} />
+              <span className="live-webcam-console__btn-label">{t('aiDetection.webcam.stopCamera')}</span>
+            </button>
+          </section>
+
+          <p className="live-webcam-console__meta">
+            <span>
+              {detectMode === 'sign'
+                ? (t('aiDetection.webcam.focusHint') !== 'aiDetection.webcam.focusHint'
+                  ? t('aiDetection.webcam.focusHint')
+                  : 'Center the sign, then Scan Frame or Scan & Save.')
+                : (t('aiDetection.webcam.streetHint') !== 'aiDetection.webcam.streetHint'
+                  ? t('aiDetection.webcam.streetHint')
+                  : 'Point at traffic — Scan Frame previews, Scan & Save stores the result.')}
+            </span>
+            <span aria-hidden>·</span>
+            <span>
+              {t('aiDetection.webcam.scanMeta', {
+                count: scanCount,
+                time: lastScanAt ? lastScanAt.toLocaleTimeString() : '—',
               })}
             </span>
-          ) : null}
+            {loopError ? (
+              <span className="is-warn">{loopError}</span>
+            ) : null}
+          </p>
         </div>
-      )}
-      {streaming && detectMode === 'street' && (
-        <p className="px-0.5 text-[10px] text-muted-foreground">
-          Street mode: full-frame Cambodia vehicles + plate boxes (OCR on Scan &amp; Save).
-        </p>
-      )}
-
-      {streaming && (
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={handleCaptureFrame}
-            disabled={disabled || scanning}
-            className="flex-1 min-w-[8rem] py-2.5 rounded-xl border border-emerald-500/40 text-[13px] font-bold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 hover:bg-emerald-500/10"
-          >
-            <Download size={15} />
-            {t('aiDetection.webcam.captureFrame')}
-          </button>
-          <button
-            type="button"
-            onClick={handlePreviewScan}
-            disabled={disabled || scanning}
-            className="flex-1 min-w-[8rem] py-2.5 rounded-xl border border-violet-500/40 text-[13px] font-bold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 hover:bg-violet-500/10"
-          >
-            <Scan size={15} />
-            {t('aiDetection.webcam.scanPreview')}
-          </button>
-          <button
-            type="button"
-            onClick={handleScanOnce}
-            disabled={disabled || scanning}
-            className="flex-1 min-w-[8rem] py-2.5 rounded-xl text-white text-[13px] font-bold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
-            style={{ background: 'linear-gradient(135deg,#7C3AED,#2563EB)' }}
-          >
-            <Scan size={15} />
-            {t('aiDetection.webcam.scanOnce')}
-          </button>
-          <button
-            type="button"
-            onClick={handleToggleLoop}
-            disabled={disabled}
-            className="px-4 py-2.5 rounded-xl border border-border text-[13px] font-semibold flex items-center gap-2 cursor-pointer hover:bg-muted/60"
-          >
-            {loopActive ? <Pause size={15} /> : <Play size={15} />}
-            {loopActive ? t('aiDetection.webcam.pauseLoop') : t('aiDetection.webcam.startLoop')}
-          </button>
-          <button
-            type="button"
-            onClick={handleStop}
-            className="px-4 py-2.5 rounded-xl border border-border text-[13px] font-semibold flex items-center gap-2 cursor-pointer hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30"
-          >
-            <VideoOff size={15} />
-            {t('aiDetection.webcam.stopCamera')}
-          </button>
-        </div>
-      )}
-
-      {streaming && (
-        <p className="text-[11px] text-muted-foreground text-center">
-          {detectMode === 'sign'
-            ? t('aiDetection.webcam.focusHint')
-            : (t('aiDetection.webcam.streetHint') !== 'aiDetection.webcam.streetHint'
-              ? t('aiDetection.webcam.streetHint')
-              : 'Street mode: point at traffic — Scan Frame previews, Scan & Save stores the result.')}
-          <br />
-          {detectMode === 'sign' ? t('aiDetection.webcam.printedSignHint') : null}
-          {detectMode === 'sign' ? <br /> : null}
-          <span className="font-medium text-violet-600 dark:text-violet-300">
-            {t('aiDetection.webcam.workflowHint') !== 'aiDetection.webcam.workflowHint'
-              ? t('aiDetection.webcam.workflowHint')
-              : 'Workflow: Enable Camera → Sign or Street → Scan Frame (preview) → Scan & Save (Recent Detection).'}
-          </span>
-          <br />
-          {t('aiDetection.webcam.scanMeta', {
-            count: scanCount,
-            time: lastScanAt ? lastScanAt.toLocaleTimeString() : '—',
-          })}
-          {loopError ? (
-            <>
-              <br />
-              <span className="text-amber-600">{loopError}</span>
-            </>
-          ) : null}
-        </p>
       )}
     </div>
   );

@@ -1,3 +1,4 @@
+import { ChevronRight } from 'lucide-react';
 import { cn } from '@shared/components/ui/utils';
 
 export type PipelineStageId = 'webcam' | 'opencv' | 'vote' | 'yolo' | 'result';
@@ -15,9 +16,8 @@ interface LiveWebcamPipelineStripProps {
   className?: string;
 }
 
-function slotColor(signKey: string): string {
-  if (!signKey || signKey === 'none') return 'bg-slate-500/60';
-  return 'bg-emerald-500';
+function slotFilled(signKey: string): boolean {
+  return Boolean(signKey && signKey !== 'none');
 }
 
 export function LiveWebcamPipelineStrip({
@@ -32,30 +32,30 @@ export function LiveWebcamPipelineStrip({
   return (
     <div
       className={cn(
-        'live-webcam-pipeline rounded-xl border border-violet-500/25 bg-card/95 px-3 py-2.5 shadow-sm',
+        'live-webcam-pipeline live-webcam-pipeline--clean',
         className,
       )}
     >
-      <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide">
+      <div className="live-webcam-pipeline__steps" aria-label="Detection pipeline">
         {stages.map((stage, idx) => {
           const isActive = stage.id === activeStage;
           const isPast = activeIdx > idx;
           return (
-            <div key={stage.id} className="flex items-center gap-1.5">
+            <div key={stage.id} className="live-webcam-pipeline__step-wrap">
               {idx > 0 ? (
-                <span className="text-muted-foreground/50 select-none" aria-hidden>
-                  →
-                </span>
+                <ChevronRight size={12} className="live-webcam-pipeline__arrow" aria-hidden />
               ) : null}
               <span
                 className={cn(
-                  'px-2 py-1 rounded-md border transition-colors',
-                  isActive && 'bg-violet-600 text-white border-violet-500 shadow-sm',
-                  isPast && !isActive && 'bg-emerald-600/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30',
-                  !isActive && !isPast && 'bg-muted/40 text-muted-foreground border-border',
+                  'live-webcam-pipeline__step',
+                  isActive && 'is-active',
+                  isPast && !isActive && 'is-done',
                 )}
               >
-                {stage.label}
+                <span className="live-webcam-pipeline__step-index" aria-hidden>
+                  {idx + 1}
+                </span>
+                <span className="live-webcam-pipeline__step-label">{stage.label}</span>
               </span>
             </div>
           );
@@ -63,11 +63,9 @@ export function LiveWebcamPipelineStrip({
       </div>
 
       {voteSlots.length > 0 || voteRequired > 0 ? (
-        <div className="mt-2 flex items-center gap-2">
-          <span className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground shrink-0">
-            5-frame
-          </span>
-          <div className="flex gap-1" aria-label="Recent frame votes">
+        <div className="live-webcam-pipeline__votes">
+          <span className="live-webcam-pipeline__votes-label">Frames</span>
+          <div className="live-webcam-pipeline__dots" aria-label="Recent frame votes">
             {Array.from({ length: voteRequired }, (_, i) => {
               const offset = Math.max(0, voteRequired - voteSlots.length);
               const key = voteSlots[i - offset] ?? '';
@@ -77,8 +75,9 @@ export function LiveWebcamPipelineStrip({
                   key={i}
                   title={filled ? key || 'no sign' : 'pending'}
                   className={cn(
-                    'w-2.5 h-2.5 rounded-full border border-white/20',
-                    filled ? slotColor(key) : 'bg-muted/30',
+                    'live-webcam-pipeline__dot',
+                    filled && (slotFilled(key) ? 'is-hit' : 'is-miss'),
+                    !filled && 'is-empty',
                   )}
                 />
               );

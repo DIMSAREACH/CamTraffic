@@ -1,0 +1,92 @@
+{
+  "source": "stock-footage-phnom-penh-cambodia-th-january-busy-traffic-on-chaktomuk-walk-street-in-phnom-penh.webm",
+  "video_key": "chaktomuk",
+  "frame_index": 10,
+  "frame_file": "frame_0010_t0.40s.jpg",
+  "timestamp_sec": 0.4,
+  "image_size": {
+    "width": 898,
+    "height": 506
+  },
+  "tracking": true,
+  "annotations": [
+    {
+      "kind": "sign",
+      "class_key": "NO_U_TURN",
+      "class_id": 7,
+      "label_en": "No U Turn",
+      "confidence": 53.0,
+      "track_id": 1200,
+      "bbox_norm": {
+        "x1": 0.5323975086212158,
+        "y1": 0.2960696816444397,
+        "x2": 0.5645226836204529,
+        "y2": 0.3550419211387634
+      },
+      "bbox_px": {
+        "x1": 478,
+        "y1": 150,
+        "x2": 507,
+        "y2": 180
+      },
+      "bbox_yolo": {
+        "x_center": 0.54846,
+        "y_center": 0.325556,
+        "width": 0.032125,
+        "height": 0.058972
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "car",
+      "class_id": 1,
+      "label_en": "Car",
+      "confidence": 90.1,
+      "track_id": 1,
+      "bbox_norm": {
+        "x1": 0.4509,
+        "y1": 0.4058,
+        "x2": 0.7376,
+        "y2": 0.7083
+      },
+      "bbox_px": {
+        "x1": 405,
+        "y1": 205,
+        "x2": 662,
+        "y2": 358
+      },
+      "bbox_yolo": {
+        "x_center": 0.59425,
+        "y_center": 0.55705,
+        "width": 0.2867,
+        "height": 0.3025
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "car",
+      "class_id": 1,
+      "label_en": "Car",
+      "confidence": 70.0,
+      "track_id": 6,
+      "bbox_norm": {
+        "x1": 0.2347,
+        "y1": 0.413,
+        "x2": 0.3458,
+        "y2": 0.6566
+      },
+      "bbox_px": {
+        "x1": 211,
+        "y1": 209,
+        "x2": 311,
+        "y2": 332
+      },
+      "bbox_yolo": {
+        "x_center": 0.29025,
+        "y_center": 0.5348,
+        "width": 0.1111,
+        "height": 0.2436
+      }
+    }
+  ]
+}

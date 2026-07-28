@@ -9,13 +9,14 @@ psycopg2-binary==2.9.9
 djangorestframework-simplejwt==5.3.0
 PyJWT==2.8.0
 
-# AI & Machine Learning
-torch==2.1.1
-torchvision==0.16.1
-ultralytics==8.0.221
+# AI & Machine Learning (Python 3.12+; torch 2.1.x only supports <=3.11)
+torch==2.5.1
+torchvision==0.20.1
+ultralytics==8.3.70
 opencv-python==4.8.1.78
 Pillow==10.1.0
-numpy==1.24.3
+numpy==1.26.4
+easyocr>=1.7.0
 
 # Background Tasks
 celery==5.3.4

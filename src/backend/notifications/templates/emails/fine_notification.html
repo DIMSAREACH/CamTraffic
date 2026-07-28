@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Fine Issued</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #ea580c; color: white; padding: 20px; text-align: center; }
+        .content { background-color: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; }
+        .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 12px; }
+        .button { display: inline-block; background-color: #16a34a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin-top: 20px; }
+        .details { background-color: white; padding: 15px; border-radius: 4px; margin: 15px 0; }
+        .label { font-weight: bold; color: #374151; }
+        .amount { font-size: 24px; color: #dc2626; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💰 Traffic Fine Issued</h1>
+        </div>
+        <div class="content">
+            <p>Dear {{ driver_name }},</p>
+            
+            <p>A traffic fine has been issued to you for a traffic violation.</p>
+            
+            <div class="details">
+                <p class="amount">${{ fine_amount }} USD</p>
+                <p><span class="label">Reason:</span> {{ reason }}</p>
+                <p><span class="label">Location:</span> {{ location }}</p>
+                <p><span class="label">Vehicle:</span> {{ vehicle_plate }}</p>
+                <p><span class="label">Date Issued:</span> {{ created_at|date:"F d, Y" }}</p>
+                {% if due_date %}
+                <p><span class="label">Due Date:</span> {{ due_date|date:"F d, Y" }}</p>
+                {% endif %}
+            </div>
+            
+            <p>Please pay this fine by the due date to avoid additional penalties.</p>
+            
+            <a href="{{ view_url }}" class="button">Pay Fine Now</a>
+            
+            <p style="margin-top: 30px; color: #6b7280; font-size: 14px;">
+                Payment can be made online through KHQR, ABA Bank, Wing Money, or at any authorized payment center.
+            </p>
+        </div>
+        <div class="footer">
+            <p>CamTraffic - AI-Based Traffic Enforcement System</p>
+            <p>This is an automated notification. Please do not reply to this email.</p>
+        </div>
+    </div>
+</body>
+</html>

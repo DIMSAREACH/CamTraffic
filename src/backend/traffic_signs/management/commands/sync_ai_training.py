@@ -15,13 +15,13 @@ from traffic_signs.models import TrafficSign
 from traffic_signs.sign_image_processing import sign_display_png_bytes, sign_png_bytes
 from traffic_signs.management.commands.import_cambodia_signs import find_image_for_code
 
-CATALOG_PATH = Path(settings.BASE_DIR).parent / 'ai' / 'sign_catalog.json'
-REFERENCE_META_PATH = Path(settings.BASE_DIR).parent / 'ai' / 'reference_sign_meta.json'
-CUSTOM_SIGNS_DIR = Path(settings.BASE_DIR).parent / 'ai' / 'custom_signs'
-OVERRIDES_PATH = Path(settings.BASE_DIR).parent / 'ai' / 'sign_metadata_overrides.json'
+CATALOG_PATH = settings.AI_ROOT / 'sign_catalog.json'
+REFERENCE_META_PATH = settings.AI_ROOT / 'reference_sign_meta.json'
+CUSTOM_SIGNS_DIR = settings.AI_ROOT / 'custom_signs'
+OVERRIDES_PATH = settings.AI_ROOT / 'sign_metadata_overrides.json'
 ENV_PATH = Path(settings.BASE_DIR) / '.env'
-DEFAULT_MODEL = Path(settings.BASE_DIR).parent / 'ai' / 'weights' / 'best.pt'
-TRAINING_STATUS_PATH = Path(settings.BASE_DIR).parent / 'ai' / 'weights' / 'training_status.json'
+DEFAULT_MODEL = settings.AI_ROOT / 'weights' / 'best.pt'
+TRAINING_STATUS_PATH = settings.AI_ROOT / 'weights' / 'training_status.json'
 
 
 def _normalize_sign_key(value: str) -> str:
@@ -76,7 +76,7 @@ def _class_key_from_reference_path(path: Path) -> str | None:
     """Reuse ai/build_dataset.py stem → class_key mapping for reference folders."""
     import sys
 
-    ai_root = Path(settings.BASE_DIR).parent / 'ai'
+    ai_root = settings.AI_ROOT
     if str(ai_root) not in sys.path:
         sys.path.insert(0, str(ai_root))
     try:
@@ -289,7 +289,7 @@ class Command(BaseCommand):
 
 
 def _count_training_images() -> int:
-    dataset_root = Path(settings.BASE_DIR).parent / 'ai' / 'dataset' / 'images'
+    dataset_root = settings.AI_ROOT / 'dataset' / 'images'
     if not dataset_root.is_dir():
         return 0
     total = 0

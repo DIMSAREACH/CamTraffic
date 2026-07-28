@@ -190,6 +190,52 @@ class Command(BaseCommand):
                     },
                 )
 
+        # Keep legacy @camtraffic.gov.kh aliases usable for docs / ADMIN_EMAIL demos.
+        for alias_email, source_email in (
+            ('admin@camtraffic.gov.kh', 'admin@camtraffic.demo'),
+            ('officer@camtraffic.gov.kh', 'officer@camtraffic.demo'),
+        ):
+            source = User.objects.filter(email__iexact=source_email).first()
+            if not source:
+                continue
+            alias, alias_created = User.objects.get_or_create(
+                email=alias_email,
+                defaults={
+                    'full_name': source.full_name,
+                    'role': source.role,
+                    'is_staff': source.is_staff,
+                    'is_superuser': source.is_superuser,
+                    'is_active': True,
+                    'email_verified': True,
+                    'phone': source.phone,
+                    'address': source.address,
+                },
+            )
+            alias.full_name = source.full_name
+            alias.role = source.role
+            alias.is_staff = source.is_staff
+            alias.is_superuser = source.is_superuser
+            alias.is_active = True
+            alias.email_verified = True
+            alias.phone = source.phone
+            alias.address = source.address
+            if alias_created or reset_passwords:
+                alias.set_password(DEMO_PASSWORD)
+            alias.save()
+            if source.role == 'police':
+                src_off = Officer.objects.filter(user=source).first()
+                Officer.objects.update_or_create(
+                    user=alias,
+                    defaults={
+                        'badge_no': f"{src_off.badge_no}-GOV" if src_off else 'OFF-GOV-001',
+                        'rank': src_off.rank if src_off else 'Traffic Officer',
+                        'department': 'Traffic Enforcement',
+                        'station': station,
+                        'status': 'active',
+                    },
+                )
+            self.stdout.write(self.style.SUCCESS(f'  Synced alias: {alias_email}'))
+
         if accounts_only:
             self.stdout.write(self.style.SUCCESS('Demo accounts synced (accounts-only).'))
             self.stdout.write(f'  Admin: admin@camtraffic.demo / {DEMO_PASSWORD}')

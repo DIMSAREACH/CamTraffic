@@ -1200,7 +1200,10 @@ export function AIDetectionPage() {
     let logsFailed = false;
 
     if (logsResult.status === 'fulfilled') {
-      setRecentLogs(logsResult.value.slice(0, 7));
+      const newestFirst = [...logsResult.value].sort(
+        (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime(),
+      );
+      setRecentLogs(newestFirst.slice(0, 7));
     } else {
       setRecentLogs([]);
       logsFailed = true;
@@ -1367,7 +1370,6 @@ export function AIDetectionPage() {
 
   const handleFile = useCallback(async (f: File, autoDetect = false) => {
     if (!f.type.startsWith('image/')) { toast.error(t('aiDetection.toast.imageOnly')); return; }
-    if (f.size > 10 * 1024 * 1024) { toast.error(t('aiDetection.toast.imageTooBig')); return; }
     if (preview?.startsWith('blob:')) URL.revokeObjectURL(preview);
     setFile(f);
     setResult(null);

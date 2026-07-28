@@ -180,6 +180,8 @@ export function signHasResolvableImage(image?: string | null): string | null {
 }
 
 /** Cache-busted URL — filename changes when sign art is re-uploaded. */
+const SIGN_MEDIA_REV = '20260728c';
+
 export function signImageSrc(image?: string | null): string | null {
   const base = signHasResolvableImage(image);
   if (!base || !image?.trim() || image.startsWith('blob:') || image.startsWith('data:')) {
@@ -193,7 +195,7 @@ export function signImageSrc(image?: string | null): string | null {
     /* keep */
   }
   const sep = base.includes('?') ? '&' : '?';
-  return `${base}${sep}v=${encodeURIComponent(token)}`;
+  return `${base}${sep}v=${encodeURIComponent(token)}&r=${SIGN_MEDIA_REV}`;
 }
 
 const probeCache = new Map<string, boolean>();

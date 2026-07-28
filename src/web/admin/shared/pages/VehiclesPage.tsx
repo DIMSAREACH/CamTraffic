@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { usePagination } from '@shared/hooks/usePagination';
+import { useFieldErrors } from '@shared/hooks/useFieldErrors';
 import { TablePagination } from '@shared/components/ui/TablePagination';
-import { Car, Plus, Trash2, Search, Truck, Bike, Eye, Hash, Palette, Calendar, User, Bus, Pencil } from 'lucide-react';
+import { Car, Plus, Trash2, Search, Truck, Bike, Eye, Hash, Palette, Calendar, User, Bus, Pencil, Upload, X, ChevronDown, MapPin } from 'lucide-react';
 import { Button } from '@shared/components/ui/button';
 import { Input } from '@shared/components/ui/input';
 import { Label } from '@shared/components/ui/label';
+import { FieldError, FormErrorBanner } from '@shared/components/ui/FieldError';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@shared/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@shared/components/ui/table';
@@ -12,10 +14,64 @@ import { EmptyStatePanel, TableEmptyState } from '@shared/components/ui/TableEmp
 import { useAuth } from '@shared/context/AuthContext';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { useLiveData } from '@shared/hooks/useLiveData';
-import { vehiclesAPI } from '@shared/services/api';
-import { getVehicleImageUrl, getVehicleStockImage } from '@shared/utils/vehicleImage';
+import { driversAPI, vehiclesAPI } from '@shared/services/api';
+import { CambodiaPlateField, formatCambodiaPlate, getCambodiaProvince, inferProvinceCodeFromPlate, isValidCambodiaPlate } from '@shared/components/admin/CambodiaPlateField';
+import { PLATE_FORMAT_EXAMPLE } from '@shared/utils/cambodiaIdentity';
+import {
+  getVehicleImageUrl,
+  getVehiclePlaceholderImage,
+  getVehicleStockImage,
+} from '@shared/utils/vehicleImage';
 import { toast } from 'sonner';
-import type { Vehicle } from '@shared/types';
+import type { DriverProfile, Vehicle } from '@shared/types';
+
+type VehicleFormField = 'owner_id' | 'plate_number' | 'vehicle_type' | 'model' | 'color';
+
+const EMPTY_FORM = {
+  owner_id: '',
+  plate_number: '',
+  vehicle_type: '',
+  model: '',
+  color: '',
+  year: new Date().getFullYear().toString(),
+};
+
+function driverLabel(driver: DriverProfile) {
+  const detail = driver.license_no || driver.email;
+  return detail ? `${driver.full_name} (${detail})` : driver.full_name;
+}
+
+function buildVehiclePayload(
+  fields: {
+    owner_id?: string;
+    plate_number: string;
+    vehicle_type: string;
+    model: string;
+    color: string;
+    year: string;
+  },
+  photo?: File | null,
+): FormData | Partial<Vehicle> {
+  if (photo) {
+    const form = new FormData();
+    if (fields.owner_id) form.append('owner_id', fields.owner_id);
+    form.append('plate_number', fields.plate_number.trim());
+    form.append('vehicle_type', fields.vehicle_type);
+    form.append('model', fields.model.trim());
+    form.append('color', fields.color.trim());
+    form.append('year', fields.year);
+    form.append('registration_photo', photo, photo.name);
+    return form;
+  }
+  return {
+    ...(fields.owner_id ? { owner_id: fields.owner_id } : {}),
+    plate_number: fields.plate_number.trim(),
+    vehicle_type: fields.vehicle_type as Vehicle['vehicle_type'],
+    model: fields.model.trim(),
+    color: fields.color.trim(),
+    year: parseInt(fields.year, 10),
+  };
+}
 
 const VEHICLE_TYPES = ['car', 'motorcycle', 'truck', 'bus', 'tuk-tuk'] as const;
 type VehicleType = typeof VEHICLE_TYPES[number];
@@ -60,12 +116,13 @@ function getColorDot(color: string) {
 }
 
 function VehiclePhoto({ vehicle, className }: { vehicle: Vehicle; className?: string }) {
-  const fallback = getVehicleStockImage(vehicle.vehicle_type, vehicle.id);
+  const stock = getVehicleStockImage(vehicle.vehicle_type, vehicle.id, vehicle.model);
+  const placeholder = getVehiclePlaceholderImage();
   const [src, setSrc] = useState(() => getVehicleImageUrl(vehicle));
 
   useEffect(() => {
     setSrc(getVehicleImageUrl(vehicle));
-  }, [vehicle.id, vehicle.registration_photo, vehicle.vehicle_type]);
+  }, [vehicle.id, vehicle.registration_photo, vehicle.vehicle_type, vehicle.model]);
 
   return (
     <img
@@ -73,8 +130,13 @@ function VehiclePhoto({ vehicle, className }: { vehicle: Vehicle; className?: st
       alt={vehicle.model}
       className={className}
       loading="lazy"
+      referrerPolicy="no-referrer"
       onError={() => {
-        if (src !== fallback) setSrc(fallback);
+        setSrc((current) => {
+          if (current !== stock && current !== placeholder) return stock;
+          if (current !== placeholder) return placeholder;
+          return current;
+        });
       }}
     />
   );
@@ -85,6 +147,8 @@ export function VehiclesPage() {
   const dateLocale = locale === 'km' ? 'km-KH' : 'en-US';
   const { user } = useAuth();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [drivers, setDrivers] = useState<DriverProfile[]>([]);
+  const [driversLoading, setDriversLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TypeTab>('all');
@@ -94,13 +158,13 @@ export function VehiclesPage() {
   const [editVehicle, setEditVehicle] = useState<Vehicle | null>(null);
   const [editing, setEditing] = useState(false);
   const [viewVehicle, setViewVehicle] = useState<Vehicle | null>(null);
-  const [form, setForm] = useState({
-    plate_number: '',
-    vehicle_type: '',
-    model: '',
-    color: '',
-    year: new Date().getFullYear().toString(),
-  });
+  const [form, setForm] = useState({ ...EMPTY_FORM });
+  const [ownerQuery, setOwnerQuery] = useState('');
+  const [ownerMenuOpen, setOwnerMenuOpen] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [plateProvince, setPlateProvince] = useState('12');
+  const formErrors = useFieldErrors<VehicleFormField>();
 
   const isDriver = user?.role === 'driver';
   const typeLabel = (type: string) => t(`vehicles.types.${type === 'tuk-tuk' ? 'tukTuk' : type}`);
@@ -127,6 +191,87 @@ export function VehiclesPage() {
 
   useEffect(() => { loadVehicles(); }, [loadVehicles]);
   useLiveData(() => loadVehicles(true), 30_000, Boolean(user));
+
+  const loadDrivers = useCallback(async () => {
+    if (isDriver || !addOpen) return;
+    setDriversLoading(true);
+    try {
+      const rows = await driversAPI.getAll();
+      setDrivers(rows.filter((driver) => driver.status === 'active'));
+    } catch {
+      toast.error(t('vehicles.toastDriversLoadFail'));
+    } finally {
+      setDriversLoading(false);
+    }
+  }, [addOpen, isDriver, t]);
+
+  useEffect(() => { void loadDrivers(); }, [loadDrivers]);
+
+  useEffect(() => () => {
+    if (photoPreview?.startsWith('blob:')) URL.revokeObjectURL(photoPreview);
+  }, [photoPreview]);
+
+  const filteredDrivers = useMemo(() => {
+    const q = ownerQuery.trim().toLowerCase();
+    if (!q) return drivers;
+    return drivers.filter((driver) =>
+      driver.full_name.toLowerCase().includes(q)
+      || driver.email.toLowerCase().includes(q)
+      || (driver.license_no || '').toLowerCase().includes(q)
+      || (driver.phone || '').toLowerCase().includes(q),
+    );
+  }, [drivers, ownerQuery]);
+
+  const resetForm = () => {
+    setForm({ ...EMPTY_FORM, year: new Date().getFullYear().toString() });
+    setOwnerQuery('');
+    setOwnerMenuOpen(false);
+    setPlateProvince('12');
+    formErrors.clearErrors();
+    setPhotoFile(null);
+    setPhotoPreview((prev) => {
+      if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+      return null;
+    });
+  };
+
+  const handlePlateChange = (plate_number: string) => {
+    formErrors.clearField('plate_number');
+    setForm((f) => ({ ...f, plate_number }));
+    const inferred = inferProvinceCodeFromPlate(plate_number);
+    if (inferred) setPlateProvince(inferred);
+  };
+
+  const handlePhotoChange = (file: File | null) => {
+    if (!file) {
+      setPhotoFile(null);
+      setPhotoPreview((prev) => {
+        if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+        return null;
+      });
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      toast.error(t('vehicles.toastPhotoInvalid'));
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error(t('vehicles.toastPhotoTooLarge'));
+      return;
+    }
+    setPhotoFile(file);
+    setPhotoPreview((prev) => {
+      if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+  };
+
+  const selectOwner = (driver: DriverProfile) => {
+    formErrors.clearField('owner_id');
+    setForm((current) => ({ ...current, owner_id: driver.user_id }));
+    setOwnerQuery(driverLabel(driver));
+    setOwnerMenuOpen(false);
+  };
 
   const filtered = useMemo(() => {
     let rows = [...vehicles];
@@ -158,26 +303,49 @@ export function VehiclesPage() {
   const getTypeMeta = (type: string) => TYPE_STYLE[type as VehicleType] ?? TYPE_STYLE.car;
 
   const handleAdd = async () => {
-    if (!user || !form.plate_number || !form.vehicle_type || !form.model || !form.color) {
-      toast.error(t('vehicles.toastFillRequired'));
+    const plate = formatCambodiaPlate(form.plate_number);
+    const messages: Partial<Record<VehicleFormField, string>> = {
+      plate_number: t('common.fieldRequired'),
+      vehicle_type: t('common.fieldRequired'),
+      model: t('common.fieldRequired'),
+      color: t('common.fieldRequired'),
+    };
+    if (!isDriver) messages.owner_id = t('common.fieldRequired');
+    const ok = formErrors.validateRequired(
+      {
+        owner_id: isDriver ? 'self' : form.owner_id,
+        plate_number: plate,
+        vehicle_type: form.vehicle_type,
+        model: form.model,
+        color: form.color,
+      },
+      messages,
+    );
+    if (!user || !ok) {
+      toast.error(t('common.formIncomplete'));
+      return;
+    }
+    if (!isValidCambodiaPlate(plate)) {
+      formErrors.setFieldError('plate_number', `Plate must match ${PLATE_FORMAT_EXAMPLE}`);
+      toast.error(`Plate must match ${PLATE_FORMAT_EXAMPLE}`);
       return;
     }
     setAdding(true);
     try {
-      await vehiclesAPI.create({
-        owner_id: user.id,
-        plate_number: form.plate_number,
-        vehicle_type: form.vehicle_type as Vehicle['vehicle_type'],
+      await vehiclesAPI.create(buildVehiclePayload({
+        owner_id: isDriver ? user.id : form.owner_id,
+        plate_number: plate,
+        vehicle_type: form.vehicle_type,
         model: form.model,
         color: form.color,
-        year: parseInt(form.year, 10),
-      });
+        year: form.year,
+      }, photoFile));
       toast.success(t('vehicles.toastRegistered'));
       setAddOpen(false);
-      setForm({ plate_number: '', vehicle_type: '', model: '', color: '', year: new Date().getFullYear().toString() });
+      resetForm();
       loadVehicles();
-    } catch {
-      toast.error(t('vehicles.toastRegisterFail'));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('vehicles.toastRegisterFail'));
     } finally {
       setAdding(false);
     }
@@ -196,31 +364,58 @@ export function VehiclesPage() {
 
   const openEdit = (vehicle: Vehicle) => {
     setEditVehicle(vehicle);
+    formErrors.clearErrors();
     setForm({
+      owner_id: vehicle.owner_id,
       plate_number: vehicle.plate_number,
       vehicle_type: vehicle.vehicle_type,
       model: vehicle.model,
       color: vehicle.color,
       year: String(vehicle.year),
     });
+    setPlateProvince(inferProvinceCodeFromPlate(vehicle.plate_number) || '12');
+    setOwnerQuery(vehicle.owner_name || '');
+    setPhotoFile(null);
+    setPhotoPreview(vehicle.registration_photo || null);
   };
 
   const handleEdit = async () => {
-    if (!editVehicle || !form.plate_number || !form.vehicle_type || !form.model || !form.color) {
-      toast.error(t('vehicles.toastFillRequired'));
+    const plate = formatCambodiaPlate(form.plate_number);
+    const ok = formErrors.validateRequired(
+      {
+        plate_number: plate,
+        vehicle_type: form.vehicle_type,
+        model: form.model,
+        color: form.color,
+      },
+      {
+        plate_number: t('common.fieldRequired'),
+        vehicle_type: t('common.fieldRequired'),
+        model: t('common.fieldRequired'),
+        color: t('common.fieldRequired'),
+      },
+    );
+    if (!editVehicle || !ok) {
+      toast.error(t('common.formIncomplete'));
+      return;
+    }
+    if (!isValidCambodiaPlate(plate)) {
+      formErrors.setFieldError('plate_number', `Plate must match ${PLATE_FORMAT_EXAMPLE}`);
+      toast.error(`Plate must match ${PLATE_FORMAT_EXAMPLE}`);
       return;
     }
     setEditing(true);
     try {
-      await vehiclesAPI.update(editVehicle.id, {
-        plate_number: form.plate_number,
-        vehicle_type: form.vehicle_type as Vehicle['vehicle_type'],
+      await vehiclesAPI.update(editVehicle.id, buildVehiclePayload({
+        plate_number: plate,
+        vehicle_type: form.vehicle_type,
         model: form.model,
         color: form.color,
-        year: parseInt(form.year, 10),
-      });
+        year: form.year,
+      }, photoFile));
       toast.success(t('vehicles.toastUpdated'));
       setEditVehicle(null);
+      resetForm();
       loadVehicles();
     } catch {
       toast.error(t('vehicles.toastUpdateFail'));
@@ -406,7 +601,7 @@ export function VehiclesPage() {
                     </div>
                   </div>
                   <div className="enforcement-page__vehicle-card-body">
-                    <span className="enforcement-page__code-pill">{v.plate_number}</span>
+                    <span className="enforcement-page__code-pill">{formatCambodiaPlate(v.plate_number)}</span>
                     <p className="enforcement-page__cell-primary mt-2">{v.model}</p>
                     <div className="enforcement-page__vehicle-meta">
                       <span className="enforcement-page__color-dot" style={{ backgroundColor: getColorDot(v.color) }} />
@@ -451,7 +646,7 @@ export function VehiclesPage() {
                   return (
                     <TableRow key={row.id} className="enforcement-page__table-row">
                       <TableCell className="py-3.5">
-                        <span className="enforcement-page__code-pill">{row.plate_number}</span>
+                        <span className="enforcement-page__code-pill">{formatCambodiaPlate(row.plate_number)}</span>
                       </TableCell>
                       <TableCell>
                         <span className="enforcement-page__badge" style={{ background: meta.bg, color: meta.color }}>
@@ -522,8 +717,11 @@ export function VehiclesPage() {
         </div>
       )}
 
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="max-w-md">
+      <Dialog open={addOpen} onOpenChange={(open) => {
+        setAddOpen(open);
+        if (!open) resetForm();
+      }}>
+        <DialogContent className="vehicles-form-dialog max-w-3xl sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2.5">
               <div className="enforcement-page__dialog-icon enforcement-page__dialog-icon--teal">
@@ -532,58 +730,189 @@ export function VehiclesPage() {
               <span className="enforcement-page__dialog-title">{t('vehicles.registerTitle')}</span>
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 py-2">
-            <div>
-              <Label className="enforcement-page__form-label">{t('vehicles.plateLabel')} *</Label>
-              <Input
-                className="mt-1"
-                placeholder={t('vehicles.platePlaceholder')}
-                value={form.plate_number}
-                onChange={(e) => setForm((f) => ({ ...f, plate_number: e.target.value }))}
-              />
-            </div>
-            <div>
-              <Label className="enforcement-page__form-label">{t('vehicles.typeLabel')} *</Label>
-              <Select onValueChange={(v) => setForm((f) => ({ ...f, vehicle_type: v }))}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder={t('vehicles.selectType')} /></SelectTrigger>
-                <SelectContent>
-                  {VEHICLE_TYPES.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {renderTypeLabel(type, 14)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="enforcement-page__form-label">{t('vehicles.modelLabel')} *</Label>
-              <Input
-                className="mt-1"
-                placeholder={t('vehicles.modelPlaceholder')}
-                value={form.model}
-                onChange={(e) => setForm((f) => ({ ...f, model: e.target.value }))}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
+          <div className="vehicles-form-dialog__body">
+            <FormErrorBanner message={formErrors.hasErrors ? t('common.formIncomplete') : null} />
+            {!isDriver ? (
               <div>
-                <Label className="enforcement-page__form-label">{t('vehicles.colorLabel')} *</Label>
-                <Input
-                  className="mt-1"
-                  placeholder={t('vehicles.colorPlaceholder')}
-                  value={form.color}
-                  onChange={(e) => setForm((f) => ({ ...f, color: e.target.value }))}
-                />
+                <Label className="enforcement-page__form-label">
+                  {t('vehicles.ownerDriverLabel')} *
+                </Label>
+                <div className="relative mt-1">
+                  <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    className={`pl-9 pr-9${formErrors.errors.owner_id ? ' ct-field--invalid' : ''}`}
+                    placeholder={
+                      driversLoading
+                        ? t('common.loading')
+                        : t('vehicles.selectOwnerDriver')
+                    }
+                    value={ownerQuery}
+                    disabled={driversLoading}
+                    aria-invalid={Boolean(formErrors.errors.owner_id)}
+                    onFocus={() => setOwnerMenuOpen(true)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      formErrors.clearField('owner_id');
+                      setOwnerQuery(value);
+                      setOwnerMenuOpen(true);
+                      setForm((current) => ({ ...current, owner_id: '' }));
+                    }}
+                    onBlur={() => {
+                      window.setTimeout(() => setOwnerMenuOpen(false), 120);
+                    }}
+                    autoComplete="off"
+                  />
+                  <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  {ownerMenuOpen ? (
+                    <div className="vehicles-owner-combobox" role="listbox">
+                      {filteredDrivers.length === 0 ? (
+                        <div className="vehicles-owner-combobox__empty">
+                          {t('vehicles.noDriverMatch')}
+                        </div>
+                      ) : (
+                        filteredDrivers.slice(0, 8).map((driver) => (
+                          <button
+                            key={driver.id}
+                            type="button"
+                            role="option"
+                            className="vehicles-owner-combobox__option"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => selectOwner(driver)}
+                          >
+                            <User size={14} aria-hidden />
+                            <span className="vehicles-owner-combobox__name">{driver.full_name}</span>
+                            <span className="vehicles-owner-combobox__meta">
+                              {driver.license_no || driver.email}
+                            </span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+                <FieldError message={formErrors.errors.owner_id} />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t('vehicles.ownerDriverHint')}
+                </p>
+                {!driversLoading && drivers.length === 0 ? (
+                  <p className="mt-1 text-xs text-red-600">{t('vehicles.noActiveDrivers')}</p>
+                ) : null}
               </div>
-              <div>
-                <Label className="enforcement-page__form-label">{t('vehicles.yearLabel')}</Label>
-                <Input
-                  className="mt-1"
-                  type="number"
-                  min="2000"
-                  max={new Date().getFullYear() + 1}
-                  value={form.year}
-                  onChange={(e) => setForm((f) => ({ ...f, year: e.target.value }))}
-                />
+            ) : null}
+
+            <div className="vehicles-form-dialog__grid">
+              <div className="vehicles-form-dialog__panel">
+                <p className="vehicles-form-dialog__panel-title">{t('vehicles.plateSection')}</p>
+                <Label className="enforcement-page__form-label">{t('vehicles.plateLabel')} *</Label>
+                <div className="mt-1">
+                  <CambodiaPlateField
+                    value={form.plate_number}
+                    onChange={handlePlateChange}
+                    provinceCode={plateProvince}
+                    onProvinceChange={setPlateProvince}
+                    provinceLabel={t('vehicles.provinceLabel')}
+                    variant="full"
+                  />
+                </div>
+                <FieldError message={formErrors.errors.plate_number} />
+              </div>
+
+              <div className="vehicles-form-dialog__panel">
+                <p className="vehicles-form-dialog__panel-title">{t('vehicles.detailsSection')}</p>
+                <div>
+                  <Label className="enforcement-page__form-label">{t('vehicles.typeLabel')} *</Label>
+                  <Select
+                    value={form.vehicle_type}
+                    onValueChange={(v) => {
+                      formErrors.clearField('vehicle_type');
+                      setForm((f) => ({ ...f, vehicle_type: v }));
+                    }}
+                  >
+                    <SelectTrigger
+                      className={`mt-1${formErrors.errors.vehicle_type ? ' ct-field--invalid' : ''}`}
+                      aria-invalid={Boolean(formErrors.errors.vehicle_type)}
+                    >
+                      <SelectValue placeholder={t('vehicles.selectType')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {VEHICLE_TYPES.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {renderTypeLabel(type, 14)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FieldError message={formErrors.errors.vehicle_type} />
+                </div>
+                <div>
+                  <Label className="enforcement-page__form-label">{t('vehicles.modelLabel')} *</Label>
+                  <Input
+                    className={`mt-1${formErrors.errors.model ? ' ct-field--invalid' : ''}`}
+                    placeholder={t('vehicles.modelPlaceholder')}
+                    value={form.model}
+                    aria-invalid={Boolean(formErrors.errors.model)}
+                    onChange={(e) => {
+                      formErrors.clearField('model');
+                      setForm((f) => ({ ...f, model: e.target.value }));
+                    }}
+                  />
+                  <FieldError message={formErrors.errors.model} />
+                </div>
+                <div className="vehicles-form-dialog__row-2">
+                  <div>
+                    <Label className="enforcement-page__form-label">{t('vehicles.colorLabel')} *</Label>
+                    <Input
+                      className={`mt-1${formErrors.errors.color ? ' ct-field--invalid' : ''}`}
+                      placeholder={t('vehicles.colorPlaceholder')}
+                      value={form.color}
+                      aria-invalid={Boolean(formErrors.errors.color)}
+                      onChange={(e) => {
+                        formErrors.clearField('color');
+                        setForm((f) => ({ ...f, color: e.target.value }));
+                      }}
+                    />
+                    <FieldError message={formErrors.errors.color} />
+                  </div>
+                  <div>
+                    <Label className="enforcement-page__form-label">{t('vehicles.yearLabel')}</Label>
+                    <Input
+                      className="mt-1"
+                      type="number"
+                      min="2000"
+                      max={new Date().getFullYear() + 1}
+                      value={form.year}
+                      onChange={(e) => setForm((f) => ({ ...f, year: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="enforcement-page__form-label">{t('vehicles.photoLabel')}</Label>
+                  <label className="vehicles-photo-upload mt-1">
+                    {photoPreview ? (
+                      <img src={photoPreview} alt="" className="vehicles-photo-upload__preview" />
+                    ) : (
+                      <span className="vehicles-photo-upload__placeholder">
+                        <Upload size={18} />
+                        <span>{t('vehicles.photoHint')}</span>
+                      </span>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="sr-only"
+                      onChange={(e) => handlePhotoChange(e.target.files?.[0] || null)}
+                    />
+                  </label>
+                  {photoPreview ? (
+                    <button
+                      type="button"
+                      className="vehicles-photo-upload__clear"
+                      onClick={() => handlePhotoChange(null)}
+                    >
+                      <X size={12} /> {t('vehicles.photoClear')}
+                    </button>
+                  ) : null}
+                </div>
               </div>
             </div>
           </div>
@@ -605,39 +934,119 @@ export function VehiclesPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={editVehicle !== null} onOpenChange={(open) => !open && setEditVehicle(null)}>
-        <DialogContent className="max-w-md">
+      <Dialog open={editVehicle !== null} onOpenChange={(open) => {
+        if (!open) {
+          setEditVehicle(null);
+          resetForm();
+        }
+      }}>
+        <DialogContent className="vehicles-form-dialog max-w-3xl sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle className="enforcement-page__dialog-title">{t('vehicles.editTitle')}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 py-2">
-            <div>
-              <Label className="enforcement-page__form-label">{t('vehicles.plateLabel')} *</Label>
-              <Input className="mt-1" value={form.plate_number} onChange={(e) => setForm((f) => ({ ...f, plate_number: e.target.value }))} />
-            </div>
-            <div>
-              <Label className="enforcement-page__form-label">{t('vehicles.typeLabel')} *</Label>
-              <Select value={form.vehicle_type} onValueChange={(v) => setForm((f) => ({ ...f, vehicle_type: v }))}>
-                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {VEHICLE_TYPES.map((type) => (
-                    <SelectItem key={type} value={type}>{renderTypeLabel(type, 14)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="enforcement-page__form-label">{t('vehicles.modelLabel')} *</Label>
-              <Input className="mt-1" value={form.model} onChange={(e) => setForm((f) => ({ ...f, model: e.target.value }))} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="enforcement-page__form-label">{t('vehicles.colorLabel')} *</Label>
-                <Input className="mt-1" value={form.color} onChange={(e) => setForm((f) => ({ ...f, color: e.target.value }))} />
+          <div className="vehicles-form-dialog__body">
+            <FormErrorBanner message={formErrors.hasErrors ? t('common.formIncomplete') : null} />
+            <div className="vehicles-form-dialog__grid">
+              <div className="vehicles-form-dialog__panel">
+                <p className="vehicles-form-dialog__panel-title">{t('vehicles.plateSection')}</p>
+                <Label className="enforcement-page__form-label">{t('vehicles.plateLabel')} *</Label>
+                <div className="mt-1">
+                  <CambodiaPlateField
+                    value={form.plate_number}
+                    onChange={handlePlateChange}
+                    provinceCode={plateProvince}
+                    onProvinceChange={setPlateProvince}
+                    provinceLabel={t('vehicles.provinceLabel')}
+                    variant="full"
+                  />
+                </div>
+                <FieldError message={formErrors.errors.plate_number} />
               </div>
-              <div>
-                <Label className="enforcement-page__form-label">{t('vehicles.yearLabel')}</Label>
-                <Input className="mt-1" type="number" value={form.year} onChange={(e) => setForm((f) => ({ ...f, year: e.target.value }))} />
+              <div className="vehicles-form-dialog__panel">
+                <p className="vehicles-form-dialog__panel-title">{t('vehicles.detailsSection')}</p>
+                <div>
+                  <Label className="enforcement-page__form-label">{t('vehicles.typeLabel')} *</Label>
+                  <Select
+                    value={form.vehicle_type}
+                    onValueChange={(v) => {
+                      formErrors.clearField('vehicle_type');
+                      setForm((f) => ({ ...f, vehicle_type: v }));
+                    }}
+                  >
+                    <SelectTrigger
+                      className={`mt-1${formErrors.errors.vehicle_type ? ' ct-field--invalid' : ''}`}
+                      aria-invalid={Boolean(formErrors.errors.vehicle_type)}
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {VEHICLE_TYPES.map((type) => (
+                        <SelectItem key={type} value={type}>{renderTypeLabel(type, 14)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FieldError message={formErrors.errors.vehicle_type} />
+                </div>
+                <div>
+                  <Label className="enforcement-page__form-label">{t('vehicles.modelLabel')} *</Label>
+                  <Input
+                    className={`mt-1${formErrors.errors.model ? ' ct-field--invalid' : ''}`}
+                    value={form.model}
+                    aria-invalid={Boolean(formErrors.errors.model)}
+                    onChange={(e) => {
+                      formErrors.clearField('model');
+                      setForm((f) => ({ ...f, model: e.target.value }));
+                    }}
+                  />
+                  <FieldError message={formErrors.errors.model} />
+                </div>
+                <div className="vehicles-form-dialog__row-2">
+                  <div>
+                    <Label className="enforcement-page__form-label">{t('vehicles.colorLabel')} *</Label>
+                    <Input
+                      className={`mt-1${formErrors.errors.color ? ' ct-field--invalid' : ''}`}
+                      value={form.color}
+                      aria-invalid={Boolean(formErrors.errors.color)}
+                      onChange={(e) => {
+                        formErrors.clearField('color');
+                        setForm((f) => ({ ...f, color: e.target.value }));
+                      }}
+                    />
+                    <FieldError message={formErrors.errors.color} />
+                  </div>
+                  <div>
+                    <Label className="enforcement-page__form-label">{t('vehicles.yearLabel')}</Label>
+                    <Input className="mt-1" type="number" value={form.year} onChange={(e) => setForm((f) => ({ ...f, year: e.target.value }))} />
+                  </div>
+                </div>
+                <div>
+                  <Label className="enforcement-page__form-label">{t('vehicles.photoLabel')}</Label>
+                  <label className="vehicles-photo-upload mt-1">
+                    {photoPreview ? (
+                      <img src={photoPreview} alt="" className="vehicles-photo-upload__preview" />
+                    ) : (
+                      <span className="vehicles-photo-upload__placeholder">
+                        <Upload size={18} />
+                        <span>{t('vehicles.photoHint')}</span>
+                      </span>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="sr-only"
+                      onChange={(e) => handlePhotoChange(e.target.files?.[0] || null)}
+                    />
+                  </label>
+                  {photoFile ? (
+                    <button
+                      type="button"
+                      className="vehicles-photo-upload__clear"
+                      onClick={() => handlePhotoChange(null)}
+                    >
+                      <X size={12} /> {t('vehicles.photoClear')}
+                    </button>
+                  ) : null}
+                </div>
               </div>
             </div>
           </div>
@@ -649,104 +1058,136 @@ export function VehiclesPage() {
       </Dialog>
 
       <Dialog open={viewVehicle !== null} onOpenChange={(open) => !open && setViewVehicle(null)}>
-        <DialogContent accent="teal" className="vehicles-view-dialog max-w-lg p-0 gap-0 overflow-hidden">
+        <DialogContent accent="teal" className="vehicles-view-dialog max-w-5xl sm:max-w-5xl p-0 gap-0 overflow-hidden">
           {viewVehicle ? (() => {
             const meta = getTypeMeta(viewVehicle.vehicle_type);
             const TypeIcon = vehicleTypeIcon(viewVehicle.vehicle_type);
+            const province = getCambodiaProvince(inferProvinceCodeFromPlate(viewVehicle.plate_number));
+            const modelName = [viewVehicle.make, viewVehicle.model].filter(Boolean).join(' ') || viewVehicle.model;
             return (
               <div className="vehicles-view-dialog__shell">
-                <div className="vehicles-view-dialog__hero">
-                  <VehiclePhoto vehicle={viewVehicle} className="vehicles-view-dialog__hero-photo" />
-                  <div className="vehicles-view-dialog__hero-overlay" aria-hidden />
+                <div className="vehicles-view-dialog__topbar">
+                  <div className="vehicles-view-dialog__topbar-left">
+                    <div className="vehicles-view-dialog__header-icon">
+                      <Car size={18} />
+                    </div>
+                    <div className="vehicles-view-dialog__header-copy">
+                      <h2 className="vehicles-view-dialog__header-title">{t('vehicles.viewTitle')}</h2>
+                      <p className="vehicles-view-dialog__header-meta">
+                        {t('vehicles.colRegistered')}
+                        <span aria-hidden> · </span>
+                        {new Date(viewVehicle.created_at).toLocaleDateString(dateLocale)}
+                      </p>
+                    </div>
+                  </div>
                   <span
-                    className="vehicles-view-dialog__type-badge vehicles-view-dialog__type-badge--hero"
-                    style={{ background: meta.bg, color: meta.color, borderColor: `${meta.color}30` }}
+                    className="vehicles-view-dialog__type-badge"
+                    style={{ background: meta.bg, color: meta.color, borderColor: `${meta.color}40` }}
                   >
                     <TypeIcon size={14} />
                     {typeLabel(viewVehicle.vehicle_type)}
                   </span>
                 </div>
 
-                <div className="vehicles-view-dialog__header">
-                  <div className="vehicles-view-dialog__header-icon">
-                    <Car size={18} />
-                  </div>
-                  <div className="vehicles-view-dialog__header-copy">
-                    <h2 className="vehicles-view-dialog__header-title">{t('vehicles.viewTitle')}</h2>
-                    <p className="vehicles-view-dialog__header-meta">
-                      {t('vehicles.colRegistered')}
-                      <span aria-hidden> · </span>
-                      {new Date(viewVehicle.created_at).toLocaleDateString(dateLocale)}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="vehicles-view-dialog__summary">
-                  <div className="vehicles-view-dialog__summary-top">
-                    <span className="vehicles-view-dialog__plate">{viewVehicle.plate_number}</span>
-                  </div>
-                  <p className="vehicles-view-dialog__model">{viewVehicle.model}</p>
-                  <p className="vehicles-view-dialog__year">{viewVehicle.year}</p>
-                </div>
-
-                <div className="vehicles-view-dialog__cards">
-                  <div className="vehicles-view-dialog__card vehicles-view-dialog__card--color">
-                    <div className="vehicles-view-dialog__card-icon vehicles-view-dialog__card-icon--color">
-                      <Palette size={15} />
+                <div className="vehicles-view-dialog__layout">
+                  <aside className="vehicles-view-dialog__media">
+                    <div className="vehicles-view-dialog__hero">
+                      <VehiclePhoto vehicle={viewVehicle} className="vehicles-view-dialog__hero-photo" />
+                      <div className="vehicles-view-dialog__hero-overlay" aria-hidden />
                     </div>
-                    <div className="vehicles-view-dialog__card-copy">
-                      <span className="vehicles-view-dialog__card-label">{t('vehicles.colColor')}</span>
-                      <div className="vehicles-view-dialog__color-row">
-                        <span
-                          className="vehicles-view-dialog__color-swatch"
-                          style={{ backgroundColor: getColorDot(viewVehicle.color) }}
-                        />
-                        <span className="vehicles-view-dialog__card-value">{viewVehicle.color}</span>
-                      </div>
+                    <div className="vehicles-view-dialog__plate-wrap">
+                      <CambodiaPlateField
+                        value={viewVehicle.plate_number}
+                        onChange={() => undefined}
+                        provinceCode={province.code}
+                        readOnly
+                        variant="full"
+                      />
                     </div>
-                  </div>
+                  </aside>
 
-                  <div className="vehicles-view-dialog__card vehicles-view-dialog__card--year">
-                    <div className="vehicles-view-dialog__card-icon vehicles-view-dialog__card-icon--year">
-                      <Calendar size={15} />
+                  <section className="vehicles-view-dialog__info">
+                    <div className="vehicles-view-dialog__identity">
+                      <h3 className="vehicles-view-dialog__model">{modelName}</h3>
+                      <p className="vehicles-view-dialog__year">{viewVehicle.year}</p>
+                      <p className="vehicles-view-dialog__province">
+                        <MapPin size={14} aria-hidden />
+                        <span>{province.en}</span>
+                        <span aria-hidden>·</span>
+                        <span>{province.km}</span>
+                      </p>
                     </div>
-                    <div className="vehicles-view-dialog__card-copy">
-                      <span className="vehicles-view-dialog__card-label">{t('vehicles.colYear')}</span>
-                      <span className="vehicles-view-dialog__card-value">{viewVehicle.year}</span>
-                    </div>
-                  </div>
 
-                  {!isDriver ? (
-                    <div className="vehicles-view-dialog__card vehicles-view-dialog__card--owner vehicles-view-dialog__card--wide">
-                      <div className="vehicles-view-dialog__card-icon vehicles-view-dialog__card-icon--owner">
-                        <User size={15} />
-                      </div>
-                      <div className="vehicles-view-dialog__card-copy">
-                        <span className="vehicles-view-dialog__card-label">{t('vehicles.colOwner')}</span>
-                        <div className="vehicles-view-dialog__owner-row">
-                          <div className="vehicles-view-dialog__owner-avatar">{initials(viewVehicle.owner_name)}</div>
-                          <span className="vehicles-view-dialog__card-value">{viewVehicle.owner_name}</span>
+                    <div className="vehicles-view-dialog__cards">
+                      <div className="vehicles-view-dialog__card vehicles-view-dialog__card--color">
+                        <div className="vehicles-view-dialog__card-icon vehicles-view-dialog__card-icon--color">
+                          <Palette size={15} />
+                        </div>
+                        <div className="vehicles-view-dialog__card-copy">
+                          <span className="vehicles-view-dialog__card-label">{t('vehicles.colColor')}</span>
+                          <div className="vehicles-view-dialog__color-row">
+                            <span
+                              className="vehicles-view-dialog__color-swatch"
+                              style={{ backgroundColor: getColorDot(viewVehicle.color) }}
+                            />
+                            <span className="vehicles-view-dialog__card-value">{viewVehicle.color}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ) : null}
 
-                  <div className={`vehicles-view-dialog__card vehicles-view-dialog__card--plate${!isDriver ? '' : ' vehicles-view-dialog__card--wide'}`}>
-                    <div className="vehicles-view-dialog__card-icon vehicles-view-dialog__card-icon--plate">
-                      <Hash size={15} />
+                      <div className="vehicles-view-dialog__card vehicles-view-dialog__card--year">
+                        <div className="vehicles-view-dialog__card-icon vehicles-view-dialog__card-icon--year">
+                          <Calendar size={15} />
+                        </div>
+                        <div className="vehicles-view-dialog__card-copy">
+                          <span className="vehicles-view-dialog__card-label">{t('vehicles.colYear')}</span>
+                          <span className="vehicles-view-dialog__card-value">{viewVehicle.year}</span>
+                        </div>
+                      </div>
+
+                      <div className="vehicles-view-dialog__card vehicles-view-dialog__card--plate">
+                        <div className="vehicles-view-dialog__card-icon vehicles-view-dialog__card-icon--plate">
+                          <Hash size={15} />
+                        </div>
+                        <div className="vehicles-view-dialog__card-copy">
+                          <span className="vehicles-view-dialog__card-label">{t('vehicles.colPlate')}</span>
+                          <span className="vehicles-view-dialog__card-value vehicles-view-dialog__card-value--mono">
+                            {formatCambodiaPlate(viewVehicle.plate_number)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="vehicles-view-dialog__card vehicles-view-dialog__card--province">
+                        <div className="vehicles-view-dialog__card-icon vehicles-view-dialog__card-icon--province">
+                          <MapPin size={15} />
+                        </div>
+                        <div className="vehicles-view-dialog__card-copy">
+                          <span className="vehicles-view-dialog__card-label">{t('vehicles.provinceLabel')}</span>
+                          <span className="vehicles-view-dialog__card-value">{province.en}</span>
+                        </div>
+                      </div>
+
+                      {!isDriver ? (
+                        <div className="vehicles-view-dialog__card vehicles-view-dialog__card--owner vehicles-view-dialog__card--wide">
+                          <div className="vehicles-view-dialog__card-icon vehicles-view-dialog__card-icon--owner">
+                            <User size={15} />
+                          </div>
+                          <div className="vehicles-view-dialog__card-copy">
+                            <span className="vehicles-view-dialog__card-label">{t('vehicles.colOwner')}</span>
+                            <div className="vehicles-view-dialog__owner-row">
+                              <div className="vehicles-view-dialog__owner-avatar">{initials(viewVehicle.owner_name)}</div>
+                              <span className="vehicles-view-dialog__card-value">{viewVehicle.owner_name}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
-                    <div className="vehicles-view-dialog__card-copy">
-                      <span className="vehicles-view-dialog__card-label">{t('vehicles.colPlate')}</span>
-                      <span className="vehicles-view-dialog__card-value vehicles-view-dialog__card-value--mono">
-                        {viewVehicle.plate_number}
-                      </span>
-                    </div>
-                  </div>
+                  </section>
                 </div>
 
                 <div className="vehicles-view-dialog__footer">
                   <Button variant="outline" className="vehicles-view-dialog__close-btn" onClick={() => setViewVehicle(null)}>
-                    {t('vehicles.close')}
+                    {t('common.close')}
                   </Button>
                 </div>
               </div>

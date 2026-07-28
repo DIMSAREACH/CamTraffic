@@ -31,13 +31,16 @@ def payment_config_payload() -> dict:
         modes.append('stripe')
     if khqr_enabled():
         modes.append('khqr')
-    if manual_proof_enabled():
+    # Always offer cash (officer in-person verify) for the enforcement workflow.
+    modes.append('cash')
+    if manual_proof_enabled() and 'manual' not in modes:
         modes.append('manual')
     payload = {
         'currency': getattr(settings, 'PAYMENT_CURRENCY', 'usd'),
         'modes': modes,
         'stripe_enabled': stripe_enabled(),
         'khqr_enabled': khqr_enabled(),
+        'cash_enabled': True,
         'manual_enabled': manual_proof_enabled(),
         'demo_fallback': not stripe_enabled() and not khqr_enabled(),
     }

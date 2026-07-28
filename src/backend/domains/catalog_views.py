@@ -18,6 +18,7 @@ DOMAIN_ENDPOINTS = {
         'GET|POST /api/v1/admin/rbac/roles/',
         'GET|POST /api/v1/admin/cameras/',
         'GET /api/v1/admin/audit/',
+        'GET /api/v1/officer/audit/',
         'GET|POST /api/v1/admin/ai-models/',
         'GET /api/v1/admin/reports/',
         'GET|PATCH /api/v1/admin/settings/',

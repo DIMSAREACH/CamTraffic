@@ -1,0 +1,40 @@
+{
+  "source": "stock-footage-phnom-penh-cambodia-th-january-busy-traffic-on-chaktomuk-walk-street-in-phnom-penh.webm",
+  "video_key": "chaktomuk",
+  "frame_index": 261,
+  "frame_file": "frame_0261_t10.44s.jpg",
+  "timestamp_sec": 10.44,
+  "image_size": {
+    "width": 898,
+    "height": 506
+  },
+  "tracking": true,
+  "annotations": [
+    {
+      "kind": "vehicle",
+      "class_key": "car",
+      "class_id": 1,
+      "label_en": "Car",
+      "confidence": 78.2,
+      "track_id": 150,
+      "bbox_norm": {
+        "x1": 0.1599,
+        "y1": 0.4451,
+        "x2": 0.212,
+        "y2": 0.5384
+      },
+      "bbox_px": {
+        "x1": 144,
+        "y1": 225,
+        "x2": 190,
+        "y2": 272
+      },
+      "bbox_yolo": {
+        "x_center": 0.18595,
+        "y_center": 0.49175,
+        "width": 0.0521,
+        "height": 0.0933
+      }
+    }
+  ]
+}

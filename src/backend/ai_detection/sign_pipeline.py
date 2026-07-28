@@ -51,22 +51,74 @@ def _temp_jpeg(img: np.ndarray, quality: int = 94) -> tuple[str, str]:
     return path, path
 
 
+def _letterbox_square(img: np.ndarray, size: int, *, pad_value: int = 114) -> np.ndarray:
+    """Pad to square then resize — preserves aspect (matches Ultralytics letterbox)."""
+    h, w = img.shape[:2]
+    if h < 1 or w < 1:
+        return np.full((size, size, 3), pad_value, dtype=np.uint8)
+    scale = min(size / float(h), size / float(w))
+    nh, nw = max(1, int(round(h * scale))), max(1, int(round(w * scale)))
+    interp = cv2.INTER_AREA if scale < 1.0 else cv2.INTER_CUBIC
+    resized = cv2.resize(img, (nw, nh), interpolation=interp)
+    canvas = np.full((size, size, 3), pad_value, dtype=np.uint8)
+    top = (size - nh) // 2
+    left = (size - nw) // 2
+    canvas[top:top + nh, left:left + nw] = resized
+    return canvas
+
+
+def _unsharp(img: np.ndarray, amount: float = 1.15) -> np.ndarray:
+    blur = cv2.GaussianBlur(img, (0, 0), 1.1)
+    return cv2.addWeighted(img, amount, blur, 1.0 - amount, 0)
+
+
 def preprocess_sign_bgr(img: np.ndarray, *, size: int | None = None) -> tuple[np.ndarray, dict]:
-    """CLAHE contrast, mild Gaussian blur, optional adaptive threshold, resize to square."""
+    """
+    OpenCV sign prep for YOLO:
+    dark→CLAHE, soft→unsharp, dull→adaptive blend, then letterbox to square.
+    """
     size = size or _target_size()
     h, w = img.shape[:2]
     if h < 8 or w < 8:
-        out = cv2.resize(img, (size, size), interpolation=cv2.INTER_CUBIC)
-        return out, {'size': f'{size}x{size}', 'used_adaptive': False, 'contrast': 0.0, 'white_ratio': 0.0}
+        out = _letterbox_square(img, size)
+        return out, {
+            'size': f'{size}x{size}',
+            'used_adaptive': False,
+            'used_sharpen': False,
+            'used_letterbox': True,
+            'contrast': 0.0,
+            'white_ratio': 0.0,
+            'mean_luma': 0.0,
+            'blur_score': 0.0,
+        }
 
+    gray0 = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    mean_luma = float(np.mean(gray0))
+    blur_score = float(cv2.Laplacian(gray0, cv2.CV_64F).var())
+
+    # Stronger CLAHE on dark / low-contrast phone and CCTV crops.
+    clip = 2.2
+    if mean_luma < 55:
+        clip = 3.6
+    elif mean_luma < 95:
+        clip = 3.0
     lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
     l_channel, a_channel, b_channel = cv2.split(lab)
-    clahe = cv2.createCLAHE(clipLimit=2.8, tileGridSize=(8, 8))
+    clahe = cv2.createCLAHE(clipLimit=clip, tileGridSize=(8, 8))
     enhanced = cv2.cvtColor(
         cv2.merge([clahe.apply(l_channel), a_channel, b_channel]),
         cv2.COLOR_LAB2BGR,
     )
-    enhanced = cv2.GaussianBlur(enhanced, (3, 3), 0)
+
+    # Mild denoise only when very dark (night grain); otherwise keep edges sharp.
+    if mean_luma < 50:
+        enhanced = cv2.GaussianBlur(enhanced, (3, 3), 0)
+    else:
+        enhanced = cv2.GaussianBlur(enhanced, (3, 3), 0.6)
+
+    used_sharpen = blur_score < 55.0 and mean_luma > 35.0
+    if used_sharpen:
+        enhanced = _unsharp(enhanced, amount=1.22 if blur_score < 30 else 1.12)
 
     gray = cv2.cvtColor(enhanced, cv2.COLOR_BGR2GRAY)
     white_ratio = float(np.mean(gray > 220))
@@ -81,13 +133,17 @@ def preprocess_sign_bgr(img: np.ndarray, *, size: int | None = None) -> tuple[np
         adapt_bgr = cv2.cvtColor(adapt, cv2.COLOR_GRAY2BGR)
         enhanced = cv2.addWeighted(enhanced, 0.70, adapt_bgr, 0.30, 0)
 
-    interp = cv2.INTER_AREA if max(h, w) > size else cv2.INTER_CUBIC
-    out = cv2.resize(enhanced, (size, size), interpolation=interp)
+    out = _letterbox_square(enhanced, size)
     debug = {
         'size': f'{size}x{size}',
         'used_adaptive': used_adaptive,
+        'used_sharpen': used_sharpen,
+        'used_letterbox': True,
+        'clahe_clip': round(clip, 2),
         'contrast': round(contrast, 2),
         'white_ratio': round(white_ratio, 4),
+        'mean_luma': round(mean_luma, 2),
+        'blur_score': round(blur_score, 2),
     }
     return out, debug
 
@@ -144,6 +200,14 @@ def draw_detection_overlays_on_image(
         if kind == 'plate':
             min_side, min_area = 0.012, 0.0008
             max_ratio, min_ratio = 12.0, 0.08
+        elif kind in ('helmet', 'violation'):
+            # Rider heads are tiny in street footage — keep small near-square boxes.
+            min_side, min_area = 0.008, 0.0004
+            max_ratio, min_ratio = 3.0, 0.33
+        elif kind == 'vehicle':
+            # Motorcycles / tuk-tuks are smaller than cars — don't drop them from UI.
+            min_side, min_area = 0.015, 0.0012
+            max_ratio, min_ratio = 8.0, 0.12
         else:
             min_side, min_area = 0.03, 0.004
             max_ratio, min_ratio = 8.0, 0.12
@@ -186,30 +250,31 @@ def draw_detection_overlays_on_image(
         if kind in ('sign', ''):
             # Empty kind used by draw_yolo_bbox_on_image (sign path).
             x1, y1, x2, y2 = _expand_sign_face(x1, y1, x2, y2)
-        color = item.get('color') or (0, 165, 255)
-        thickness = max(2, min(4 if kind == 'plate' else 3, w // 200))
+        color = item.get('color') or (0, 255, 0)  # Ultralytics-style default: lime green
+        if kind == 'vehicle' and not item.get('color'):
+            color = (0, 255, 0)
+        thickness = max(2, min(3, w // 220))
         cv2.rectangle(img, (x1, y1), (x2, y2), color, thickness)
-        # Geometric center of the (expanded) bbox — crosshair + filled target.
-        cx = (x1 + x2) // 2
-        cy = (y1 + y2) // 2
-        arm = max(8, min(28, min(x2 - x1, y2 - y1) // 5))
-        cv2.line(img, (cx - arm, cy), (cx + arm, cy), color, max(1, thickness - 1), cv2.LINE_AA)
-        cv2.line(img, (cx, cy - arm), (cx, cy + arm), color, max(1, thickness - 1), cv2.LINE_AA)
-        radius = max(4, min(9, min(x2 - x1, y2 - y1) // 16))
-        cv2.circle(img, (cx, cy), radius, color, -1, cv2.LINE_AA)
-        cv2.circle(img, (cx, cy), radius, (255, 255, 255), 2, cv2.LINE_AA)
         label = str(item.get('label') or '').strip()
         conf = float(item.get('confidence') or 0)
         if label:
-            text = f'{label} {conf:.0f}%' if conf > 0 else label
+            # Match Ultralytics plot style: "Car 0.92" (0–1), not "Car 92%"
+            if conf > 1.0:
+                conf_txt = f'{conf / 100.0:.2f}'
+            elif conf > 0:
+                conf_txt = f'{conf:.2f}'
+            else:
+                conf_txt = ''
+            text = f'{label} {conf_txt}'.strip()
             font = cv2.FONT_HERSHEY_SIMPLEX
-            scale = max(0.4, min(0.55, w / 1400))
-            (tw, th), _ = cv2.getTextSize(text, font, scale, 1)
-            ty = max(y1 - 4, th + 4)
-            cv2.rectangle(img, (x1, ty - th - 4), (x1 + tw + 6, ty + 2), color, -1)
+            scale = max(0.45, min(0.7, w / 900))
+            (tw, th), baseline = cv2.getTextSize(text, font, scale, 1)
+            ty = max(y1, th + 4)
+            # Filled label strip like YOLO plot()
+            cv2.rectangle(img, (x1, ty - th - 6), (x1 + tw + 6, ty + baseline), color, -1)
             cv2.putText(
-                img, text, (x1 + 3, ty - 2),
-                font, scale, (255, 255, 255), 1, cv2.LINE_AA,
+                img, text, (x1 + 3, ty - 3),
+                font, scale, (0, 0, 0), 1, cv2.LINE_AA,
             )
         drew = True
     if not drew:

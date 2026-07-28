@@ -123,15 +123,27 @@ def soft_delete_user(user: User) -> User:
     """
     Soft-delete: disable sign-in and stamp deleted_at.
     Keeps FK history (fines, violations, audit) intact for enforcement.
+    
+    Appends timestamp to email to allow re-creating users with the same email.
     """
     from django.utils import timezone
 
     if not user.is_active and user.deleted_at:
         return user
+    
     user.is_active = False
     if user.deleted_at is None:
         user.deleted_at = timezone.now()
-    user.save(update_fields=['is_active', 'deleted_at', 'updated_at'])
+        
+    # Modify email to allow re-creating users with the same email address
+    # Format: original@example.com becomes original_deleted_1722024000@example.com
+    if not user.email.startswith('_deleted_'):
+        timestamp = int(user.deleted_at.timestamp())
+        email_parts = user.email.rsplit('@', 1)
+        if len(email_parts) == 2:
+            user.email = f'{email_parts[0]}_deleted_{timestamp}@{email_parts[1]}'
+    
+    user.save(update_fields=['is_active', 'deleted_at', 'email', 'updated_at'])
     sync_profile_status(user)
     return user
 

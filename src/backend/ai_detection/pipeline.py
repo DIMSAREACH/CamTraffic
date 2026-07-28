@@ -335,10 +335,12 @@ def run_detection_pipeline(
     unified_prep: bool = False,
     enable_ocr: bool = True,
     enable_plate: bool = True,
+    enable_helmet: bool = True,
+    vehicle_imgsz: int | None = None,
 ) -> dict:
     """
     Execute pipeline in order: vehicle → plate region → OCR → sign (parallel metadata).
-    Returns sign_result, vehicles, plate_result, payload (without log_id / pipeline steps).
+    Returns sign_result, vehicles, plate_result, helmets, payload (without log_id / pipeline steps).
     """
     live_capture = _is_live_capture_filename(original_filename or detect_path)
     track_session = (track_session or '').strip()
@@ -373,6 +375,7 @@ def run_detection_pipeline(
 
     vehicles: list[dict] = []
     plate_result = _empty_plate_result()
+    helmets: list[dict] = []
 
     def _run_sign_detection() -> dict:
         return detect_traffic_sign(
@@ -384,30 +387,46 @@ def run_detection_pipeline(
         )
 
     def _run_vehicle_detection() -> list[dict]:
-        if live_capture and track_session and vehicle_tracking_enabled():
+        # Live camera *or* video Detect with Tracking on (track_session set).
+        if track_session and vehicle_tracking_enabled():
             return track_vehicles(detect_path, track_session)
         if vehicle_detection_enabled():
             from django.conf import settings as dj_settings
 
-            vehicle_imgsz = None
+            imgsz = vehicle_imgsz
             fast_mode = False
             if live_fast:
-                vehicle_imgsz = int(getattr(dj_settings, 'AI_LIVE_IMGSZ', 320))
+                imgsz = int(getattr(dj_settings, 'AI_LIVE_IMGSZ', 320)) if imgsz is None else imgsz
                 fast_mode = True
-            return detect_vehicles(detect_path, imgsz=vehicle_imgsz, fast_mode=fast_mode)
+            return detect_vehicles(detect_path, imgsz=imgsz, fast_mode=fast_mode)
         return []
 
+    def _run_helmet_detection() -> list[dict]:
+        if not enable_helmet or sign_only:
+            return []
+        try:
+            from .helmet_detection import detect_helmets, helmet_detection_enabled
+
+            if not helmet_detection_enabled():
+                return []
+            return detect_helmets(detect_path, fast_mode=live_fast)
+        except Exception:
+            logger.exception('Helmet detection failed for %s', detect_path)
+            return []
+
     if sign_only:
-        if live_capture and track_session and vehicle_tracking_enabled():
+        if track_session and vehicle_tracking_enabled():
             vehicles = _run_vehicle_detection()
         sign_result = _run_sign_detection()
     else:
-        # Sign YOLO and vehicle YOLO are independent — run them in parallel.
-        with ThreadPoolExecutor(max_workers=2) as pool:
+        # Sign / vehicle / helmet YOLO are independent — run in parallel.
+        with ThreadPoolExecutor(max_workers=3) as pool:
             sign_future = pool.submit(_run_sign_detection)
             vehicle_future = pool.submit(_run_vehicle_detection)
+            helmet_future = pool.submit(_run_helmet_detection)
             sign_result = sign_future.result()
             vehicles = vehicle_future.result()
+            helmets = helmet_future.result()
         if enable_plate:
             if enable_ocr and plate_ocr_enabled():
                 plate_result = recognize_plate(detect_path, vehicles)
@@ -429,10 +448,23 @@ def run_detection_pipeline(
         payload['track_session'] = track_session
         payload['vehicle_tracking_enabled'] = vehicle_tracking_enabled()
 
+    no_helmet = sum(1 for h in helmets if (h.get('class_key') or '') in ('no_helmet', 'head'))
+    helmet_ok = sum(1 for h in helmets if (h.get('class_key') or '') == 'helmet')
+    payload['helmets'] = helmets
+    payload['helmet_summary'] = {
+        'enabled': bool(helmets) or enable_helmet,
+        'no_helmet_detections': no_helmet,
+        'helmet_detections': helmet_ok,
+        'head_detections': sum(1 for h in helmets if (h.get('class_key') or '') == 'head'),
+        'has_no_helmet_violation': no_helmet > 0,
+        'violation_type': 'NO_HELMET' if no_helmet > 0 else '',
+    }
+
     return {
         'sign_result': sign_result,
         'vehicles': vehicles,
         'plate_result': plate_result,
+        'helmets': helmets,
         'vehicle_summary': vehicle_summary,
         'payload': payload,
         'track_session': track_session,

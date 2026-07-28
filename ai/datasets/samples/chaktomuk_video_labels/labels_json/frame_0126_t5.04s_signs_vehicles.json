@@ -1,0 +1,118 @@
+{
+  "source": "stock-footage-phnom-penh-cambodia-th-january-busy-traffic-on-chaktomuk-walk-street-in-phnom-penh.webm",
+  "video_key": "chaktomuk",
+  "frame_index": 126,
+  "frame_file": "frame_0126_t5.04s.jpg",
+  "timestamp_sec": 5.04,
+  "image_size": {
+    "width": 898,
+    "height": 506
+  },
+  "tracking": true,
+  "annotations": [
+    {
+      "kind": "sign",
+      "class_key": "SPEED_LIMIT_40",
+      "class_id": 8,
+      "label_en": "Speed Limit 40",
+      "confidence": 46.7,
+      "track_id": 1201,
+      "bbox_norm": {
+        "x1": 0.555661678314209,
+        "y1": 0.27789995074272156,
+        "x2": 0.5910698175430298,
+        "y2": 0.3425109386444092
+      },
+      "bbox_px": {
+        "x1": 499,
+        "y1": 141,
+        "x2": 531,
+        "y2": 173
+      },
+      "bbox_yolo": {
+        "x_center": 0.573366,
+        "y_center": 0.310205,
+        "width": 0.035408,
+        "height": 0.064611
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "tuk_tuk",
+      "class_id": 4,
+      "label_en": "Tuk Tuk",
+      "confidence": 86.9,
+      "track_id": 70,
+      "bbox_norm": {
+        "x1": 0.1834,
+        "y1": 0.4153,
+        "x2": 0.2687,
+        "y2": 0.5923
+      },
+      "bbox_px": {
+        "x1": 165,
+        "y1": 210,
+        "x2": 241,
+        "y2": 300
+      },
+      "bbox_yolo": {
+        "x_center": 0.22605,
+        "y_center": 0.5038,
+        "width": 0.0853,
+        "height": 0.177
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "motorcycle",
+      "class_id": 2,
+      "label_en": "Motorcycle",
+      "confidence": 86.2,
+      "track_id": 48,
+      "bbox_norm": {
+        "x1": 0.6201,
+        "y1": 0.5973,
+        "x2": 0.9801,
+        "y2": 1.0
+      },
+      "bbox_px": {
+        "x1": 557,
+        "y1": 302,
+        "x2": 880,
+        "y2": 506
+      },
+      "bbox_yolo": {
+        "x_center": 0.8001,
+        "y_center": 0.79865,
+        "width": 0.36,
+        "height": 0.4027
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "car",
+      "class_id": 1,
+      "label_en": "Car",
+      "confidence": 84.2,
+      "track_id": 69,
+      "bbox_norm": {
+        "x1": 0.3148,
+        "y1": 0.4352,
+        "x2": 0.4114,
+        "y2": 0.547
+      },
+      "bbox_px": {
+        "x1": 283,
+        "y1": 220,
+        "x2": 369,
+        "y2": 277
+      },
+      "bbox_yolo": {
+        "x_center": 0.3631,
+        "y_center": 0.4911,
+        "width": 0.0966,
+        "height": 0.1118
+      }
+    }
+  ]
+}

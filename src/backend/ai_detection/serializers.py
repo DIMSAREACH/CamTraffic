@@ -13,6 +13,34 @@ def _local_media_exists(name: str) -> bool:
         return False
 
 
+def _repair_garbled_detected_sign(label: str) -> dict | None:
+    """Map leftover labels like 'សញ្ញាព្រមាន keep-right' back to catalog names."""
+    import re
+
+    text = (label or '').strip()
+    if not text:
+        return None
+    # Already a real Khmer name (not category + latin slug)
+    if re.search(r'[\u1780-\u17FF]', text) and not re.search(r'[A-Za-z]', text):
+        return None
+    token = None
+    m = re.search(
+        r'(keep[_\s-]*right|keep[_\s-]*left|no[_\s-]*entry|no[_\s-]*u[_\s-]*turn|'
+        r'no[_\s-]*parking|no[_\s-]*left[_\s-]*turn|no[_\s-]*right[_\s-]*turn)',
+        text,
+        re.I,
+    )
+    if m:
+        token = m.group(1)
+    elif re.match(r'^Traffic Sign\s+', text, re.I):
+        token = re.sub(r'^Traffic Sign\s+', '', text, flags=re.I).strip()
+    if not token:
+        return None
+    from .services import _result_from_class_key
+
+    return _result_from_class_key(token, confidence=90.0)
+
+
 class AIDetectionLogSerializer(serializers.ModelSerializer):
     user_id = serializers.UUIDField(source='user.id', read_only=True)
     user_name = serializers.CharField(source='user.full_name', read_only=True)
@@ -67,6 +95,13 @@ class AIDetectionLogSerializer(serializers.ModelSerializer):
                     sign_en = sign.sign_name_en or sign_en
                     sign_code = sign.sign_code or ''
                     class_key = (sign.sign_code or '').lower().replace('-', '_')
+                else:
+                    repaired = _repair_garbled_detected_sign(obj.detected_sign)
+                    if repaired:
+                        sign_km = repaired.get('sign_name_km') or repaired.get('sign_name') or sign_km
+                        sign_en = repaired.get('sign_name_en') or sign_en
+                        sign_code = repaired.get('sign_code') or sign_code
+                        class_key = repaired.get('class_key') or class_key
             plate_result = None
             if obj.detected_plate:
                 plate_result = {

@@ -86,6 +86,50 @@ class NotificationFlowTests(TestCase):
         after = Notification.objects.filter(user=self.driver_user).count()
         self.assertEqual(after, before + 1)
 
+    def test_payment_success_notifies_admin_and_officer(self):
+        from django.contrib.auth import get_user_model
+        from fines.models import Fine
+        from fines.services import mark_fine_paid
+
+        User = get_user_model()
+        officer = User.objects.create_user(
+            email='notif_officer@test.kh',
+            password='testpass123',
+            full_name='Notif Officer',
+            role='police',
+        )
+        fine = Fine.objects.create(
+            driver=self.driver_user,
+            police=officer,
+            amount=Decimal('20.00'),
+            reason='No helmet',
+            location='PP',
+            vehicle_plate='2A-9999',
+            status='pending',
+        )
+        admin_before = Notification.objects.filter(user=self.admin, type='payment').count()
+        officer_before = Notification.objects.filter(user=officer, type='payment').count()
+        driver_before = Notification.objects.filter(user=self.driver_user, type='payment').count()
+
+        mark_fine_paid(fine, payment_method='khqr', payment_reference='TEST-PAY-1')
+
+        self.assertEqual(
+            Notification.objects.filter(user=self.admin, type='payment').count(),
+            admin_before + 1,
+        )
+        self.assertEqual(
+            Notification.objects.filter(user=officer, type='payment').count(),
+            officer_before + 1,
+        )
+        # Driver is not staff — staff alert must not target them.
+        self.assertEqual(
+            Notification.objects.filter(user=self.driver_user, type='payment').count(),
+            driver_before,
+        )
+        staff_note = Notification.objects.filter(user=self.admin, type='payment').order_by('-created_at').first()
+        self.assertIn('paid fine', staff_note.message.lower())
+        self.assertEqual(staff_note.fine_id, fine.id)
+
     def test_validate_integration_script_exists(self):
         from pathlib import Path
 

@@ -185,6 +185,7 @@ def compose_detection_payload(
     for key in (
         'sign_name_km', 'sign_name_en', 'sign_code', 'category',
         'description_en', 'guidance_en', 'class_key', 'sign_bbox',
+        'sign_detections', 'yolo_debug',
     ):
         if sign_result.get(key):
             payload[key] = sign_result[key]

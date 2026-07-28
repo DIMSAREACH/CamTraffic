@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-BACKEND = ROOT / 'backend'
+BACKEND = ROOT / 'src' / 'backend'
 AI_ROOT = ROOT / 'ai'
 DATASET_10 = AI_ROOT / 'dataset_10'
 REPORT_DIR = ROOT / 'docs' / 'reports'

@@ -169,6 +169,7 @@ const USER_MODULE_TITLE_KEYS: Record<string, string> = {
   notifications: 'sidebar.pageTitles.notifications',
   profile: 'sidebar.pageTitles.profile',
   settings: 'sidebar.pageTitles.settings',
+  audit: 'sidebar.pageTitles.auditLogs',
   payments: 'sidebar.pageTitles.payments',
   signs: 'sidebar.pageTitles.trafficSigns',
   'traffic-rules': 'sidebar.pageTitles.trafficRules',

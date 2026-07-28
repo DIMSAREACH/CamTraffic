@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from core.media_urls import api_media_url
+
 from .models import Fine
 
 
@@ -23,25 +25,42 @@ class FineSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ('id', 'created_at', 'police_id', 'police_name')
 
-    def _absolute_media(self, obj, field_name):
-        file_field = getattr(obj, field_name, None)
-        if not file_field:
+    def _image_url(self, image_field):
+        if not image_field:
             return None
-        request = self.context.get('request')
-        if request:
-            return request.build_absolute_uri(file_field.url)
-        return file_field.url
+        name = getattr(image_field, 'name', '') or ''
+        if not name:
+            return None
+        url = api_media_url(self.context.get('request'), image_field)
+        return url or None
 
     def get_evidence_image(self, obj):
-        return self._absolute_media(obj, 'evidence_image')
+        url = self._image_url(getattr(obj, 'evidence_image', None))
+        if url:
+            return url
+        violation = getattr(obj, 'violation', None)
+        if not violation:
+            return None
+        for field_name in ('evidence_image', 'vehicle_evidence_image', 'plate_evidence_image'):
+            url = self._image_url(getattr(violation, field_name, None))
+            if url:
+                return url
+        log = getattr(violation, 'ai_detection_log', None)
+        if log:
+            for field_name in ('uploaded_image', 'vehicle_snapshot', 'plate_snapshot'):
+                url = self._image_url(getattr(log, field_name, None))
+                if url:
+                    return url
+        return None
 
     def get_payment_screenshot(self, obj):
-        return self._absolute_media(obj, 'payment_screenshot')
+        return self._image_url(getattr(obj, 'payment_screenshot', None))
 
 
 class FineCreateSerializer(serializers.ModelSerializer):
     driver_id = serializers.UUIDField(required=False)
     violation_id = serializers.UUIDField(required=False, allow_null=True)
+    vehicle_plate = serializers.CharField(required=False, allow_blank=True, max_length=64)
 
     class Meta:
         model = Fine
@@ -49,6 +68,9 @@ class FineCreateSerializer(serializers.ModelSerializer):
             'driver_id', 'violation_id', 'amount', 'reason', 'location',
             'vehicle_plate', 'evidence_image',
         )
+
+    def validate_vehicle_plate(self, value):
+        return str(value or '').strip()[:20]
 
     def validate(self, attrs):
         if not attrs.get('driver_id') and not attrs.get('violation_id'):
@@ -58,6 +80,8 @@ class FineCreateSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({'amount': 'This field is required.'})
             if not str(attrs.get('reason') or '').strip():
                 raise serializers.ValidationError({'reason': 'This field is required.'})
+            if not str(attrs.get('location') or '').strip():
+                raise serializers.ValidationError({'location': 'This field is required.'})
         return attrs
 
 
@@ -65,11 +89,17 @@ class FinePaymentSerializer(serializers.Serializer):
     payment_method = serializers.ChoiceField(
         choices=['aba', 'wing', 'acleda', 'bank_transfer', 'cash', 'stripe', 'khqr'],
     )
-    payment_reference = serializers.CharField(max_length=200)
+    payment_reference = serializers.CharField(max_length=200, required=False, allow_blank=True)
     payment_screenshot = serializers.ImageField(required=False, allow_null=True)
 
-    def validate_payment_reference(self, value):
-        if not str(value or '').strip():
-            raise serializers.ValidationError('Payment reference is required.')
-        return value.strip()
+    def validate(self, attrs):
+        method = attrs.get('payment_method')
+        ref = str(attrs.get('payment_reference') or '').strip()
+        if method == 'cash':
+            attrs['payment_reference'] = ref or 'CASH-IN-PERSON'
+            return attrs
+        if not ref:
+            raise serializers.ValidationError({'payment_reference': 'Payment reference is required.'})
+        attrs['payment_reference'] = ref
+        return attrs
 

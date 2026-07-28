@@ -566,7 +566,7 @@ export function mergeDashboardStats(live: DashboardStats): DashboardStats {
     total_drivers: Math.max(live.total_drivers ?? 0, sample.total_drivers),
     total_police: Math.max(live.total_police ?? 0, sample.total_police),
     total_vehicles: Math.max(live.total_vehicles ?? 0, sample.total_vehicles),
-    total_signs: Math.max(live.total_signs ?? 0, sample.total_signs ?? 0),
+    total_signs: live.total_signs ?? sample.total_signs ?? 0,
   };
 }
 

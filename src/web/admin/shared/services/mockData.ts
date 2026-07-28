@@ -3,18 +3,18 @@ import type {
 } from '../types';
 
 export const MOCK_CREDENTIALS = [
-  { email: 'admin@traffic.kh', password: 'Admin@123', userId: '1' },
-  { email: 'dara.chan@police.gov.kh', password: 'Police@123', userId: '2' },
-  { email: 'srey.neang@police.gov.kh', password: 'Police@123', userId: '3' },
-  { email: 'kosal.pich@gmail.com', password: 'Driver@123', userId: '4' },
-  { email: 'vanna.sok@gmail.com', password: 'Driver@123', userId: '5' },
+  { email: 'sokhameas18@gmail.com', password: 'Admin@123', userId: '1' },
+  { email: 'darachan18@gmail.com', password: 'Police@123', userId: '2' },
+  { email: 'sreyneang18@gmail.com', password: 'Police@123', userId: '3' },
+  { email: 'kosalpich18@gmail.com', password: 'Driver@123', userId: '4' },
+  { email: 'vannasok18@gmail.com', password: 'Driver@123', userId: '5' },
 ];
 
 export const mockUsers: User[] = [
   {
     id: '1',
     full_name: 'Sokha Meas',
-    email: 'admin@traffic.kh',
+    email: 'sokhameas18@gmail.com',
     role: 'admin',
     phone: '+855 12 345 678',
     address: 'Ministry of Public Works and Transport, Phnom Penh',
@@ -24,7 +24,7 @@ export const mockUsers: User[] = [
   {
     id: '2',
     full_name: 'Dara Chan',
-    email: 'dara.chan@police.gov.kh',
+    email: 'darachan18@gmail.com',
     role: 'police',
     phone: '+855 12 111 222',
     address: 'Traffic Police Unit, Toul Kork, Phnom Penh',
@@ -34,7 +34,7 @@ export const mockUsers: User[] = [
   {
     id: '3',
     full_name: 'Srey Neang',
-    email: 'srey.neang@police.gov.kh',
+    email: 'sreyneang18@gmail.com',
     role: 'police',
     phone: '+855 17 333 444',
     address: 'Traffic Police Unit, Chamkar Mon, Phnom Penh',
@@ -44,7 +44,7 @@ export const mockUsers: User[] = [
   {
     id: '4',
     full_name: 'Kosal Pich',
-    email: 'kosal.pich@gmail.com',
+    email: 'kosalpich18@gmail.com',
     role: 'driver',
     phone: '+855 16 555 666',
     address: 'Sen Sok, Phnom Penh',
@@ -55,7 +55,7 @@ export const mockUsers: User[] = [
   {
     id: '5',
     full_name: 'Vanna Sok',
-    email: 'vanna.sok@gmail.com',
+    email: 'vannasok18@gmail.com',
     role: 'driver',
     phone: '+855 77 777 888',
     address: 'Russei Keo, Phnom Penh',
@@ -66,7 +66,7 @@ export const mockUsers: User[] = [
   {
     id: '6',
     full_name: 'Pisey Mao',
-    email: 'pisey.mao@gmail.com',
+    email: 'piseymao18@gmail.com',
     role: 'driver',
     phone: '+855 89 999 000',
     address: 'Daun Penh, Phnom Penh',
@@ -77,7 +77,7 @@ export const mockUsers: User[] = [
   {
     id: '7',
     full_name: 'Ratana Heng',
-    email: 'ratana.heng@gmail.com',
+    email: 'ratanaheng18@gmail.com',
     role: 'driver',
     phone: '+855 95 000 111',
     address: 'Meanchey, Phnom Penh',
@@ -88,7 +88,7 @@ export const mockUsers: User[] = [
   {
     id: '8',
     full_name: 'Sokha Lim',
-    email: 'sokha.lim@gmail.com',
+    email: 'sokhalim18@gmail.com',
     role: 'driver',
     phone: '+855 68 222 333',
     address: 'Prek Pnov, Phnom Penh',
@@ -99,7 +99,7 @@ export const mockUsers: User[] = [
   {
     id: '9',
     full_name: 'Bora Keo',
-    email: 'bora.keo@police.gov.kh',
+    email: 'borakeo18@gmail.com',
     role: 'police',
     phone: '+855 98 444 555',
     address: 'Por Sen Chey, Phnom Penh',
@@ -109,7 +109,7 @@ export const mockUsers: User[] = [
   {
     id: '10',
     full_name: 'Chenda Ros',
-    email: 'chenda.ros@gmail.com',
+    email: 'chendaros18@gmail.com',
     role: 'driver',
     phone: '+855 71 666 777',
     address: 'Tuol Sangke, Phnom Penh',
@@ -120,7 +120,7 @@ export const mockUsers: User[] = [
   {
     id: '11',
     full_name: 'Chhay Vuthy',
-    email: 'chhay.vuthy@police.gov.kh',
+    email: 'chhayvuthy18@gmail.com',
     role: 'police',
     phone: '+855 15 888 999',
     address: 'Russian Blvd, Phnom Penh',
@@ -130,7 +130,7 @@ export const mockUsers: User[] = [
   {
     id: '12',
     full_name: 'Malis Prom',
-    email: 'malis.prom@gmail.com',
+    email: 'malisprom18@gmail.com',
     role: 'driver',
     phone: '+855 92 111 222',
     address: 'Chroy Changvar, Phnom Penh',
@@ -141,7 +141,7 @@ export const mockUsers: User[] = [
   {
     id: '13',
     full_name: 'Heng Sopheap',
-    email: 'sopheap.heng@gmail.com',
+    email: 'hengsopheap18@gmail.com',
     role: 'driver',
     phone: '+855 88 333 444',
     address: 'Toul Kork, Phnom Penh',
@@ -152,7 +152,7 @@ export const mockUsers: User[] = [
   {
     id: '14',
     full_name: 'Narith Lim',
-    email: 'narith.lim@traffic.kh',
+    email: 'narithlim18@gmail.com',
     role: 'admin',
     phone: '+855 12 900 100',
     address: 'Ministry of Interior, Phnom Penh',
@@ -162,7 +162,7 @@ export const mockUsers: User[] = [
   {
     id: '15',
     full_name: 'Rithy Chhorn',
-    email: 'rithy.chhorn@police.gov.kh',
+    email: 'rithychhorn18@gmail.com',
     role: 'police',
     phone: '+855 97 555 666',
     address: 'Monivong Blvd, Phnom Penh',
@@ -172,7 +172,7 @@ export const mockUsers: User[] = [
   {
     id: '16',
     full_name: 'Sreymom Keo',
-    email: 'sreymom.keo@gmail.com',
+    email: 'sreymomkeo18@gmail.com',
     role: 'driver',
     phone: '+855 70 777 888',
     address: 'Sen Sok, Phnom Penh',
@@ -183,7 +183,7 @@ export const mockUsers: User[] = [
   {
     id: '17',
     full_name: 'Visal Ouk',
-    email: 'visal.ouk@gmail.com',
+    email: 'visalouk18@gmail.com',
     role: 'driver',
     phone: '+855 69 999 000',
     address: 'Mean Chey, Phnom Penh',

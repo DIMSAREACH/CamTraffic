@@ -121,6 +121,38 @@ def _class_map() -> dict[int, str]:
     return COCO_VEHICLE_CLASSES
 
 
+_COCO_BACKUP_MODEL = None
+
+
+def _get_coco_backup_model():
+    """
+    Generic COCO YOLO used as a *supplement* on crowded street scenes.
+
+    The Cambodia model is precise on close-ups but misses small, distant
+    motorcycles in dense traffic; COCO recovers them.
+    """
+    global _COCO_BACKUP_MODEL
+    if _COCO_BACKUP_MODEL is not None:
+        return _COCO_BACKUP_MODEL
+    ai_root = _ai_root()
+    for candidate in (
+        ai_root / 'weights' / 'pretrained' / 'yolov8n.pt',
+        ai_root / 'weights' / 'yolov8n.pt',
+        Path(settings.BASE_DIR) / 'yolov8n.pt',
+        Path('yolov8n.pt'),
+    ):
+        if not candidate.is_file():
+            continue
+        try:
+            from ultralytics import YOLO
+            _COCO_BACKUP_MODEL = YOLO(str(candidate))
+            logger.info('COCO backup vehicle model loaded: %s', candidate)
+            return _COCO_BACKUP_MODEL
+        except Exception:
+            logger.exception('Failed to load COCO backup model %s', candidate)
+    return None
+
+
 def _normalize_bbox(xyxy, img_w: float, img_h: float) -> dict[str, float]:
     x1, y1, x2, y2 = (float(v) for v in xyxy)
     if img_w <= 0 or img_h <= 0:
@@ -267,6 +299,252 @@ def _build_detection(cls_idx: int, conf: float, xyxy, img_w: float, img_h: float
     }
 
 
+def _bbox_xyxy(bbox) -> tuple[float, float, float, float] | None:
+    """Normalize bbox from list/tuple xyxy or dict {x1,y1,x2,y2}."""
+    if bbox is None:
+        return None
+    if isinstance(bbox, dict):
+        try:
+            return (
+                float(bbox.get('x1', 0)),
+                float(bbox.get('y1', 0)),
+                float(bbox.get('x2', 0)),
+                float(bbox.get('y2', 0)),
+            )
+        except (TypeError, ValueError):
+            return None
+    try:
+        vals = list(bbox)[:4]
+        if len(vals) < 4:
+            return None
+        return tuple(float(v) for v in vals)  # type: ignore[return-value]
+    except (TypeError, ValueError):
+        return None
+
+
+def _bbox_iou(a, b) -> float:
+    """IoU for xyxy boxes (list or dict)."""
+    aa = _bbox_xyxy(a)
+    bb = _bbox_xyxy(b)
+    if not aa or not bb:
+        return 0.0
+    ax1, ay1, ax2, ay2 = aa
+    bx1, by1, bx2, by2 = bb
+    ix1, iy1 = max(ax1, bx1), max(ay1, by1)
+    ix2, iy2 = min(ax2, bx2), min(ay2, by2)
+    iw, ih = max(0.0, ix2 - ix1), max(0.0, iy2 - iy1)
+    inter = iw * ih
+    if inter <= 0:
+        return 0.0
+    area_a = max(0.0, ax2 - ax1) * max(0.0, ay2 - ay1)
+    area_b = max(0.0, bx2 - bx1) * max(0.0, by2 - by1)
+    union = area_a + area_b - inter
+    return inter / union if union > 0 else 0.0
+
+
+def _bbox_aspect(bbox) -> float:
+    """width / height (motorcycle boxes are often taller / narrower)."""
+    xy = _bbox_xyxy(bbox)
+    if not xy:
+        return 1.0
+    x1, y1, x2, y2 = xy
+    # Boxes may be normalized (0–1) or pixel coords — never clamp to 1.0 here,
+    # or normalized boxes always report a square 1.0 aspect.
+    w = max(1e-6, x2 - x1)
+    h = max(1e-6, y2 - y1)
+    return w / h
+
+
+def _refine_vehicle_detections(detections: list[dict], *, strict: bool = False) -> list[dict]:
+    """
+    Fix common live/street false positives:
+    - drop weak / degenerate car fragments
+    - remap tiny tall tuk_tuk boxes that are really riders (not front-facing cars)
+    - suppress overlapping duplicates (prefer higher confidence; large cars beat weak motos)
+    """
+    if not detections:
+        return []
+
+    car_min = 62.0 if strict else 55.0
+    cleaned: list[dict] = []
+    for d in detections:
+        vtype = d.get('vehicle_type') or ''
+        conf = float(d.get('confidence') or 0)
+        bbox = d.get('bbox') or {}
+        aspect = _bbox_aspect(bbox)
+        area = _bbox_area(bbox) if isinstance(bbox, dict) else 0.0
+
+        # Front-facing cars are naturally tall (aspect often 0.3–0.7) — NEVER
+        # reclassify Car → Motorcycle from aspect alone. That caused SUVs labeled
+        # "Motorcycle 0.73" on Phnom Penh street video.
+        if vtype == 'car':
+            if conf < car_min:
+                continue
+            # Tiny thin strip only (taillight / fragment), not a vehicle face.
+            if area < 0.03 and aspect < 0.4:
+                continue
+
+        # Real tuk-tuks are wider / cabin-shaped. A large tall box is almost always
+        # a front-facing car/SUV that the Cambodia model mislabeled as Tuk Tuk.
+        if vtype == 'tuk_tuk' and area >= 0.10 and aspect < 0.55:
+            d = {
+                **d,
+                'vehicle_type': 'car',
+                'label': VEHICLE_TYPE_LABELS.get('car', 'Car'),
+            }
+            vtype = 'car'
+        # Tiny tall tuk_tuk → rider.
+        elif vtype == 'tuk_tuk' and area < 0.08 and aspect < 0.55 and conf < 75.0:
+            d = {
+                **d,
+                'vehicle_type': 'motorcycle',
+                'label': VEHICLE_TYPE_LABELS.get('motorcycle', 'Motorcycle'),
+            }
+            vtype = 'motorcycle'
+
+        # Drop tiny / ultra-thin motorcycle fragments that are just noise.
+        if vtype == 'motorcycle' and (area < 0.012 or aspect < 0.15) and conf < 70.0:
+            continue
+
+        cleaned.append(d)
+
+    # Suppress overlaps: higher confidence wins. Large cars beat weak overlapping motos.
+    keep = [True] * len(cleaned)
+    for i, a in enumerate(cleaned):
+        if not keep[i]:
+            continue
+        for j, b in enumerate(cleaned):
+            if i >= j or not keep[j]:
+                continue
+            iou = _bbox_iou(a.get('bbox') or {}, b.get('bbox') or {})
+            if iou < 0.35:
+                continue
+            ta, tb = a.get('vehicle_type'), b.get('vehicle_type')
+            ca, cb = float(a.get('confidence') or 0), float(b.get('confidence') or 0)
+            aa, ab = _bbox_area(a.get('bbox') or {}), _bbox_area(b.get('bbox') or {})
+
+            if ta == tb:
+                if ca >= cb:
+                    keep[j] = False
+                else:
+                    keep[i] = False
+                continue
+
+            # Overlapping car + motorcycle: keep BOTH when the moto is nested
+            # inside a larger car face; otherwise keep the larger / stronger box.
+            if {ta, tb} == {'car', 'motorcycle'}:
+                car, moto = (a, b) if ta == 'car' else (b, a)
+                car_i, moto_i = (i, j) if ta == 'car' else (j, i)
+                car_area = _bbox_area(car.get('bbox') or {})
+                moto_area = _bbox_area(moto.get('bbox') or {})
+                car_conf = float(car.get('confidence') or 0)
+                moto_conf = float(moto.get('confidence') or 0)
+                if moto_area <= car_area * 0.65 and moto_conf >= 40:
+                    # Nested rider — keep both.
+                    continue
+                if car_area >= moto_area * 1.2 or (car_conf >= moto_conf and car_area >= 0.08):
+                    keep[moto_i] = False
+                elif moto_conf >= car_conf + 8 and moto_area < car_area * 0.7:
+                    keep[car_i] = False
+                elif ca >= cb:
+                    keep[j] = False
+                else:
+                    keep[i] = False
+                continue
+
+            if ca >= cb:
+                keep[j] = False
+            else:
+                keep[i] = False
+
+    return [d for d, k in zip(cleaned, keep) if k]
+
+
+def _coco_supplement_floor() -> int:
+    """Below this many Cambodia-model boxes, run the COCO supplement pass."""
+    return int(getattr(settings, 'AI_VEHICLE_COCO_SUPPLEMENT_FLOOR', 4))
+
+
+def _detect_with_coco_backup(
+    path: Path,
+    *,
+    imgsz: int | None,
+    threshold: float,
+    existing: list[dict],
+) -> list[dict]:
+    """Return COCO vehicle boxes that do not already overlap a Cambodia box."""
+    if not getattr(settings, 'AI_VEHICLE_COCO_SUPPLEMENT', True):
+        return []
+    # Cambodia already found enough vehicles — skip COCO (avoids car↔moto noise).
+    if len(existing) >= _coco_supplement_floor():
+        return []
+    model = _get_coco_backup_model()
+    if model is None:
+        return []
+    try:
+        kwargs = {
+            'source': str(path),
+            # Small distant riders need a lower floor than close-up plates.
+            'conf': min(float(threshold), 0.35),
+            'iou': 0.5,
+            'max_det': 40,
+            'classes': list(COCO_VEHICLE_CLASSES.keys()),
+            'verbose': False,
+        }
+        # Higher resolution recovers small motorcycles on 360p street footage.
+        kwargs['imgsz'] = int(imgsz) if imgsz else 960
+        results = model.predict(**kwargs)
+    except Exception:
+        logger.exception('COCO supplement detection failed for %s', path)
+        return []
+    if not results:
+        return []
+    result = results[0]
+    boxes = getattr(result, 'boxes', None)
+    if boxes is None or len(boxes) == 0:
+        return []
+    img_h, img_w = (float(v) for v in result.orig_shape[:2])
+    extras: list[dict] = []
+    for box in boxes:
+        cls_idx = int(box.cls.item())
+        vehicle_type = COCO_VEHICLE_CLASSES.get(cls_idx)
+        if not vehicle_type:
+            continue
+        bbox = _normalize_bbox(box.xyxy[0].tolist(), img_w, img_h)
+        area = _bbox_area(bbox)
+        conf_pct = round(float(box.conf.item()) * 100, 1)
+        # Skip anything already covered by the primary model or a prior extra.
+        # Motorcycles may sit inside a larger car box — still keep them if much smaller.
+        blocked = False
+        for d in (*existing, *extras):
+            iou = _bbox_iou(bbox, d.get('bbox') or {})
+            if iou < 0.35:
+                continue
+            other_area = _bbox_area(d.get('bbox') or {})
+            other_type = d.get('vehicle_type') or ''
+            if vehicle_type == 'motorcycle' and other_type in ('car', 'tuk_tuk', 'truck', 'bus'):
+                # Rider nested in a larger vehicle face — keep the motorcycle.
+                if area <= other_area * 0.65 and conf_pct >= 40:
+                    continue
+            blocked = True
+            break
+        if blocked:
+            continue
+        # Ignore tiny COCO car/truck scraps; keep motorcycles even if smaller.
+        if vehicle_type != 'motorcycle' and area < 0.04:
+            continue
+        if vehicle_type == 'motorcycle' and area < 0.015 and conf_pct < 45:
+            continue
+        extras.append({
+            'vehicle_type': vehicle_type,
+            'label': VEHICLE_TYPE_LABELS.get(vehicle_type, vehicle_type.title()),
+            'confidence': conf_pct,
+            'bbox': bbox,
+            'source': 'coco',
+        })
+    return extras
+
+
 def detect_vehicles(image_path: str, *, imgsz: int | None = None, fast_mode: bool = False) -> list[dict]:
     """
     Detect Cambodia road vehicles (Bus, Car, Moto, Truck, Tuk Tuk) or COCO fallback.
@@ -289,13 +567,16 @@ def detect_vehicles(image_path: str, *, imgsz: int | None = None, fast_mode: boo
         model = _get_vehicle_model()
         if model is None:
             return []
-        threshold = _confidence_threshold() if not fast_mode else 0.4
+        # Live/HTTP feeds: higher floor reduces motorcycle→car false labels.
+        threshold = 0.48 if fast_mode else _confidence_threshold()
         class_ids = list(_class_map().keys())
         predict_kwargs = {
             'source': str(path),
             'conf': threshold,
-            'max_det': 50 if fast_mode else 100,
-            'agnostic_nms': fast_mode,
+            'iou': 0.5,  # Balanced NMS → removes duplicates but keeps separate vehicles
+            'max_det': 40 if fast_mode else 100,
+            # Class-aware NMS keeps car+moto on same object — we refine after.
+            'agnostic_nms': False,
             'verbose': False,
         }
         if imgsz:
@@ -305,24 +586,38 @@ def detect_vehicles(image_path: str, *, imgsz: int | None = None, fast_mode: boo
             predict_kwargs['classes'] = class_ids
 
         results = model.predict(**predict_kwargs)
-        if not results:
-            return []
+        result = results[0] if results else None
+        boxes = getattr(result, 'boxes', None) if result is not None else None
 
-        result = results[0]
-        boxes = result.boxes
-        if boxes is None or len(boxes) == 0:
-            return []
-
-        img_h, img_w = (float(v) for v in result.orig_shape[:2])
         detections: list[dict] = []
-        for box in boxes:
-            cls_idx = int(box.cls.item())
-            conf = float(box.conf.item())
-            xyxy = box.xyxy[0].tolist()
-            item = _build_detection(cls_idx, conf, xyxy, img_w, img_h)
-            if item:
-                detections.append(item)
+        img_h = img_w = 0.0
+        if result is not None:
+            img_h, img_w = (float(v) for v in result.orig_shape[:2])
+        if boxes is not None and len(boxes) > 0:
+            for box in boxes:
+                cls_idx = int(box.cls.item())
+                conf = float(box.conf.item())
+                xyxy = box.xyxy[0].tolist()
+                item = _build_detection(cls_idx, conf, xyxy, img_w, img_h)
+                if item:
+                    detections.append(item)
 
+        # Crowded street scenes: Cambodia weights miss small/distant riders.
+        # Supplement with COCO so every visible vehicle gets a box.
+        if len(detections) < _coco_supplement_floor():
+            detections.extend(
+                _detect_with_coco_backup(
+                    path,
+                    imgsz=imgsz,
+                    threshold=threshold,
+                    existing=detections,
+                )
+            )
+
+        if not detections:
+            return []
+
+        detections = _refine_vehicle_detections(detections, strict=fast_mode)
         detections.sort(key=lambda d: (_bbox_area(d['bbox']), d['confidence']), reverse=True)
         return detections
     except Exception:

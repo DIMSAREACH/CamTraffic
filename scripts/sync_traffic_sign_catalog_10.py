@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-BACKEND = ROOT / 'backend'
+BACKEND = ROOT / 'src' / 'backend'
 CATALOG_PATH = ROOT / 'ai' / 'traffic_sign_catalog_10.json'
 
 
@@ -32,9 +32,16 @@ def main() -> None:
     print(f'Syncing {len(signs)} signs from traffic_sign_catalog_10.json -> database...')
     subprocess.run(cmd, cwd=BACKEND, check=True)
 
-    img_cmd = [sys.executable, str(ROOT / 'scripts' / 'sync_catalog_10_reference_images.py')]
-    print('Syncing reference sign images from Road signs in Cambodia...')
-    subprocess.run(img_cmd, cwd=ROOT, check=True)
+    reference_root = Path(
+        r'D:\Year4\Project Thesis\Expert System\Reference(PDF Download)\Dim Sareach\Road signs in Cambodia'
+    )
+    if reference_root.is_dir():
+        img_cmd = [sys.executable, str(ROOT / 'scripts' / 'sync_catalog_10_reference_images.py')]
+        print('Syncing reference sign images from Road signs in Cambodia...')
+        subprocess.run(img_cmd, cwd=ROOT, check=True)
+    else:
+        print(f'[SKIP] Reference image folder not found, skipping image sync.')
+        print(f'       ({reference_root})')
     print('Done. Refresh Traffic Signs / AI Detection in the browser.')
 
 

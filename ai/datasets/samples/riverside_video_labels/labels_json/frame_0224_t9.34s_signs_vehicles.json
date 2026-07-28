@@ -1,0 +1,40 @@
+{
+  "source": "stock-footage-phnom-penh-cambodia-vehicles-and-motorbikes-move-along-the-riverside-road-near-a.webm",
+  "video_key": "riverside",
+  "frame_index": 224,
+  "frame_file": "frame_0224_t9.34s.jpg",
+  "timestamp_sec": 9.343,
+  "image_size": {
+    "width": 898,
+    "height": 506
+  },
+  "tracking": true,
+  "annotations": [
+    {
+      "kind": "vehicle",
+      "class_key": "motorcycle",
+      "class_id": 2,
+      "label_en": "Motorcycle",
+      "confidence": 70.0,
+      "track_id": 102,
+      "bbox_norm": {
+        "x1": 0.1218,
+        "y1": 0.5221,
+        "x2": 0.2062,
+        "y2": 0.7562
+      },
+      "bbox_px": {
+        "x1": 109,
+        "y1": 264,
+        "x2": 185,
+        "y2": 383
+      },
+      "bbox_yolo": {
+        "x_center": 0.164,
+        "y_center": 0.63915,
+        "width": 0.0844,
+        "height": 0.2341
+      }
+    }
+  ]
+}

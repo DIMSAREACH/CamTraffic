@@ -1,4 +1,5 @@
 import { createBrowserRouter, redirect, type LoaderFunctionArgs } from 'react-router';
+import { lazy, Suspense, type ComponentType } from 'react';
 import { LoginPage } from '@shared/pages/auth/LoginPage';
 import { RegisterPage } from '@shared/pages/auth/RegisterPage';
 import { OAuthCallbackPage } from '@shared/pages/auth/OAuthCallbackPage';
@@ -8,14 +9,11 @@ import { VerifyEmailPage } from '@shared/pages/auth/VerifyEmailPage';
 import { OfficerLayout } from '@officer/layout/OfficerLayout';
 import { CitizenLayout } from '@citizen/layout/CitizenLayout';
 import { DashboardPage } from '@user/pages/dashboard/DashboardPage';
-import { AIDetectionDashboardPage } from '@shared/pages/AIDetectionDashboardPage';
-import { EnterpriseAIDetectionCenterPage } from '@shared/pages/EnterpriseAIDetectionCenterPage';
 import { ReportsPage } from '@shared/pages/ReportsPage';
 import { ReportAnalyticsPage } from '@shared/pages/ReportAnalyticsPage';
 import { ReportDetailsPage } from '@shared/pages/ReportDetailsPage';
 import { AILogsPage } from '@shared/pages/AILogsPage';
 import { FineManagement } from '@shared/pages/FineManagement';
-import { ViolationsPage } from '@shared/pages/ViolationsPage';
 import { TrafficSignsPage } from '@shared/pages/TrafficSignsPage';
 import { VehiclesPage } from '@shared/pages/VehiclesPage';
 import { ProfilePage } from '@shared/pages/ProfilePage';
@@ -23,6 +21,7 @@ import { NotificationsPage } from '@shared/pages/NotificationsPage';
 import { NotificationDetailsPage } from '@shared/pages/NotificationDetailsPage';
 import { EvidenceArchivePage } from '@shared/pages/EvidenceArchivePage';
 import { AppealsPage } from '@shared/pages/AppealsPage';
+import { AuditLogsPage } from '@shared/pages/AuditLogsPage';
 import { UnknownVehiclesPage } from '@shared/pages/UnknownVehiclesPage';
 import { CamerasPage } from '@shared/pages/CamerasPage';
 import { CitizenPaymentHistoryPage } from '@citizen/pages/CitizenPaymentHistoryPage';
@@ -44,10 +43,62 @@ import {
   remapLegacyDashboardPath,
 } from '@shared/constants/userPortalPaths';
 
+const AIDetectionDashboardPage = lazy(() =>
+  import('@shared/pages/AIDetectionDashboardPage').then((m) => ({
+    default: m.AIDetectionDashboardPage,
+  })),
+);
+const EnterpriseAIDetectionCenterPage = lazy(() =>
+  import('@shared/pages/EnterpriseAIDetectionCenterPage').then((m) => ({
+    default: m.EnterpriseAIDetectionCenterPage,
+  })),
+);
+
+function withAiSuspense(Page: ComponentType) {
+  return function AiRouteSuspense() {
+    return (
+      <Suspense
+        fallback={
+          <div className="enforcement-page" style={{ padding: '2rem', display: 'grid', placeItems: 'center' }}>
+            <p>Loading AI Detection…</p>
+          </div>
+        }
+      >
+        <Page />
+      </Suspense>
+    );
+  };
+}
+
+// Heavy table page with large dialogs — keep it out of the initial bundle.
+const ViolationsPage = lazy(() =>
+  import('@shared/pages/ViolationsPage').then((m) => ({ default: m.ViolationsPage })),
+);
+
+function withRouteSuspense(Page: ComponentType) {
+  return function RouteSuspense() {
+    return (
+      <Suspense
+        fallback={
+          <div className="enforcement-page" style={{ padding: '2rem', display: 'grid', placeItems: 'center' }}>
+            <p>Loading…</p>
+          </div>
+        }
+      >
+        <Page />
+      </Suspense>
+    );
+  };
+}
+
+const LazyAiDetectionDashboard = withAiSuspense(AIDetectionDashboardPage);
+const LazyEnterpriseAiDetection = withAiSuspense(EnterpriseAIDetectionCenterPage);
+const LazyViolationsPage = withRouteSuspense(ViolationsPage);
+
 function GuardedEnterpriseAiDetectionPage() {
   return (
     <OperationalAiGuard>
-      <EnterpriseAIDetectionCenterPage />
+      <LazyEnterpriseAiDetection />
     </OperationalAiGuard>
   );
 }
@@ -55,7 +106,7 @@ function GuardedEnterpriseAiDetectionPage() {
 function GuardedAiDetectionDashboardPage() {
   return (
     <OperationalAiGuard>
-      <AIDetectionDashboardPage />
+      <LazyAiDetectionDashboard />
     </OperationalAiGuard>
   );
 }
@@ -91,7 +142,7 @@ const sharedAccountChildren = [
   { path: 'fines/:fineId', Component: FineDetailPage },
   { path: 'settings', Component: UserSettingsPage },
   { path: 'settings/notifications', Component: NotificationSettingsPage },
-  { path: 'violations', Component: ViolationsPage },
+  { path: 'violations', Component: LazyViolationsPage },
   { path: 'signs', Component: TrafficSignsPage },
   { path: 'profile', Component: ProfilePage },
   { path: 'notifications', Component: NotificationsPage },
@@ -114,6 +165,7 @@ const officerChildren = [
   { path: 'detection-queue', Component: OfficerDetectionQueuePage },
   { path: 'unknown-vehicles', Component: UnknownVehiclesPage },
   { path: 'driver-search', Component: OfficerDriverSearchPage },
+  { path: 'audit-logs', Component: AuditLogsPage },
   { path: 'reports/center', loader: () => redirect(`${OFFICER_PORTAL_BASE}/reports`) },
   { path: 'reports/scheduled', loader: () => redirect(`${OFFICER_PORTAL_BASE}/reports`) },
   /** Driver-only map/heatmap APIs — keep officers on operational list views. */

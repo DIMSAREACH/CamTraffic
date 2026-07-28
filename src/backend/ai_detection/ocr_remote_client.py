@@ -63,6 +63,8 @@ def map_remote_ocr_to_plate_result(data: dict) -> dict:
             'plate_regions': data.get('plate_regions') or [],
             'plate_region_found': bool(data.get('plate_region_found')),
             'matched_vehicle': None,
+            'plate_bbox': data.get('plate_bbox'),
+            'plate_boxes': data.get('plate_boxes') or [],
         }
 
     confidence = float(data.get('plate_confidence') or 0)
@@ -77,6 +79,8 @@ def map_remote_ocr_to_plate_result(data: dict) -> dict:
         'plate_regions': data.get('plate_regions') or [],
         'plate_region_found': bool(data.get('plate_region_found')),
         'matched_vehicle': None,
+        'plate_bbox': data.get('plate_bbox'),
+        'plate_boxes': data.get('plate_boxes') or [],
     }
     if data.get('plate_province_code'):
         result['plate_province_code'] = data['plate_province_code']

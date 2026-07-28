@@ -13,10 +13,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { TableEmptyState } from '@shared/components/ui/TableEmptyState';
 import { CrudRowActions } from '@shared/components/admin/CrudRowActions';
 import { EntityDetailField, EntityViewDialog } from '@shared/components/admin/EntityViewDialog';
+import { CambodiaLicenseField } from '@shared/components/admin/CambodiaLicenseField';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { driversAPI } from '@shared/services/api';
+import { formatCambodiaLicense, isValidCambodiaLicense, LICENSE_FORMAT_EXAMPLE } from '@shared/utils/cambodiaIdentity';
+import { useFieldErrors } from '@shared/hooks/useFieldErrors';
+import { FieldError, FormErrorBanner } from '@shared/components/ui/FieldError';
 import { toast } from 'sonner';
 import type { DriverProfile } from '@shared/types';
+
+type DriverFormField = 'full_name' | 'email' | 'password' | 'license_no';
 
 const STATUS_META: Record<string, { bg: string; color: string; icon: ReactNode }> = {
   active: { bg: 'rgba(16,185,129,0.1)', color: '#059669', icon: <CheckCircle size={11} /> },
@@ -64,6 +70,7 @@ export function DriversPage() {
   const [editForm, setEditForm] = useState(emptyEditForm);
   const [deleteDriver, setDeleteDriver] = useState<DriverProfile | null>(null);
   const [viewDriver, setViewDriver] = useState<DriverProfile | null>(null);
+  const formErrors = useFieldErrors<DriverFormField>();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -113,11 +120,13 @@ export function DriversPage() {
   const openCreate = () => {
     setEditDriver(null);
     setCreateForm(emptyCreateForm);
+    formErrors.clearErrors();
     setOpen(true);
   };
 
   const openEdit = (driver: DriverProfile) => {
     setEditDriver(driver);
+    formErrors.clearErrors();
     setEditForm({
       license_no: driver.license_no,
       national_id: driver.national_id || '',
@@ -129,16 +138,31 @@ export function DriversPage() {
     setOpen(true);
   };
 
+  const handleOpenChange = (next: boolean) => {
+    setOpen(next);
+    if (!next) formErrors.clearErrors();
+  };
+
   const handleSave = async () => {
     if (editDriver) {
-      if (!editForm.license_no.trim()) {
-        toast.error(t('drivers.toastFillRequired'));
+      const license = formatCambodiaLicense(editForm.license_no);
+      const ok = formErrors.validateRequired(
+        { license_no: license },
+        { license_no: t('common.fieldRequired') },
+      );
+      if (!ok) {
+        toast.error(t('common.formIncomplete'));
+        return;
+      }
+      if (!isValidCambodiaLicense(license)) {
+        formErrors.setFieldError('license_no', `License must match ${LICENSE_FORMAT_EXAMPLE}`);
+        toast.error(`License must match ${LICENSE_FORMAT_EXAMPLE}`);
         return;
       }
       setSaving(true);
       try {
         await driversAPI.update(editDriver.id, {
-          license_no: editForm.license_no.trim(),
+          license_no: license,
           national_id: editForm.national_id.trim() || null,
           license_expiry: editForm.license_expiry || null,
           date_of_birth: editForm.date_of_birth || null,
@@ -148,6 +172,7 @@ export function DriversPage() {
         toast.success(t('drivers.updated'));
         setOpen(false);
         setEditDriver(null);
+        formErrors.clearErrors();
         load();
       } catch {
         toast.error(t('drivers.updateFailed'));
@@ -157,8 +182,28 @@ export function DriversPage() {
       return;
     }
 
-    if (!createForm.full_name.trim() || !createForm.email.trim() || !createForm.license_no.trim()) {
-      toast.error(t('drivers.toastFillRequired'));
+    const createLicense = formatCambodiaLicense(createForm.license_no);
+    const ok = formErrors.validateRequired(
+      {
+        full_name: createForm.full_name,
+        email: createForm.email,
+        password: createForm.password,
+        license_no: createLicense,
+      },
+      {
+        full_name: t('common.fieldRequired'),
+        email: t('common.fieldRequired'),
+        password: t('common.fieldRequired'),
+        license_no: t('common.fieldRequired'),
+      },
+    );
+    if (!ok) {
+      toast.error(t('common.formIncomplete'));
+      return;
+    }
+    if (!isValidCambodiaLicense(createLicense)) {
+      formErrors.setFieldError('license_no', `License must match ${LICENSE_FORMAT_EXAMPLE}`);
+      toast.error(`License must match ${LICENSE_FORMAT_EXAMPLE}`);
       return;
     }
     setSaving(true);
@@ -168,11 +213,12 @@ export function DriversPage() {
         email: createForm.email.trim(),
         password: createForm.password,
         phone: createForm.phone.trim() || undefined,
-        license_no: createForm.license_no.trim(),
+        license_no: createLicense,
       });
       toast.success(t('drivers.created'));
       setOpen(false);
       setCreateForm(emptyCreateForm);
+      formErrors.clearErrors();
       load();
     } catch {
       toast.error(t('drivers.createFailed'));
@@ -343,8 +389,8 @@ export function DriversPage() {
         <TablePagination pagination={pagination} labelKey="pagination.label.drivers" />
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent accent="teal" className="max-w-md sm:max-w-lg">
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent accent="teal" className="ct-form-dialog">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2.5">
               <div className="enforcement-page__dialog-icon enforcement-page__dialog-icon--teal">
@@ -358,6 +404,7 @@ export function DriversPage() {
 
           {editDriver ? (
             <div className="space-y-3 py-1">
+              <FormErrorBanner message={formErrors.hasErrors ? t('common.formIncomplete') : null} />
               <div className="drivers-page__edit-banner">
                 <div className="drivers-page__avatar drivers-page__avatar--sm">{initials(editDriver.full_name)}</div>
                 <div className="min-w-0">
@@ -367,7 +414,15 @@ export function DriversPage() {
               </div>
               <div>
                 <Label className="enforcement-page__form-label">{t('drivers.license')} *</Label>
-                <Input className="mt-1" value={editForm.license_no} onChange={(e) => setEditForm((f) => ({ ...f, license_no: e.target.value }))} />
+                <CambodiaLicenseField
+                  className={`mt-1${formErrors.errors.license_no ? ' ct-field--invalid' : ''}`}
+                  value={editForm.license_no}
+                  onChange={(license_no) => {
+                    formErrors.clearField('license_no');
+                    setEditForm((f) => ({ ...f, license_no }));
+                  }}
+                />
+                <FieldError message={formErrors.errors.license_no} />
               </div>
               <div>
                 <Label className="enforcement-page__form-label">{t('drivers.nationalId')}</Label>
@@ -410,18 +465,46 @@ export function DriversPage() {
             </div>
           ) : (
             <div className="space-y-3 py-1">
+              <FormErrorBanner message={formErrors.hasErrors ? t('common.formIncomplete') : null} />
               <div>
                 <Label className="enforcement-page__form-label">{t('drivers.name')} *</Label>
-                <Input className="mt-1" value={createForm.full_name} onChange={(e) => setCreateForm((f) => ({ ...f, full_name: e.target.value }))} />
+                <Input
+                  className={`mt-1${formErrors.errors.full_name ? ' ct-field--invalid' : ''}`}
+                  aria-invalid={Boolean(formErrors.errors.full_name)}
+                  value={createForm.full_name}
+                  onChange={(e) => {
+                    formErrors.clearField('full_name');
+                    setCreateForm((f) => ({ ...f, full_name: e.target.value }));
+                  }}
+                />
+                <FieldError message={formErrors.errors.full_name} />
               </div>
               <div>
                 <Label className="enforcement-page__form-label">{t('users.email')} *</Label>
-                <Input className="mt-1" type="email" value={createForm.email} onChange={(e) => setCreateForm((f) => ({ ...f, email: e.target.value }))} />
+                <Input
+                  className={`mt-1${formErrors.errors.email ? ' ct-field--invalid' : ''}`}
+                  type="email"
+                  aria-invalid={Boolean(formErrors.errors.email)}
+                  value={createForm.email}
+                  onChange={(e) => {
+                    formErrors.clearField('email');
+                    setCreateForm((f) => ({ ...f, email: e.target.value }));
+                  }}
+                />
+                <FieldError message={formErrors.errors.email} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="enforcement-page__form-label">{t('drivers.license')} *</Label>
-                  <Input className="mt-1" value={createForm.license_no} onChange={(e) => setCreateForm((f) => ({ ...f, license_no: e.target.value }))} />
+                  <CambodiaLicenseField
+                    className={`mt-1${formErrors.errors.license_no ? ' ct-field--invalid' : ''}`}
+                    value={createForm.license_no}
+                    onChange={(license_no) => {
+                      formErrors.clearField('license_no');
+                      setCreateForm((f) => ({ ...f, license_no }));
+                    }}
+                  />
+                  <FieldError message={formErrors.errors.license_no} />
                 </div>
                 <div>
                   <Label className="enforcement-page__form-label">{t('officers.phone')}</Label>
@@ -430,7 +513,17 @@ export function DriversPage() {
               </div>
               <div>
                 <Label className="enforcement-page__form-label">{t('officers.password')} *</Label>
-                <Input className="mt-1" type="password" value={createForm.password} onChange={(e) => setCreateForm((f) => ({ ...f, password: e.target.value }))} />
+                <Input
+                  className={`mt-1${formErrors.errors.password ? ' ct-field--invalid' : ''}`}
+                  type="password"
+                  aria-invalid={Boolean(formErrors.errors.password)}
+                  value={createForm.password}
+                  onChange={(e) => {
+                    formErrors.clearField('password');
+                    setCreateForm((f) => ({ ...f, password: e.target.value }));
+                  }}
+                />
+                <FieldError message={formErrors.errors.password} />
               </div>
             </div>
           )}

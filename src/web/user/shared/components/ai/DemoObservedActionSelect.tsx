@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { useLanguage } from '@shared/context/LanguageContext';
 import { OBSERVED_ACTION_VALUES } from '@shared/constants/observedActions';
-import { ALLOW_DEMO_VIOLATION } from '@shared/config/dataMode';
 import { FilterSelect } from '@shared/components/ui/FilterSelect';
 import { Label } from '@shared/components/ui/label';
 
@@ -15,8 +14,9 @@ interface DemoObservedActionSelectProps {
 }
 
 /**
- * Always visible for officers/admins creating violations.
- * "Auto" (demo inference) only when VITE_ALLOW_DEMO_VIOLATION=true.
+ * Default = Auto: backend matches the detected sign to its violation rule
+ * (e.g. No Entry → ENTER) and can create the violation without a manual pick.
+ * Officers may still override with an explicit action.
  */
 export function DemoObservedActionSelect({
   value,
@@ -32,53 +32,50 @@ export function DemoObservedActionSelect({
       const translated = t(key);
       return translated !== key ? translated : action.replace(/_/g, ' ');
     };
-    const rows = OBSERVED_ACTION_VALUES.map((action) => ({
-      value: action,
-      label: labelFor(action),
-    }));
-    if (ALLOW_DEMO_VIOLATION) {
-      return [
-        { value: AUTO_VALUE, label: t('aiDetection.demoActionAuto') },
-        ...rows,
-      ];
-    }
+    const autoLabel =
+      t('aiDetection.demoActionAuto') !== 'aiDetection.demoActionAuto'
+        ? t('aiDetection.demoActionAuto')
+        : 'Auto (match from detected sign)';
     return [
-      { value: '', label: 'Select observed action…' },
-      ...rows,
+      { value: AUTO_VALUE, label: autoLabel },
+      ...OBSERVED_ACTION_VALUES.map((action) => ({
+        value: action,
+        label: labelFor(action),
+      })),
     ];
   }, [t]);
 
-  const selectValue = ALLOW_DEMO_VIOLATION
-    ? (value || AUTO_VALUE)
-    : (value || '');
+  const selectValue = value || AUTO_VALUE;
 
   return (
     <div className={`ai-detection-demo-select${className ? ` ${className}` : ''}`}>
       <Label className="ai-detection-demo-select__label">
         {t('aiDetection.demoActionLabel') !== 'aiDetection.demoActionLabel'
           ? t('aiDetection.demoActionLabel')
-          : 'Observed action'}
+          : 'Driver action'}
       </Label>
       <FilterSelect
         value={selectValue}
         onValueChange={(next) => {
-          if (ALLOW_DEMO_VIOLATION && next === AUTO_VALUE) onChange('');
+          if (next === AUTO_VALUE) onChange('');
           else onChange(next);
         }}
         options={options}
         disabled={disabled}
         tone="purple"
         ariaLabel={t('aiDetection.demoActionLabel')}
-        placeholder={ALLOW_DEMO_VIOLATION
-          ? t('aiDetection.demoActionAuto')
-          : 'Select observed action…'}
+        placeholder={
+          t('aiDetection.demoActionAuto') !== 'aiDetection.demoActionAuto'
+            ? t('aiDetection.demoActionAuto')
+            : 'Auto (match from detected sign)'
+        }
         triggerClassName="ai-detection-demo-select__trigger"
         contentClassName="ai-detection-demo-select__menu"
       />
       <p className="ai-detection-demo-select__hint">
-        {ALLOW_DEMO_VIOLATION
+        {t('aiDetection.demoActionHint') !== 'aiDetection.demoActionHint'
           ? t('aiDetection.demoActionHint')
-          : 'Required to create a violation — pick the real driver action (e.g. ENTER for No Entry).'}
+          : 'Auto matches the sign to a rule (e.g. No Entry → ENTER) and creates a violation when possible. Override only if needed.'}
       </p>
     </div>
   );

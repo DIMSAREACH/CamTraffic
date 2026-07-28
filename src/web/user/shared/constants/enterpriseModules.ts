@@ -132,6 +132,13 @@ export const POLICE_ENTERPRISE_MODULES: EnterpriseModule[] = [
     roles: ['police'],
     matchPrefixes: [O.settings],
   },
+  {
+    id: 'audit',
+    labelKey: 'sidebar.modules.auditLogs',
+    path: O.auditLogs,
+    roles: ['police'],
+    matchPrefixes: [O.auditLogs],
+  },
 ];
 
 export const DRIVER_ENTERPRISE_MODULES: EnterpriseModule[] = [
@@ -238,17 +245,17 @@ export const POLICE_NAV_SECTIONS: EnterpriseNavSection[] = [
   { id: 'law', labelKey: 'sidebar.sections.lawEnforcement', moduleIds: ['violations', 'fines', 'appeals'], roles: ['police'] },
   { id: 'reports', labelKey: 'sidebar.sections.reports', moduleIds: ['reports', 'notifications'], roles: ['police'] },
   { id: 'account', labelKey: 'sidebar.sections.account', moduleIds: ['profile'], roles: ['police'] },
-  { id: 'system', labelKey: 'sidebar.sections.system', moduleIds: ['settings'], roles: ['police'], showLogout: true },
+  { id: 'system', labelKey: 'sidebar.sections.system', moduleIds: ['settings', 'audit'], roles: ['police'], showLogout: true },
 ];
 
 /** Citizen Service sidebar sections */
 export const DRIVER_NAV_SECTIONS: EnterpriseNavSection[] = [
   { id: 'main', labelKey: 'sidebar.sections.main', moduleIds: ['dashboard'], roles: ['driver'] },
-  { id: 'account', labelKey: 'sidebar.sections.myAccount', moduleIds: ['profile'], roles: ['driver'] },
   { id: 'vehicle', labelKey: 'sidebar.sections.myVehicle', moduleIds: ['vehicles'], roles: ['driver'] },
   { id: 'records', labelKey: 'sidebar.sections.myRecords', moduleIds: ['violations', 'fines', 'payments', 'appeals'], roles: ['driver'] },
   { id: 'info', labelKey: 'sidebar.sections.information', moduleIds: ['signs', 'traffic-rules', 'notifications'], roles: ['driver'] },
   { id: 'support', labelKey: 'sidebar.sections.support', moduleIds: ['support'], roles: ['driver'] },
+  { id: 'account', labelKey: 'sidebar.sections.myAccount', moduleIds: ['profile'], roles: ['driver'] },
   { id: 'system', labelKey: 'sidebar.sections.system', moduleIds: ['settings'], roles: ['driver'], showLogout: true },
 ];
 

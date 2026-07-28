@@ -373,9 +373,10 @@ export const finesAPI = {
   },
   async searchByLicense(license: string) {
     const driver = users.find((u) => u.license_no?.toLowerCase().includes(license.toLowerCase()));
-    if (!driver) return { driver: null, fines: [], vehicles: [] };
+    if (!driver) return { driver: null, driver_profile_id: null, fines: [], vehicles: [] };
     return {
       driver: { ...driver },
+      driver_profile_id: driver.id,
       fines: fines.filter((f) => f.driver_id === driver.id),
       vehicles: vehicles.filter((v) => v.owner_id === driver.id),
     };
@@ -530,6 +531,25 @@ export const unknownVehiclesAPI = {
       is_resolved: false,
       detected_at: new Date().toISOString(),
     }];
+  },
+  async queueFromDetection(data: {
+    plate_detected?: string;
+    plate_number?: string;
+    ai_detection_log_id?: string;
+    class_key?: string;
+    observed_action?: string;
+    violation_type?: string;
+  }) {
+    await delay(200);
+    return {
+      id: 'uv-queued-1',
+      plate_detected: (data.plate_detected || data.plate_number || 'UNKNOWN').toUpperCase(),
+      is_resolved: false,
+      observed_action: data.observed_action || '',
+      detected_class_key: data.class_key || '',
+      violation_type: data.violation_type || '',
+      detected_at: new Date().toISOString(),
+    } as import('../types').UnknownVehicleRecord;
   },
   async resolve(id: string, data: { officer_note?: string }) {
     return {
@@ -779,6 +799,10 @@ export const aiAPI = {
       ocr: { exact_match_rate: 0, note: 'mock' },
     };
   },
+  async warmup() {
+    await delay(50);
+    return { warm: true, elapsed_sec: 0.05 };
+  },
 };
 
 export const catalogAPI = {
@@ -923,6 +947,9 @@ const mockViolations: TrafficViolation[] = SAMPLE_VIOLATIONS.map((v) => ({ ...v 
 
 export const violationsAPI = {
   async getAll(): Promise<TrafficViolation[]> { return [...mockViolations]; },
+  async getRecent(limit = 200): Promise<{ rows: TrafficViolation[]; total: number }> {
+    return { rows: mockViolations.slice(0, limit), total: mockViolations.length };
+  },
   async getById(id: string): Promise<TrafficViolation> {
     const row = mockViolations.find((v) => v.id === id);
     if (!row) throw new Error('Not found');
@@ -1304,5 +1331,71 @@ export const driversAPI = {
   async delete() {
     await delay(200);
     return { driver: null, message: 'Driver deleted' };
+  },
+};
+
+export const importsAPI = {
+  async getTypes() {
+    await delay(100);
+    return [
+      { type: 'users' as const, label: 'Users', unique_key: 'Email', columns: [] },
+      { type: 'vehicles' as const, label: 'Vehicles', unique_key: 'Plate Number', columns: [] },
+      { type: 'signs' as const, label: 'Traffic Signs', unique_key: 'Code', columns: [] },
+      { type: 'cameras' as const, label: 'Cameras', unique_key: 'Camera ID', columns: [] },
+      { type: 'violations' as const, label: 'Violations', unique_key: 'Plate+Date', columns: [] },
+    ];
+  },
+  async downloadTemplate(_type: string, format: 'csv' | 'xlsx' = 'csv') {
+    await delay(100);
+    const body = format === 'csv' ? 'Name,Email\nSokha Meas,sokha.meas@mpwt.gov.kh\n' : 'PK';
+    return new Blob([body], { type: format === 'csv' ? 'text/csv' : 'application/octet-stream' });
+  },
+  async validate(type: string, file: File) {
+    await delay(300);
+    return {
+      job_id: 'mock-job-1',
+      import_type: type as import('../types').ImportDataType,
+      file_name: file.name,
+      rows: [{ row: 2, status: 'ok' as const, errors: [], data: { demo: true } }],
+      counts: { total: 1, valid: 1, skipped: 0, failed: 0, success: 0, error: 0 },
+    };
+  },
+  async commit(jobId: string) {
+    await delay(300);
+    return {
+      counts: { total: 1, valid: 1, skipped: 0, failed: 0, success: 1, error: 0 },
+      job: {
+        id: jobId,
+        import_type: 'users' as const,
+        file_name: 'demo.csv',
+        status: 'committed',
+        total_rows: 1,
+        valid_rows: 1,
+        success_count: 1,
+        failed_count: 0,
+        skipped_count: 0,
+        created_at: new Date().toISOString(),
+      },
+    };
+  },
+  async history() {
+    await delay(150);
+    return [] as import('../types').ImportJobSummary[];
+  },
+  async historyDetail(id: string) {
+    await delay(150);
+    return {
+      id,
+      import_type: 'users' as const,
+      file_name: 'demo.csv',
+      status: 'committed',
+      total_rows: 1,
+      valid_rows: 1,
+      success_count: 1,
+      failed_count: 0,
+      skipped_count: 0,
+      created_at: new Date().toISOString(),
+      rows_report: [{ row: 2, status: 'success' as const, errors: [], data: { email: 'sokha.meas@mpwt.gov.kh' } }],
+    };
   },
 };

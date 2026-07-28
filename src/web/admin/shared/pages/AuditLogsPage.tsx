@@ -3,8 +3,12 @@ import { usePagination } from '@shared/hooks/usePagination';
 import { TablePagination } from '@shared/components/ui/TablePagination';
 import { CrudRowActions } from '@shared/components/admin/CrudRowActions';
 import { EntityDetailField, EntityViewDialog } from '@shared/components/admin/EntityViewDialog';
-import { Activity, Clock, Database, Globe, Hash, RefreshCw, Search, Shield, Users } from 'lucide-react';
+import {
+  Activity, Clock, Database, Download, Globe, RefreshCw, Search, Shield, Users,
+} from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@shared/components/ui/button';
+import { FilterSelect } from '@shared/components/ui/FilterSelect';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@shared/components/ui/table';
 import { TableEmptyState } from '@shared/components/ui/TableEmptyState';
 import { useAuth } from '@shared/context/AuthContext';
@@ -17,6 +21,27 @@ type ActionTone = 'emerald' | 'amber' | 'rose' | 'blue' | 'violet';
 type ActionFilter = 'all' | 'create' | 'update' | 'delete' | 'auth';
 
 const ACTION_FILTERS: ActionFilter[] = ['all', 'create', 'update', 'delete', 'auth'];
+
+const RESOURCE_ALIASES: Record<string, string> = {
+  fines: 'fine',
+  users: 'user',
+  drivers: 'driver',
+  officers: 'officer',
+  vehicles: 'vehicle',
+  cameras: 'camera',
+  roads: 'road',
+  appeals: 'appeal',
+  roles: 'role',
+  detections: 'detection',
+  traffic_violation: 'violation',
+  violation_appeal: 'appeal',
+  fine_payment_verify: 'fine_payment',
+  ai_model_version: 'ai_model',
+  user_password: 'user',
+  system_setting: 'system_setting',
+  data_import: 'data_import',
+  unknown_vehicles: 'unknown_vehicle',
+};
 
 const STAT_CARDS = [
   { key: 'total', labelKey: 'audit.statTotal', icon: Shield, variant: 'blue' },
@@ -36,9 +61,9 @@ const TABLE_COLUMNS = [
 
 function actionTone(action: string): ActionTone {
   const a = action.toLowerCase();
-  if (a.includes('delete') || a.includes('remove')) return 'rose';
+  if (a.includes('delete') || a.includes('remove') || a.includes('failed')) return 'rose';
   if (a.includes('create') || a.includes('add') || a.includes('register')) return 'emerald';
-  if (a.includes('update') || a.includes('patch') || a.includes('edit')) return 'amber';
+  if (a.includes('update') || a.includes('patch') || a.includes('edit') || a.includes('review')) return 'amber';
   if (a.includes('login') || a.includes('auth') || a.includes('logout')) return 'blue';
   return 'violet';
 }
@@ -56,8 +81,8 @@ function actionCategory(action: string): ActionFilter {
   const a = action.toLowerCase();
   if (a.includes('delete') || a.includes('remove')) return 'delete';
   if (a.includes('create') || a.includes('add') || a.includes('register')) return 'create';
-  if (a.includes('update') || a.includes('patch') || a.includes('edit')) return 'update';
   if (a.includes('login') || a.includes('auth') || a.includes('logout')) return 'auth';
+  if (a.includes('update') || a.includes('patch') || a.includes('edit') || a.includes('review')) return 'update';
   return 'update';
 }
 
@@ -78,6 +103,16 @@ function formatJsonBlock(value?: Record<string, unknown>) {
   return JSON.stringify(value, null, 2);
 }
 
+function normalizeResourceKey(resource: string) {
+  const normalized = resource.toLowerCase().replace(/-/g, '_');
+  return RESOURCE_ALIASES[normalized] || normalized;
+}
+
+function csvEscape(value: string) {
+  if (/[",\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
+  return value;
+}
+
 export function AuditLogsPage() {
   const { t, locale } = useLanguage();
   const dateLocale = locale === 'km' ? 'km-KH' : undefined;
@@ -86,20 +121,28 @@ export function AuditLogsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [actionFilter, setActionFilter] = useState<ActionFilter>('all');
+  const [resourceFilter, setResourceFilter] = useState('all');
   const [viewRow, setViewRow] = useState<AuditLogEntry | null>(null);
+  const canAccess = user?.role === 'admin' || user?.role === 'police';
+  const isOfficerLimited = user?.role === 'police';
 
   const load = useCallback(async (silent = false) => {
-    if (!user || user.role !== 'admin') return;
+    if (!canAccess) return;
     if (!silent) setLoading(true);
     try {
       setRows(await auditAPI.getAll());
+    } catch {
+      if (!silent) {
+        setRows([]);
+        toast.error(t('audit.loadFailed'));
+      }
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [user]);
+  }, [canAccess, t]);
 
-  useEffect(() => { load(); }, [load]);
-  useLiveData(() => load(true), 60_000, user?.role === 'admin');
+  useEffect(() => { void load(); }, [load]);
+  useLiveData(() => load(true), 60_000, canAccess);
 
   const formatAction = (action: string) => {
     const key = `audit.actions.${action.toLowerCase()}`;
@@ -108,7 +151,7 @@ export function AuditLogsPage() {
   };
 
   const formatResource = (resource: string) => {
-    const normalized = resource.toLowerCase().replace(/-/g, '_');
+    const normalized = normalizeResourceKey(resource);
     const key = `audit.resources.${normalized}`;
     const translated = t(key);
     return translated !== key ? translated : resource.replace(/_/g, ' ');
@@ -124,13 +167,18 @@ export function AuditLogsPage() {
     return key ? t(key) : role;
   };
 
+  const resourceOptions = useMemo(() => {
+    const keys = Array.from(new Set(rows.map((r) => normalizeResourceKey(r.resource)))).sort();
+    return keys;
+  }, [rows]);
+
   const counts = useMemo(() => {
     const today = new Date().toDateString();
     return {
       total: rows.length,
       users: new Set(rows.map((r) => r.user_name).filter(Boolean)).size,
       today: rows.filter((r) => new Date(r.timestamp).toDateString() === today).length,
-      resources: new Set(rows.map((r) => r.resource)).size,
+      resources: new Set(rows.map((r) => normalizeResourceKey(r.resource))).size,
     };
   }, [rows]);
 
@@ -139,22 +187,55 @@ export function AuditLogsPage() {
     if (actionFilter !== 'all') {
       list = list.filter((r) => actionCategory(r.action) === actionFilter);
     }
+    if (resourceFilter !== 'all') {
+      list = list.filter((r) => normalizeResourceKey(r.resource) === resourceFilter);
+    }
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter((r) =>
         (r.user_name || '').toLowerCase().includes(q)
         || r.resource.toLowerCase().includes(q)
         || r.action.toLowerCase().includes(q)
-        || r.resource_id.toLowerCase().includes(q)
-        || (r.ip_address || '').toLowerCase().includes(q),
+        || (r.resource_id || '').toLowerCase().includes(q)
+        || (r.ip_address || '').toLowerCase().includes(q)
+        || String(r.id).toLowerCase().includes(q),
       );
     }
     return list;
-  }, [rows, search, actionFilter]);
+  }, [rows, search, actionFilter, resourceFilter]);
 
   const pagination = usePagination(filtered);
 
-  if (user?.role !== 'admin') {
+  const handleExport = () => {
+    if (filtered.length === 0) {
+      toast.error(t('audit.exportEmpty'));
+      return;
+    }
+    const header = ['Time', 'User', 'Role', 'Action', 'Resource', 'Resource ID', 'IP', 'Entry ID'];
+    const lines = [
+      header.join(','),
+      ...filtered.map((row) => [
+        new Date(row.timestamp).toISOString(),
+        row.user_name || 'System',
+        row.user_role || '',
+        row.action,
+        row.resource,
+        row.resource_id || '',
+        row.ip_address || '',
+        row.id,
+      ].map((cell) => csvEscape(String(cell))).join(',')),
+    ];
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `camtraffic-audit-logs-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(t('audit.exportSuccess', { count: filtered.length }));
+  };
+
+  if (!canAccess) {
     return <div className="enforcement-page p-8">{t('audit.adminOnly')}</div>;
   }
 
@@ -170,7 +251,20 @@ export function AuditLogsPage() {
               {t('pages.audit.eyebrow')}
             </div>
             <h1 className="enforcement-page__title">{t('pages.audit.title')}</h1>
-            <p className="enforcement-page__subtitle">{t('pages.audit.subtitle')}</p>
+            <p className="enforcement-page__subtitle">
+              {isOfficerLimited ? t('pages.audit.subtitleOfficer') : t('pages.audit.subtitle')}
+            </p>
+          </div>
+          <div className="enforcement-page__hero-actions">
+            <button
+              type="button"
+              className="enforcement-page__hero-btn enforcement-page__hero-btn--blue"
+              onClick={handleExport}
+              disabled={loading || filtered.length === 0}
+            >
+              <Download size={16} />
+              {t('audit.export')}
+            </button>
           </div>
         </div>
       </div>
@@ -212,6 +306,17 @@ export function AuditLogsPage() {
             })}
           </div>
           <div className="flex items-center gap-2 flex-1 min-w-0">
+            <FilterSelect
+              value={resourceFilter}
+              onValueChange={setResourceFilter}
+              ariaLabel={t('audit.resourceFilter')}
+              tone="blue"
+              className="audit-page__resource-filter"
+              options={[
+                { value: 'all', label: t('audit.filters.allResources') },
+                ...resourceOptions.map((key) => ({ value: key, label: formatResource(key) })),
+              ]}
+            />
             <div className="enforcement-page__search-wrap flex-1 min-w-0">
               <Search size={14} className="enforcement-page__search-icon" />
               <input
@@ -298,17 +403,9 @@ export function AuditLogsPage() {
                     </span>
                   </TableCell>
                   <TableCell className="audit-page__col audit-page__col--resource">
-                    <div className="audit-page__resource-cell">
-                      <span className={`audit-page__pill audit-page__pill--${resourceTone(row.resource)}`}>
-                        {formatResource(row.resource)}
-                      </span>
-                      {row.resource_id ? (
-                        <span className="audit-page__resource-id">
-                          <Hash size={10} aria-hidden />
-                          {row.resource_id.slice(0, 8)}
-                        </span>
-                      ) : null}
-                    </div>
+                    <span className={`audit-page__pill audit-page__pill--${resourceTone(row.resource)}`}>
+                      {formatResource(row.resource)}
+                    </span>
                   </TableCell>
                   <TableCell className="audit-page__col audit-page__col--ip">
                     <span className="audit-page__ip-cell">
@@ -335,6 +432,7 @@ export function AuditLogsPage() {
       >
         {viewRow ? (
           <>
+            <EntityDetailField label={t('audit.entryId')} value={String(viewRow.id)} />
             <EntityDetailField
               label={t('audit.colTime')}
               value={new Date(viewRow.timestamp).toLocaleString(dateLocale, { dateStyle: 'full', timeStyle: 'medium' })}
@@ -353,6 +451,12 @@ export function AuditLogsPage() {
               label={t('audit.newValue')}
               value={<pre className="audit-page__json-block">{formatJsonBlock(viewRow.new_value)}</pre>}
             />
+            {viewRow.extra_data && Object.keys(viewRow.extra_data).length > 0 ? (
+              <EntityDetailField
+                label={t('audit.extraData')}
+                value={<pre className="audit-page__json-block">{formatJsonBlock(viewRow.extra_data)}</pre>}
+              />
+            ) : null}
           </>
         ) : null}
       </EntityViewDialog>

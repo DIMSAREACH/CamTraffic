@@ -38,6 +38,14 @@ export interface LocalizationDebug {
   confidence?: number;
 }
 
+export interface HelmetDetectionItem {
+  class_key?: string;
+  label?: string;
+  confidence?: number;
+  bbox?: { x1: number; y1: number; x2: number; y2: number };
+  is_violation?: boolean;
+}
+
 export interface WebcamDetectionResult {
   sign_name: string;
   sign_name_km?: string;
@@ -59,6 +67,15 @@ export interface WebcamDetectionResult {
   plate_confidence?: number;
   plate_bbox?: { x1: number; y1: number; x2: number; y2: number };
   plate_boxes?: Array<{ bbox: { x1: number; y1: number; x2: number; y2: number }; confidence?: number }>;
+  helmets?: HelmetDetectionItem[];
+  helmet_summary?: {
+    enabled?: boolean;
+    no_helmet_detections?: number;
+    helmet_detections?: number;
+    head_detections?: number;
+    has_no_helmet_violation?: boolean;
+    violation_type?: string;
+  };
   display_title_en?: string;
   display_title_km?: string;
   display_confidence?: number;
@@ -66,6 +83,14 @@ export interface WebcamDetectionResult {
   detection_mode?: 'sign' | 'vehicle' | 'plate' | 'unknown_sign' | 'no_sign';
   detection_engine?: string;
   sign_bbox?: { x1: number; y1: number; x2: number; y2: number };
+  /** Multi-sign YOLO boxes for UI overlays (No Entry + Keep Right, etc.). */
+  sign_detections?: Array<{
+    class_key?: string;
+    label?: string;
+    confidence?: number;
+    sign_bbox?: { x1: number; y1: number; x2: number; y2: number };
+    bbox?: { x1: number; y1: number; x2: number; y2: number };
+  }>;
   crop_size?: string;
   localization_debug?: LocalizationDebug;
   guide_frame_image?: string;
@@ -84,11 +109,11 @@ export const LIVE_VOTE_MIN_AGREE = 3;
 /** Live webcam target: sign close-up (guide box) or street full-frame (vehicles/plates). */
 export type WebcamDetectMode = 'sign' | 'street';
 
-const LOOP_GAP_MS = 40;
-const LOOP_GAP_NO_SIGN_MS = 180;
-const LOOP_GAP_STREET_MS = 120;
-const SCAN_RETRIES = 1;
-const SCAN_RETRY_DELAY_MS = 200;
+const LOOP_GAP_MS = 800;
+const LOOP_GAP_NO_SIGN_MS = 1500;
+const LOOP_GAP_STREET_MS = 1200;
+const SCAN_RETRIES = 3;
+const SCAN_RETRY_DELAY_MS = 400;
 const VOTE_WINDOW = LIVE_VOTE_WINDOW;
 const VOTE_MIN_AGREE = LIVE_VOTE_MIN_AGREE;
 const SOFT_VOTE_WINDOW = 5;
@@ -245,6 +270,7 @@ export function isDisplayableSignResult(res: WebcamDetectionResult): boolean {
 export function isManualScanResult(res: WebcamDetectionResult): boolean {
   if ((res.vehicle_count ?? res.vehicles?.length ?? 0) > 0) return true;
   if (res.plate_bbox || (res.plate_boxes?.length ?? 0) > 0 || res.detected_plate) return true;
+  if ((res.helmets?.length ?? 0) > 0 || (res.helmet_summary?.no_helmet_detections ?? 0) > 0) return true;
   const conf = res.display_confidence ?? res.confidence ?? 0;
   const mode = res.detection_mode ?? 'sign';
   if (res.sign_present === false || mode === 'no_sign' || mode === 'unknown_sign') {
@@ -254,6 +280,18 @@ export function isManualScanResult(res: WebcamDetectionResult): boolean {
     (res.sign_code || res.class_key || res.sign_name_en || res.sign_name || res.display_title_en || '').trim(),
   );
   return hasName && conf >= MANUAL_SCAN_MIN_CONF;
+}
+
+/** Street/live success: vehicles, plates, helmet hits, or a named sign. */
+export function hasStreetDetections(res: WebcamDetectionResult): boolean {
+  return (res.vehicle_count ?? res.vehicles?.length ?? 0) > 0
+    || Boolean(res.plate_bbox)
+    || (res.plate_boxes?.length ?? 0) > 0
+    || Boolean(res.detected_plate)
+    || (res.helmets?.length ?? 0) > 0
+    || (res.helmet_summary?.no_helmet_detections ?? 0) > 0
+    || (res.helmet_summary?.helmet_detections ?? 0) > 0
+    || isUsefulSignResult(res);
 }
 
 function resultConfidence(res: WebcamDetectionResult): number {
@@ -290,6 +328,16 @@ function aggregateBurstResults(
   });
   const [winnerKey, winner] = ranked[0];
   if (winnerKey === 'none' || winner.count < SCAN_ONCE_BURST_MIN) {
+    // Soft success: best useful frame even without full vote agreement (avoids false errors).
+    const useful = items
+      .filter((item) => isManualScanResult(item.result))
+      .sort((a, b) => resultConfidence(b.result) - resultConfidence(a.result));
+    if (useful[0]) {
+      return {
+        ...useful[0].result,
+        uploaded_image: useful[0].previewUrl,
+      };
+    }
     return null;
   }
   const avgConf = winner.confSum / winner.count;
@@ -350,7 +398,16 @@ async function captureBurstDetections(
   }));
   return {
     aggregated: mode === 'street'
-      ? (frames[0]?.result ?? null)
+      ? ([...frames].sort((a, b) => {
+          const score = (r: WebcamDetectionResult) => (
+            (r.vehicle_count ?? r.vehicles?.length ?? 0) * 10
+            + (r.plate_boxes?.length ?? 0) * 5
+            + (r.detected_plate ? 8 : 0)
+            + (r.helmets?.length ?? 0) * 2
+            + resultConfidence(r)
+          );
+          return score(b.result) - score(a.result);
+        })[0]?.result ?? null)
       : aggregateBurstResults(burstItems),
     frames,
   };
@@ -451,6 +508,7 @@ export function useWebcamDetection(pipelineOptions?: DetectPipelineOptions) {
   const trackSessionRef = useRef<string>('');
   const pauseLoopRef = useRef<(() => void) | null>(null);
   const scanInFlightRef = useRef(false); // processing lock — drop frames while backend is busy
+  const startDemoCameraRef = useRef<() => Promise<void>>(async () => undefined);
 
   const ensureTrackSession = useCallback(() => {
     if (!trackSessionRef.current) {
@@ -590,10 +648,20 @@ export function useWebcamDetection(pipelineOptions?: DetectPipelineOptions) {
     loopRunIdRef.current += 1;
     loopActiveRef.current = false;
     setLoopActive(false);
-    streamRef.current?.getTracks().forEach((t) => t.stop());
+    const stream = streamRef.current as (MediaStream & { __demoEl?: HTMLVideoElement }) | null;
+    if (stream?.__demoEl) {
+      try {
+        stream.__demoEl.pause();
+        stream.__demoEl.removeAttribute('src');
+        stream.__demoEl.load();
+      } catch { /* ignore */ }
+      stream.__demoEl = undefined;
+    }
+    stream?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
     if (videoRef.current) {
       videoRef.current.srcObject = null;
+      videoRef.current.removeAttribute('src');
     }
     if (previewUrlRef.current) {
       URL.revokeObjectURL(previewUrlRef.current);
@@ -621,7 +689,16 @@ export function useWebcamDetection(pipelineOptions?: DetectPipelineOptions) {
     try {
       setPipelineStage('opencv');
       const captured = await captureWebcamFrame(video, canvas, mode, false);
-      if (!captured) return null;
+      if (!captured) {
+        if (opts?.instant) {
+          setLoopError(
+            mode === 'street'
+              ? 'Camera frame not ready — wait a moment and scan again'
+              : 'Camera frame not ready — hold the sign in the guide box',
+          );
+        }
+        return null;
+      }
 
       setPreviewUrl(captured.previewUrl);
       setPipelineStage('yolo');
@@ -639,20 +716,16 @@ export function useWebcamDetection(pipelineOptions?: DetectPipelineOptions) {
       setLastScanAt(new Date());
       setScanCount((n) => n + 1);
 
-      // Street mode: show vehicle/plate boxes immediately (no sign vote lock)
+      // Street mode: show vehicle/plate/helmet boxes immediately (no sign vote lock)
       if (mode === 'street') {
-        const hasObjects = (withPreview.vehicle_count ?? withPreview.vehicles?.length ?? 0) > 0
-          || Boolean(withPreview.plate_bbox)
-          || (withPreview.plate_boxes?.length ?? 0) > 0
-          || Boolean(withPreview.detected_plate)
-          || isUsefulSignResult(withPreview);
-        if (hasObjects) {
+        if (hasStreetDetections(withPreview) || debugModeRef.current) {
+          setPipelineStage('vote'); // Vehicles + plates step
           rememberStablePreview(captured.previewUrl);
           setStableResult(withPreview);
           setLoopError(null);
           setPipelineStage('result');
         } else if (opts?.instant) {
-          setLoopError('No vehicles or plates in frame — point camera at traffic');
+          setLoopError('No vehicles, plates, or riders in frame — point camera at traffic');
         }
         return withPreview;
       }
@@ -667,6 +740,11 @@ export function useWebcamDetection(pipelineOptions?: DetectPipelineOptions) {
         return withPreview;
       }
       if (opts?.instant) {
+        // Debug: still show last raw response so boxes/media appear while tuning.
+        if (debugModeRef.current) {
+          rememberStablePreview(captured.previewUrl);
+          setStableResult(withPreview);
+        }
         setLoopError(
           withPreview.detection_mode === 'no_sign' || withPreview.sign_present === false
             ? 'No traffic sign in frame — fill the guide box'
@@ -675,6 +753,14 @@ export function useWebcamDetection(pipelineOptions?: DetectPipelineOptions) {
       }
       applyVote(withPreview, captured.previewUrl);
       return withPreview;
+    } catch (err) {
+      if (opts?.instant) {
+        const msg = err instanceof Error ? err.message : 'Scan failed';
+        setLoopError(isRetryableScanError(err)
+          ? 'Server busy — try again in a moment'
+          : msg);
+      }
+      return null;
     } finally {
       scanInFlightRef.current = false;
     }
@@ -709,7 +795,16 @@ export function useWebcamDetection(pipelineOptions?: DetectPipelineOptions) {
       setFrameResult({ uploaded_image: previewUrl } as WebcamDetectionResult);
 
       if (detectModeRef.current === 'street') {
-        const streetFrame = burst.frames[0];
+        const streetFrame = [...burst.frames].sort((a, b) => {
+          const score = (r: WebcamDetectionResult) => (
+            (r.vehicle_count ?? r.vehicles?.length ?? 0) * 10
+            + (r.plate_boxes?.length ?? 0) * 5
+            + (r.detected_plate ? 8 : 0)
+            + (r.helmets?.length ?? 0) * 2
+            + resultConfidence(r)
+          );
+          return score(b.result) - score(a.result);
+        })[0] ?? burst.frames[0];
         const saved = await detectWithRetry(
           streetFrame.file,
           false,
@@ -733,8 +828,13 @@ export function useWebcamDetection(pipelineOptions?: DetectPipelineOptions) {
         rememberStablePreview(streetFrame.previewUrl);
         setStableResult(confirmed);
         setFrameResult(confirmed);
-        setLoopError(null);
-        setPipelineStage('result');
+        if (hasStreetDetections(confirmed) || debugModeRef.current) {
+          setLoopError(null);
+          setPipelineStage('vote');
+          setPipelineStage('result');
+          return confirmed;
+        }
+        setLoopError('No vehicles, plates, or riders in frame — point camera at traffic');
         return confirmed;
       }
 
@@ -791,6 +891,7 @@ export function useWebcamDetection(pipelineOptions?: DetectPipelineOptions) {
       setStableResult(confirmed);
       setFrameResult(confirmed);
       setLoopError(null);
+      setPipelineStage('result');
       return confirmed;
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Scan failed';
@@ -835,10 +936,11 @@ export function useWebcamDetection(pipelineOptions?: DetectPipelineOptions) {
       const withPreview = { ...preview, uploaded_image: preview.uploaded_image || previewUrl };
       setPreviewUrl(previewUrl);
       setFrameResult(withPreview);
-      if (detectModeRef.current === 'street' && isManualScanResult(withPreview)) {
+      if (detectModeRef.current === 'street' && (hasStreetDetections(withPreview) || isManualScanResult(withPreview))) {
         rememberStablePreview(previewUrl);
         setStableResult(withPreview);
         setLoopError(null);
+        setPipelineStage('result');
         return withPreview;
       }
       if (burst.aggregated && isManualScanResult(withPreview)) {
@@ -846,14 +948,40 @@ export function useWebcamDetection(pipelineOptions?: DetectPipelineOptions) {
         lockedSignKeyRef.current = signKeyFromResult(withPreview);
         setStableResult(withPreview);
         setLoopError(null);
+        setPipelineStage('result');
         return withPreview;
+      }
+      // Soft success: any useful frame in the burst (not only 3-agree vote).
+      const bestUseful = [...burst.frames]
+        .map((f) => f.result)
+        .filter((r) => (
+          detectModeRef.current === 'street'
+            ? hasStreetDetections(r) || isManualScanResult(r)
+            : isManualScanResult(r)
+        ))
+        .sort((a, b) => resultConfidence(b) - resultConfidence(a))[0];
+      if (bestUseful) {
+        const ok = { ...bestUseful, uploaded_image: bestUseful.uploaded_image || previewUrl };
+        rememberStablePreview(previewUrl);
+        if (detectModeRef.current === 'sign') {
+          lockedSignKeyRef.current = signKeyFromResult(ok);
+        }
+        setStableResult(ok);
+        setFrameResult(ok);
+        setLoopError(null);
+        setPipelineStage('result');
+        return ok;
+      }
+      if (debugModeRef.current) {
+        rememberStablePreview(previewUrl);
+        setStableResult(withPreview);
       }
       setLoopError(
         detectModeRef.current === 'street'
-          ? 'No vehicles or plates in frame — point camera at traffic'
+          ? 'No vehicles, plates, or riders in frame — point camera at traffic'
           : (withPreview.detection_mode === 'no_sign' || withPreview.sign_present === false
             ? 'No traffic sign in frame — fill the guide box'
-            : `Hold steady — need ${SCAN_ONCE_BURST_MIN}/${SCAN_ONCE_BURST} agreeing frames`),
+            : 'Hold steady and scan again — keep the sign centered'),
       );
       return withPreview;
     } catch (err) {
@@ -872,7 +1000,8 @@ export function useWebcamDetection(pipelineOptions?: DetectPipelineOptions) {
       let gapMs = detectModeRef.current === 'street' ? LOOP_GAP_STREET_MS : LOOP_GAP_MS;
       try {
         const frame = await runLoopScan();
-        setLoopError(null);
+        // Keep prior guidance when a frame was dropped (busy/capture not ready).
+        if (frame) setLoopError(null);
         if (detectModeRef.current === 'sign' && frame && signKeyFromResult(frame) === 'none') {
           gapMs = LOOP_GAP_NO_SIGN_MS;
         }
@@ -960,32 +1089,10 @@ export function useWebcamDetection(pipelineOptions?: DetectPipelineOptions) {
     setScanCount(0);
     setLoopError(null);
     resetVoting();
-    try {
-      if (!navigator.mediaDevices?.getUserMedia) {
-        throw new Error('CAMERA_UNSUPPORTED');
-      }
-      const chosenId = preferredDeviceId || deviceId;
-      const videoConstraint: MediaTrackConstraints = chosenId
-        ? {
-            deviceId: { exact: chosenId },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-            aspectRatio: { ideal: 16 / 9 },
-            // @ts-expect-error — focusMode not in all TS dom lib versions
-            focusMode: { ideal: 'continuous' },
-          }
-        : {
-            facingMode: { ideal: 'environment' },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-            aspectRatio: { ideal: 16 / 9 },
-            // @ts-expect-error — focusMode not in all TS dom lib versions
-            focusMode: { ideal: 'continuous' },
-          };
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: videoConstraint,
-        audio: false,
-      });
+    // Warm YOLO weights so first scan is not a cold 503.
+    void aiAPI.warmup().catch(() => undefined);
+
+    const attachStream = async (stream: MediaStream) => {
       streamRef.current = stream;
       setFacingMode(getVideoFacingMode(stream));
       const track = stream.getVideoTracks()[0];
@@ -1000,11 +1107,9 @@ export function useWebcamDetection(pipelineOptions?: DetectPipelineOptions) {
             await track.applyConstraints({
               width: { ideal: targetW },
               height: { ideal: targetH },
-              // @ts-expect-error — focusMode not in all TS dom lib versions
-              focusMode: { ideal: 'continuous' },
             });
           } catch {
-            /* use default stream resolution */
+            /* keep default resolution */
           }
         }
       }
@@ -1012,22 +1117,176 @@ export function useWebcamDetection(pipelineOptions?: DetectPipelineOptions) {
       if (video) {
         video.srcObject = stream;
         video.setAttribute('playsinline', 'true');
-        await video.play();
+        video.muted = true;
+        try {
+          await video.play();
+        } catch {
+          /* autoplay may need a user gesture; stream is still usable */
+        }
       }
       setStreaming(true);
       loopActiveRef.current = false;
       setLoopActive(false);
       void refreshVideoDevices();
+    };
+
+    const requestCamera = async (constraints: MediaStreamConstraints) => {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        const err = new Error('CAMERA_UNSUPPORTED');
+        err.name = 'CAMERA_UNSUPPORTED';
+        throw err;
+      }
+      return navigator.mediaDevices.getUserMedia(constraints);
+    };
+
+    try {
+      if (typeof window !== 'undefined' && !window.isSecureContext) {
+        setCameraError('insecure');
+        stopStream();
+        return;
+      }
+
+      const chosenId = preferredDeviceId || deviceId;
+      const preferEnvironment = detectModeRef.current === 'street';
+      const attempts: MediaStreamConstraints[] = [];
+      if (chosenId) {
+        attempts.push({
+          video: {
+            deviceId: { ideal: chosenId },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          audio: false,
+        });
+      }
+      attempts.push({
+        video: {
+          facingMode: { ideal: preferEnvironment ? 'environment' : 'user' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+        audio: false,
+      });
+      // Fallback facing for phones when preferred side is missing.
+      attempts.push({
+        video: {
+          facingMode: { ideal: preferEnvironment ? 'user' : 'environment' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+        audio: false,
+      });
+      attempts.push({ video: true, audio: false });
+
+      let lastErr: unknown = null;
+      for (const constraints of attempts) {
+        try {
+          const stream = await requestCamera(constraints);
+          await attachStream(stream);
+          return;
+        } catch (err) {
+          lastErr = err;
+          // Permission denied — do not keep retrying other constraints.
+          const n = err instanceof DOMException || err instanceof Error ? err.name : '';
+          if (n === 'NotAllowedError' || n === 'PermissionDeniedError') {
+            throw err;
+          }
+        }
+      }
+      throw lastErr ?? new Error('CAMERA_UNAVAILABLE');
     } catch (err) {
-      const name = err instanceof Error ? err.message : '';
-      if (name === 'CAMERA_UNSUPPORTED' || name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+      const errName = err instanceof Error ? err.name : '';
+      const errMsg = err instanceof Error ? err.message : String(err);
+      if (typeof window !== 'undefined' && !window.isSecureContext) {
+        setCameraError('insecure');
+        stopStream();
+      } else if (
+        errName === 'NotAllowedError'
+        || errName === 'PermissionDeniedError'
+        || errMsg === 'CAMERA_UNSUPPORTED'
+        || errName === 'CAMERA_UNSUPPORTED'
+      ) {
         setCameraError('permission');
+        stopStream();
+        // Thesis fallback: still allow demo traffic video so Scan & Save can complete.
+        void startDemoCameraRef.current();
+      } else if (errName === 'NotReadableError' || errName === 'TrackStartError') {
+        setCameraError('busy');
+        stopStream();
+        // Thesis fallback: demo street video when webcam is locked by another app.
+        void startDemoCameraRef.current();
+      } else if (errName === 'NotFoundError' || errName === 'DevicesNotFoundError') {
+        setCameraError('unavailable');
+        stopStream();
+        void startDemoCameraRef.current();
       } else {
         setCameraError('unavailable');
+        stopStream();
+        void startDemoCameraRef.current();
       }
-      stopStream();
     }
   }, [deviceId, refreshVideoDevices, resetVoting, stopStream]);
+
+  /** Thesis fallback: play a demo street video as a MediaStream when no webcam. */
+  const startDemoCamera = useCallback(async () => {
+    setCameraError(null);
+    setLoopError(null);
+    resetVoting();
+    void aiAPI.warmup().catch(() => undefined);
+    try {
+      stopStream();
+      const demo = document.createElement('video');
+      demo.src = '/demo-cameras/pp-riverside-traffic.webm';
+      demo.loop = true;
+      demo.muted = true;
+      demo.playsInline = true;
+      demo.crossOrigin = 'anonymous';
+      await new Promise<void>((resolve, reject) => {
+        demo.onloadeddata = () => resolve();
+        demo.onerror = () => reject(new Error('DEMO_VIDEO_MISSING'));
+      });
+      await demo.play();
+      const capture =
+        typeof demo.captureStream === 'function'
+          ? demo.captureStream()
+          : (demo as HTMLVideoElement & { mozCaptureStream?: () => MediaStream }).mozCaptureStream?.();
+      if (!capture) {
+        // Older browsers: bind the demo element directly into the preview video.
+        const video = videoRef.current;
+        if (!video) throw new Error('NO_VIDEO_ELEMENT');
+        video.srcObject = null;
+        video.src = demo.src;
+        video.loop = true;
+        video.muted = true;
+        await video.play();
+        streamRef.current = null;
+        setFacingMode('unknown');
+        setStreaming(true);
+        setLoopActive(false);
+        return;
+      }
+      // Keep the demo element alive so the stream does not freeze.
+      (streamRef as { current: MediaStream | null }).current = capture;
+      // Store demo element on stream for cleanup
+      (capture as MediaStream & { __demoEl?: HTMLVideoElement }).__demoEl = demo;
+      streamRef.current = capture;
+      const video = videoRef.current;
+      if (video) {
+        video.srcObject = capture;
+        video.muted = true;
+        await video.play();
+      }
+      setFacingMode('unknown');
+      setStreaming(true);
+      loopActiveRef.current = false;
+      setLoopActive(false);
+    } catch {
+      setCameraError('unavailable');
+      stopStream();
+    }
+  }, [resetVoting, stopStream]);
+
+  startDemoCameraRef.current = startDemoCamera;
 
   useEffect(() => () => stopStream(), [stopStream]);
 
@@ -1057,6 +1316,7 @@ export function useWebcamDetection(pipelineOptions?: DetectPipelineOptions) {
     detectMode,
     setDetectMode,
     startCamera,
+    startDemoCamera,
     stopStream,
     runSingleScan,
     runConfirmedScan,

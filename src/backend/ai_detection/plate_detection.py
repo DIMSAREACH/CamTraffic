@@ -92,7 +92,7 @@ def detect_plate_boxes(image_path: str | Path) -> list[dict]:
     if model is None:
         return []
     try:
-        results = model.predict(source=str(path), conf=_confidence(), verbose=False)
+        results = model.predict(source=str(path), conf=_confidence(), iou=0.7, verbose=False)
         if not results:
             return []
         result = results[0]
@@ -121,12 +121,12 @@ def detect_plate_boxes(image_path: str | Path) -> list[dict]:
             bw = float(bb['x2']) - float(bb['x1'])
             bh = float(bb['y2']) - float(bb['y1'])
             area = bw * bh
-            if area > 0.08 or bh > 0.15 or bw > 0.45:
+            if area > 0.10 or bh > 0.22 or bw > 0.50:
                 continue
-            if area < 0.0004:
+            if area < 0.0003:
                 continue
-            # Plates are typically wider than tall (allow near-square crops)
-            if bh > 0 and (bw / bh) < 1.05:
+            # Plates are typically wider than tall (allow near-square moto plates)
+            if bh > 0 and (bw / bh) < 0.95:
                 continue
             filtered.append(det)
         filtered.sort(key=lambda d: d['confidence'], reverse=True)
@@ -200,8 +200,13 @@ def detect_plate_boxes_near_vehicles(
         try:
             if not cv2.imwrite(tmp_path, crop):
                 continue
-            # Slightly lower conf inside crop — plate fills more of the patch
-            results = model.predict(source=tmp_path, conf=max(0.15, _confidence() * 0.7), verbose=False)
+            # Slightly lower conf inside crop — moto plates are often ~0.10–0.25.
+            results = model.predict(
+                source=tmp_path,
+                conf=max(0.08, _confidence() * 0.45),
+                iou=0.7,
+                verbose=False,
+            )
             if not results or results[0].boxes is None:
                 continue
             ch, cw = float(crop.shape[0]), float(crop.shape[1])
@@ -216,9 +221,9 @@ def detect_plate_boxes_near_vehicles(
                 bw = fx2 - fx1
                 bh = fy2 - fy1
                 area = bw * bh
-                if area <= 0 or area > 0.08 or bh > 0.12 or bw > 0.4:
+                if area <= 0 or area > 0.12 or bh > 0.25 or bw > 0.55:
                     continue
-                if bh > 0 and (bw / bh) < 1.05:
+                if bh > 0 and (bw / bh) < 0.95:
                     continue
                 found.append({
                     'confidence': round(conf * 100, 1),
@@ -275,11 +280,12 @@ def crop_plates_from_image(image: np.ndarray, detections: list[dict], pad: float
             y2 = int(float(bb.get('y2', 1)) * h)
         bw, bh = max(x2 - x1, 1), max(y2 - y1, 1)
         px, py = int(bw * pad), int(bh * pad)
-        # Bias padding downward so the printed city/province line stays in the crop.
+        # Cambodia plates: Khmer province on TOP, English province on BOTTOM.
+        # Expand both directions so the printed city/province lines stay in the crop.
         x1 = max(0, x1 - px)
-        y1 = max(0, y1 - int(py * 0.5))
+        y1 = max(0, y1 - max(int(py * 2.4), int(bh * 0.9)))
         x2 = min(w, x2 + px)
-        y2 = min(h, y2 + int(py * 2.2) + int(bh * 0.28))
+        y2 = min(h, y2 + max(int(py * 2.4), int(bh * 0.9)))
         crop = image[y1:y2, x1:x2]
         if crop.size == 0 or crop.shape[0] < 10 or crop.shape[1] < 20:
             continue

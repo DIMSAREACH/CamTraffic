@@ -8,15 +8,20 @@ class UnknownVehicleSerializer(serializers.ModelSerializer):
     camera_name = serializers.CharField(source='camera.name', read_only=True, allow_null=True)
     resolved_by_name = serializers.CharField(source='resolved_by.full_name', read_only=True, allow_null=True)
     linked_vehicle_plate = serializers.CharField(source='linked_vehicle.plate_number', read_only=True, allow_null=True)
+    linked_violation_id = serializers.UUIDField(source='linked_violation.id', read_only=True, allow_null=True)
+    ai_detection_log_id = serializers.UUIDField(source='ai_detection_log.id', read_only=True, allow_null=True)
     evidence_photo = serializers.SerializerMethodField()
 
     class Meta:
         model = UnknownVehicle
         fields = (
             'id', 'plate_detected', 'camera_id', 'camera_name', 'violation_type',
-            'evidence_photo', 'ai_confidence_score', 'is_resolved', 'resolved_by',
+            'observed_action', 'detected_class_key',
+            'evidence_photo', 'ai_confidence_score', 'ai_detection_log_id',
+            'is_resolved', 'resolved_by',
             'resolved_by_name', 'linked_vehicle', 'linked_vehicle_plate',
-            'linked_violation', 'officer_note', 'detected_at', 'resolved_at',
+            'linked_violation', 'linked_violation_id', 'officer_note',
+            'detected_at', 'resolved_at',
         )
         read_only_fields = (
             'id', 'detected_at', 'resolved_at', 'resolved_by', 'resolved_by_name',

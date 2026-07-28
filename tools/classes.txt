@@ -1,0 +1,15 @@
+car
+motorcycle
+truck
+bus
+license_plate
+no_entry
+stop
+speed_limit_40
+speed_limit_60
+yield
+pedestrian_crossing
+no_parking
+one_way
+turn_left
+turn_right

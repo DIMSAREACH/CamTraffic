@@ -86,7 +86,14 @@ def create_khqr_session(*, fine) -> dict:
         f'Then return here and tap "Submit Payment".'
     )
     
-    instructions_km = instructions_en  # TODO: Add Khmer translation
+    instructions_km = (
+        f'ស្កេន ABA KHQR ខាងក្រោម{env_label}។ នៅក្នុង ABA Mobile ចុច "+" រួចជ្រើស "Scan QR"។ '
+        f'បញ្ចូលចំនួនទឹកប្រាក់: {amount} USD'
+        f'{f" ទៅគណនី {account_usd}" if account_usd else ""}'
+        f'{f" (ឬគណនីរៀល {account_khr})" if account_khr else ""}។ '
+        f'បញ្ចូលលេខយោងការទូទាត់: {bill_ref}។ '
+        f'បន្ទាប់មកត្រឡប់មកទីនេះ ហើយចុច "Submit Payment"។'
+    )
 
     return {
         'merchant_name': merchant,

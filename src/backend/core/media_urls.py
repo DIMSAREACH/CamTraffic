@@ -59,6 +59,28 @@ def _local_media_path(name: str) -> Path:
     return Path(settings.MEDIA_ROOT) / name.lstrip('/')
 
 
+def _profile_local_fallback(name: str) -> str | None:
+    """
+    When Django saved profiles/foo_AbCdEfG.jpg but only profiles/foo.jpg exists locally
+    (common after R2 sync / demo seed), return the existing sibling path.
+    """
+    clean = (name or '').lstrip('/').replace('\\', '/')
+    if not clean.startswith('profiles/'):
+        return None
+    path = Path(clean)
+    stem = path.stem
+    if '_' not in stem:
+        return None
+    base, suffix = stem.rsplit('_', 1)
+    # Django get_available_name suffix is typically 7 alnum chars.
+    if not (4 <= len(suffix) <= 10 and suffix.isalnum()):
+        return None
+    candidate = f'{path.parent.as_posix()}/{base}{path.suffix}'.lstrip('./')
+    if _local_media_path(candidate).is_file():
+        return candidate
+    return None
+
+
 def _public_media_path(name: str) -> str:
     """Always the SPA/Vite-friendly /media/... path (never an absolute R2 host)."""
     return f"/media/{name.lstrip('/')}"
@@ -94,8 +116,12 @@ def ensure_local_media_copy(
     return dest if dest.is_file() else None
 
 
-def hydrate_local_media_from_storage(field) -> Path | None:
-    """Download a remote storage object into MEDIA_ROOT when the local copy is missing."""
+def hydrate_local_media_from_storage(field, *, force: bool = False) -> Path | None:
+    """Download a remote storage object into MEDIA_ROOT when the local copy is missing.
+
+    Set force=True for small list endpoints (e.g. vehicle registration photos) where
+    on-demand hydrate is cheap and DEBUG would otherwise skip it.
+    """
     name = getattr(field, 'name', None)
     if not name:
         return None
@@ -108,7 +134,7 @@ def hydrate_local_media_from_storage(field) -> Path | None:
 
     if not getattr(settings, 'USE_S3_MEDIA', False):
         return None
-    if not _hydrate_from_remote_enabled():
+    if not force and not _hydrate_from_remote_enabled():
         return None
     if _is_known_missing(name):
         return None
@@ -167,6 +193,10 @@ def api_media_url(_request, field) -> str:
                 except Exception:
                     return path
             return path
+        # Missing hashed profile upload → use base sibling on disk (avoids Vite 404 spam).
+        fallback = _profile_local_fallback(name)
+        if fallback:
+            return _public_media_path(fallback)
     except OSError:
         pass
 

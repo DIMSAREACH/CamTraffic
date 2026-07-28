@@ -1,0 +1,92 @@
+{
+  "source": "stock-footage-phnom-penh-cambodia-vehicles-and-motorbikes-move-along-the-riverside-road-near-a.webm",
+  "video_key": "riverside",
+  "frame_index": 100,
+  "frame_file": "frame_0100_t4.17s.jpg",
+  "timestamp_sec": 4.171,
+  "image_size": {
+    "width": 898,
+    "height": 506
+  },
+  "tracking": true,
+  "annotations": [
+    {
+      "kind": "vehicle",
+      "class_key": "motorcycle",
+      "class_id": 2,
+      "label_en": "Motorcycle",
+      "confidence": 84.8,
+      "track_id": 22,
+      "bbox_norm": {
+        "x1": 0.0699,
+        "y1": 0.6295,
+        "x2": 0.1307,
+        "y2": 0.8181
+      },
+      "bbox_px": {
+        "x1": 63,
+        "y1": 319,
+        "x2": 117,
+        "y2": 414
+      },
+      "bbox_yolo": {
+        "x_center": 0.1003,
+        "y_center": 0.7238,
+        "width": 0.0608,
+        "height": 0.1886
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "truck",
+      "class_id": 3,
+      "label_en": "Truck",
+      "confidence": 83.6,
+      "track_id": 25,
+      "bbox_norm": {
+        "x1": 0.2208,
+        "y1": 0.49,
+        "x2": 0.5405,
+        "y2": 0.8431
+      },
+      "bbox_px": {
+        "x1": 198,
+        "y1": 248,
+        "x2": 485,
+        "y2": 427
+      },
+      "bbox_yolo": {
+        "x_center": 0.38065,
+        "y_center": 0.66655,
+        "width": 0.3197,
+        "height": 0.3531
+      }
+    },
+    {
+      "kind": "vehicle",
+      "class_key": "car",
+      "class_id": 1,
+      "label_en": "Car",
+      "confidence": 71.5,
+      "track_id": 26,
+      "bbox_norm": {
+        "x1": 0.0,
+        "y1": 0.591,
+        "x2": 0.0644,
+        "y2": 0.7241
+      },
+      "bbox_px": {
+        "x1": 0,
+        "y1": 299,
+        "x2": 58,
+        "y2": 366
+      },
+      "bbox_yolo": {
+        "x_center": 0.0322,
+        "y_center": 0.65755,
+        "width": 0.0644,
+        "height": 0.1331
+      }
+    }
+  ]
+}
